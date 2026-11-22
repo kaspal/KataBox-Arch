@@ -90,7 +90,8 @@
     "zone": {
       "region": "Región",
       "az": "Zona de disponibilidad",
-      "note": "Nota adhesiva"
+      "note": "Nota adhesiva",
+      "autoscale": "Grupo de autoescalado"
     },
     "noteText": "Texto de la nota",
     "notePlaceholder": "Doble clic para escribir…",
@@ -170,7 +171,9 @@
     "many_one": "{{count}} elemento seleccionado",
     "many_other": "{{count}} elementos seleccionados",
     "range": "Escribe un número de {{min}} a {{max}}.",
-    "rangeInt": "Escribe un número entero de {{min}} a {{max}}."
+    "rangeInt": "Escribe un número entero de {{min}} a {{max}}.",
+    "autoscaleHint": "Las tarjetas de cómputo dentro de este marco escalan entre el mínimo y el máximo de instancias, y añaden instancias cuando la utilización se mantiene por encima del objetivo.",
+    "scaling": "Política de escalado"
   },
   "home": {
     "eyebrow": "Tu mesa de diseño de sistemas",

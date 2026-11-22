@@ -2172,26 +2172,20 @@
     },
     {
       "from": "autoscale",
-      "protocols": [
-        "http"
-      ],
-      "reason": null,
+      "protocols": [],
+      "reason": "no_rule",
       "to": "app"
     },
     {
       "from": "autoscale",
-      "protocols": [
-        "http"
-      ],
-      "reason": null,
+      "protocols": [],
+      "reason": "no_rule",
       "to": "micro"
     },
     {
       "from": "autoscale",
-      "protocols": [
-        "http"
-      ],
-      "reason": null,
+      "protocols": [],
+      "reason": "no_rule",
       "to": "worker"
     },
     {
@@ -4403,6 +4397,7 @@
         ],
         "icon": "client",
         "kind": "client",
+        "placement": "card",
         "props": [
           {
             "default": 1000,
@@ -4433,6 +4428,7 @@
         ],
         "icon": "dns",
         "kind": "dns",
+        "placement": "card",
         "props": [
           {
             "default": 300,
@@ -4467,18 +4463,8 @@
         ],
         "icon": "cdn",
         "kind": "cdn",
+        "placement": "card",
         "props": [
-          {
-            "default": 80,
-            "key": "hit_rate",
-            "ty": {
-              "max": 100.0,
-              "min": 0.0,
-              "step": 1.0,
-              "type": "float"
-            },
-            "unit": "percent"
-          },
           {
             "default": 3600,
             "key": "ttl_s",
@@ -4508,6 +4494,7 @@
         ],
         "icon": "waf",
         "kind": "waf",
+        "placement": "card",
         "props": [
           {
             "default": 1,
@@ -4562,6 +4549,7 @@
         ],
         "icon": "lb",
         "kind": "lb",
+        "placement": "card",
         "props": [
           {
             "default": 1,
@@ -4616,6 +4604,7 @@
         ],
         "icon": "gateway",
         "kind": "gateway",
+        "placement": "card",
         "props": [
           {
             "default": 2,
@@ -4668,6 +4657,7 @@
         ],
         "icon": "ratelimit",
         "kind": "ratelimit",
+        "placement": "card",
         "props": [
           {
             "default": 1000,
@@ -4727,6 +4717,7 @@
         ],
         "icon": "app",
         "kind": "app",
+        "placement": "card",
         "props": [
           {
             "default": 2,
@@ -4775,6 +4766,7 @@
         ],
         "icon": "micro",
         "kind": "micro",
+        "placement": "card",
         "props": [
           {
             "default": 2,
@@ -4827,6 +4819,7 @@
         ],
         "icon": "worker",
         "kind": "worker",
+        "placement": "card",
         "props": [
           {
             "default": 2,
@@ -4884,6 +4877,7 @@
         ],
         "icon": "serverless",
         "kind": "serverless",
+        "placement": "card",
         "props": [
           {
             "default": 1000,
@@ -4936,6 +4930,7 @@
         ],
         "icon": "autoscale",
         "kind": "autoscale",
+        "placement": "wrapper",
         "props": [
           {
             "default": 2,
@@ -4999,18 +4994,8 @@
         ],
         "icon": "sql",
         "kind": "sql",
+        "placement": "card",
         "props": [
-          {
-            "default": 0,
-            "key": "read_replicas",
-            "ty": {
-              "max": 15.0,
-              "min": 0.0,
-              "step": 1.0,
-              "type": "int"
-            },
-            "unit": "count"
-          },
           {
             "default": 1,
             "key": "shards",
@@ -5077,6 +5062,7 @@
         ],
         "icon": "nosql",
         "kind": "nosql",
+        "placement": "card",
         "props": [
           {
             "default": 4,
@@ -5141,6 +5127,7 @@
         ],
         "icon": "cache",
         "kind": "cache",
+        "placement": "card",
         "props": [
           {
             "default": 2,
@@ -5214,6 +5201,7 @@
         ],
         "icon": "object",
         "kind": "object",
+        "placement": "card",
         "props": [
           {
             "default": 50,
@@ -5244,6 +5232,7 @@
         ],
         "icon": "search",
         "kind": "search",
+        "placement": "card",
         "props": [
           {
             "default": 2,
@@ -5296,6 +5285,7 @@
         ],
         "icon": "queue",
         "kind": "queue",
+        "placement": "card",
         "props": [
           {
             "default": 100000,
@@ -5348,6 +5338,7 @@
         ],
         "icon": "stream",
         "kind": "stream",
+        "placement": "card",
         "props": [
           {
             "default": 6,
@@ -5393,6 +5384,7 @@
         ],
         "icon": "pubsub",
         "kind": "pubsub",
+        "placement": "card",
         "props": [
           {
             "default": 5,
@@ -5419,6 +5411,7 @@
         ],
         "icon": "dlq",
         "kind": "dlq",
+        "placement": "card",
         "props": [
           {
             "default": 4,
@@ -5449,6 +5442,7 @@
         ],
         "icon": "scheduler",
         "kind": "scheduler",
+        "placement": "card",
         "props": [
           {
             "default": 60,
@@ -5475,6 +5469,7 @@
         ],
         "icon": "metrics",
         "kind": "metrics",
+        "placement": "card",
         "props": [
           {
             "default": 15,
@@ -5505,6 +5500,7 @@
         ],
         "icon": "logs",
         "kind": "logs",
+        "placement": "card",
         "props": [
           {
             "default": 7,
@@ -5531,6 +5527,7 @@
         ],
         "icon": "tracing",
         "kind": "tracing",
+        "placement": "card",
         "props": [
           {
             "default": 10,
@@ -6000,27 +5997,6 @@
               "autoscale"
             ],
             "kinds": []
-          }
-        },
-        {
-          "from": {
-            "categories": [],
-            "except": [],
-            "kinds": [
-              "autoscale"
-            ]
-          },
-          "id": "scale_control",
-          "protocol": "http",
-          "same_kind": false,
-          "to": {
-            "categories": [],
-            "except": [],
-            "kinds": [
-              "app",
-              "micro",
-              "worker"
-            ]
           }
         },
         {

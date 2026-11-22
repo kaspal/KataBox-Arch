@@ -90,7 +90,8 @@
     "zone": {
       "region": "Region",
       "az": "Availability zone",
-      "note": "Sticky note"
+      "note": "Sticky note",
+      "autoscale": "Autoscaling group"
     },
     "noteText": "Note text",
     "notePlaceholder": "Double-click to write…",
@@ -170,7 +171,9 @@
     "many_one": "{{count}} item selected",
     "many_other": "{{count}} items selected",
     "range": "Enter a number from {{min}} to {{max}}.",
-    "rangeInt": "Enter a whole number from {{min}} to {{max}}."
+    "rangeInt": "Enter a whole number from {{min}} to {{max}}.",
+    "autoscaleHint": "Compute cards inside this frame scale between the minimum and maximum instances, adding instances when utilisation stays above the target.",
+    "scaling": "Scaling policy"
   },
   "home": {
     "eyebrow": "Your system design desk",

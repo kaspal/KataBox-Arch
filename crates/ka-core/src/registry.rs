@@ -345,6 +345,19 @@ pub struct KindSpec {
     pub flavours: Vec<FlavourSpec>,
     pub default_flavour: Flavour,
     pub props: Vec<PropSpec>,
+    /// How the kind sits on the canvas: a card, or a wrapper around cards (Autoscaling).
+    pub placement: Placement,
+}
+
+/// How a kind is placed on the canvas.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(rename_all = "snake_case")]
+pub enum Placement {
+    /// An index card wired with edges.
+    Card,
+    /// A resizable frame around compute cards, holding a policy (an autoscaling group).
+    Wrapper,
 }
 
 impl KindSpec {
@@ -472,6 +485,11 @@ fn kind(kind: ComponentKind, flavours: Vec<FlavourSpec>, props: Vec<PropSpec>) -
         default_flavour: flavours[0].flavour,
         flavours,
         props,
+        placement: if kind == ComponentKind::Autoscale {
+            Placement::Wrapper
+        } else {
+            Placement::Card
+        },
     }
 }
 
@@ -508,10 +526,7 @@ pub fn registry() -> Registry {
         kind(
             K::Cdn,
             vec![fl(F::Cloudfront), fl(F::CloudflareCdn), fl(F::Fastly)],
-            vec![
-                float("hit_rate", 0.0, 100.0, 1.0, 80.0, Unit::Percent),
-                int("ttl_s", 0.0, 604_800.0, 3600.0, Unit::S),
-            ],
+            vec![int("ttl_s", 0.0, 604_800.0, 3600.0, Unit::S)],
         ),
         kind(
             K::Waf,
@@ -601,7 +616,6 @@ pub fn registry() -> Registry {
             K::Sql,
             vec![fl(F::Postgresql), fl(F::Mysql)],
             vec![
-                int("read_replicas", 0.0, 15.0, 0.0, Unit::Count),
                 int("shards", 1.0, 64.0, 1.0, Unit::Count),
                 int("concurrency", 1.0, 1000.0, 100.0, Unit::Count),
                 service_ms(5.0),

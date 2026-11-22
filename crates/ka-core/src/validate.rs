@@ -5,8 +5,8 @@ use std::collections::{HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 
-use crate::design::{Design, Point, Size};
-use crate::registry::Registry;
+use crate::design::{Design, GroupKind, Point, Size};
+use crate::registry::{ComponentKind, Placement, Registry};
 use crate::wiring::WiringReason;
 
 /// Size caps for a design. Sent to the UI with the registry.
@@ -63,6 +63,10 @@ pub enum IssueCode {
     /// A coordinate, size or zoom is NaN, infinite, or not positive where it must be.
     BadNumber,
     TooManyItems,
+    /// An Autoscale wrapper without a valid scaling policy, or a policy on another zone.
+    BadScaling,
+    /// A wrapper kind (Autoscaling) placed as a card.
+    WrapperAsCard,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -102,6 +106,22 @@ fn chars(s: &str) -> u32 {
 
 fn count(n: usize) -> u32 {
     u32::try_from(n).unwrap_or(u32::MAX)
+}
+
+/// An Autoscale wrapper needs a policy with an Autoscaling flavour and valid props;
+/// other zones have none.
+fn scaling_ok(g: &crate::design::Group, registry: &Registry) -> bool {
+    match (g.kind, &g.scaling) {
+        (GroupKind::Autoscale, Some(s)) => {
+            let spec = registry.kind(ComponentKind::Autoscale);
+            spec.flavour(s.flavour).is_some()
+                && s.props
+                    .iter()
+                    .all(|(k, val)| spec.prop(k).is_some_and(|p| p.accepts(val)))
+        }
+        (GroupKind::Autoscale, None) => false,
+        (_, scaling) => scaling.is_none(),
+    }
 }
 
 /// Every problem with `design`, in a stable order. Empty means valid.
@@ -158,6 +178,9 @@ pub fn validate(design: &Design, registry: &Registry) -> Vec<DesignIssue> {
         {
             out.push(issue(IssueCode::UnknownGroup, &[&g.id, parent]));
         }
+        if !scaling_ok(g, registry) {
+            out.push(issue(IssueCode::BadScaling, &[&g.id]));
+        }
     }
     for g in &design.groups {
         // Walk up the parents; more steps than zones means a loop.
@@ -178,6 +201,9 @@ pub fn validate(design: &Design, registry: &Registry) -> Vec<DesignIssue> {
         design.nodes.iter().map(|n| (n.id.as_str(), n)).collect();
     for n in &design.nodes {
         let spec = registry.kind(n.kind);
+        if spec.placement == Placement::Wrapper {
+            out.push(issue(IssueCode::WrapperAsCard, &[&n.id]));
+        }
         if spec.flavour(n.flavour).is_none() {
             out.push(issue(IssueCode::UnknownFlavour, &[&n.id]));
         }
@@ -310,6 +336,7 @@ mod tests {
             position: Point { x: -50.0, y: -50.0 },
             size: Size { w: 900.0, h: 600.0 },
             parent_id: None,
+            scaling: None,
         });
         d.groups.push(Group {
             id: "az1".into(),
@@ -318,6 +345,7 @@ mod tests {
             position: Point { x: 0.0, y: 0.0 },
             size: Size { w: 400.0, h: 300.0 },
             parent_id: Some("r1".into()),
+            scaling: None,
         });
         d.nodes.push(node("c", ComponentKind::Client, Flavour::Web));
         let mut app = node("a", ComponentKind::App, Flavour::Go);
@@ -441,6 +469,58 @@ mod tests {
         let mut d = valid();
         d.viewport.zoom = 0.0;
         assert_eq!(codes(&d), vec![IssueCode::BadNumber]);
+    }
+
+    fn autoscale_group(scaling: Option<crate::design::Scaling>) -> Group {
+        Group {
+            id: "asg".into(),
+            kind: GroupKind::Autoscale,
+            label: String::new(),
+            position: Point { x: 0.0, y: 0.0 },
+            size: Size { w: 300.0, h: 200.0 },
+            parent_id: Some("az1".into()),
+            scaling,
+        }
+    }
+
+    fn policy(flavour: Flavour, min: f64) -> crate::design::Scaling {
+        crate::design::Scaling {
+            flavour,
+            props: BTreeMap::from([("min_instances".to_owned(), PropValue::Number(min))]),
+        }
+    }
+
+    #[test]
+    fn autoscale_wrappers_need_a_valid_policy() {
+        let mut d = valid();
+        d.groups
+            .push(autoscale_group(Some(policy(Flavour::KubernetesHpa, 2.0))));
+        d.nodes[1].group_id = Some("asg".into());
+        assert_eq!(codes(&d), vec![]);
+        for bad in [
+            None,
+            Some(policy(Flavour::Redis, 2.0)),
+            Some(policy(Flavour::AwsAsg, 0.5)),
+        ] {
+            let mut d = valid();
+            d.groups.push(autoscale_group(bad));
+            assert_eq!(codes(&d), vec![IssueCode::BadScaling]);
+        }
+        // Only autoscale wrappers carry a policy.
+        let mut d = valid();
+        d.groups[0].scaling = Some(policy(Flavour::AwsAsg, 2.0));
+        assert_eq!(codes(&d), vec![IssueCode::BadScaling]);
+    }
+
+    #[test]
+    fn autoscaling_is_never_a_card() {
+        let mut d = valid();
+        d.nodes.push(node(
+            "hpa",
+            ComponentKind::Autoscale,
+            Flavour::KubernetesHpa,
+        ));
+        assert_eq!(codes(&d), vec![IssueCode::WrapperAsCard]);
     }
 
     #[test]

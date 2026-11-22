@@ -11,7 +11,7 @@ use crate::ser_num;
 
 /// The `.kbarch` format version this build writes. Older versions are migrated on open;
 /// newer ones are refused.
-pub const SCHEMA_VERSION: u32 = 1;
+pub const SCHEMA_VERSION: u32 = 2;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
@@ -115,8 +115,20 @@ pub struct Group {
     pub label: String,
     pub position: Point,
     pub size: Size,
-    /// An AZ's region, if it sits inside one.
+    /// The zone this one sits in: an AZ's region, an autoscaling group's AZ or region.
     pub parent_id: Option<String>,
+    /// The scaling policy of an Autoscale wrapper (and only of one).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scaling: Option<Scaling>,
+}
+
+/// An autoscaling group's policy: the Autoscaling kind's flavour and props (v2).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(deny_unknown_fields)]
+pub struct Scaling {
+    pub flavour: Flavour,
+    pub props: BTreeMap<String, PropValue>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -125,6 +137,8 @@ pub struct Group {
 pub enum GroupKind {
     Region,
     Az,
+    /// An autoscaling group wrapped around compute cards (v2).
+    Autoscale,
 }
 
 /// A sticky note (hand-written font on the canvas).

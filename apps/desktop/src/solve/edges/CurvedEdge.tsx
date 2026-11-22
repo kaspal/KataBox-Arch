@@ -13,10 +13,11 @@ import { useTranslation } from "react-i18next";
 import type { Protocol } from "@/bindings";
 import { cn } from "@/lib/utils";
 import { bezierAngle, bezierPoint, routeEdge, toPath, type Rect } from "@/solve/geometry/routeEdge";
+import type { EdgeSlots } from "@/solve/geometry/slots";
 import { CARD_H, CARD_W, useEditor } from "@/solve/store";
 import { protocolStyle } from "@/solve/wiring";
 
-export type CurvedEdgeData = { protocol: Protocol };
+export type CurvedEdgeData = { protocol: Protocol; slots?: EdgeSlots };
 export type CurvedFlowEdge = FlowEdge<CurvedEdgeData, "curved">;
 
 export function nodeRect(n: InternalNode): Rect {
@@ -38,7 +39,7 @@ export const CurvedEdge = memo(function CurvedEdge({ id, source, target, data, s
   const b = useInternalNode(target);
   const setSelection = useEditor((s) => s.setSelection);
   if (!a || !b || !data) return null;
-  const route = routeEdge(nodeRect(a), nodeRect(b));
+  const route = routeEdge(nodeRect(a), nodeRect(b), data.slots);
   const mid = bezierPoint(route, 0.5);
   // The arrowhead sits on the target's side, pointing along the curve's last tangent.
   const angle = bezierAngle(route, 1);

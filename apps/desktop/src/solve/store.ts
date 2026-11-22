@@ -20,6 +20,7 @@ import type {
   PropValue,
   Protocol,
   Registry,
+  Scaling,
   Viewport,
 } from "@/bindings";
 import { defaultProps, kindSpec } from "@/solve/registry";
@@ -33,7 +34,14 @@ export const NOTE_SIZE = { w: 200, h: 120 };
 export const ZONE_SIZE: Record<GroupKind, { w: number; h: number }> = {
   region: { w: 640, h: 420 },
   az: { w: 360, h: 260 },
+  autoscale: { w: 300, h: 160 },
 };
+
+/** Draw order (behind the cards): regions, then AZs, then autoscaling wrappers. */
+const ZONE_ORDER: Record<GroupKind, number> = { region: 0, az: 1, autoscale: 2 };
+
+/** Kinds an autoscaling wrapper scales; other cards in its frame join the zone around it. */
+export const SCALABLE: ReadonlySet<ComponentKind> = new Set(["app", "micro", "worker", "serverless"]);
 
 /** The design without the viewport: what undo and the dirty check look at. */
 export type Doc = {
@@ -68,7 +76,9 @@ type Actions = {
   setSelection: (ids: string[]) => void;
 
   addNode: (registry: Registry, kind: ComponentKind, flavour: Flavour, at: Point) => string;
-  addGroup: (kind: GroupKind, at: Point) => string;
+  /** A zone; an autoscale wrapper also takes its scaling policy. */
+  addGroup: (kind: GroupKind, at: Point, scaling?: Scaling) => string;
+  updateScaling: (id: string, scaling: Scaling) => void;
   addNote: (at: Point) => string;
   addEdge: (from: string, to: string, protocol: Protocol) => string;
   setEdgeProtocol: (id: string, protocol: Protocol) => void;
@@ -162,19 +172,22 @@ function zoneSubtree(groups: Group[], root: string): Set<string> {
   return out;
 }
 
-/** Recompute zone membership: each card joins the innermost zone holding its centre; each
- * AZ joins the innermost region holding its centre. */
+/** Recompute zone membership: an AZ joins the innermost region holding its centre, an
+ * autoscaling wrapper the innermost AZ or region; a card joins the innermost zone holding
+ * its centre, and only compute cards join autoscaling wrappers. */
 export function withMembership(doc: Doc, sizes?: Map<string, { w: number; h: number }>): Doc {
+  const PARENTS: Record<GroupKind, GroupKind[]> = { region: [], az: ["region"], autoscale: ["region", "az"] };
   const groups = doc.groups.map((g) => {
-    if (g.kind !== "az") return g.parent_id === null ? g : { ...g, parent_id: null };
     const c = { x: g.position.x + g.size.w / 2, y: g.position.y + g.size.h / 2 };
-    const parent = innermostZone(doc.groups, c, ["region"], g.id)?.id ?? null;
+    const kinds = PARENTS[g.kind];
+    const parent = kinds.length ? (innermostZone(doc.groups, c, kinds, g.id)?.id ?? null) : null;
     return parent === g.parent_id ? g : { ...g, parent_id: parent };
   });
   const nodes = doc.nodes.map((n) => {
     const size = sizes?.get(n.id) ?? { w: CARD_W, h: CARD_H };
     const c = { x: n.position.x + size.w / 2, y: n.position.y + size.h / 2 };
-    const zone = innermostZone(groups, c, ["region", "az"])?.id ?? null;
+    const kinds: GroupKind[] = SCALABLE.has(n.kind) ? ["region", "az", "autoscale"] : ["region", "az"];
+    const zone = innermostZone(groups, c, kinds)?.id ?? null;
     return zone === n.group_id ? n : { ...n, group_id: zone };
   });
   const changed = groups.some((g, i) => g !== doc.groups[i]) || nodes.some((n, i) => n !== doc.nodes[i]);
@@ -229,17 +242,20 @@ export const useEditor = create<EditorStore>()(
           set({ selection: [id] });
           return id;
         },
-        addGroup: (kind, at) => {
+        addGroup: (kind, at, scaling) => {
           const id = newId(kind);
           const group: Group = { id, kind, label: "", position: at, size: ZONE_SIZE[kind], parent_id: null };
-          // Zones draw behind cards: regions first, then AZs.
+          if (kind === "autoscale" && scaling) group.scaling = scaling;
+          // Zones draw behind cards: regions first, then AZs, then wrappers.
           patchDoc((d) => {
-            const groups = [...d.groups, group].sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "region" ? -1 : 1));
+            const groups = [...d.groups, group].sort((a, b) => ZONE_ORDER[a.kind] - ZONE_ORDER[b.kind]);
             return withMembership({ ...d, groups });
           });
           set({ selection: [id] });
           return id;
         },
+        updateScaling: (id, scaling) =>
+          patchDoc((d) => ({ ...d, groups: d.groups.map((g) => (g.id === id ? { ...g, scaling } : g)) })),
         addNote: (at) => {
           const id = newId("note");
           patchDoc((d) => ({ ...d, notes: [...d.notes, { id, text: "", position: at, size: NOTE_SIZE }] }));

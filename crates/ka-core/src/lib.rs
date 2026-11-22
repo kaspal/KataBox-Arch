@@ -12,12 +12,12 @@ pub mod validate;
 pub mod wiring;
 
 pub use design::{
-    Design, Edge, Group, GroupKind, Node, Note, Point, PropValue, Protocol, SCHEMA_VERSION, Size,
-    Viewport,
+    Design, Edge, Group, GroupKind, Node, Note, Point, PropValue, Protocol, SCHEMA_VERSION,
+    Scaling, Size, Viewport,
 };
 pub use registry::{
-    Category, ComponentKind, Flavour, FlavourSpec, KindSpec, MetaKind, MetaSpec, PropOverride,
-    PropSpec, PropType, Registry, Unit, registry,
+    Category, ComponentKind, Flavour, FlavourSpec, KindSpec, MetaKind, MetaSpec, Placement,
+    PropOverride, PropSpec, PropType, Registry, Unit, registry,
 };
 pub use validate::{DesignIssue, IssueCode, Limits, validate, wire_reason};
 pub use wiring::{KindSet, WiringCell, WiringDenial, WiringReason, WiringRule, WiringTable};

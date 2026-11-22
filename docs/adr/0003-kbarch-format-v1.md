@@ -32,3 +32,20 @@ Viewport{ x, y, zoom }
 ## Consequences
 
 A format change bumps `SCHEMA_VERSION` and adds a migration step with a test file of the old version. Hand-edited files with typos are refused with a reason rather than silently fixed.
+
+## Version 2 (M1.0, 2026-11-22)
+
+`SCHEMA_VERSION` is 2. Changes, and how a v1 file is migrated on open (`ka-app/src/kbarch.rs`):
+
+- **Autoscaling is a wrapper.** `GroupKind` gains `autoscale`, and a `Group` may carry
+  `scaling: { flavour, props }` (only an autoscale wrapper has one; the field is omitted
+  otherwise). The Autoscaling kind keeps its registry entry, with `placement = "wrapper"`, and a
+  card of that kind is now invalid (`wrapper_as_card`); a wrapper needs a valid policy
+  (`bad_scaling`). Compute cards (app, micro, worker, serverless) inside the frame join it.
+  *Migration:* each v1 Autoscaling card becomes a wrapper around the compute cards it was wired
+  to (their bounding box, padded 32 px), or a default frame at its own position; its edges are
+  dropped, the wrapped cards join it, and its parent is the first wrapped card's old zone.
+- **Removed props.** SQL `read_replicas` (replicas are separate cards linked by Replicate edges)
+  and CDN `hit_rate` (computed from TTL and the traffic's key skew). *Migration:* dropped.
+
+Each migration rule has its own test with a v1 file.

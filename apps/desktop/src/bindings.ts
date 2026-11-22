@@ -267,10 +267,18 @@ export type FlavourSpec = { flavour: Flavour; overrides: PropOverride[] }
  */
 export type Group = { id: string; kind: GroupKind; label: string; position: Point; size: Size; 
 /**
- * An AZ's region, if it sits inside one.
+ * The zone this one sits in: an AZ's region, an autoscaling group's AZ or region.
  */
-parent_id: string | null }
-export type GroupKind = "region" | "az"
+parent_id: string | null; 
+/**
+ * The scaling policy of an Autoscale wrapper (and only of one).
+ */
+scaling?: Scaling | null }
+export type GroupKind = "region" | "az" | 
+/**
+ * An autoscaling group wrapped around compute cards (v2).
+ */
+"autoscale"
 export type IssueCode = 
 /**
  * An id is empty, too long, or uses characters outside `[A-Za-z0-9_-]`.
@@ -303,7 +311,15 @@ export type IssueCode =
 /**
  * A coordinate, size or zoom is NaN, infinite, or not positive where it must be.
  */
-"bad_number" | "too_many_items"
+"bad_number" | "too_many_items" | 
+/**
+ * An Autoscale wrapper without a valid scaling policy, or a policy on another zone.
+ */
+"bad_scaling" | 
+/**
+ * A wrapper kind (Autoscaling) placed as a card.
+ */
+"wrapper_as_card"
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
 /**
  * A set of kinds: any kind in `categories` or `kinds`, minus `except`.
@@ -317,7 +333,11 @@ icon: string;
 /**
  * CSS colour token of the category, e.g. `cat-edge`.
  */
-color_token: string; flavours: FlavourSpec[]; default_flavour: Flavour; props: PropSpec[] }
+color_token: string; flavours: FlavourSpec[]; default_flavour: Flavour; props: PropSpec[]; 
+/**
+ * How the kind sits on the canvas: a card, or a wrapper around cards (Autoscaling).
+ */
+placement: Placement }
 /**
  * Size caps for a design. Sent to the UI with the registry.
  */
@@ -356,6 +376,18 @@ export type Note = { id: string; text: string; position: Point; size: Size }
  * A design read from disk, with the path it came from.
  */
 export type OpenedDesign = { path: string; design: Design }
+/**
+ * How a kind is placed on the canvas.
+ */
+export type Placement = 
+/**
+ * An index card wired with edges.
+ */
+"card" | 
+/**
+ * A resizable frame around compute cards, holding a policy (an autoscaling group).
+ */
+"wrapper"
 export type Point = { x: number; y: number }
 export type PropOverride = { key: string; value: PropValue }
 export type PropSpec = { key: string; ty: PropType; default: PropValue; unit: Unit }
@@ -389,6 +421,10 @@ export type RecentEntry = { path: string; name: string; opened_at: number; exist
  * Everything the editor needs to know about components, sent to the UI once.
  */
 export type Registry = { categories: Category[]; kinds: KindSpec[]; meta: MetaSpec[]; wiring: WiringTable; limits: Limits }
+/**
+ * An autoscaling group's policy: the Autoscaling kind's flavour and props (v2).
+ */
+export type Scaling = { flavour: Flavour; props: Partial<{ [key in string]: PropValue }> }
 export type Size = { w: number; h: number }
 /**
  * The unit shown after a prop's value (`units.<unit>` in the UI).

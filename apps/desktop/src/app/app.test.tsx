@@ -95,6 +95,21 @@ describe("library", () => {
     expect(await screen.findByTestId("inspector-node")).toBeInTheDocument();
   });
 
+  it("Autoscaling from the library places a wrapper with its policy, not a card", async () => {
+    const { user } = renderApp("/sandbox");
+    const row = (await screen.findAllByTestId("library-row")).find((r) => r.dataset.kind === "autoscale")!;
+    row.focus();
+    await user.keyboard("{Enter}");
+    await screen.findByTestId("floating-picker");
+    await user.keyboard("{Enter}");
+    await waitFor(() => expect(useEditor.getState().doc.groups).toHaveLength(1));
+    const g = useEditor.getState().doc.groups[0];
+    expect(g.kind).toBe("autoscale");
+    expect(g.scaling).toMatchObject({ flavour: "kubernetes_hpa", props: { min_instances: 2, max_instances: 10 } });
+    expect(useEditor.getState().doc.nodes).toHaveLength(0);
+    expect(await screen.findByText("Scaling policy")).toBeInTheDocument();
+  });
+
   it("the info button opens the quick look", async () => {
     const { user } = renderApp("/sandbox");
     await user.click(await screen.findByRole("button", { name: "About Queue" }));

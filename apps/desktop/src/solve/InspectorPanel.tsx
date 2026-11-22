@@ -4,7 +4,7 @@
 import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Trash2 } from "lucide-react";
-import type { Edge, Group, Node, Note, PropSpec, PropValue, Protocol, Registry } from "@/bindings";
+import type { Edge, Flavour, Group, Node, Note, PropSpec, PropValue, Protocol, Registry, Scaling } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -30,7 +30,21 @@ function Field({ label, htmlFor, children, error }: { label: string; htmlFor: st
 }
 
 /** A text field that commits on blur or Enter. */
-function TextField({ label, value, max, onCommit, multiline }: { label: string; value: string; max: number; onCommit: (v: string) => void; multiline?: boolean }) {
+function TextField({
+  label,
+  value,
+  max,
+  onCommit,
+  multiline,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  max: number;
+  onCommit: (v: string) => void;
+  multiline?: boolean;
+  placeholder?: string;
+}) {
   const id = useId();
   const [draft, setDraft] = useState(value);
   useEffect(() => setDraft(value), [value]);
@@ -52,6 +66,7 @@ function TextField({ label, value, max, onCommit, multiline }: { label: string; 
           id={id}
           value={draft}
           maxLength={max}
+          placeholder={placeholder}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
           onKeyDown={(e) => e.key === "Enter" && commit()}
@@ -164,6 +179,7 @@ function NodeInspector({ registry, node }: { registry: Registry; node: Node }) {
         label={t("inspector.label")}
         value={node.label}
         max={registry.limits.max_label}
+        placeholder={flavourName(t, node.flavour)}
         onCommit={(label) => updateNode(node.id, { label })}
       />
       <Field label={t("inspector.flavour")} htmlFor={flavourId}>
@@ -204,8 +220,48 @@ function GroupInspector({ registry, group }: { registry: Registry; group: Group 
         max={registry.limits.max_label}
         onCommit={(label) => updateGroup(group.id, { label })}
       />
-      <p className="text-xs text-muted-foreground">{t("inspector.zoneHint")}</p>
+      {group.scaling ? (
+        <ScalingFields registry={registry} group={group} scaling={group.scaling} />
+      ) : (
+        <p className="text-xs text-muted-foreground">{t("inspector.zoneHint")}</p>
+      )}
       <DeleteButton ids={[group.id]} />
+    </div>
+  );
+}
+
+/** An autoscaling wrapper's policy: the Autoscaling kind's flavour and props. */
+function ScalingFields({ registry, group, scaling }: { registry: Registry; group: Group; scaling: Scaling }) {
+  const { t } = useTranslation();
+  const updateScaling = useEditor((s) => s.updateScaling);
+  const spec = kindSpec(registry, "autoscale");
+  const flavourId = useId();
+  return (
+    <div className="space-y-3 border-t pt-4">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("inspector.scaling")}</h3>
+      <Field label={t("inspector.flavour")} htmlFor={flavourId}>
+        <Select value={scaling.flavour} onValueChange={(f) => updateScaling(group.id, { ...scaling, flavour: f as Flavour })}>
+          <SelectTrigger id={flavourId} className="w-full bg-card">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {spec.flavours.map((f) => (
+              <SelectItem key={f.flavour} value={f.flavour}>
+                {flavourName(t, f.flavour)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+      {spec.props.map((p) => (
+        <PropField
+          key={p.key}
+          spec={p}
+          value={scaling.props[p.key]}
+          onChange={(v) => updateScaling(group.id, { ...scaling, props: { ...scaling.props, [p.key]: v } })}
+        />
+      ))}
+      <p className="text-xs text-muted-foreground">{t("inspector.autoscaleHint")}</p>
     </div>
   );
 }
