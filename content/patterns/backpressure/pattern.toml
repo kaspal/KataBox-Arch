@@ -55,3 +55,30 @@ practice = [
 
 in_simulator = "Partly: every queue is bounded, a full broker or server queue refuses new work, and slow workers make the queue grow; but producers never slow down on their own, so the push back shows as drops and errors."
 in_simulator_es = "En parte: cada cola tiene límite, una cola de broker o de servidor llena rechaza trabajo nuevo y los workers lentos hacen crecer la cola; pero los productores nunca frenan por su cuenta, así que la contrapresión se ve como descartes y errores."
+
+[[quiz]]
+q = "What goes wrong when a slow stage sits behind an unbounded buffer?"
+q_es = "¿Qué falla cuando una etapa lenta está detrás de un búfer sin límite?"
+options = ["Nothing: the buffer simply absorbs the extra work forever", "The producers are slowed down automatically by the buffer", "The buffer grows until latency is huge or memory runs out", "Requests are refused at the edge with a clear error"]
+options_es = ["Nada: el búfer absorbe el trabajo extra para siempre", "El búfer frena a los productores de forma automática", "El búfer crece hasta que la latencia es enorme o se acaba la memoria", "Las peticiones se rechazan en el borde con un error claro"]
+answer = 2
+why = "An unbounded buffer never says no, so work piles up behind the slow stage: every item waits longer, and eventually the process runs out of memory."
+why_es = "Un búfer sin límite nunca dice que no, así que el trabajo se acumula detrás de la etapa lenta: cada elemento espera más y al final el proceso se queda sin memoria."
+
+[[quiz]]
+q = "With backpressure, where is overload ideally turned into a refusal?"
+q_es = "Con backpressure, ¿dónde conviene idealmente convertir la sobrecarga en un rechazo?"
+options = ["At the edge, where the request can be refused with a clear try-again-later reply", "Deep inside the slowest worker, after the work has started", "Nowhere: backpressure means every request is eventually accepted", "In the database, by letting queries time out"]
+options_es = ["En el borde, donde la petición puede rechazarse con una respuesta clara de reintentar más tarde", "Dentro del worker más lento, cuando el trabajo ya ha empezado", "En ningún sitio: backpressure significa que toda petición acaba aceptándose", "En la base de datos, dejando que las consultas agoten su tiempo"]
+answer = 0
+why = "The push-back signal travels upstream stage by stage until it reaches a place that can deal with it, usually the edge, where refusing early is cheap and clear."
+why_es = "La señal de freno sube etapa a etapa hasta llegar a un sitio que pueda tratarla, normalmente el borde, donde rechazar pronto es barato y claro."
+
+[[quiz]]
+q = "Why is a very large queue bound not a safe default?"
+q_es = "¿Por qué un límite de cola muy grande no es una opción segura por defecto?"
+options = ["Large queues make the workers process each item more slowly", "It hides trouble: the queue soaks up overload while latency climbs for everyone", "Large bounds make producers retry too aggressively", "Brokers cannot store more than a few hundred messages"]
+options_es = ["Las colas grandes hacen que los workers procesen cada elemento más despacio", "Esconde los problemas: la cola absorbe la sobrecarga mientras la latencia sube para todos", "Los límites grandes hacen que los productores reintenten con demasiada agresividad", "Los brokers no pueden guardar más de unos cientos de mensajes"]
+answer = 1
+why = "A bound that is too large lets work pile up for a long time before anything is refused, so overload surfaces late as high latency instead of early as a clear refusal."
+why_es = "Un límite demasiado grande deja que el trabajo se acumule mucho tiempo antes de rechazar nada, así que la sobrecarga aparece tarde como latencia alta en lugar de pronto como un rechazo claro."

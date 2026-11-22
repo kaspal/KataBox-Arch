@@ -1,0 +1,87 @@
+{
+  "schema_version": 3,
+  "id": "flaw-cache-no-ttl-fixed",
+  "name": "Product catalogue",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Shoppers",
+      "position": {
+        "x": 130,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Catalogue API",
+      "position": {
+        "x": 130,
+        "y": 170
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "cache",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "Product cache",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {
+        "ttl_s": 5
+      },
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Products",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "app",
+      "to": "cache",
+      "protocol": "query"
+    },
+    {
+      "id": "e2",
+      "from": "app",
+      "to": "db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

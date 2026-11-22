@@ -1,6 +1,8 @@
 // The Metrics tab: live tiles (p95, throughput, error rate, cost) and the busiest cards.
 // Every value is text; colour only reinforces it (CLAUDE.md).
 import { useTranslation } from "react-i18next";
+import { percentileLabel } from "@/lib/format";
+import { useProblemMode } from "@/solve/problem/context";
 import { flavourName } from "@/solve/registry";
 import { useEditor } from "@/solve/store";
 import { NODE_DOWN } from "@/solve/run/frames";
@@ -21,6 +23,8 @@ function Tile({ label, value, unit, testId }: { label: string; value: string; un
 }
 
 export function MetricsPanel() {
+  // The live p95 measures what the problem's limits measure (review F2).
+  const judged = useProblemMode()?.brief.judged_on ?? "response";
   const { t, i18n } = useTranslation();
   const frame = useRun((s) => s.frame);
   const info = useRun((s) => s.info);
@@ -49,11 +53,12 @@ export function MetricsPanel() {
   return (
     <div className="space-y-4" data-testid="metrics">
       <div className="grid grid-cols-2 gap-2">
-        <Tile label={t("metrics.p95")} value={n1.format(frame.p95Ms)} unit={t("units.ms")} testId="metric-p95" />
+        <Tile label={percentileLabel(t, "p95", judged)} value={n1.format(frame.p95Ms)} unit={t("units.ms")} testId="metric-p95" />
         <Tile label={t("metrics.throughput")} value={n0.format(frame.rps)} unit={t("units.rps")} testId="metric-rps" />
         <Tile label={t("metrics.errorRate")} value={pct.format(frame.errorRate)} testId="metric-errors" />
         <Tile label={t("metrics.cost")} value={usd.format(frame.costMonth)} unit={t("metrics.perMonth")} testId="metric-cost" />
         <Tile label={t("metrics.stale")} value={pct.format(frame.staleRate)} testId="metric-stale" />
+        <Tile label={t("metrics.retried")} value={n0.format(frame.retried)} testId="metric-retried" />
       </div>
       <p className="text-xs text-muted-foreground">{t("metrics.lastSecond")}</p>
       {series.length > 1 && (

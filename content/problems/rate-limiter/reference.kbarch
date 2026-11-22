@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "rate-limiter-reference",
   "name": "Rate Limiter (reference)",
   "problem_id": "rate-limiter",
@@ -26,8 +26,8 @@
         "y": 170
       },
       "props": {
-        "limit_rps": 200,
-        "burst": 400
+        "burst": 400,
+        "limit_rps": 200
       },
       "group_id": null
     },
@@ -40,9 +40,7 @@
         "x": 0,
         "y": 340
       },
-      "props": {
-        "instances": 2
-      },
+      "props": {},
       "group_id": null
     },
     {

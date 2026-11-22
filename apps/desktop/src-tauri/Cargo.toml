@@ -25,6 +25,8 @@ ka-pack.workspace = true
 tauri = { version = "2", features = [] }
 ka-app = { workspace = true, features = ["specta"] }
 ka-core = { workspace = true, features = ["specta"] }
+# The problem-pack checks (M6.4), plugged into ka-app at startup.
+ka-pack.workspace = true
 ka-sim = { workspace = true, features = ["specta"] }
 ka-store = { workspace = true, features = ["specta"] }
 serde.workspace = true

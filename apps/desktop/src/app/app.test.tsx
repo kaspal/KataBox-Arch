@@ -7,6 +7,7 @@ import { setFakeApi, useFakeApi } from "@/test/mockApi";
 import { renderApp } from "@/test/renderApp";
 import { unnamed } from "@/test/a11y";
 import { useEditor } from "@/solve/store";
+import { REGISTRY } from "@/test/fakeApi";
 import { useRun } from "@/solve/run/runStore";
 import { useTelemetry } from "@/solve/run/telemetry";
 
@@ -109,9 +110,27 @@ describe("library", () => {
     await waitFor(() => expect(useEditor.getState().doc.groups).toHaveLength(1));
     const g = useEditor.getState().doc.groups[0];
     expect(g.kind).toBe("autoscale");
-    expect(g.scaling).toMatchObject({ flavour: "kubernetes_hpa", props: { min_instances: 2, max_instances: 10 } });
+    // Sparse props (v3): the policy follows the Autoscaling defaults until edited.
+    expect(g.scaling).toEqual({ flavour: "kubernetes_hpa", props: {} });
     expect(useEditor.getState().doc.nodes).toHaveLength(0);
     expect(await screen.findByText("Scaling policy")).toBeInTheDocument();
+  });
+
+  it("the inspector shows the flavour's defaults and resets a prop the user set", async () => {
+    const { user } = renderApp("/sandbox");
+    const id = useEditor.getState().addNode(REGISTRY, "app", "go", { x: 0, y: 0 });
+    useEditor.getState().setSelection([id]);
+    const panel = await screen.findByTestId("inspector-node");
+    // Go's service time (5 ms), not the kind's 10, though the card stores nothing.
+    expect(within(panel).getByLabelText(/Service time/)).toHaveValue(5);
+    expect(within(panel).queryByTestId("prop-reset")).toBeNull();
+    const instances = within(panel).getByLabelText(/Instances/);
+    await user.clear(instances);
+    await user.type(instances, "7{Enter}");
+    expect(useEditor.getState().doc.nodes[0].props).toEqual({ instances: 7 });
+    await user.click(within(panel).getByTestId("prop-reset"));
+    expect(useEditor.getState().doc.nodes[0].props).toEqual({});
+    expect(within(panel).getByLabelText(/Instances/)).toHaveValue(2);
   });
 
   it("the info button opens the quick look", async () => {
@@ -264,7 +283,7 @@ describe("live runs", () => {
     await waitFor(() => expect(fake().api.startRun).toHaveBeenCalledTimes(1));
     const [sent, options] = vi.mocked(fake().api.startRun).mock.calls[0];
     expect(sent.nodes.map((n) => n.id)).toEqual(["c1", "a1"]);
-    expect(sent.schema_version).toBe(2);
+    expect(sent.schema_version).toBe(3);
     expect(options).toEqual({ preset: "normal", problem: null, speed: 1, chaos: [], startS: 0 });
     expect(screen.getByRole("tab", { name: "Metrics" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText("Run the design to see live metrics.")).toBeInTheDocument();
@@ -308,7 +327,9 @@ describe("live runs", () => {
       act(() => fake().pushFrame(frame()));
       // The app (frame node 1 → card a1) is busy; health refreshes within 100 ms.
       const stats = await screen.findAllByTestId("card-stat");
-      expect(stats.map((s) => s.textContent)).toEqual([expect.stringMatching(/^0% busy/), expect.stringMatching(/^\d+% busy/)]);
+      // The full stat is the tooltip and the screen-reader text; the card shows a short form (F5).
+      expect(stats.map((s) => s.getAttribute("title"))).toEqual([expect.stringMatching(/^0% busy/), expect.stringMatching(/^\d+% busy/)]);
+      expect(stats.map((s) => s.querySelector("[aria-hidden]")?.textContent)).toEqual(["0%", expect.stringMatching(/^\d+%($| · q\d+$)/)]);
       // React Flow draws no edges in jsdom: the chip's number comes from here (checked in the real app).
       expect(useTelemetry.getState().edgeRates.e1).toBeGreaterThan(0);
       act(() => useRun.getState().stop());

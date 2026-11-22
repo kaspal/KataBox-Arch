@@ -27,6 +27,8 @@ pub struct ProblemSummary {
     pub best_score: Option<i64>,
     /// The cheapest Accepted submission's monthly cost.
     pub best_cost: Option<f64>,
+    /// The name of the pack it came from (M6.4); None for built-in problems.
+    pub pack: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -37,6 +39,33 @@ pub struct TestBrief {
     pub name_es: String,
     pub hidden: bool,
     pub duration_s: f64,
+}
+
+/// What a problem's latency limits measure (review F2): every request type's answer, every
+/// type's completion (async work done), or a mix.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(rename_all = "snake_case")]
+pub enum LatencyMeasure {
+    Response,
+    Completion,
+    Mixed,
+}
+
+impl LatencyMeasure {
+    pub fn of(def: &ProblemDef) -> LatencyMeasure {
+        use ka_core::scenario::Measure;
+        let completion = def
+            .request_types
+            .iter()
+            .filter(|t| t.measure == Measure::Completion)
+            .count();
+        match completion {
+            0 => LatencyMeasure::Response,
+            n if n == def.request_types.len() => LatencyMeasure::Completion,
+            _ => LatencyMeasure::Mixed,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -64,6 +93,10 @@ pub struct ExternalBrief {
 pub struct ProblemBrief {
     pub summary: ProblemSummary,
     pub nfr: Nfr,
+    /// The problem-wide p99 limit, when it has one (shown with the targets).
+    pub p99_ms: Option<f64>,
+    /// What the latency limits measure: the answer, the finished async work, or both.
+    pub judged_on: LatencyMeasure,
     pub statement_en: String,
     pub statement_es: String,
     pub request_types: Vec<RequestTypeBrief>,
@@ -140,6 +173,18 @@ pub fn judge_design(
 
 impl App {
     pub(crate) async fn problem_row(&self, id: &str) -> Result<ka_store::ProblemRow> {
+        // A Find-the-flaw drill is judged, run, drafted and recorded as the problem
+        // `flaw--<id>` (M5.3).
+        if let Some(flaw) = id.strip_prefix("flaw--") {
+            return self.flaw_row(flaw).await;
+        }
+        // A pack's problem (M6.4): `<pack>--<id>`, from that pack's own database.
+        if id.contains("--") {
+            return self
+                .pack_problem(id)
+                .await?
+                .ok_or_else(|| AppError::new(AppErrorCode::NotFound, format!("problem {id}")));
+        }
         self.content()?
             .problem(id)
             .await
@@ -178,6 +223,7 @@ impl App {
             status: status.map(|s| s.status.clone()),
             best_score: status.map(|s| s.best_score),
             best_cost,
+            pack: None,
         }
     }
 
@@ -195,10 +241,22 @@ impl App {
 
     /// The catalogue with the user's status and best score, in catalogue order.
     pub async fn list_problems(&self) -> Result<Vec<ProblemSummary>> {
-        let rows = self.content()?.problems().await.map_err(store)?;
+        let mut rows: Vec<(Option<String>, ka_store::ProblemRow)> = self
+            .content()?
+            .problems()
+            .await
+            .map_err(store)?
+            .into_iter()
+            .map(|r| (None, r))
+            .collect();
+        // Installed packs' problems follow the built-in catalogue, pack by pack.
+        for (pack, row) in self.pack_problems().await? {
+            let name = self.pack_name_of(&row.id).await?.unwrap_or(pack);
+            rows.push((Some(name), row));
+        }
         let statuses = self.user.problem_statuses().await.map_err(store)?;
         let mut out = Vec::new();
-        for row in &rows {
+        for (pack, row) in &rows {
             let def: ProblemDef = serde_json::from_str(&row.def).map_err(bad_content)?;
             let status = statuses.iter().find(|s| s.problem_id == row.id);
             let best = if status.is_some() {
@@ -206,7 +264,9 @@ impl App {
             } else {
                 None
             };
-            out.push(Self::summary(row, &def, status, best));
+            let mut s = Self::summary(row, &def, status, best);
+            s.pack = pack.clone();
+            out.push(s);
         }
         Ok(out)
     }
@@ -219,10 +279,17 @@ impl App {
         let solved = status.is_some_and(|s| s.status == "solved");
         let unlocked = self.user.hints_unlocked(id).await.map_err(store)?;
         let take = |h: &[String]| h.iter().take(unlocked as usize).cloned().collect();
-        let draft = match self.user.draft(id).await.map_err(store)? {
+        let mut draft = match self.user.draft(id).await.map_err(store)? {
             Some(json) => crate::kbarch::parse(json.as_bytes(), &self.registry).ok(),
             None => None,
         };
+        // A Find-the-flaw drill starts from its broken design while the user's draft is
+        // missing or empty (an empty canvas is never a useful place to look for a flaw).
+        if let Some(flaw) = id.strip_prefix("flaw--")
+            && draft.as_ref().is_none_or(|d| d.nodes.is_empty())
+        {
+            draft = Some(self.flaw_broken(flaw).await?);
+        }
         let reference = if solved {
             crate::kbarch::parse(row.reference.as_bytes(), &self.registry).ok()
         } else {
@@ -231,6 +298,8 @@ impl App {
         Ok(ProblemBrief {
             summary: Self::summary(&row, &def, status, self.best_cost(id).await?),
             nfr: def.nfr.clone(),
+            p99_ms: def.pass.p99_ms,
+            judged_on: LatencyMeasure::of(&def),
             statement_en: row.statement_en.clone(),
             statement_es: row.statement_es.clone(),
             request_types: def
@@ -371,6 +440,13 @@ impl App {
     /// Solved and attempted per difficulty, the streak, and what to do next.
     pub async fn progress(&self, today: &str) -> Result<Progress> {
         let all = self.list_problems().await?;
+        // Pack problems are recommended only when the user turns that on.
+        let packs_too = self
+            .user
+            .get_setting("packs.recommend")
+            .await
+            .map_err(store)?
+            == Some(serde_json::Value::Bool(true));
         let mut p = Progress {
             easy: DifficultyCount::default(),
             medium: DifficultyCount::default(),
@@ -381,6 +457,7 @@ impl App {
             })?,
             recommended: all
                 .iter()
+                .filter(|s| packs_too || s.pack.is_none())
                 .find(|s| s.status.as_deref() != Some("solved"))
                 .map(|s| s.id.clone()),
             continue_with: None,
@@ -401,7 +478,7 @@ impl App {
         let statuses = self.user.problem_statuses().await.map_err(store)?;
         p.continue_with = statuses
             .iter()
-            .filter(|s| s.status == "attempted")
+            .filter(|s| s.status == "attempted" && !s.problem_id.starts_with("flaw--"))
             .max_by_key(|s| s.updated_at)
             .map(|s| s.problem_id.clone());
         Ok(p)
@@ -533,6 +610,7 @@ error_rate = 0.001
                 patterns: vec![],
                 decide: vec![],
                 glossary: vec![],
+                docs: vec![],
             },
         )
         .await
@@ -541,6 +619,7 @@ error_rate = 0.001
             user_db: dir.join("user.db"),
             dev_data: true,
             content_db: Some(content),
+            packs_dir: None,
         })
         .await
         .unwrap()
@@ -554,6 +633,8 @@ error_rate = 0.001
         assert_eq!(list[0].status, None);
 
         let brief = app.problem_brief("demo").await.unwrap();
+        // Its one request type is judged on the answer (review F2).
+        assert_eq!(brief.judged_on, LatencyMeasure::Response);
         assert_eq!(brief.tests.len(), 2);
         assert!(brief.tests[1].hidden);
         assert_eq!(brief.hints_unlocked, 0);
@@ -648,6 +729,7 @@ error_rate = 0.001
             user_db: temp_dir("nocontent").join("user.db"),
             dev_data: true,
             content_db: None,
+            packs_dir: None,
         })
         .await
         .unwrap();

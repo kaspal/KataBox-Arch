@@ -1,0 +1,43 @@
+id = "gold-plated"
+number = 10
+title = "Built for a crowd that never comes"
+title_es = "Hecho para una multitud que nunca llega"
+story = "A small link service was built \"to be safe\": sixteen app servers, three database replicas and a 64 GB cache."
+story_es = "Un pequeño servicio de enlaces se construyó «por si acaso»: dieciséis servidores de aplicaciones, tres réplicas de la base de datos y una caché de 64 GB."
+symptom = "Everything works, but the bill is more than twice the budget."
+symptom_es = "Todo funciona, pero la factura es más del doble del presupuesto."
+target_test = "normal"
+explanation = "At 3,000 requests a second, two Go app servers have headroom, a default cache holds the hot links, and one replica covers failover. Capacity nobody uses still costs money every month: size for the peak with some margin, and let failover cover the rest."
+explanation_es = "A 3000 peticiones por segundo, dos servidores Go van holgados, una caché por defecto guarda los enlaces calientes y una réplica cubre el failover. La capacidad que nadie usa cuesta dinero cada mes igualmente: dimensiona para el pico con algo de margen, y deja que el failover cubra el resto."
+kinds = ["app", "sql", "cache"]
+
+[[scenario.tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[scenario.nfr]
+peak_rps = 3000
+p95_ms = 50
+availability = 0.999
+budget_usd = 1500
+
+[[scenario.request_types]]
+id = "redirect"
+name = "Follow a link"
+name_es = "Seguir un enlace"
+share = 0.95
+route = ["edge", "compute", "cache?", "datastore"]
+key_space = 100000
+key_skew = { zipf = 1.1 }
+
+[[scenario.request_types]]
+id = "create"
+name = "Create a link"
+name_es = "Crear un enlace"
+share = 0.05
+route = ["edge", "compute", "datastore:write"]
+
+[scenario.pass]
+p95_ms = 50
+error_rate = 0.001

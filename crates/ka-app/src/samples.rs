@@ -179,6 +179,7 @@ run = { preset = "normal" }
                 patterns: vec![],
                 decide: vec![],
                 glossary: vec![],
+                docs: vec![],
             },
         )
         .await
@@ -187,6 +188,7 @@ run = { preset = "normal" }
             user_db: dir.join("user.db"),
             dev_data: true,
             content_db: Some(content),
+            packs_dir: None,
         })
         .await
         .unwrap();

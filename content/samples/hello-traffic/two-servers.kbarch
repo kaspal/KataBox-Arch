@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "hello-two-servers",
   "name": "Hello, Traffic: two servers",
   "problem_id": null,

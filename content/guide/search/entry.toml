@@ -82,8 +82,8 @@ note_es = "Con una tarjeta réplica unida por Replicate, cuánto tarda en sustit
 
 [[sim]]
 cost = "per_instance_month"
-note = "A fixed monthly price per card. Each replica card adds the same price."
-note_es = "Un precio mensual fijo por tarjeta. Cada tarjeta réplica suma el mismo precio."
+note = "Priced per shard: a card at the default shard count costs this; more shards cost more, fewer cost less. Each replica card adds its own price."
+note_es = "Se cobra por shard: una tarjeta con el número de shards por defecto cuesta esto; más shards cuestan más y menos, menos. Cada tarjeta réplica suma su propio precio."
 
 [flavours_compared]
 flavours = ["elasticsearch", "opensearch"]
@@ -152,3 +152,30 @@ url = "https://www.elastic.co/docs/"
 flavour = "opensearch"
 title = "OpenSearch documentation"
 url = "https://docs.opensearch.org/latest/"
+
+[[quiz]]
+q = "In a typeahead, a few very popular prefixes saturate one shard of the search index while the others sit idle. What fixes it?"
+q_es = "En un autocompletado, unos pocos prefijos muy populares saturan una partición del índice de búsqueda mientras las demás están ociosas. ¿Qué lo soluciona?"
+options = ["Add shards until the load spreads out", "Raise the card's replicas setting", "Put a cache in front for the popular queries", "Give the other shards more search threads"]
+options_es = ["Añadir particiones hasta que la carga se reparta", "Subir el ajuste de réplicas de la tarjeta", "Poner una caché delante para las consultas populares", "Dar más hilos de búsqueda a las otras particiones"]
+answer = 2
+why = "A key always lands on the same shard, so more shards spread other keys but never split a hot one. The replicas setting is a design note the simulator doesn't model. A cache absorbs the hot queries so the index only sees the rare ones."
+why_es = "Una clave cae siempre en la misma partición, así que más particiones reparten otras claves pero nunca dividen una caliente. El ajuste de réplicas es una nota de diseño que el simulador no modela. Una caché absorbe las consultas calientes y el índice solo ve las raras."
+
+[[quiz]]
+q = "You add a search index for product search. Where should the primary copy of the product data live?"
+q_es = "Añades un índice de búsqueda para buscar productos. ¿Dónde debería vivir la copia principal de los datos de producto?"
+options = ["In the search index only, so there is no second copy to keep in sync", "In a database that feeds the index, so you can always reindex", "In a cache in front of the index", "In the logs the index can be rebuilt from"]
+options_es = ["Solo en el índice de búsqueda, para no tener una segunda copia que sincronizar", "En una base de datos que alimenta el índice, para poder reindexar siempre", "En una caché delante del índice", "En los logs a partir de los que se puede reconstruir el índice"]
+answer = 1
+why = "An index is hard to rebuild after a bad mapping change or a lost cluster unless the data lives elsewhere. Keep the source of truth in a database and feed the index from it."
+why_es = "Un índice es difícil de reconstruir tras un cambio de mapeo erróneo o la pérdida del clúster si los datos no viven en otro sitio. Guarda la fuente de verdad en una base de datos y alimenta el índice desde ella."
+
+[[quiz]]
+q = "A user saves a document and searches for it a moment later, but it doesn't show up yet. What is the most likely reason?"
+q_es = "Un usuario guarda un documento y lo busca un momento después, pero todavía no aparece. ¿Cuál es la razón más probable?"
+options = ["New writes reach the index through a pipeline and become searchable only after a short refresh", "The write was lost and must be sent again", "The query went to a shard that doesn't hold that key", "Search indexes only return documents older than a day"]
+options_es = ["Las escrituras nuevas llegan al índice por un pipeline y solo se pueden buscar tras un breve refresco", "La escritura se perdió y hay que volver a enviarla", "La consulta fue a una partición que no tiene esa clave", "Los índices de búsqueda solo devuelven documentos de más de un día"]
+answer = 0
+why = "A search index is a second copy that trails its source by a short refresh. If results must reflect every write the instant it happens, a search index is the wrong tool."
+why_es = "Un índice de búsqueda es una segunda copia que va un breve refresco por detrás de su origen. Si los resultados deben reflejar cada escritura en el mismo instante, un índice de búsqueda no es la herramienta adecuada."

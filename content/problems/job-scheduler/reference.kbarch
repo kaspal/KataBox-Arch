@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "job-scheduler-reference",
   "name": "Distributed Job Scheduler (reference)",
   "problem_id": "job-scheduler",
@@ -41,9 +41,7 @@
         "x": 0,
         "y": 340
       },
-      "props": {
-        "instances": 2
-      },
+      "props": {},
       "group_id": "pool"
     },
     {
@@ -96,9 +94,7 @@
       "scaling": {
         "flavour": "kubernetes_hpa",
         "props": {
-          "min_instances": 2,
           "max_instances": 24,
-          "target_util": 60,
           "scale_delay_s": 10
         }
       }

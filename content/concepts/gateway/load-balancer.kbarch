@@ -1,0 +1,127 @@
+{
+  "schema_version": 3,
+  "id": "concept-gateway-load-balancer",
+  "name": "URL Shortener behind a load balancer",
+  "problem_id": "url-shortener",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Browsers",
+      "position": {
+        "x": 260,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "nginx",
+      "label": "",
+      "position": {
+        "x": 260,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {
+        "instances": 8
+      },
+      "group_id": null
+    },
+    {
+      "id": "cache",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "",
+      "position": {
+        "x": 0,
+        "y": 510
+      },
+      "props": {
+        "memory_gb": 8
+      },
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "",
+      "position": {
+        "x": 260,
+        "y": 510
+      },
+      "props": {
+        "failover_s": 10
+      },
+      "group_id": null
+    },
+    {
+      "id": "db-replica",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Replica",
+      "position": {
+        "x": 520,
+        "y": 510
+      },
+      "props": {
+        "failover_s": 10
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "app",
+      "to": "cache",
+      "protocol": "query"
+    },
+    {
+      "id": "e3",
+      "from": "app",
+      "to": "db",
+      "protocol": "query"
+    },
+    {
+      "id": "e4",
+      "from": "db",
+      "to": "db-replica",
+      "protocol": "replicate"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

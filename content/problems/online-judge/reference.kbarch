@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "online-judge-reference",
   "name": "Online Judge (reference)",
   "problem_id": "online-judge",
@@ -37,9 +37,7 @@
         "x": 0,
         "y": 340
       },
-      "props": {
-        "instances": 2
-      },
+      "props": {},
       "group_id": null
     },
     {
@@ -67,7 +65,6 @@
       },
       "props": {
         "instances": 12,
-        "concurrency": 8,
         "service_ms": 2000
       },
       "group_id": "judging"
@@ -134,9 +131,8 @@
       "scaling": {
         "flavour": "kubernetes_hpa",
         "props": {
-          "min_instances": 12,
           "max_instances": 80,
-          "target_util": 60,
+          "min_instances": 12,
           "scale_delay_s": 10
         }
       }

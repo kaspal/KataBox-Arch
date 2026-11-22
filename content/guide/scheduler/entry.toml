@@ -118,3 +118,30 @@ url = "https://man7.org/linux/man-pages/man5/crontab.5.html"
 flavour = "airflow"
 title = "Apache Airflow documentation"
 url = "https://airflow.apache.org/docs/"
+
+[[quiz]]
+q = "Thousands of jobs are all due at midnight. What keeps them from swamping the services they call?"
+q_es = "Miles de tareas vencen todas a medianoche. ¿Qué evita que saturen los servicios a los que llaman?"
+options = ["Running a second copy of the scheduler", "Publishing the jobs to a queue that workers drain at their own pace", "Having the scheduler call the workers directly over HTTP", "Shortening the schedule's interval"]
+options_es = ["Ejecutar una segunda copia del planificador", "Publicar las tareas en una cola que los workers vacían a su ritmo", "Hacer que el planificador llame a los workers directamente por HTTP", "Acortar el intervalo del calendario"]
+answer = 1
+why = "A queue turns the midnight burst into a backlog that workers drain, and it keeps failed jobs for a retry. Calling workers directly makes every busy or down worker a lost job. A little jitter on start times also helps."
+why_es = "Una cola convierte la ráfaga de medianoche en una cola pendiente que vacían los workers, y guarda las tareas fallidas para reintentarlas. Llamar a los workers directamente convierte cada worker ocupado o caído en una tarea perdida. Un poco de variación en las horas de inicio también ayuda."
+
+[[quiz]]
+q = "In the simulator, how is a scheduled job judged?"
+q_es = "En el simulador, ¿cómo se juzga una tarea programada?"
+options = ["By when its whole route completes, since nobody waits for an answer", "By how quickly the first service replies to the scheduler", "By the interval set on the scheduler card", "By how many scheduler cards the design has"]
+options_es = ["Por cuándo termina toda su ruta, ya que nadie espera respuesta", "Por lo rápido que el primer servicio responde al planificador", "Por el intervalo puesto en la tarjeta del planificador", "Por cuántas tarjetas de planificador tiene el diseño"]
+answer = 0
+why = "The scheduler is the traffic source for its jobs, and a job is done when its route finishes. The interval on the card is only a design note: the problem sets how often jobs arrive."
+why_es = "El planificador es la fuente de tráfico de sus tareas, y una tarea está hecha cuando termina su ruta. El intervalo de la tarjeta es solo una nota de diseño: el problema fija cada cuánto llegan las tareas."
+
+[[quiz]]
+q = "You run two copies of the scheduler for availability, and one job sends invoice emails. What do you need so customers don't get two invoices?"
+q_es = "Ejecutas dos copias del planificador por disponibilidad, y una tarea envía correos con facturas. ¿Qué necesitas para que los clientes no reciban dos facturas?"
+options = ["Nothing: each copy runs half of the jobs on its own", "A shorter interval, so each run finishes sooner", "A lock or a single leader, and jobs that are safe to repeat", "A cache in front of the scheduler"]
+options_es = ["Nada: cada copia ejecuta por su cuenta la mitad de las tareas", "Un intervalo más corto, para que cada ejecución acabe antes", "Un bloqueo o un único líder, y tareas que se puedan repetir sin daño", "Una caché delante del planificador"]
+answer = 2
+why = "Two copies, or a retry after a timeout, can start the same job twice. A lock or leader stops the double start, and idempotent jobs make a repeat harmless."
+why_es = "Dos copias, o un reintento tras un tiempo de espera, pueden lanzar la misma tarea dos veces. Un bloqueo o un líder evita el doble arranque, y las tareas idempotentes hacen que repetir no cause daño."

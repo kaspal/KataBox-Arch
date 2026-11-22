@@ -50,25 +50,134 @@ function useSize(ref: React.RefObject<HTMLElement | null>) {
   return size;
 }
 
-/** Where a step's camera looks: its own camera, else the focused cards, else the design. */
-export function stepViewport(step: StoryStep, design: Design, size: { w: number; h: number }): Viewport {
-  if (step.camera) {
-    const { x, y, zoom } = step.camera;
-    return { x: size.w / 2 - x * zoom, y: size.h / 2 - y * zoom, zoom };
-  }
+/** The caption card's band along the bottom of the player. */
+export const CAPTION_H = 160;
+/** Space kept between the focused cards and the edge of the view. */
+export const FRAME_MARGIN = 48;
+/** The metric tile's column on the right (w-56 plus its 16 px inset on both sides). */
+export const CALLOUT_W = 256;
+
+/**
+ * The part of the player's canvas nothing covers (review F6): above the step card's band,
+ * and left of the metric tile when the step has one. The header sits above the canvas.
+ */
+export function visibleArea(size: { w: number; h: number }, callout: boolean): { w: number; h: number } {
+  return { w: Math.max(1, size.w - (callout ? CALLOUT_W : 0)), h: Math.max(1, size.h - CAPTION_H) };
+}
+
+/** The box a step must show: its focused cards, else the whole design. */
+export function focusBox(step: StoryStep, design: Design): Box | null {
   const focus = step.focus ?? [];
   const lit = design.nodes.filter((n) => focus.includes(n.id));
-  let box: Box | null = designBounds(design);
-  if (lit.length > 0) {
-    const x0 = Math.min(...lit.map((n) => n.position.x));
-    const y0 = Math.min(...lit.map((n) => n.position.y));
-    const x1 = Math.max(...lit.map((n) => n.position.x + CARD_W));
-    const y1 = Math.max(...lit.map((n) => n.position.y + CARD_H));
-    box = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  if (lit.length === 0) return designBounds(design);
+  const x0 = Math.min(...lit.map((n) => n.position.x));
+  const y0 = Math.min(...lit.map((n) => n.position.y));
+  const x1 = Math.max(...lit.map((n) => n.position.x + CARD_W));
+  const y1 = Math.max(...lit.map((n) => n.position.y + CARD_H));
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+
+type Area = { w: number; h: number };
+/** Breathing room every visible card keeps from the view's edge: the full margin, so an
+ * unfocused card is never left hard against the edge either (review F6). */
+const EDGE = FRAME_MARGIN;
+
+/** Cards the view cuts through: partly inside, partly outside. */
+function cutCards(design: Design, v: Viewport, area: Area) {
+  return design.nodes.filter((n) => {
+    const x0 = n.position.x * v.zoom + v.x;
+    const y0 = n.position.y * v.zoom + v.y;
+    const x1 = x0 + CARD_W * v.zoom;
+    const y1 = y0 + CARD_H * v.zoom;
+    const inside = x0 >= EDGE && y0 >= EDGE && x1 <= area.w - EDGE && y1 <= area.h - EDGE;
+    const outside = x1 <= 0 || y1 <= 0 || x0 >= area.w || y0 >= area.h;
+    return !inside && !outside;
+  });
+}
+
+/**
+ * Slide `v` (keeping `box` inside the margins) so no card is cut by the view's edge, with
+ * the smallest move. None if no slide does it.
+ */
+function slideClear(design: Design, box: Box, v: Viewport, area: Area): Viewport | null {
+  const z = v.zoom;
+  // How far the view may move while the box stays inside the margins.
+  const range = (lo: number, hi: number, room: number): [number, number] => [FRAME_MARGIN - lo, room - FRAME_MARGIN - hi];
+  const [dxMin, dxMax] = range(box.x * z + v.x, (box.x + box.w) * z + v.x, area.w);
+  const [dyMin, dyMax] = range(box.y * z + v.y, (box.y + box.h) * z + v.y, area.h);
+  // Candidate moves: none, or one that puts some card's edge exactly on a view edge.
+  const xs = new Set<number>([0]);
+  const ys = new Set<number>([0]);
+  for (const n of design.nodes) {
+    const x0 = n.position.x * z + v.x;
+    const y0 = n.position.y * z + v.y;
+    const x1 = x0 + CARD_W * z;
+    const y1 = y0 + CARD_H * z;
+    for (const d of [EDGE - x0, area.w - EDGE - x1, -x1, area.w - x0]) xs.add(d);
+    for (const d of [EDGE - y0, area.h - EDGE - y1, -y1, area.h - y0]) ys.add(d);
   }
-  // Leave room for the caption card along the bottom.
-  const v = fitBox(box, { w: size.w, h: Math.max(1, size.h - 160) }, 48);
-  return { ...v, zoom: Math.min(v.zoom, 1.2) };
+  const ok = (d: number, lo: number, hi: number) => d >= lo - 1e-6 && d <= hi + 1e-6;
+  let best: { v: Viewport; cost: number } | null = null;
+  for (const dx of xs) {
+    if (!ok(dx, Math.min(0, dxMin), Math.max(0, dxMax))) continue;
+    for (const dy of ys) {
+      if (!ok(dy, Math.min(0, dyMin), Math.max(0, dyMax))) continue;
+      const cost = Math.abs(dx) + Math.abs(dy);
+      if (best && cost >= best.cost) continue;
+      const moved = { x: v.x + dx, y: v.y + dy, zoom: z };
+      if (cutCards(design, moved, area).length === 0) best = { v: moved, cost };
+    }
+  }
+  return best?.v ?? null;
+}
+
+function union(a: Box, cards: Design["nodes"]): Box {
+  const x0 = Math.min(a.x, ...cards.map((n) => n.position.x));
+  const y0 = Math.min(a.y, ...cards.map((n) => n.position.y));
+  const x1 = Math.max(a.x + a.w, ...cards.map((n) => n.position.x + CARD_W));
+  const y1 = Math.max(a.y + a.h, ...cards.map((n) => n.position.y + CARD_H));
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+
+/**
+ * Where a step's camera looks, above the caption band (M1–M3 review F2):
+ * - the focused cards (else the design) always fit, with a margin;
+ * - a step's own camera keeps its centre and zoom only as far as they still show every
+ *   focused card;
+ * - no card is left cut off by the view's edge: the view slides as little as it can, and
+ *   if no slide clears every card, the framed box grows to take in the cut ones.
+ */
+export function stepViewport(step: StoryStep, design: Design, size: { w: number; h: number }): Viewport {
+  const area = visibleArea(size, !!step.callout);
+  let box = focusBox(step, design);
+  if (!box) return fitBox(null, area);
+  const frame = (b: Box, camera: boolean): Viewport => {
+    const fit = fitBox(b, area, FRAME_MARGIN, 0.05);
+    const zoom = Math.min(fit.zoom, 1.2);
+    if (!camera || !step.camera) return { ...fit, zoom };
+    // The step's own camera, held to the fitting zoom and slid to keep the box in view.
+    const z = Math.min(step.camera.zoom, zoom);
+    const clamp = (pos: number, lo: number, hi: number, room: number) => {
+      if (lo + pos < FRAME_MARGIN) return FRAME_MARGIN - lo;
+      if (hi + pos > room - FRAME_MARGIN) return room - FRAME_MARGIN - hi;
+      return pos;
+    };
+    return {
+      x: clamp(area.w / 2 - step.camera.x * z, b.x * z, (b.x + b.w) * z, area.w),
+      y: clamp(area.h / 2 - step.camera.y * z, b.y * z, (b.y + b.h) * z, area.h),
+      zoom: z,
+    };
+  };
+  let v = frame(box, true);
+  for (let round = 0; round < 8; round++) {
+    const cut = cutCards(design, v, area);
+    if (cut.length === 0) return v;
+    const slid = slideClear(design, box, v, area);
+    if (slid) return slid;
+    box = union(box, cut);
+    v = frame(box, false);
+  }
+  return frame(designBounds(design) ?? box, false);
 }
 
 function Callout({ step }: { step: StoryStep }) {
@@ -111,6 +220,7 @@ export function Player({
   registry,
   onTry,
   header,
+  onLastStep,
 }: {
   story: Story;
   registry: Registry;
@@ -118,6 +228,8 @@ export function Player({
   onTry?: (design: Design) => void;
   /** Left of the step counter (a back link and the title). */
   header?: React.ReactNode;
+  /** Called once when the viewer reaches the last step (a concept card counts as played). */
+  onLastStep?: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const report = useReportError();
@@ -137,6 +249,13 @@ export function Player({
   }, []);
   const last = story.steps.length - 1;
   const title = (s: StoryStep) => (es ? s.title_es : s.title);
+  const reachedEnd = useRef(false);
+  useEffect(() => {
+    if (index === last && !reachedEnd.current) {
+      reachedEnd.current = true;
+      onLastStep?.();
+    }
+  }, [index, last, onLastStep]);
 
   // Live telemetry for the cards while the player is open. On the way out the run stops and
   // the run settings the steps changed (preset, test, speed) go back to what they were.

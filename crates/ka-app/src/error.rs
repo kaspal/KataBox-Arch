@@ -36,6 +36,11 @@ pub enum AppErrorCode {
     NoPath,
     /// The bundled problem catalogue (content.db) is missing or unreadable.
     ContentMissing,
+    /// A problem pack failed its checks (the message lists why).
+    PackRefused,
+    /// A pack can't replace the installed one: an older version, or the same version with
+    /// different contents.
+    PackVersion,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, thiserror::Error)]

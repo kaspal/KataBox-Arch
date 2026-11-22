@@ -1,0 +1,27 @@
+id = "ratelimit"
+number = 7
+title = "Rate Limiter"
+title_es = "Limitador de tasa"
+summary = "Gives each API key a budget and turns the excess away before it reaches the servers."
+summary_es = "Da a cada clave de API un presupuesto y rechaza el exceso antes de que llegue a los servidores."
+problem = "rate-limiter"
+
+[[step]]
+snapshot = "unguarded.kbarch"
+title = "One key floods the API"
+title_es = "Una clave inunda la API"
+caption = "Fifty customers share this API. In this test one of them sends thirty times its usual traffic. With nothing in the way, the flood fills the app's queue and everyone's requests start failing."
+caption_es = "Cincuenta clientes comparten esta API. En esta prueba uno de ellos envía treinta veces su tráfico habitual. Sin nada en medio, la avalancha llena la cola de la aplicación y empiezan a fallar las peticiones de todos."
+focus = ["app"]
+run = { test = "abuse", start_s = 4 }
+callout = { metric = "error_rate", after = 0.217, target = 0.001 }
+
+[[step]]
+snapshot = "limited.kbarch"
+title = "A budget per key"
+title_es = "Un presupuesto por clave"
+caption = "A rate limiter in front gives every key its own token bucket. The abusive key gets 429 answers once its bucket is empty, and the other forty-nine keys never notice."
+caption_es = "Un limitador delante da a cada clave su propio cubo de fichas. La clave abusiva recibe respuestas 429 cuando se vacía su cubo, y las otras cuarenta y nueve claves ni lo notan."
+focus = ["limiter"]
+run = { test = "abuse", start_s = 4 }
+callout = { metric = "error_rate", before = 0.217, after = 0, target = 0.001 }

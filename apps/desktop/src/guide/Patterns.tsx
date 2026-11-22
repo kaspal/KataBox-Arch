@@ -1,6 +1,8 @@
 // /patterns and /patterns/$id: the pattern library. Each pattern has a Guide-style page and a
 // template; "Insert into the Sandbox" adds the template to the design being edited, centred
 // in the view with fresh ids, as one undo step.
+import { QuizBlock } from "@/practice/QuizBlock";
+import { RelatedInKatabox } from "@/guide/RelatedInKatabox";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
@@ -226,6 +228,8 @@ function Pattern({ page, registry }: { page: PatternPageData; registry: Registry
           )}
         </aside>
       </div>
+      <QuizBlock page={`pattern:${e.id}`} />
+          <RelatedInKatabox target={`pattern:${e.id}`} />
     </div>
   );
 }

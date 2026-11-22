@@ -1,0 +1,123 @@
+{
+  "schema_version": 3,
+  "id": "checkout-naive",
+  "name": "Checkout & Inventory (first try)",
+  "problem_id": "checkout",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Shoppers",
+      "position": {
+        "x": 260,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "Load balancer",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Shop API",
+      "position": {
+        "x": 260,
+        "y": 510
+      },
+      "props": {
+        "instances": 6
+      },
+      "group_id": null
+    },
+    {
+      "id": "cache",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "Product cache",
+      "position": {
+        "x": 0,
+        "y": 680
+      },
+      "props": {
+        "ttl_s": 60
+      },
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Orders & stock",
+      "position": {
+        "x": 260,
+        "y": 782
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "db_r",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Replica",
+      "position": {
+        "x": 520,
+        "y": 782
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "api",
+      "to": "cache",
+      "protocol": "query"
+    },
+    {
+      "id": "e3",
+      "from": "api",
+      "to": "db",
+      "protocol": "query"
+    },
+    {
+      "id": "e4",
+      "from": "db",
+      "to": "db_r",
+      "protocol": "replicate"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

@@ -35,6 +35,7 @@ import { ComponentCard, type CardFlowNode } from "@/solve/nodes/ComponentCard";
 import { PacketLayer } from "@/solve/run/PacketLayer";
 import { NoteNode, type NoteFlowNode } from "@/solve/nodes/NoteNode";
 import { ZoneNode, type ZoneFlowNode } from "@/solve/nodes/ZoneNode";
+import { reducedMotion } from "@/lib/motion";
 import { defaultProps, flavourName, kindName, kindSpec } from "@/solve/registry";
 import { CARD_H, CARD_W, NOTE_SIZE, ZONE_SIZE, useEditor } from "@/solve/store";
 import { checkWire, makeWiring } from "@/solve/wiring";
@@ -165,6 +166,17 @@ function CanvasInner() {
       selected: selected.has(n.id),
       ariaLabel: t("canvas.noteAria", { text: n.text.slice(0, 60) }),
     }));
+    // Screen-reader names (M7.1): "Primary, PostgreSQL SQL Database, 3 instances".
+    const cardName = (n: (typeof doc.nodes)[number]) => {
+      const spec = kindSpec(registry, n.kind);
+      const inst = n.props.instances ?? defaultProps(spec, n.flavour).instances;
+      const count = typeof inst === "number" ? inst : null;
+      return [
+        n.label.trim() || flavourName(t, n.flavour),
+        `${flavourName(t, n.flavour)} ${kindName(t, n.kind)}`,
+        ...(count !== null ? [t("canvas.instances", { count })] : []),
+      ].join(", ");
+    };
     const cards: CardFlowNode[] = doc.nodes.map((n) => {
       const mark =
         connect?.from === n.id
@@ -181,7 +193,7 @@ function CanvasInner() {
         data: { node: n, spec: kindSpec(registry, n.kind), wiring: mark },
         selected: selected.has(n.id),
         measured: measured.get(n.id),
-        ariaLabel: `${n.label.trim() || flavourName(t, n.flavour)}, ${kindName(t, n.kind)}`,
+        ariaLabel: cardName(n),
       };
     });
     return [...zones, ...notes, ...cards];
@@ -198,6 +210,13 @@ function CanvasInner() {
     return assignSlots(doc.edges, rects);
   }, [doc.nodes, doc.edges, measured]);
 
+  const endName = useCallback(
+    (id: string) => {
+      const n = doc.nodes.find((x) => x.id === id);
+      return n ? n.label.trim() || flavourName(t, n.flavour) : id;
+    },
+    [doc.nodes, t],
+  );
   const edges = useMemo<CurvedFlowEdge[]>(
     () =>
       doc.edges.map((e) => ({
@@ -207,8 +226,13 @@ function CanvasInner() {
         type: "curved",
         data: { protocol: e.protocol, slots: slots.get(e.id) },
         selected: selected.has(e.id),
+        ariaLabel: t("canvas.edgeAria", {
+          protocol: t(`protocol.${e.protocol}` as "protocol.http"),
+          from: endName(e.from),
+          to: endName(e.to),
+        }),
       })),
-    [doc.edges, selected, slots],
+    [doc.edges, selected, slots, t, endName],
   );
 
   // --- Changes from React Flow ----------------------------------------------------
@@ -303,7 +327,7 @@ function CanvasInner() {
     (kind: ComponentKind, flavour: Flavour, centre: Point) => {
       const spec = kindSpec(registry, kind);
       if (spec.placement === "wrapper") {
-        store().addGroup("autoscale", placeAt(centre, ZONE_SIZE.autoscale), { flavour, props: defaultProps(spec, flavour) });
+        store().addGroup("autoscale", placeAt(centre, ZONE_SIZE.autoscale), { flavour, props: {} });
       } else {
         store().addNode(registry, kind, flavour, placeAt(centre, { w: CARD_W, h: CARD_H }));
       }
@@ -605,7 +629,7 @@ function ZoomControls() {
             size="icon"
             className={btn}
             aria-label={t("canvas.fit")}
-            onClick={() => void rf.fitView({ padding: 0.2, duration: 200, minZoom: FIT_MIN_ZOOM })}
+            onClick={() => void rf.fitView({ padding: 0.2, duration: reducedMotion() ? 0 : 200, minZoom: FIT_MIN_ZOOM })}
           >
             <Maximize aria-hidden className="size-4" />
           </Button>

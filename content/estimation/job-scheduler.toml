@@ -1,0 +1,23 @@
+# Estimation drills for the Distributed Job Scheduler.
+
+[[drill]]
+id = "peak-jobs"
+kind = "qps"
+prompt = "Teams have scheduled {jobs_per_day} job runs a day, and the busiest hour fires {peak_factor}× the daily average. How many jobs a second fire in that hour?"
+prompt_es = "Los equipos tienen programadas {jobs_per_day} ejecuciones de tareas al día, y la hora más cargada lanza {peak_factor} veces la media diaria. ¿Cuántas tareas por segundo se lanzan en esa hora?"
+inputs = { jobs_per_day = 2_880_000, peak_factor = 3 }
+formula = "jobs_per_day / 86400 * peak_factor"
+unit = "rps"
+solution = "{jobs_per_day} ÷ 86,400 s ≈ 33.3 jobs a second on average. × {peak_factor} in the busiest hour gives {answer} a second, this problem's peak."
+solution_es = "{jobs_per_day} ÷ 86 400 s ≈ 33,3 tareas por segundo de media. × {peak_factor} en la hora más cargada da {answer} por segundo, el pico de este problema."
+
+[[drill]]
+id = "workers-needed"
+kind = "servers"
+prompt = "Jobs normally fire at {peak_jobs} a second, but at midnight that jumps {midnight_x}×. Each job takes {job_ms} ms of work, and one worker instance runs {slots_per_worker} jobs at a time. How many workers keep up at midnight without a growing backlog?"
+prompt_es = "Las tareas suelen lanzarse a {peak_jobs} por segundo, pero a medianoche eso se multiplica por {midnight_x}. Cada tarea lleva {job_ms} ms de trabajo, y una instancia de worker ejecuta {slots_per_worker} tareas a la vez. ¿Cuántos workers hacen falta a medianoche para que la cola no crezca?"
+inputs = { peak_jobs = 100, midnight_x = 10, job_ms = 100, slots_per_worker = 8 }
+formula = "peak_jobs * midnight_x * job_ms / 1000 / slots_per_worker"
+unit = "count"
+solution = "{peak_jobs} × {midnight_x} = 1,000 jobs a second. × 0.1 s each = 100 jobs running at once. ÷ {slots_per_worker} slots per worker ≈ {answer}, so 13 workers. Or run fewer and let the queue hold the burst for a few seconds, if the completion target allows it."
+solution_es = "{peak_jobs} × {midnight_x} = 1000 tareas por segundo. × 0,1 s cada una = 100 tareas en marcha a la vez. ÷ {slots_per_worker} huecos por worker ≈ {answer}, así que 13 workers. O usa menos y deja que la cola aguante la ráfaga unos segundos, si el objetivo de finalización lo permite."

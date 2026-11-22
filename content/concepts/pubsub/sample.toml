@@ -1,0 +1,27 @@
+id = "pubsub"
+number = 13
+title = "Pub/Sub"
+title_es = "Pub/Sub"
+summary = "Delivers a copy of every message to each subscriber, so servers can share events."
+summary_es = "Entrega una copia de cada mensaje a cada suscriptor, para que los servidores compartan eventos."
+problem = "chat"
+
+[[step]]
+snapshot = "one-gateway.kbarch"
+title = "All chats on one gateway"
+title_es = "Todos los chats en una pasarela"
+caption = "Every connection sits on one WebSocket gateway, and messages pass through a pub/sub bus back to it. When that gateway dies, every conversation goes with it."
+caption_es = "Todas las conexiones están en una sola pasarela WebSocket, y los mensajes pasan por un bus pub/sub de vuelta a ella. Cuando esa pasarela cae, todas las conversaciones caen con ella."
+focus = ["gw", "bus"]
+run = { test = "gateway-dies", start_s = 16 }
+callout = { metric = "error_rate", after = 0.668, target = 0.02 }
+
+[[step]]
+snapshot = "two-gateways.kbarch"
+title = "Gateways share through the bus"
+title_es = "Las pasarelas comparten por el bus"
+caption = "With two gateways subscribed to the same bus, a message published on one reaches users on the other. When one gateway dies, its users reconnect to the survivor and the chat goes on."
+caption_es = "Con dos pasarelas suscritas al mismo bus, un mensaje publicado en una llega a los usuarios de la otra. Cuando una cae, sus usuarios se reconectan a la que queda y el chat sigue."
+focus = ["gw-a", "gw-b", "bus"]
+run = { test = "gateway-dies", start_s = 16 }
+callout = { metric = "error_rate", before = 0.668, after = 0.0167, target = 0.02 }

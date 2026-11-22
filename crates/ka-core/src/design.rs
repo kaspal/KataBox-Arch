@@ -10,8 +10,8 @@ use crate::registry::{ComponentKind, Flavour};
 use crate::ser_num;
 
 /// The `.kbarch` format version this build writes. Older versions are migrated on open;
-/// newer ones are refused.
-pub const SCHEMA_VERSION: u32 = 2;
+/// newer ones are refused. v3: cards store only the props the user set (ADR 0003).
+pub const SCHEMA_VERSION: u32 = 3;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]

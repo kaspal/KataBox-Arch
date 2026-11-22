@@ -23,6 +23,10 @@ thiserror = "2"
 specta = { version = "=2.0.0-rc.22", features = ["derive", "serde_json"] }
 toml = "0.8"
 sha2 = "0.10"
+# Problem packs (M6.4, review A1): the zip version the updater already locks; flate2's
+# default features pick its pure-Rust backend for zip's deflate.
+zip = { version = "=9.5.1", default-features = false, features = ["deflate-flate2"] }
+flate2 = "=1.1.11"
 ka-judge = { path = "crates/ka-judge" }
 ka-pack = { path = "crates/ka-pack" }
 sqlx = { version = "0.8", default-features = false, features = ["sqlite", "runtime-tokio"] }

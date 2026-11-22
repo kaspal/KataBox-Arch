@@ -68,6 +68,11 @@ note = "How many times a failed message is tried again, each wait twice the last
 note_es = "Cuántas veces se vuelve a intentar un mensaje fallido, cada espera el doble que la anterior. Luego va a una DLQ conectada, o se pierde."
 
 [[sim]]
+prop = "visibility_timeout_s"
+note = "A worker's lease on a message. If the worker dies holding it, the message comes back after this long and counts as another try."
+note_es = "La reserva de un worker sobre un mensaje. Si el worker cae con él, el mensaje vuelve pasado este tiempo y cuenta como otro intento."
+
+[[sim]]
 sim = "service_ms"
 note = "How long the broker takes to store a publish before it acknowledges it. SQS answers over HTTPS, so it is slower."
 note_es = "Lo que tarda el broker en guardar una publicación antes de confirmarla. SQS responde por HTTPS, así que es más lento."
@@ -149,3 +154,30 @@ url = "https://www.rabbitmq.com/docs"
 flavour = "sqs"
 title = "Amazon SQS documentation"
 url = "https://docs.aws.amazon.com/sqs/"
+
+[[quiz]]
+q = "At peak, messages arrive faster than the workers finish them. What happens if nothing changes?"
+q_es = "En el pico, los mensajes llegan más rápido de lo que los workers los terminan. ¿Qué pasa si no cambia nada?"
+options = ["The queue slows the publishers down until the workers catch up", "The backlog grows, completion time climbs, and once the queue is full new publishes fail", "The extra messages go straight to the dead-letter queue", "Each message is handed to two workers to finish sooner"]
+options_es = ["La cola frena a quienes publican hasta que los workers se ponen al día", "La cola pendiente crece, el tiempo de finalización sube y, cuando la cola se llena, las publicaciones nuevas fallan", "Los mensajes sobrantes van directos a la cola de mensajes fallidos", "Cada mensaje se entrega a dos workers para terminar antes"]
+answer = 1
+why = "A queue turns a burst into a backlog, but only up to its max depth; past that, publishes are dropped. The DLQ is for messages that ran out of retries. The fix is more consumers or autoscaling."
+why_es = "Una cola convierte una ráfaga en cola pendiente, pero solo hasta su profundidad máxima; a partir de ahí las publicaciones se descartan. La DLQ es para los mensajes que agotaron sus reintentos. La solución es más consumidores o autoescalado."
+
+[[quiz]]
+q = "An email provider is down for longer than all of a message's retries together, and no DLQ is wired to the queue. What happens to those messages?"
+q_es = "Un proveedor de correo cae durante más tiempo que todos los reintentos de un mensaje juntos, y no hay ninguna DLQ conectada a la cola. ¿Qué pasa con esos mensajes?"
+options = ["They stay in the queue until the provider recovers", "They are retried forever, each wait twice the last", "The original publish fails, so the app can try again", "They run out of retries and are lost for good"]
+options_es = ["Se quedan en la cola hasta que el proveedor se recupera", "Se reintentan para siempre, cada espera el doble que la anterior", "La publicación original falla, así que la aplicación puede volver a intentarlo", "Agotan sus reintentos y se pierden para siempre"]
+answer = 3
+why = "Retries are capped. After the last one, a message goes to a wired DLQ or is lost. The publish was acknowledged long before, so the caller never hears about it."
+why_es = "Los reintentos tienen un tope. Tras el último, el mensaje va a una DLQ conectada o se pierde. La publicación se confirmó mucho antes, así que quien llamó nunca se entera."
+
+[[quiz]]
+q = "A worker charges a customer's card, then crashes before acknowledging the message. What should the design assume?"
+q_es = "Un worker cobra la tarjeta de un cliente y cae antes de confirmar el mensaje. ¿Qué debe suponer el diseño?"
+options = ["The message is gone, because the work was done", "The queue sees that the work finished and skips it", "The message becomes visible again after the visibility timeout, so another worker may repeat the charge", "The message moves straight to the dead-letter queue"]
+options_es = ["El mensaje desaparece, porque el trabajo ya se hizo", "La cola ve que el trabajo terminó y lo salta", "El mensaje vuelve a ser visible pasado el tiempo de visibilidad, así que otro worker puede repetir el cobro", "El mensaje pasa directamente a la cola de mensajes fallidos"]
+answer = 2
+why = "The queue only knows the message was not acknowledged, so it hands it out again as another try. Consumers must be idempotent, for example with a key stored per message."
+why_es = "La cola solo sabe que el mensaje no se confirmó, así que lo vuelve a entregar como otro intento. Los consumidores deben ser idempotentes, por ejemplo con una clave guardada por mensaje."

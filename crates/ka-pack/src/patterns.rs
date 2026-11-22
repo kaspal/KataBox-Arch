@@ -109,6 +109,9 @@ pub fn validate_patterns(
         let e = &p.entry;
         let file = format!("{}/pattern.toml", p.dir);
         let mut bad = |m: String| issues.push(issue(&file, m));
+        for m in ka_core::quiz::check(&e.quiz) {
+            bad(format!("quiz: {m}"));
+        }
         if p.dir != format!("patterns/{}", e.id) {
             bad(format!("id `{}` doesn't match its folder", e.id));
         }

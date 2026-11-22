@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "typeahead-reference",
   "name": "Typeahead (reference)",
   "problem_id": "typeahead",
@@ -52,7 +52,6 @@
         "y": 510
       },
       "props": {
-        "memory_gb": 2,
         "ttl_s": 3600
       },
       "group_id": null

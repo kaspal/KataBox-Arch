@@ -1,0 +1,57 @@
+id = "collab-docs"
+number = 25
+set = 2
+difficulty = "hard"
+title = "Collaborative Docs"
+title_es = "Documentos colaborativos"
+teaches = "Fan edits out to every sync server through pub/sub, so editors on different servers see each other and a server can fail"
+teaches_es = "Repartir las ediciones a todos los servidores de sincronización con pub/sub, para que editores en servidores distintos se vean y un servidor pueda caer"
+tags = ["websockets", "pub-sub", "fan-out", "failover"]
+
+[nfr]
+peak_rps = 6000
+p95_ms = 150
+availability = 0.999
+budget_usd = 11000
+
+[[request_types]]
+id = "op"
+name = "Type an edit"
+name_es = "Escribir una edición"
+share = 0.9
+route = ["edge:ws", "compute", "broker", "compute"]
+key_space = 100_000
+measure = "completion"
+
+[[request_types]]
+id = "snapshot"
+name = "Save a snapshot"
+name_es = "Guardar una instantánea"
+share = 0.1
+route = ["edge:ws", "compute", "datastore:write"]
+key_space = 100_000
+payload_kb = 16
+
+[[tests]]
+id = "normal"
+name = "Normal workday"
+name_es = "Una jornada normal"
+
+[[tests]]
+id = "big-meeting"
+name = "500 editors in one doc"
+name_es = "500 editores en un mismo documento"
+hidden = true
+type_multipliers = { op = 3 }
+key_skew_override = { zipf = 2.0 }
+
+[[tests]]
+id = "sync-dies"
+name = "A sync server dies"
+name_es = "Se cae un servidor de sincronización"
+hidden = true
+chaos = [{ kill = { kind = "app", at = 20 } }]
+pass = { error_rate = 0.03, availability = 0.97, p95_ms = 2000 }
+
+[pass]
+error_rate = 0.001

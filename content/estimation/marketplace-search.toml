@@ -1,0 +1,23 @@
+# Estimation drills for Marketplace Search.
+
+[[drill]]
+id = "search-result-bandwidth"
+kind = "bandwidth"
+prompt = "The marketplace peaks at {peak_rps} requests a second, {search_pct}% of them searches. Each search returns about {result_kb} KB of results. How many MB a second of results go out at peak?"
+prompt_es = "El marketplace llega a {peak_rps} peticiones por segundo en el pico, el {search_pct} % búsquedas. Cada búsqueda devuelve unos {result_kb} KB de resultados. ¿Cuántos MB por segundo de resultados salen en el pico?"
+inputs = { peak_rps = 5_000, search_pct = 95, result_kb = 8 }
+formula = "peak_rps * search_pct / 100 * result_kb / 1000"
+unit = "MB/s"
+solution = "{search_pct}% of {peak_rps} = 4,750 searches a second, × {result_kb} KB ≈ {answer} MB/s. The same 8 KB answers, cached for all 200,000 queries, take only about 1.6 GB: a small cache holds every popular one."
+solution_es = "El {search_pct} % de {peak_rps} = 4750 búsquedas por segundo, × {result_kb} KB ≈ {answer} MB/s. Esas mismas respuestas de 8 KB, guardadas en caché para las 200 000 consultas, ocupan solo unos 1,6 GB: una caché pequeña guarda todas las populares."
+
+[[drill]]
+id = "cdc-partitions"
+kind = "capacity"
+prompt = "Sellers update {updates_rps} listings a second, and each change reaches the search index through a stream. A stream works one message per partition at a time, and indexing a change takes about {index_ms} ms during a reindex. How many partitions does the stream need just to keep up?"
+prompt_es = "Los vendedores actualizan {updates_rps} anuncios por segundo, y cada cambio llega al índice de búsqueda a través de un stream. Un stream procesa un mensaje por partición a la vez, e indexar un cambio tarda unos {index_ms} ms durante una reindexación. ¿Cuántas particiones necesita el stream solo para seguir el ritmo?"
+inputs = { updates_rps = 250, index_ms = 60 }
+formula = "updates_rps * index_ms / 1000"
+unit = "count"
+solution = "Messages in flight = arrival rate × time per message: {updates_rps} a second × 0.06 s = {answer} partitions, running flat out. On a normal day a change takes about 30 ms, so Kafka's default 6 partitions move only 200 a second and the index falls behind; 24 leave room for the slow days."
+solution_es = "Mensajes en curso = ritmo de llegada × tiempo por mensaje: {updates_rps} por segundo × 0,06 s = {answer} particiones a plena carga. En un día normal un cambio tarda unos 30 ms, así que las 6 particiones por defecto de Kafka solo mueven 200 por segundo y el índice se queda atrás; 24 dejan margen para los días lentos."

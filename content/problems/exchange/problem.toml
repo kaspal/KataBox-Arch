@@ -1,0 +1,52 @@
+id = "exchange"
+number = 30
+set = 2
+difficulty = "hard"
+title = "Order-Matching Exchange"
+title_es = "Bolsa con casamiento de órdenes"
+teaches = "Keep the matching path short and the tail tight: enough partitions for the open, and a second matcher so one crash cannot stop matching"
+teaches_es = "Mantener corto el camino de casamiento y ajustada la cola de latencias: particiones suficientes para la apertura y un segundo matcher para que una caída no detenga el casamiento"
+tags = ["streams", "partitioning", "p99", "failover", "caching"]
+
+[nfr]
+peak_rps = 10000
+p95_ms = 30
+availability = 0.999
+budget_usd = 9000
+
+[[request_types]]
+id = "order"
+name = "Place an order"
+name_es = "Enviar una orden"
+share = 1.0
+route = ["edge?", "compute", "broker", "worker", "cache:write"]
+key_space = 5_000
+key_skew = { zipf = 1.1 }
+measure = "completion"
+
+[[tests]]
+id = "normal"
+name = "Normal session"
+name_es = "Una sesión normal"
+
+[[tests]]
+id = "market-open"
+name = "The market opens"
+name_es = "Abre el mercado"
+hidden = true
+traffic = { spike = { at = 20, x = 4, for = 10 } }
+pass = { p95_ms = 1000, p99_ms = 3000 }
+
+[[tests]]
+id = "matcher-dies"
+name = "A matcher dies"
+name_es = "Se cae un matcher"
+hidden = true
+duration_s = 90
+chaos = [{ kill = { kind = "worker", at = 20 } }]
+pass = { p95_ms = 100, p99_ms = 1000 }
+
+[pass]
+error_rate = 0.001
+lost = 0
+p99_ms = 50

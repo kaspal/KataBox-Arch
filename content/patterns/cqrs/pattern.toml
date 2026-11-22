@@ -52,5 +52,32 @@ kinds = [
 ]
 practice = []
 
-in_simulator = "Partly: both sides, the stream and the projector workers are simulated with their own load and latency, but the delay before a write reaches the read model is not counted as a stale read."
-in_simulator_es = "En parte: los dos lados, el stream y los workers proyectores se simulan con su propia carga y latencia, pero el retraso hasta que una escritura llega al modelo de lectura no cuenta como lectura obsoleta."
+in_simulator = "Mostly: both sides, the stream and the projector workers are simulated with their own load and latency, and the write database publishes each committed change to the stream (change data capture), so the projector's lag shows up as completion time. That delay is not counted as a stale read."
+in_simulator_es = "Casi todo: los dos lados, el stream y los workers proyectores se simulan con su propia carga y latencia, y la base de datos de escritura publica cada cambio confirmado en el stream (change data capture), así que el retraso del proyector se ve como tiempo de finalización. Ese retraso no cuenta como lectura obsoleta."
+
+[[quiz]]
+q = "What core problem does CQRS address?"
+q_es = "¿Qué problema de fondo resuelve CQRS?"
+options = ["One data model cannot be both strict for writes and shaped for every read", "The database runs out of disk space", "Requests from abusive callers crowd out everyone else", "A single transaction cannot span several services"]
+options_es = ["Un único modelo de datos no puede ser estricto para las escrituras y a la vez estar preparado para cada lectura", "La base de datos se queda sin espacio en disco", "Las peticiones de clientes abusivos desplazan a todos los demás", "Una sola transacción no puede abarcar varios servicios"]
+answer = 0
+why = "CQRS separates a write model that enforces the rules from read models shaped for each screen, so each side uses the store that suits it."
+why_es = "CQRS separa un modelo de escritura que aplica las reglas de unos modelos de lectura preparados para cada pantalla, así que cada lado usa el almacén que le conviene."
+
+[[quiz]]
+q = "A user submits a change and the next screen does not show it yet. Why, in a CQRS design?"
+q_es = "Un usuario envía un cambio y la siguiente pantalla todavía no lo muestra. ¿Por qué, en un diseño CQRS?"
+options = ["The write model rejected the command", "The read model lags until the projector has applied the event", "Queries always go to the write database first", "CQRS drops events that arrive out of order"]
+options_es = ["El modelo de escritura rechazó el comando", "El modelo de lectura va con retraso hasta que el proyector aplica el evento", "Las consultas siempre van primero a la base de datos de escritura", "CQRS descarta los eventos que llegan desordenados"]
+answer = 1
+why = "Queries only hit the read models, which projectors update by consuming events, so they are always a little behind the write side."
+why_es = "Las consultas solo van a los modelos de lectura, que los proyectores actualizan al consumir eventos, así que siempre van un poco por detrás del lado de escritura."
+
+[[quiz]]
+q = "When is CQRS the wrong choice?"
+q_es = "¿Cuándo es CQRS la elección equivocada?"
+options = ["When reads need searches the write store does slowly", "When reads and writes have very different volumes", "When the app is mostly plain create, read, update and delete screens", "When new read views may be needed later"]
+options_es = ["Cuando las lecturas necesitan búsquedas que el almacén de escritura hace despacio", "Cuando lecturas y escrituras tienen volúmenes muy distintos", "Cuando la aplicación son sobre todo pantallas sencillas de crear, leer, actualizar y borrar", "Cuando más adelante pueden hacer falta vistas de lectura nuevas"]
+answer = 2
+why = "Two models, a stream and projectors are a lot to build and keep in step; for plain CRUD screens that cost buys nothing."
+why_es = "Dos modelos, un stream y proyectores son mucho que construir y mantener al día; para pantallas CRUD sencillas ese coste no aporta nada."

@@ -7,6 +7,34 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
 ## [Unreleased]
 
 ### Added
+- **Set 2: 15 more problems** (#16–30), from Image Thumbnails to an Order-Matching Exchange, each with hints, an
+  editorial (with "What the simulator leaves out" where it matters) and estimation drills. Learning paths include
+  them.
+- **Problem packs:** import a `.kbpack` with a preview (author as stated, SHA-256, problems); every pack is checked
+  (files, text and a judged run of every design) before it installs; a badge and a source filter on Problems;
+  uninstall in Settings keeps your history. `ka-pack pack` builds packs.
+- **Export:** copy or save a design as a Mermaid diagram; save it as an SVG or PNG image.
+- **Related in KataBox** on Guide entries, patterns and problems.
+- **Results and briefs show p99 limits** where a test has one.
+- **Accessibility:** cards and connections have full names, the side panel's tabs follow the ARIA pattern, and run
+  changes are announced. Reduced motion now follows the system everywhere.
+- **Simulator:** unfinished work at the end of a run counts at its age; reads stay in the caller's Region;
+  zone tests can target the Region holding the primary.
+- **Docs:** user guide (English and Spanish), pack and problem authoring guides, known issues.
+- **Practice modes:**
+  - A **Numbers cheat sheet** (31 figures, with sources), linked from every problem brief.
+  - **Estimation drills:** 37 back-of-the-envelope questions for Set 1, with worked solutions, an "Estimate first"
+    panel in each brief and a drill page.
+  - **Find the flaw:** 10 designs that pass a normal day but hide one flaw a test exposes.
+  - **Learning paths:** 5 ordered tracks through the Guide, patterns, problems and drills; Home recommends the next
+    step of the path you follow.
+  - **Quizzes** at the end of every Guide entry and pattern (105 questions). Missed questions come back for spaced
+    review (1, 3, 7 and 21 days).
+- **Simulator:** worker leases (redelivery after a visibility or session timeout), change data capture, cost per
+  shard, DynamoDB write units, SQL "Read from", provider rate cuts, link partitions between zones, and p99 targets.
+- Glossary terms show their definition on hover or focus.
+- 12 more concept cards.
+- Properties left at their default follow calibration; the Inspector marks defaults and can reset a property.
 - **Autoscaling groups** are frames around compute cards, with a scaling policy (flavour,
   minimum and maximum instances, target utilisation, scale-out delay) edited in the Inspector.
 - Edges that share a side of a card spread out along it instead of meeting at one point.

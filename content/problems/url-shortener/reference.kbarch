@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "url-shortener-reference",
   "name": "URL Shortener (reference)",
   "problem_id": "url-shortener",

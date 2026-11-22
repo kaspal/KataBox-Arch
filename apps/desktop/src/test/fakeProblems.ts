@@ -15,8 +15,11 @@ export const FAKE_BRIEF: ProblemBrief = {
     status: null,
     best_score: null,
     best_cost: null,
+    pack: null,
   },
   nfr: { peak_rps: 12000, read_ratio: 0.95, p95_ms: 80, availability: 0.999, budget_usd: 2500 },
+  p99_ms: 120,
+  judged_on: "response",
   statement_en: "# URL Shortener\n\n## The problem\n\nTurn long links into short ones. <b>raw</b>\n\n| a | b |\n|---|---|\n| 1 | 2 |",
   statement_es: "# Acortador de URLs\n\n## El problema\n\nConvierte enlaces largos en cortos.",
   request_types: [
@@ -58,7 +61,7 @@ export const FAKE_REFERENCE: Design = {
 
 export function fakeJudgement(problemId: string, verdict: Verdict): Judgement {
   const pass = verdict === "accepted";
-  const limits = { p95_ms: 80, error_rate: 0.001, availability: 0.999, stale_rate: null, lost: null };
+  const limits = { p95_ms: 80, p99_ms: null, error_rate: 0.001, availability: 0.999, stale_rate: null, lost: null };
   return {
     problem_id: problemId,
     verdict,
@@ -71,10 +74,12 @@ export function fakeJudgement(problemId: string, verdict: Verdict): Judgement {
         hidden: false,
         verdict: "accepted",
         p95_ms: 31.2,
+        p99_ms: 48.5,
         error_rate: 0,
         availability: 1,
         stale_rate: 0,
         lost: 0,
+        retried: 0,
         throughput_rps: 11980,
         cost_month: 1850,
         limits,
@@ -89,13 +94,15 @@ export function fakeJudgement(problemId: string, verdict: Verdict): Judgement {
         hidden: true,
         verdict: pass ? "accepted" : verdict,
         p95_ms: pass ? 54 : 412,
+        p99_ms: pass ? 80 : 900,
         error_rate: pass ? 0 : 0.034,
         availability: pass ? 1 : 0.966,
         stale_rate: 0,
         lost: 0,
+        retried: pass ? 0 : 1234,
         throughput_rps: 30500,
         cost_month: 2100,
-        limits,
+        limits: { ...limits, p99_ms: 120 },
         bottleneck: pass ? null : { node: "db", kind: "sql", from_s: 22, utilisation: 0.99, reason: "saturated" },
         replay_at_s: pass ? null : 20,
         seed: 2,

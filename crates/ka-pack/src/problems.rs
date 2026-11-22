@@ -205,6 +205,34 @@ pub fn validate_problems(problems: &[ProblemDir], registry: &Registry) -> Vec<Is
                 bad("problem.toml", format!("{what} needs English and Spanish"));
             }
         }
+        // Zone chaos: `@primary`, or a Region/AZ of the reference (players can't be expected
+        // to match other names, so `@primary` is the one to use; see problem-authoring.md).
+        for t in &d.tests {
+            for c in &t.chaos {
+                let zone = match c {
+                    ka_core::scenario::ChaosEvent::Partition { zone, .. }
+                    | ka_core::scenario::ChaosEvent::Split { zone, .. } => zone,
+                    _ => continue,
+                };
+                let known = zone == "@primary"
+                    || p.reference
+                        .groups
+                        .iter()
+                        .any(|g| &g.id == zone || &g.label == zone);
+                if !known {
+                    bad(
+                        "problem.toml",
+                        format!(
+                            "test {}: zone {zone:?} is neither @primary nor a group of the reference",
+                            t.id
+                        ),
+                    );
+                }
+            }
+        }
+        for m in loose_limits(d) {
+            bad("problem.toml", m);
+        }
         // Request types.
         let mut type_ids = BTreeSet::new();
         let mut share = 0.0;
@@ -368,4 +396,20 @@ impl ProblemDir {
             ref_p95_ms: run.latency.p95_ms,
         })
     }
+}
+
+/// Review F3: an error limit a learner can read. Above 10% (or availability under 90%) the
+/// limit is usually covering retried attempts, which aren't errors; judge `lost` instead.
+pub fn loose_limits(def: &ka_core::problem::ProblemDef) -> Vec<String> {
+    let mut out = Vec::new();
+    for t in &def.tests {
+        let p = def.pass_for(t);
+        if p.error_rate.is_some_and(|e| e > 0.1) {
+            out.push(format!("test {}: an error limit above 10%", t.id));
+        }
+        if p.availability.is_some_and(|a| a < 0.9) {
+            out.push(format!("test {}: an availability limit under 90%", t.id));
+        }
+    }
+    out
 }

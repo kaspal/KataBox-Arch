@@ -167,8 +167,68 @@ Above `sample_cap = 5000` simulated arrivals per second, only a share `f = cap /
 
 ### Cost
 A teaching price model per flavour (`registry::Cost`: per instance-month, per GB-month, per million requests).
-Monthly cost = instances × price + memory × GB price + mean real rps through the card × per-request price. It is
-consistent across designs and not a vendor quote.
+Monthly cost = instances × price × shard factor + memory × GB price + mean real rps through the card ×
+per-request price. It is consistent across designs and not a vendor quote.
+
+**Cost per shard (M5.0).** SQL and Search are billed per shard and NoSQL per partition. The shard factor is the
+card's shard (or partition) count over its flavour's default count: a card at its default costs exactly what it did
+before, more shards cost more, and fewer cost less, so the cost score rewards a design that doesn't over-shard.
+Replicas stay separate cards with their own price.
+
+### M5.0 additions (the M1–M3 review's Q2 decisions)
+Each addition has tests in `tests/additions.rs`. Golden c changed with the DynamoDB write factor, and golden d is
+new.
+- **Worker leases.** A queue or stream message whose consumer dies (while working on it, waiting on its calls, or
+  on its way to it) is not failed at once. It comes back when its lease runs out: a queue's `visibility_timeout_s`,
+  a stream's `session_timeout_s` (Kafka's consumer default, 45 s). It holds its broker slot until then, so a stream
+  partition stays blocked through the rebalance, and the redelivery counts as an attempt: after `max_retries` it is
+  dead-lettered or lost, as before. Pub/sub keeps the plain retry path.
+- **Change data capture (route step `cdc`).** It must follow a `datastore:write` to SQL or NoSQL.
+  - The caller's answer leaves at the commit, so the request's latency ends there. The change is published by the
+    database card that committed it, to the stream on its CDC edge (`sql|nosql → stream`, Publish), chosen by key,
+    so it counts only toward **completion**.
+  - Only committed writes publish; a write that fails (a failover) publishes nothing.
+  - A stream that is down, full or cut off doesn't lose committed changes. They wait in a per-database backlog (the
+    database log), in commit order, and go out when the stream is back. Changes older than the database's
+    `cdc_buffer_s` (default 300 s) count as lost. Golden d pins this.
+  - Changes to one key keep their order (tested by an audit of the stream's acceptance order).
+  - A promoted replica with no CDC edge of its own publishes nothing: its changes are lost (a design lesson).
+  - A design whose write targets have no CDC edge to a stream with a consumer has no path (Invalid Design).
+- **DynamoDB writes.** A write occupies `write_slots` read slots (3 on DynamoDB: a partition takes 3,000 reads but
+  1,000 writes per second). Reads count as strongly consistent, which is conservative.
+- **Key hash.** The LB algorithm `ip_hash` is now `key_hash` ("Key hash (sticky)"): it pins each request key, such as
+  a user or session, to one server. `.kbarch` v3 renames the value; the simulator still reads the old one.
+- **Read from the primary.** SQL `read_from = primary` sends reads to the primary only (read-your-writes); reads no
+  longer spread over replicas, so none are stale.
+- **Provider rate cuts.** External chaos may set `rate`: the provider's rate limit drops to that many calls per
+  second for the duration.
+- **Network splits.** Chaos `split { zone }` keeps the zone running but cuts every link across its border: hops,
+  calls and their answers, publishes and consumer dispatch. Cards outside every zone count as outside. Routing learns
+  of the split after two health checks (2–4 s) and stops sending across it. A replica cut off from its primary
+  receives no writes, so reads of keys written since the split began are stale. `partition { zone }` still means the
+  whole zone is lost.
+- **p99 limits.** `pass.p99_ms` is judged only on runs with at least 1,000 simulated completions (`ka-pack` refuses a
+  problem whose reference falls short), and the sampled-vs-full accuracy check includes p99 where a problem uses it.
+- **Optional hand-offs (M5.3).** A `broker?` step (with its consumer) may be skipped: a caller wired to such a
+  broker publishes as usual; a caller with no broker edge makes the next segment's calls itself, still holding its
+  slot, so the answer waits for them. One route then fits both the queued design and the inline one (Find the flaw's
+  `sync-email`, Set 2's Checkout).
+- **Unfinished work at the end (M6.2).** Asynchronous work still waiting when the run and its 30 s drain end (a
+  backlog behind consumers that died for good, changes waiting for their stream) is counted in the completion
+  percentiles at its age then: a lower bound, so a stalled pipeline can't look fast just because nothing finished.
+  It isn't lost (it is still in a broker). Set 1 verdicts are unchanged; two naive designs' hidden-test p95 moved by
+  under 5% (online-judge "contest", web-crawler "duplicates").
+- **Local reads (M6.3).** A read from a data cluster goes to a live member in the caller's own Region when there is
+  one (the nearest replica), round robin among those; otherwise to any live member, as before. Writes still go to
+  the primary, wherever it is. Designs without Regions are unaffected (Set 1 results are identical).
+- **`@primary` zones (M6.3).** A `partition` or `split` whose zone is `@primary` hits the Region holding the current
+  primary of the design's main data store (its first SQL cluster by card id, else its first NoSQL one), so a region
+  test doesn't depend on how the player labels Regions. If that primary is in no Region, the zone is the whole design
+  except clients, DNS and CDNs (the outside world), so leaving Regions out can't dodge the test.
+- **Pub/sub and dead subscribers.** A delivery to a subscriber that is down fails and is retried with backoff from
+  the topic, which holds it until a subscriber is back; it is lost only when its retries run out.
+- **Still simplifications:** DNS TTL, WAF and gateway blocking, the serverless cold-start rule, sagas and circuit
+  breakers.
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE

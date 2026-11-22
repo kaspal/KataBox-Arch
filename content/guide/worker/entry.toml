@@ -147,3 +147,30 @@ url = "https://docs.celeryq.dev/en/stable/"
 flavour = "sidekiq"
 title = "Sidekiq wiki"
 url = "https://github.com/sidekiq/sidekiq/wiki"
+
+[[quiz]]
+q = "Jobs arrive at 100 per second. The pool has 4 instances, each running 5 jobs at once, and a job takes about a second. What happens?"
+q_es = "Los trabajos llegan a 100 por segundo. El grupo tiene 4 instancias, cada una ejecuta 5 trabajos a la vez, y un trabajo tarda alrededor de un segundo. ¿Qué pasa?"
+options = ["Nothing fails at first, but the backlog in the queue grows every second and completion times climb", "Jobs start failing at once with errors", "The workers speed up to match the arrival rate", "The queue sends the extra jobs back to the web tier"]
+options_es = ["Al principio no falla nada, pero la cola acumulada crece cada segundo y los tiempos de finalización suben", "Los trabajos empiezan a fallar al momento con errores", "Los workers se aceleran hasta igualar el ritmo de llegada", "La cola devuelve los trabajos sobrantes a la capa web"]
+answer = 0
+why = "The drain rate is instances times concurrency divided by job time, here about 20 per second. While jobs arrive faster than that, the queue holds the difference, so results get later and later. Add instances or autoscale."
+why_es = "El ritmo de vaciado es instancias por concurrencia dividido por el tiempo por trabajo, aquí unos 20 por segundo. Mientras los trabajos lleguen más rápido, la cola guarda la diferencia, así que los resultados llegan cada vez más tarde. Añade instancias o autoescala."
+
+[[quiz]]
+q = "You keep adding worker instances to drain a queue faster, and every job writes to the same SQL database. What eventually happens?"
+q_es = "Sigues añadiendo instancias worker para vaciar una cola más rápido, y cada trabajo escribe en la misma base de datos SQL. ¿Qué acaba pasando?"
+options = ["The queue drains faster and faster, in proportion to the workers", "The queue starts rejecting publishes", "The database becomes the bottleneck, and jobs hold their slots while they wait on it", "The workers start skipping the database writes"]
+options_es = ["La cola se vacía cada vez más rápido, en proporción a los workers", "La cola empieza a rechazar publicaciones", "La base de datos se convierte en el cuello de botella, y los trabajos ocupan sus huecos mientras la esperan", "Los workers empiezan a saltarse las escrituras en la base de datos"]
+answer = 2
+why = "A job keeps its slot until its own calls answer. Once the database is saturated, more workers only add waiting jobs and more load on it, so the database is what needs scaling."
+why_es = "Un trabajo conserva su hueco hasta que responden sus propias llamadas. Cuando la base de datos se satura, más workers solo añaden trabajos esperando y más carga sobre ella, así que lo que hay que escalar es la base de datos."
+
+[[quiz]]
+q = "Which of these is a poor fit for a background worker?"
+q_es = "¿Cuál de estos casos encaja mal con un worker en segundo plano?"
+options = ["Transcoding an uploaded video", "A quick lookup whose result the user needs in the same response", "Sending emails through a provider that sometimes fails", "A burst of report jobs that can finish a little later"]
+options_es = ["Transcodificar un vídeo subido", "Una consulta rápida cuyo resultado el usuario necesita en la misma respuesta", "Enviar correos a través de un proveedor que a veces falla", "Una ráfaga de informes que pueden terminar un poco más tarde"]
+answer = 1
+why = "Workers trade latency for throughput: the request returns once the job is queued and the result arrives later. When the user needs the answer now and the work is quick, do it in the request."
+why_es = "Los workers cambian latencia por rendimiento: la petición vuelve en cuanto el trabajo está en la cola y el resultado llega después. Cuando el usuario necesita la respuesta ya y el trabajo es rápido, hazlo en la petición."

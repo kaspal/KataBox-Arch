@@ -84,3 +84,30 @@ url = "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuid
 flavour = "generic"
 title = "RabbitMQ dead letter exchanges"
 url = "https://www.rabbitmq.com/docs/dlx"
+
+[[quiz]]
+q = "A provider is down for longer than the queue's retries last, and the queue has no DLQ. What happens to the messages sent during the outage?"
+q_es = "Un proveedor está caído más tiempo del que duran los reintentos de la cola, y la cola no tiene DLQ. ¿Qué pasa con los mensajes enviados durante la caída?"
+options = ["They wait in the main queue until the provider is back", "Each one that runs out of retries is lost, and the run can fail on lost messages even if the error rate looks fine", "The queue keeps retrying them for ever", "The workers store them locally until the provider is back"]
+options_es = ["Esperan en la cola principal hasta que vuelve el proveedor", "Cada uno que agota sus reintentos se pierde, y la ejecución puede fallar por mensajes perdidos aunque la tasa de errores parezca bien", "La cola los sigue reintentando para siempre", "Los workers los guardan localmente hasta que vuelve el proveedor"]
+answer = 1
+why = "Once retries run out, a message with nowhere to go is dropped. A Publish edge to a DLQ keeps it, so it counts as dead-lettered instead of lost."
+why_es = "Cuando se agotan los reintentos, un mensaje sin adónde ir se descarta. Un enlace Publish a una DLQ lo conserva, así que cuenta como mensaje fallido guardado en lugar de perdido."
+
+[[quiz]]
+q = "A malformed message can never succeed. What does a DLQ do for it?"
+q_es = "Un mensaje mal formado nunca podrá tener éxito. ¿Qué hace una DLQ con él?"
+options = ["Repairs it and sends it back to the main queue automatically", "Processes it on a separate, slower worker", "Deletes it so nobody has to deal with it", "Moves it aside after its retries, so it stops wasting the workers' time and waits for someone to look at it"]
+options_es = ["Lo repara y lo devuelve automáticamente a la cola principal", "Lo procesa en un worker aparte y más lento", "Lo borra para que nadie tenga que ocuparse de él", "Lo aparta tras sus reintentos, para que deje de hacer perder tiempo a los workers y espere a que alguien lo revise"]
+answer = 3
+why = "Nothing in a DLQ is processed automatically. It holds poison messages out of the main flow until a person or a tool fixes the cause and replays them."
+why_es = "Nada en una DLQ se procesa automáticamente. Mantiene los mensajes envenenados fuera del flujo principal hasta que una persona o una herramienta corrige la causa y los reprocesa."
+
+[[quiz]]
+q = "In which case is a DLQ least worth adding?"
+q_es = "¿En qué caso compensa menos añadir una DLQ?"
+options = ["Payment events that must never be lost", "Calls to a provider that is sometimes down for minutes", "Live metric samples that are fine to drop", "Orders that someone may need to replay later"]
+options_es = ["Eventos de pago que nunca deben perderse", "Llamadas a un proveedor que a veces se cae durante minutos", "Muestras de métricas en vivo que se pueden descartar sin problema", "Pedidos que alguien puede necesitar reprocesar más tarde"]
+answer = 2
+why = "A DLQ exists so failed messages are not lost and can be replayed. Cheap data that is safe to drop gains nothing from it."
+why_es = "Una DLQ existe para que los mensajes fallidos no se pierdan y se puedan reprocesar. Los datos baratos que se pueden descartar sin riesgo no ganan nada con ella."

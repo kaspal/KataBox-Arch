@@ -23,10 +23,9 @@ import type {
   Scaling,
   Viewport,
 } from "@/bindings";
-import { defaultProps, kindSpec } from "@/solve/registry";
 
 /** The `.kbarch` format version (ADR 0003); a test keeps it equal to Rust's. */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 /** The card size the canvas draws (also used before React Flow has measured a card). */
 export const CARD_W = 208;
@@ -89,6 +88,8 @@ type Actions = {
 
   updateNode: (id: string, patch: Partial<Pick<Node, "label">>) => void;
   setProp: (id: string, key: string, value: PropValue) => void;
+  /** Drop a prop the user set, so the card follows its flavour's default again. */
+  resetProp: (id: string, key: string) => void;
   setFlavour: (registry: Registry, id: string, flavour: Flavour) => void;
   updateGroup: (id: string, patch: Partial<Pick<Group, "label" | "size" | "position">>) => void;
   updateNote: (id: string, patch: Partial<Pick<Note, "text" | "size" | "position">>) => void;
@@ -229,8 +230,7 @@ export const useEditor = create<EditorStore>()(
         setViewport: (viewport) => set({ viewport }),
         setSelection: (selection) => set({ selection }),
 
-        addNode: (registry, kind, flavour, at) => {
-          const spec = kindSpec(registry, kind);
+        addNode: (_registry, kind, flavour, at) => {
           const id = newId(kind);
           const node: Node = {
             id,
@@ -238,7 +238,9 @@ export const useEditor = create<EditorStore>()(
             flavour,
             label: "",
             position: at,
-            props: defaultProps(spec, flavour),
+            // Cards store only the props the user sets (`.kbarch` v3); the rest follow the
+            // flavour's defaults, in the simulator and the inspector alike.
+            props: {},
             group_id: null,
           };
           patchDoc((d) => withMembership({ ...d, nodes: [...d.nodes, node] }));
@@ -314,22 +316,21 @@ export const useEditor = create<EditorStore>()(
             ...d,
             nodes: d.nodes.map((n) => (n.id === id ? { ...n, props: { ...n.props, [key]: value } } : n)),
           })),
-        setFlavour: (registry, id, flavour) =>
+        resetProp: (id, key) =>
           patchDoc((d) => ({
             ...d,
             nodes: d.nodes.map((n) => {
-              if (n.id !== id || n.flavour === flavour) return n;
-              // Props still at the old flavour's default follow the new flavour; props the
-              // user changed are kept.
-              const spec = kindSpec(registry, n.kind);
-              const before = defaultProps(spec, n.flavour);
-              const after = defaultProps(spec, flavour);
+              if (n.id !== id || !(key in n.props)) return n;
               const props = { ...n.props };
-              for (const key of Object.keys(after)) {
-                if (props[key] === undefined || props[key] === before[key]) props[key] = after[key];
-              }
-              return { ...n, flavour, props };
+              delete props[key];
+              return { ...n, props };
             }),
+          })),
+        setFlavour: (_registry, id, flavour) =>
+          patchDoc((d) => ({
+            ...d,
+            // Props the user set are kept; the others follow the new flavour's defaults.
+            nodes: d.nodes.map((n) => (n.id !== id || n.flavour === flavour ? n : { ...n, flavour })),
           })),
         updateGroup: (id, patch) =>
           patchDoc((d) => ({ ...d, groups: d.groups.map((g) => (g.id === id ? { ...g, ...patch } : g)) })),

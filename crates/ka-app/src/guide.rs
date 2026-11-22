@@ -71,8 +71,11 @@ impl App {
             .map_err(AppError::from)?
             .ok_or_else(|| AppError::new(AppErrorCode::NotFound, format!("guide entry {id}")))?;
         let read = self.user.reads(READ_KIND).await.map_err(AppError::from)?;
+        let mut entry: GuideEntry = serde_json::from_str(&row.entry).map_err(bad_content)?;
+        // Quiz answers stay in Rust: the questions come through `quiz` without them.
+        entry.quiz.clear();
         Ok(GuidePage {
-            entry: serde_json::from_str(&row.entry).map_err(bad_content)?,
+            entry,
             md_en: row.md_en,
             md_es: row.md_es,
             read: read.contains(&id),
@@ -125,6 +128,7 @@ mod tests {
             user_db: dir.join("user.db"),
             dev_data: true,
             content_db: Some(content),
+            packs_dir: None,
         })
         .await
         .unwrap();
@@ -151,5 +155,104 @@ mod tests {
             app.guide_page(ComponentKind::Dns).await.unwrap_err().code,
             AppErrorCode::NotFound
         );
+    }
+
+    #[tokio::test]
+    async fn quizzes_hide_answers_and_feed_the_review_queue() {
+        use ka_core::quiz::QuizQuestion;
+        let dir = temp_dir("quiz");
+        let toml = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../content/guide/cache/entry.toml"),
+        )
+        .unwrap();
+        let mut entry: GuideEntry = toml::from_str(&toml).unwrap();
+        let q = |answer: u32| QuizQuestion {
+            q: "Q?".into(),
+            q_es: "¿P?".into(),
+            options: vec!["a".into(), "b".into(), "c".into()],
+            options_es: vec!["a".into(), "b".into(), "c".into()],
+            answer,
+            why: "Why.".into(),
+            why_es: "Por qué.".into(),
+        };
+        entry.quiz = vec![q(0), q(1), q(2)];
+        let content = dir.join("content.db");
+        ka_store::write_content(
+            &content,
+            &ka_store::ContentData {
+                guide: vec![ka_store::GuideRow {
+                    kind: "cache".into(),
+                    entry: serde_json::to_string(&entry).unwrap(),
+                    md_en: "x".into(),
+                    md_es: "x".into(),
+                }],
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap();
+        let app = App::open(AppPaths {
+            user_db: dir.join("user.db"),
+            dev_data: true,
+            content_db: Some(content),
+            packs_dir: None,
+        })
+        .await
+        .unwrap();
+        // The page and the quiz never carry the answers.
+        assert!(
+            app.guide_page(ComponentKind::Cache)
+                .await
+                .unwrap()
+                .entry
+                .quiz
+                .is_empty()
+        );
+        let items = app.quiz("guide:cache").await.unwrap();
+        assert_eq!(
+            items.iter().map(|i| i.id.as_str()).collect::<Vec<_>>(),
+            ["guide:cache:1", "guide:cache:2", "guide:cache:3"]
+        );
+        assert!(!serde_json::to_string(&items).unwrap().contains("Why."));
+        // Right first time: never queued. Wrong: due tomorrow.
+        let r1 = app
+            .answer_quiz("guide:cache:1", 0, "2026-11-22")
+            .await
+            .unwrap();
+        assert!(r1.correct && r1.due_on.is_none());
+        let r2 = app
+            .answer_quiz("guide:cache:2", 0, "2026-11-22")
+            .await
+            .unwrap();
+        assert!(!r2.correct);
+        assert_eq!((r2.answer, r2.due_on.as_deref()), (1, Some("2026-11-23")));
+        assert_eq!(r2.why, "Why.");
+        assert!(app.reviews_due("2026-11-22", 10).await.unwrap().is_empty());
+        let due = app.reviews_due("2026-11-23", 10).await.unwrap();
+        assert_eq!(due.len(), 1);
+        assert_eq!(due[0].id, "guide:cache:2");
+        // Reviewed correctly: next in 3 days.
+        let r3 = app
+            .answer_quiz("guide:cache:2", 1, "2026-11-23")
+            .await
+            .unwrap();
+        assert_eq!(r3.due_on.as_deref(), Some("2026-11-26"));
+        // The page's quiz counts as done once all three were answered.
+        assert!(app.user.reads("quiz").await.unwrap().is_empty());
+        app.answer_quiz("guide:cache:3", 2, "2026-11-23")
+            .await
+            .unwrap();
+        assert_eq!(app.user.reads("quiz").await.unwrap(), ["guide:cache"]);
+        // Bad input is refused.
+        for (id, day) in [
+            ("guide:cache:9", "2026-11-23"),
+            ("guide:cache:1", "23/11/2026"),
+        ] {
+            assert_eq!(
+                app.answer_quiz(id, 0, day).await.unwrap_err().code,
+                AppErrorCode::InvalidInput
+            );
+        }
     }
 }

@@ -44,4 +44,13 @@ describe("the glossary", () => {
     await user.type(screen.getByRole("searchbox", { name: "Search the glossary" }), "replica");
     expect(within(screen.getByTestId("glossary")).getAllByRole("term").map((t) => t.textContent)).toEqual(["Failover"]);
   });
+
+  it("a term link from the prose lands on its entry, focused", async () => {
+    renderApp("/glossary?term=ttl");
+    await screen.findByTestId("glossary");
+    const entry = document.getElementById("ttl")!;
+    await waitFor(() => expect(entry).toHaveFocus());
+    expect(entry.dataset.current).toBe("true");
+    expect(document.getElementById("failover")!.dataset.current).toBeUndefined();
+  });
 });

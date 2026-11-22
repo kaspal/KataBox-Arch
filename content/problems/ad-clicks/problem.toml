@@ -1,0 +1,60 @@
+id = "ad-clicks"
+number = 29
+set = 2
+difficulty = "hard"
+title = "Ad Click Aggregator"
+title_es = "Agregador de clics en anuncios"
+teaches = "Count clicks through a stream into in-memory counters, with partitions and consumers for the bursts"
+teaches_es = "Contar clics a través de un stream en contadores en memoria, con particiones y consumidores para los picos"
+tags = ["streams", "partitioning", "caching", "aggregation"]
+
+[nfr]
+peak_rps = 10000
+p95_ms = 30000
+availability = 0.999
+budget_usd = 8000
+
+[[request_types]]
+id = "click"
+name = "Record a click"
+name_es = "Registrar un clic"
+share = 0.99
+route = ["edge?", "compute", "broker", "worker", "cache:write|datastore:write"]
+key_space = 100_000
+key_skew = { zipf = 1.1 }
+measure = "completion"
+
+[[request_types]]
+id = "report"
+name = "Read an ad's totals"
+name_es = "Leer los totales de un anuncio"
+share = 0.01
+route = ["edge?", "compute", "cache|datastore"]
+key_space = 100_000
+key_skew = { zipf = 1.1 }
+
+[[tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "hot-ad"
+name = "One ad goes viral"
+name_es = "Un anuncio se hace viral"
+hidden = true
+traffic = { spike = { at = 20, x = 2, for = 20 } }
+key_skew_override = { zipf = 1.8 }
+pass = { p95_ms = 10000 }
+
+[[tests]]
+id = "backfill"
+name = "Late events arrive all at once"
+name_es = "Los eventos atrasados llegan de golpe"
+hidden = true
+traffic = { spike = { at = 20, x = 4, for = 10 } }
+pass = { p95_ms = 30000 }
+
+[pass]
+error_rate = 0.001
+lost = 0

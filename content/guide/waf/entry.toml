@@ -130,3 +130,30 @@ url = "https://docs.aws.amazon.com/waf/"
 flavour = "cloudflare_waf"
 title = "Cloudflare WAF documentation"
 url = "https://developers.cloudflare.com/waf/"
+
+[[quiz]]
+q = "A real customer sends far too many perfectly valid calls and starves everyone else. Does a WAF solve this?"
+q_es = "Un cliente real envía demasiadas llamadas perfectamente válidas y deja sin servicio a los demás. ¿Lo resuelve un WAF?"
+options = ["Yes: it blocks any caller that sends heavy traffic", "No: valid calls pass its attack rules; a rate limiter handles volume per key", "Yes, as long as it has enough instances", "No, because a WAF only protects internal services"]
+options_es = ["Sí: bloquea a cualquier cliente que envíe mucho tráfico", "No: las llamadas válidas pasan sus reglas de ataque; un limitador de tasa se ocupa del volumen por clave", "Sí, siempre que tenga instancias suficientes", "No, porque un WAF solo protege servicios internos"]
+answer = 1
+why = "A WAF matches attack patterns such as SQL injection or bad bots. A noisy but legitimate customer matches none of them. Per-key volume is a rate limiter's job."
+why_es = "Un WAF busca patrones de ataque como inyección SQL o bots maliciosos. Un cliente ruidoso pero legítimo no encaja en ninguno. El volumen por clave es trabajo de un limitador de tasa."
+
+[[quiz]]
+q = "In the simulator, what does adding a WAF in front of the app change?"
+q_es = "En el simulador, ¿qué cambia al añadir un WAF delante de la aplicación?"
+options = ["It blocks the problem's attack traffic, so fewer requests fail", "Nothing at all, since it is off the request path", "It caches responses to repeated requests", "Each request takes a little longer and the design costs more, but who gets through doesn't change"]
+options_es = ["Bloquea el tráfico de ataque del problema, así que fallan menos peticiones", "Nada, porque está fuera de la ruta de las peticiones", "Guarda en caché las respuestas a peticiones repetidas", "Cada petición tarda un poco más y el diseño cuesta más, pero no cambia quién pasa"]
+answer = 3
+why = "The WAF is a hop with capacity and a rule-check time on every request, priced per instance and per request. Attacks are not simulated. To shed a flood from one key, use a Rate Limiter."
+why_es = "El WAF es un salto con capacidad y un tiempo de revisión de reglas en cada petición, que se cobra por instancia y por petición. Los ataques no se simulan. Para descartar una avalancha de una clave, usa un Limitador de tasa."
+
+[[quiz]]
+q = "After stricter WAF rules are turned on, some users get errors when they submit a form with ordinary text. What is the likely cause?"
+q_es = "Tras activar reglas de WAF más estrictas, algunos usuarios reciben errores al enviar un formulario con texto normal. ¿Cuál es la causa probable?"
+options = ["A rule mistakes harmless text that looks like SQL for an attack and blocks it", "The rate limiter is shedding their requests", "The managed rules are out of date", "The form's data is too large for the database"]
+options_es = ["Una regla confunde un texto inofensivo que parece SQL con un ataque y lo bloquea", "El limitador de tasa está descartando sus peticiones", "Las reglas gestionadas están desactualizadas", "Los datos del formulario son demasiado grandes para la base de datos"]
+answer = 0
+why = "Badly tuned rules block real users, and they only see an error. Tune or relax the rules that match legitimate traffic, and watch what the WAF blocks."
+why_es = "Unas reglas mal ajustadas bloquean a usuarios reales, que solo ven un error. Ajusta o relaja las reglas que coinciden con tráfico legítimo, y vigila lo que bloquea el WAF."

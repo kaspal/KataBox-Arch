@@ -40,6 +40,18 @@ pub(crate) const MIGRATIONS: &[Migration] = &[
         version: 3,
         sql: include_str!("../migrations/0003_reads.sql"),
     },
+    Migration {
+        version: 4,
+        sql: include_str!("../migrations/0004_estimates.sql"),
+    },
+    Migration {
+        version: 5,
+        sql: include_str!("../migrations/0005_reviews.sql"),
+    },
+    Migration {
+        version: 6,
+        sql: include_str!("../migrations/0006_packs.sql"),
+    },
 ];
 
 /// A recently opened or saved `.kbarch` file.

@@ -1,0 +1,34 @@
+# Estimation drills for the Web Crawler.
+
+[[drill]]
+id = "pages-per-second"
+kind = "qps"
+prompt = "The search team wants {pages_per_month} pages fetched every month, and the crawler runs around the clock at an even pace. How many pages a second must it fetch?"
+prompt_es = "El equipo de búsqueda quiere {pages_per_month} páginas descargadas cada mes, y el rastreador funciona día y noche a un ritmo constante. ¿Cuántas páginas por segundo debe descargar?"
+inputs = { pages_per_month = 2_000_000_000 }
+formula = "pages_per_month / 2629746"
+unit = "rps"
+solution = "A month has about 2,629,746 seconds. {pages_per_month} ÷ 2,629,746 ≈ {answer} pages a second, close to this problem's 800 URLs/s and under the 1,000 fetches a second the web allows."
+solution_es = "Un mes tiene unos 2 629 746 segundos. {pages_per_month} ÷ 2 629 746 ≈ {answer} páginas por segundo, cerca de las 800 URL/s de este problema y por debajo de las 1000 descargas por segundo que permite la web."
+
+[[drill]]
+id = "storage-year"
+kind = "storage"
+prompt = "The crawler fetches {pages_per_month} pages a month. An average page is {avg_page_kb} KB of HTML, and compression shrinks it {compression_x}×. How much storage does a year of fetched pages need, in TB?"
+prompt_es = "El rastreador descarga {pages_per_month} páginas al mes. Una página media tiene {avg_page_kb} KB de HTML, y la compresión la reduce {compression_x} veces. ¿Cuánto almacenamiento necesita un año de páginas descargadas, en TB?"
+inputs = { pages_per_month = 2_000_000_000, avg_page_kb = 100, compression_x = 4 }
+formula = "pages_per_month * 12 * avg_page_kb * 1000 / compression_x / 1e12"
+unit = "TB"
+solution = "{pages_per_month} × 12 = 24 billion pages a year. × {avg_page_kb} KB = 2.4 × 10^15 bytes, 2,400 TB raw. ÷ {compression_x} gives about {answer} TB. Keeping only the latest copy of each URL, instead of every fetch, cuts it much further."
+solution_es = "{pages_per_month} × 12 = 24 000 millones de páginas al año. × {avg_page_kb} KB = 2,4 × 10^15 bytes, 2400 TB en bruto. ÷ {compression_x} da unos {answer} TB. Guardar solo la última copia de cada URL, en lugar de cada descarga, lo reduce mucho más."
+
+[[drill]]
+id = "fetches-in-flight"
+kind = "capacity"
+prompt = "The crawler fetches {crawl_rps} pages a second, and a site takes {fetch_ms} ms to answer at the median. A worker waits for each fetch to finish. How many fetches are in flight at once?"
+prompt_es = "El rastreador descarga {crawl_rps} páginas por segundo, y un sitio tarda {fetch_ms} ms en responder en la mediana. Un worker espera a que termine cada descarga. ¿Cuántas descargas hay en curso a la vez?"
+inputs = { crawl_rps = 800, fetch_ms = 250 }
+formula = "crawl_rps * fetch_ms / 1000"
+unit = "count"
+solution = "In flight = rate × time. {crawl_rps} a second × 0.25 s = {answer} fetches at once. The slow tail of a few seconds holds slots much longer, so give the workers several times that many slots."
+solution_es = "En curso = ritmo × tiempo. {crawl_rps} por segundo × 0,25 s = {answer} descargas a la vez. La cola lenta de unos segundos ocupa los huecos mucho más tiempo, así que da a los workers varias veces esa cantidad de huecos."

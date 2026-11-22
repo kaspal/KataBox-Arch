@@ -1,0 +1,34 @@
+# Estimation drills for the News Feed.
+
+[[drill]]
+id = "feed-reads"
+kind = "qps"
+prompt = "The app has {users} users. Each opens the feed {opens_per_user} times a day and scrolls through {pages_per_open} feed pages each time, one request per page. The busiest hour runs at {peak_factor}× the daily average. How many feed page reads a second arrive at peak?"
+prompt_es = "La app tiene {users} usuarios. Cada uno abre el feed {opens_per_user} veces al día y recorre {pages_per_open} páginas del feed cada vez, una petición por página. La hora de más tráfico va a {peak_factor} veces la media diaria. ¿Cuántas lecturas de páginas del feed por segundo llegan en el pico?"
+inputs = { users = 1_000_000, opens_per_user = 28, pages_per_open = 10, peak_factor = 3 }
+formula = "users * opens_per_user * pages_per_open / 86400 * peak_factor"
+unit = "rps"
+solution = "{users} × {opens_per_user} × {pages_per_open} = 280 million page reads a day. ÷ 86,400 s ≈ 3,240 a second on average, × {peak_factor} at peak gives about {answer} a second: the 97% of 10,000 requests/s in this problem."
+solution_es = "{users} × {opens_per_user} × {pages_per_open} = 280 millones de lecturas de página al día. ÷ 86 400 s ≈ 3240 por segundo de media, × {peak_factor} en el pico da unas {answer} por segundo: el 97 % de las 10 000 peticiones/s de este problema."
+
+[[drill]]
+id = "fan-out-writes"
+kind = "qps"
+prompt = "Users publish {posts_per_day} posts a day, the busiest hour runs at {peak_factor}× the daily average, and a post has {avg_followers} followers on average. With fan-out on write, how many feed writes a second must the workers make at peak?"
+prompt_es = "Los usuarios publican {posts_per_day} posts al día, la hora de más tráfico va a {peak_factor} veces la media diaria, y un post tiene {avg_followers} seguidores de media. Con fan-out en escritura, ¿cuántas escrituras de feed por segundo deben hacer los workers en el pico?"
+inputs = { posts_per_day = 8_640_000, peak_factor = 3, avg_followers = 10 }
+formula = "posts_per_day / 86400 * peak_factor * avg_followers"
+unit = "rps"
+solution = "{posts_per_day} ÷ 86,400 s = 100 posts a second on average, × {peak_factor} = 300 at peak. Each one lands in {avg_followers} feeds, so about {answer} feed writes a second, ten times the posts. A queue in front of the workers keeps that work off the author's request."
+solution_es = "{posts_per_day} ÷ 86 400 s = 100 posts por segundo de media, × {peak_factor} = 300 en el pico. Cada uno llega a {avg_followers} feeds, así que unas {answer} escrituras de feed por segundo, diez veces los posts. Una cola delante de los workers saca ese trabajo de la petición del autor."
+
+[[drill]]
+id = "feed-cache-memory"
+kind = "storage"
+prompt = "You cache a precomputed feed for each of the {users} users: the ids of their latest {posts_per_feed} posts, at {bytes_per_entry} bytes per entry (post id and timestamp). How much cache memory is that, in GB?"
+prompt_es = "Guardas en caché un feed precalculado para cada uno de los {users} usuarios: los ids de sus {posts_per_feed} posts más recientes, a {bytes_per_entry} bytes por entrada (id del post y fecha). ¿Cuánta memoria de caché es eso, en GB?"
+inputs = { users = 1_000_000, posts_per_feed = 500, bytes_per_entry = 16 }
+formula = "users * posts_per_feed * bytes_per_entry / 1e9"
+unit = "GB"
+solution = "{users} × {posts_per_feed} = 500 million entries. × {bytes_per_entry} B = 8 × 10^9 bytes, about {answer} GB. Storing ids rather than whole posts keeps every feed in one or two cache nodes."
+solution_es = "{users} × {posts_per_feed} = 500 millones de entradas. × {bytes_per_entry} B = 8 × 10^9 bytes, unos {answer} GB. Guardar ids en lugar de posts enteros mete todos los feeds en uno o dos nodos de caché."

@@ -1,0 +1,27 @@
+id = "search"
+number = 9
+title = "Search Index"
+title_es = "Índice de búsqueda"
+summary = "Answers text and prefix queries fast, but every query costs real work on its shards."
+summary_es = "Responde rápido a consultas de texto y prefijos, pero cada consulta cuesta trabajo real en sus shards."
+problem = "typeahead"
+
+[[step]]
+snapshot = "every-keystroke.kbarch"
+title = "Every keystroke is a query"
+title_es = "Cada pulsación es una consulta"
+caption = "As people type, each key press asks Elasticsearch for suggestions. Even with twelve shards, the search thread pools can't keep up with thousands of queries a second."
+caption_es = "Mientras la gente escribe, cada pulsación pide sugerencias a Elasticsearch. Incluso con doce shards, los grupos de hilos de búsqueda no dan abasto con miles de consultas por segundo."
+focus = ["index"]
+run = { test = "normal" }
+callout = { metric = "error_rate", after = 0.42, target = 0.001 }
+
+[[step]]
+snapshot = "prefix-cache.kbarch"
+title = "Popular prefixes from memory"
+title_es = "Los prefijos populares, desde memoria"
+caption = "Most people type the same few prefixes. A cache in front answers those from memory, and the index only sees the rare ones, so four shards are plenty."
+caption_es = "La mayoría escribe los mismos pocos prefijos. Una caché delante los responde desde memoria y el índice solo ve los raros, así que cuatro shards bastan."
+focus = ["prefixes", "index"]
+run = { test = "normal" }
+callout = { metric = "error_rate", before = 0.42, after = 0, target = 0.001 }

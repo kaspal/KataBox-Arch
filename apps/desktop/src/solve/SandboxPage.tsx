@@ -26,6 +26,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useRegistry } from "@/lib/queries";
 import { parseLayout, useSetting, useSnap, type SandboxLayout } from "@/lib/settings";
 import { Canvas } from "@/solve/Canvas";
+import { ExportMenu } from "@/solve/export/ExportMenu";
 import { displayName, useFileActions } from "@/solve/files";
 import { InspectorPanel } from "@/solve/InspectorPanel";
 import { LibraryPanel } from "@/solve/LibraryPanel";
@@ -129,6 +130,7 @@ function Toolbar() {
         <IconAction label={t("files.saveAs")} shortcut="Ctrl+Shift+S" onClick={() => void files.saveAs()}>
           <SaveAll aria-hidden className="size-4" />
         </IconAction>
+        <ExportMenu />
         <span className="mx-1 h-5 w-px bg-border" aria-hidden />
         <IconAction label={t("edit.undo")} shortcut="Ctrl+Z" onClick={undo} disabled={!canUndo}>
           <Undo2 aria-hidden className="size-4" />

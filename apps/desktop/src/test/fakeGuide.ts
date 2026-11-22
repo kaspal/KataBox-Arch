@@ -1,5 +1,5 @@
 // Two Guide entries for UI tests (the shapes Rust sends: ka-app guide.rs).
-import type { DecideFlow, Design, GlossaryTerm, GuideEntry, PatternEntry } from "@/bindings";
+import type { DecideFlow, Design, Drill, GlossaryTerm, GuideEntry, NumberFigure, PatternEntry } from "@/bindings";
 
 export const FAKE_CACHE: GuideEntry = {
   kind: "cache",
@@ -123,3 +123,21 @@ export const FAKE_TEMPLATE: Design = {
   notes: [],
   viewport: { x: 0, y: 0, zoom: 1 },
 };
+
+export const FAKE_NUMBERS: NumberFigure[] = [
+  { id: "memory-reference", group: "memory", label: "Main memory reference", label_es: "Acceso a memoria principal", value: 100, unit: "ns", note: "RAM is fast.", note_es: "La RAM es rápida.", source: "needed: https://example.org/latency" },
+  { id: "rtt-cross-az", group: "network", label: "Round trip between zones", label_es: "Ida y vuelta entre zonas", value: 1.5, unit: "ms", note: "A millisecond or two.", note_es: "Uno o dos milisegundos.", source: "simulator" },
+  { id: "app-go-rps", group: "servers", label: "One Go instance", label_es: "Una instancia en Go", value: 12800, unit: "rps", note: "In the simulator.", note_es: "En el simulador.", source: "https://www.postgresql.org/docs/" },
+];
+
+export const FAKE_DRILLS: Drill[] = [
+  { problem_id: "url-shortener", id: "redirect-qps", kind: "qps", prompt: "{daily} redirects a day. How many a second?", prompt_es: "{daily} redirecciones al día. ¿Cuántas por segundo?", inputs: { daily: 864_000_000 }, unit: "rps" },
+  { problem_id: "url-shortener", id: "create-qps", kind: "qps", prompt: "{daily} new links a day. How many a second?", prompt_es: "{daily} enlaces nuevos al día. ¿Cuántos por segundo?", inputs: { daily: 8_640_000 }, unit: "rps" },
+];
+
+/** Three questions every fake quiz page shares (answers 1, 0, 2). */
+export const FAKE_QUIZ = [
+  { q: "What does a cache buy you?", q_es: "¿Qué te da una caché?", options: ["Stronger consistency", "Fewer database reads", "Cheaper writes"], options_es: ["Más consistencia", "Menos lecturas a la base de datos", "Escrituras más baratas"], answer: 1, why: "Hits are served from memory.", why_es: "Los aciertos se sirven desde memoria." },
+  { q: "What does a TTL bound?", q_es: "¿Qué limita un TTL?", options: ["How stale a copy can be", "How many keys fit", "How fast writes are"], options_es: ["Cuánto de obsoleta puede ser una copia", "Cuántas claves caben", "Lo rápidas que son las escrituras"], answer: 0, why: "An entry expires after it.", why_es: "Una entrada caduca tras él." },
+  { q: "A cache restarts empty. What happens?", q_es: "Una caché se reinicia vacía. ¿Qué pasa?", options: ["Nothing", "Writes fail", "Every read goes to the database for a while"], options_es: ["Nada", "Fallan las escrituras", "Todas las lecturas van a la base de datos un rato"], answer: 2, why: "Cold caches miss.", why_es: "Las cachés frías fallan." },
+];

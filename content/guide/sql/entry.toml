@@ -79,8 +79,8 @@ note_es = "Cuánto va una réplica por detrás de la principal. Una lectura en r
 
 [[sim]]
 prop = "failover_s"
-note = "With a replica wired by Replicate, how long until it is promoted after the primary dies. Writes fail until then."
-note_es = "Con una réplica unida por Replicate, cuánto tarda en ascender cuando cae la principal. Hasta entonces las escrituras fallan."
+note = "With a replica wired by Replicate, how long until it is promoted after the primary dies. Writes fail until then. The default matches a managed cluster with two readable standbys (typically just over half a minute); a single standby takes one to two minutes."
+note_es = "Con una réplica unida por Replicate, cuánto tarda en ascender cuando cae la principal. Hasta entonces las escrituras fallan. El valor por defecto corresponde a un clúster gestionado con dos réplicas legibles (normalmente algo más de medio minuto); con una sola réplica en espera se tarda de uno a dos minutos."
 
 [[sim]]
 sim = "p99_ratio"
@@ -89,8 +89,18 @@ note_es = "Cuánto más lentas son las consultas más lentas que la mediana. Las
 
 [[sim]]
 cost = "per_instance_month"
-note = "Priced per card: each replica is another card and adds the same price."
-note_es = "Se cobra por tarjeta: cada réplica es otra tarjeta y suma el mismo precio."
+note = "Priced per card and per shard: each replica is another card and adds the same price, and each shard beyond the first adds it again."
+note_es = "Se cobra por tarjeta y por shard: cada réplica es otra tarjeta y suma el mismo precio, y cada shard más allá del primero lo vuelve a sumar."
+
+[[sim]]
+prop = "read_from"
+note = "Where reads go: spread over the primary and its replicas, or to the primary only. The primary always has the latest write (read-your-writes), but takes every read."
+note_es = "Adónde van las lecturas: repartidas entre la principal y sus réplicas, o solo a la principal. La principal siempre tiene la última escritura (leer lo que escribes), pero se lleva todas las lecturas."
+
+[[sim]]
+prop = "cdc_buffer_s"
+note = "With a CDC edge to a stream, how long committed changes wait in the database log while the stream is down. Older changes are lost."
+note_es = "Con un enlace CDC a un stream, cuánto esperan los cambios confirmados en el registro de la base de datos mientras el stream está caído. Los más antiguos se pierden."
 
 [flavours_compared]
 flavours = ["postgresql", "mysql"]
@@ -161,3 +171,30 @@ url = "https://www.postgresql.org/docs/"
 flavour = "mysql"
 title = "MySQL documentation"
 url = "https://dev.mysql.com/doc/"
+
+[[quiz]]
+q = "The write rate has grown past what one primary's connections can serve. Which change actually adds write capacity?"
+q_es = "El ritmo de escrituras ha superado lo que pueden atender las conexiones de una principal. ¿Qué cambio añade de verdad capacidad de escritura?"
+options = ["Add read replicas", "Shard the data by a key, so each shard takes its own writes", "Send every read to the primary", "Put a cache in front of the database"]
+options_es = ["Añadir réplicas de lectura", "Particionar los datos por una clave, para que cada partición reciba sus propias escrituras", "Enviar todas las lecturas a la principal", "Poner una caché delante de la base de datos"]
+answer = 1
+why = "Every write goes to the primary, so replicas and caches help reads, not writes. Splitting the data into shards gives each slice its own connections, at the cost of harder cross-shard queries."
+why_es = "Todas las escrituras van a la principal, así que las réplicas y las cachés ayudan a las lecturas, no a las escrituras. Repartir los datos en particiones da a cada trozo sus propias conexiones, a cambio de complicar las consultas entre particiones."
+
+[[quiz]]
+q = "A user edits their profile and reloads at once. Reads are spread over the primary and its replicas, and sometimes the old value comes back. Why?"
+q_es = "Un usuario edita su perfil y recarga al momento. Las lecturas se reparten entre la principal y sus réplicas, y a veces vuelve el valor antiguo. ¿Por qué?"
+options = ["The write was lost because there is only one replica", "The shard is hot, so the read timed out", "A replica trails the primary, so a read right after a write can miss it", "The transaction was never committed"]
+options_es = ["La escritura se perdió porque solo hay una réplica", "La partición está caliente, así que la lectura agotó su tiempo", "Una réplica va por detrás de la principal, así que una lectura justo después de una escritura puede no verla", "La transacción nunca se confirmó"]
+answer = 2
+why = "Replicas copy the primary with some lag, and a replica read of a key written within that window is stale. Reads that need read-your-writes should go to the primary, which then takes more load."
+why_es = "Las réplicas copian la principal con cierto retraso, y una lectura en réplica de una clave escrita dentro de ese margen está obsoleta. Las lecturas que necesitan leer lo que escribes deben ir a la principal, que entonces soporta más carga."
+
+[[quiz]]
+q = "A design stores large uploaded files as rows in the SQL database. In the simulator, why does a burst of uploads stall the app tier?"
+q_es = "Un diseño guarda ficheros subidos grandes como filas en la base de datos SQL. En el simulador, ¿por qué una ráfaga de subidas bloquea la capa de aplicación?"
+options = ["Big payloads make each query take longer while it holds a connection, so the connections run out and callers wait", "SQL databases refuse binary data", "Large rows stop replication, so a failover begins", "It only raises the monthly cost, not the latency"]
+options_es = ["Las cargas grandes hacen que cada consulta tarde más mientras ocupa una conexión, así que las conexiones se agotan y quienes llaman esperan", "Las bases de datos SQL rechazan los datos binarios", "Las filas grandes paran la replicación, así que empieza un failover", "Solo sube el coste mensual, no la latencia"]
+answer = 0
+why = "Service time grows with the payload size, and a query holds a connection for its whole service time. Large bodies belong in object storage, with only a pointer in the database."
+why_es = "El tiempo de servicio crece con el tamaño de la carga, y una consulta ocupa una conexión durante todo su tiempo de servicio. Los cuerpos grandes van en almacenamiento de objetos, con solo una referencia en la base de datos."

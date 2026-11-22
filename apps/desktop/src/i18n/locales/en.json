@@ -61,7 +61,9 @@
     "path_not_allowed": "Use Save As or Open to choose a file first.",
     "internal": "Something went wrong inside the app.",
     "no_path": "No request can get through this design. Connect a client to a service.",
-    "content_missing": "The problem catalogue is missing from this installation. Reinstall the app."
+    "content_missing": "The problem catalogue is missing from this installation. Reinstall the app.",
+    "pack_refused": "This pack failed its safety and content checks, so nothing was installed.",
+    "pack_version": "This pack can't replace the installed one: it is older, or the same version with different contents."
   },
   "files": {
     "unsaved": {
@@ -118,7 +120,12 @@
     "statBusy": "{{util}}% busy",
     "statQueued": "{{util}}% busy · {{queue}} queued",
     "statDown": "down",
-    "rate": "{{rate}}/s"
+    "rate": "{{rate}}/s",
+    "instances_one": "{{count}} instance",
+    "instances_other": "{{count}} instances",
+    "edgeAria": "{{protocol}} from {{from}} to {{to}}",
+    "statShortBusy": "{{util}}%",
+    "statShortQueued": "{{util}}% · q{{queue}}"
   },
   "wiring": {
     "reason": {
@@ -172,11 +179,13 @@
     "props": "Properties",
     "ballpark": "ballpark",
     "ballparkHint": "A calibrated default: a conservative ballpark whose source is still being confirmed.",
+    "reset": "Reset {{prop}} to its default",
+    "resetHint": "Back to the default ({{value}})",
     "cited": "cited",
     "citedHint": "A calibrated default taken from a cited source.",
     "calibrationNote": "Tagged defaults are calibrated figures (see docs/calibration.md). The others are design choices for you to set.",
     "delete": "Delete",
-    "zoneHint": "Cards inside a zone move with it. Network latency between zones arrives with the simulation.",
+    "zoneHint": "Cards inside a zone move with it. Calls between Regions take about 70 ms each way, and between AZs about 1.5 ms.",
     "protocol": "Protocol",
     "designName": "Design name",
     "count": {
@@ -194,7 +203,8 @@
     "autoscaleHint": "Compute cards inside this frame scale between the minimum and maximum instances, adding instances when utilisation stays above the target.",
     "scaling": "Scaling policy",
     "brief": "Brief",
-    "learnMore": "Learn more"
+    "learnMore": "Learn more",
+    "tabs": "Side panel"
   },
   "home": {
     "eyebrow": "Your system design desk",
@@ -209,6 +219,11 @@
     "practice": "Practice",
     "continue": "Continue",
     "recommended": "Recommended next",
+    "onPath": "{{name}} · {{done}} of {{total}} done",
+    "dueForReview": "Due for review",
+    "dueCount_one": "{{count}} question",
+    "dueCount_other": "{{count}} questions",
+    "dueBody": "Missed quiz questions, back for a quick review.",
     "streak_one": "{{count}}-day streak",
     "streak_other": "{{count}}-day streak",
     "watch": "Watch how it works",
@@ -360,6 +375,9 @@
       "shards": "Shards",
       "replication_lag_ms": "Replication lag",
       "failover_s": "Failover time",
+      "read_from": "Read from",
+      "cdc_buffer_s": "CDC buffer",
+      "session_timeout_s": "Session timeout",
       "partitions": "Partitions",
       "replication_factor": "Replication factor",
       "consistency": "Consistency",
@@ -378,7 +396,9 @@
     "choice": {
       "round_robin": "Round robin",
       "least_conn": "Least connections",
-      "ip_hash": "IP hash",
+      "key_hash": "Key hash (sticky)",
+      "any": "Primary and replicas",
+      "primary": "Primary only",
       "eventual": "Eventual",
       "strong": "Strong",
       "lru": "LRU",
@@ -429,11 +449,18 @@
       "flush": "A cache is emptied at {{at}} s",
       "external": "A provider fails at {{at}} s"
     },
-    "test": "Test to run"
+    "test": "Test to run",
+    "announce": {
+      "starting": "Starting the run…",
+      "playing": "The run is playing.",
+      "paused": "The run is paused.",
+      "finished": "The run has finished. The Metrics tab has the results."
+    }
   },
   "metrics": {
     "empty": "Run the design to see live metrics.",
     "p95": "p95 latency",
+    "p99": "p99 latency",
     "throughput": "Throughput",
     "errorRate": "Error rate",
     "cost": "Cost",
@@ -444,7 +471,8 @@
     "sampled": "Simulating {{pct}}% of requests; counts are scaled back up.",
     "p95Trend": "p95 latency per second",
     "stale": "Stale reads",
-    "availability": "Availability"
+    "availability": "Availability",
+    "retried": "Retries"
   },
   "breaking": {
     "title": "Breaking point",
@@ -476,17 +504,29 @@
       "attempted": "Attempted",
       "new": "Not started"
     },
+    "estimated": "Estimation drills done",
     "best": "Best {{score}}",
     "random": "Random problem",
     "continue": "Continue: {{title}}",
     "none": "No problem matches.",
-    "unavailable": "Problems are unavailable"
+    "unavailable": "Problems are unavailable",
+    "source": {
+      "label": "Source",
+      "all": "All",
+      "builtin": "Built-in",
+      "packs": "Packs"
+    },
+    "fromPack": "From the pack {{name}}"
   },
   "brief": {
     "teaches": "Teaches: {{what}}",
+    "numbers": "Numbers cheat sheet",
+    "estimateFirst": "Estimate first",
+    "estimated": "{{done}} of {{total}} estimated",
     "targets": "Targets",
     "peak": "Peak traffic",
     "p95": "p95 latency",
+    "p99": "p99 latency",
     "availability": "Availability",
     "budget": "Budget",
     "traffic": "Traffic",
@@ -525,7 +565,9 @@
       "queue_overflow": "{{name}} overflowed its queue from {{at}} s.",
       "down": "{{name}} was down from {{at}} s."
     },
-    "stuck": "Stuck?"
+    "stuck": "Stuck?",
+    "retried_one": "{{n}} attempt failed and was retried: not an error, since the message was still delivered or kept.",
+    "retried_other": "{{n}} attempts failed and were retried: not errors, since the messages were still delivered or kept."
   },
   "compare": {
     "open": "Compare with reference",
@@ -618,7 +660,8 @@
       "service_ms": "Service time",
       "p99_ratio": "Slow tail (p99 ÷ median)",
       "queue_per_server": "Queue slots per worker",
-      "failover_s": "Failover time"
+      "failover_s": "Failover time",
+      "write_slots": "Slots per write"
     },
     "costField": {
       "per_instance_month": "Price per instance",
@@ -657,5 +700,154 @@
     "title": "Glossary",
     "search": "Search the glossary",
     "see": "See {{name}}."
+  },
+  "quiz": {
+    "title": "Quick check",
+    "intro": "Three questions on this page. A missed one comes back for review tomorrow, then less and less often.",
+    "right": "Right answer",
+    "wrong": "Your answer",
+    "correct": "Correct.",
+    "incorrect": "Not quite.",
+    "backOn": "Back for review on {{date}}.",
+    "reviewTitle": "Review",
+    "position": "Question {{n}} of {{total}}",
+    "fromPattern": "Pattern: {{id}}",
+    "next": "Next question",
+    "finish": "Finish",
+    "nothingDue": "Nothing to review today",
+    "nothingDueBody": "Questions you miss in the Guide and pattern quizzes come back here when they're due.",
+    "sessionDone": "Review done",
+    "sessionDoneBody_one": "You went through {{count}} question.",
+    "sessionDoneBody_other": "You went through {{count}} questions."
+  },
+  "paths": {
+    "title": "Learning paths",
+    "intro": "Five ordered tracks through the Guide, concept cards, patterns, problems and drills. Progress comes from what you have already done. Follow a path and Home suggests its next step.",
+    "follow": "Follow this path",
+    "following": "Following",
+    "progress": "{{done}} of {{total}} done",
+    "progressLabel": "Progress on {{name}}",
+    "done": "Done",
+    "todo": "Not yet",
+    "item": {
+      "guide": "Read: {{name}}",
+      "concept": "Watch: the {{name}} concept card",
+      "pattern": "Pattern: {{name}}",
+      "problem": "Solve: {{name}}",
+      "estimate": "Estimate: {{name}}",
+      "flaw": "Find the flaw: {{name}}",
+      "quiz": "Quiz: {{name}}"
+    }
+  },
+  "flaws": {
+    "title": "Find the flaw",
+    "intro": "Each design looks fine and passes a normal day, but has one flaw a test exposes. Run it, find the flaw, fix it, and submit until every test passes. Once fixed, the explanation and the reference fix appear in the brief.",
+    "progress": "{{solved}} of {{total}} fixed",
+    "fixed": "Fixed",
+    "open": "To fix",
+    "drill": "Find the flaw",
+    "task": "Find the flaw and fix it so every test passes."
+  },
+  "estimate": {
+    "title": "Estimation drills",
+    "intro": "Back-of-the-envelope practice: work out the number, type it, and check. Anything within the drill's band counts; the worked solution shows one way there. Rough figures are on the",
+    "problem": "Problem",
+    "random": "Random drill",
+    "progress": "{{done}} of {{total}} drills done",
+    "yourAnswer": "Your answer",
+    "placeholder": "Your estimate",
+    "check": "Check",
+    "again": "Try again",
+    "done": "Done",
+    "answerWas": "The answer:",
+    "closeness": {
+      "close": "Close enough: within the band.",
+      "too_high": "Too high, but the right order of magnitude.",
+      "too_low": "Too low, but the right order of magnitude.",
+      "way_off": "More than ten times off: check the units."
+    }
+  },
+  "numbers": {
+    "title": "Numbers cheat sheet",
+    "search": "Search the numbers",
+    "intro": "Rough speeds and sizes for back-of-the-envelope estimates: orders of magnitude, not benchmarks. Figures marked \"simulator\" are the ones the simulator uses, so your estimates and its runs agree.",
+    "group": {
+      "memory": "Memory",
+      "storage": "Storage and databases",
+      "network": "Network",
+      "servers": "Servers and services",
+      "sizes": "Sizes",
+      "time": "Time and traffic"
+    },
+    "source": {
+      "cited": "Source: {{host}}",
+      "needed": "Source to be checked (suggested: {{host}})",
+      "arithmetic": "Arithmetic",
+      "simulator": "The simulator's own figure"
+    }
+  },
+  "packs": {
+    "title": "Problem packs",
+    "intro": "A pack is a set of extra problems someone shared as a .kbpack file. Importing one checks it first (its files, its text and a judged run of every design); nothing is installed until you confirm.",
+    "import": "Import pack…",
+    "checking": "Checking the pack…",
+    "previewTitle": "Install this pack?",
+    "previewBody": "It passed every check. Here is what it holds.",
+    "unsigned": "Unsigned pack, from {{author}} (as stated in the pack). Only install packs from people you trust.",
+    "field": {
+      "name": "Name",
+      "author": "Author",
+      "version": "Version",
+      "licence": "Licence",
+      "sha": "SHA-256"
+    },
+    "problems_one": "{{count}} problem",
+    "problems_other": "{{count}} problems",
+    "change": {
+      "new": "New: it will be added to your problems.",
+      "upgrade": "Replaces version {{from}}, which is installed.",
+      "reinstall": "You removed this pack before: it will come back.",
+      "same": "This exact pack is already installed."
+    },
+    "install": "Install",
+    "cancel": "Cancel",
+    "close": "Close",
+    "installed": "{{name}} installed.",
+    "refusedTitle": "The pack was not installed",
+    "reasons": "Why",
+    "none": "No packs installed.",
+    "line": "by {{author}} · version {{version}} · {{n}} problems",
+    "uninstall": "Uninstall",
+    "uninstallNamed": "Uninstall {{name}}",
+    "uninstallConfirm": "Uninstall {{name}}? Its problems leave the catalogue; your submissions stay in your history.",
+    "recommend": "Recommend problems from packs on Home"
+  },
+  "export": {
+    "menu": "Export",
+    "copyMermaid": "Copy as Mermaid",
+    "saveMermaid": "Save as Mermaid…",
+    "copied": "Mermaid diagram copied.",
+    "saveSvg": "Save as SVG image…",
+    "savePng": "Save as PNG image…"
+  },
+  "katabox": {
+    "title": "Related in KataBox",
+    "kind": {
+      "learn": "Learn topic",
+      "problem": "Problem"
+    },
+    "hint": "The algorithms behind this page, to practise in KataBox."
+  },
+  "latency": {
+    "p95": {
+      "response": "p95 latency",
+      "completion": "p95 completion",
+      "mixed": "p95 (answers and completions)"
+    },
+    "p99": {
+      "response": "p99 latency",
+      "completion": "p99 completion",
+      "mixed": "p99 (answers and completions)"
+    }
   }
 }

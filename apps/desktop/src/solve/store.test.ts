@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { REGISTRY } from "@/test/fakeApi";
+import { defaultProps, kindSpec } from "@/solve/registry";
 import { GLYPHS } from "@/solve/glyphs";
 import { docJson, fromDesign, isDirty, redo, toDesign, undo, useEditor, withMembership } from "@/solve/store";
 
@@ -11,21 +12,34 @@ beforeEach(() => {
 });
 
 describe("editor store", () => {
-  it("new cards take the kind's defaults with the flavour's overrides", () => {
+  it("new cards store no props: they follow the kind's defaults with the flavour's overrides", () => {
     const id = s().addNode(REGISTRY, "app", "go", { x: 0, y: 0 });
     const node = s().doc.nodes.find((n) => n.id === id)!;
-    expect(node.props.instances).toBe(2);
-    expect(node.props.service_ms).toBe(5); // Go overrides the default 10
+    expect(node.props).toEqual({});
+    const defaults = defaultProps(kindSpec(REGISTRY, "app"), "go");
+    expect(defaults.instances).toBe(2);
+    expect(defaults.service_ms).toBe(5); // Go overrides the default 10
     expect(id).toMatch(/^[A-Za-z0-9_-]{1,64}$/);
   });
 
-  it("a flavour change moves untouched props to the new defaults and keeps edited ones", () => {
+  it("a prop the user set can be reset to the default, as one undo step", () => {
+    const id = s().addNode(REGISTRY, "app", "go", { x: 0, y: 0 });
+    s().setProp(id, "instances", 6);
+    expect(s().doc.nodes[0].props).toEqual({ instances: 6 });
+    s().resetProp(id, "instances");
+    expect(s().doc.nodes[0].props).toEqual({});
+    undo();
+    expect(s().doc.nodes[0].props).toEqual({ instances: 6 });
+  });
+
+  it("a flavour change keeps the props the user set; the rest follow the new flavour", () => {
     const id = s().addNode(REGISTRY, "app", "nodejs", { x: 0, y: 0 });
     s().setProp(id, "instances", 5);
     s().setFlavour(REGISTRY, id, "django");
     const node = s().doc.nodes.find((n) => n.id === id)!;
-    expect(node.props.service_ms).toBe(20);
-    expect(node.props.instances).toBe(5);
+    expect(node.flavour).toBe("django");
+    expect(node.props).toEqual({ instances: 5 });
+    expect(defaultProps(kindSpec(REGISTRY, "app"), "django").service_ms).toBe(20);
   });
 
   it("round-trips through the file shape", () => {
@@ -34,7 +48,7 @@ describe("editor store", () => {
     s().addEdge(a, b, "http");
     s().addNote({ x: 0, y: 200 });
     const design = toDesign(s());
-    expect(design.schema_version).toBe(2);
+    expect(design.schema_version).toBe(3);
     expect(fromDesign(design)).toEqual(s().doc);
     s().load(design, "C:/d.kbarch");
     expect(isDirty()).toBe(false);

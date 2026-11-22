@@ -31,7 +31,12 @@ A request type has:
   - roles: `edge`, `compute`, `worker`, `cache`, `datastore`, `broker` and `external:<name>`;
   - `?` makes a step optional, and `cache?` is cache-aside;
   - `:write` goes to a cluster's primary;
-  - `a|b` accepts either.
+  - `a|b` accepts either;
+  - `broker?` followed by its consumer: an optional hand-off. A caller with no broker edge makes the following calls
+    itself (inline, so the answer waits for them); use it when the lesson is `queue it or do it now`;
+  - `cdc` (right after a `datastore:write` to SQL or NoSQL): the database publishes the committed change to the
+    stream on its CDC edge, and the consumer after it becomes the caller. The request's latency ends at the commit,
+    so measure the CDC chain with `measure = "completion"` (for example "the search index is fresh within 30 s").
 - optionally:
   - `key_space` and `key_skew = { zipf = 1.1 }`;
   - `cacheable` (for CDNs);
@@ -46,15 +51,46 @@ A request type has:
   `steps`, `hourly`), `chaos`, `type_multipliers`, `key_skew_override`, `cold_caches`, and optional `pass`
   overrides.
 - **Chaos:**
-  - `kill`, `latency`, `partition`, `traffic`, `flush` and `external`;
-  - target selectors are written flat: `{ kill = { kind = "sql", role = "primary", at = 30 } }`.
+  - `kill`, `latency`, `partition` (the zone is lost), `split` (the zone keeps running but nothing crosses its
+    border), `traffic`, `flush` and `external` (`down`, `add_ms`, or `rate` to cut the provider's rate limit);
+  - target selectors are written flat: `{ kill = { kind = "sql", role = "primary", at = 30 } }`. A kind selector
+    picks the first matching card by id, so give each data store a different kind when a test kills one of them;
+  - a zone is a Region or AZ label or id, or `@primary`: the Region holding the main data store's primary (the
+    whole design when it isn't in a Region). Use `@primary` in problems: players name their Regions freely.
+  - work still waiting when the run and its 30 s drain end counts at its age then, so a stalled pipeline fails its
+    completion limit instead of disappearing from it.
+  - A worker crash no longer fails its message at once: it comes back after the queue's visibility timeout or the
+    stream's session timeout. Make crash tests long enough for that (kill time + timeout + drain).
+- **Pass limits:** `p95_ms`, `p99_ms`, `error_rate`, `availability`, `stale_rate`, `lost`. A `p99_ms` limit needs at
+  least 1,000 completed requests in the test, or `ka-pack validate --run` refuses the problem.
 - **Hidden tests** show their name only, until the problem is solved.
 - **Sampling:** tests sample traffic above 5,000 simulated requests per second (ADR 0006). Run the accuracy check
   (`cargo test -p ka-pack --release --test accuracy -- --ignored --nocapture`); if a design's verdict differs between
   sampled and full runs, set a higher `sample_cap` at the top of `problem.toml` and say why in a comment.
 
-## Checklist
-- **Numbers:**
+## Card properties worth knowing
+- **SQL `read_from`:** `any` (reads spread over the primary and replicas; reads stay in the caller's Region when a
+  member is there) or `primary` (read-your-writes).
+- **Leases:** a queue's `visibility_timeout_s` and a stream's `session_timeout_s` decide when a dead consumer's
+  messages come back.
+- **CDC:** a database's `cdc_buffer_s` is how long committed changes wait for a stream that is down.
+- **Partitions:** a stream hands out one message per partition at a time, so `partitions` caps how much is consumed at
+  once; size it with the consumers.
+
+## Estimation drills
+`content/estimation/<problem-id>.toml` holds 2–3 `[[drill]]` entries per problem: `id`, `kind` (qps, storage,
+bandwidth, servers, capacity), `prompt`/`prompt_es` with `{input}` placeholders, `inputs`, a `formula` over the inputs
+(`+ - * / ^` and parentheses), `unit`, an optional `tolerance` and `solution`/`solution_es` (which may use
+`{answer}`). `ka-pack` computes every answer from the formula and refuses unknown or unused inputs. Ground the
+inputs in the problem's numbers so the drill teaches something the design needs.
+
+## Find-the-flaw drills
+`content/flaws/<id>/` holds `flaw.toml` (story, symptom, explanation, the target test and a `[scenario]` written like a
+problem's NFRs, request types and tests), three-tier hints, `broken.kbarch` and `fixed.kbarch`. `validate --run`
+proves the drill: the broken design passes Normal (unless the flaw is about Normal) and fails the target test; the
+fixed design passes every test.
+
+## Checklist- **Numbers:**
   - NFRs come from the problem's real-world shape;
   - the reference passes with headroom (not by 1%);
   - the naive design fails for the lesson's reason, not by accident.

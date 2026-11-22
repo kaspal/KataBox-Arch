@@ -1,0 +1,57 @@
+id = "bulk-email"
+number = 24
+set = 2
+difficulty = "medium"
+title = "Bulk Email Campaigns"
+title_es = "Campañas de correo masivo"
+teaches = "Send through a queue with retries and a dead-letter queue, so a provider's rate limit only slows a campaign down"
+teaches_es = "Enviar a través de una cola con reintentos y una cola de mensajes fallidos, para que el límite de un proveedor solo frene la campaña"
+tags = ["queues", "retries", "dlq", "rate-limiting", "scheduler"]
+
+[nfr]
+peak_rps = 500
+p95_ms = 30000
+availability = 0.999
+budget_usd = 1500
+
+[[externals]]
+name = "email"
+median_ms = 150
+p99_ms = 1200
+rate_limit = 800
+
+[[request_types]]
+id = "send"
+name = "Send a campaign email"
+name_es = "Enviar un correo de campaña"
+share = 1.0
+route = ["broker", "worker", "external:email"]
+source = "scheduler"
+measure = "completion"
+
+[[tests]]
+id = "normal"
+name = "Normal campaign"
+name_es = "Una campaña normal"
+
+[[tests]]
+id = "rate-cut"
+name = "The provider cuts your rate limit"
+name_es = "El proveedor te baja el límite"
+hidden = true
+duration_s = 120
+chaos = [{ external = { name = "email", at = 20, for = 40, rate = 250 } }]
+pass = { p95_ms = 120000 }
+
+[[tests]]
+id = "overlap"
+name = "Two campaigns overlap"
+name_es = "Se solapan dos campañas"
+hidden = true
+duration_s = 120
+traffic = { spike = { at = 20, x = 2, for = 30 } }
+pass = { p95_ms = 120000 }
+
+[pass]
+error_rate = 0.01
+lost = 0

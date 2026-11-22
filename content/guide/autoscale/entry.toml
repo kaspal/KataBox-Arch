@@ -136,3 +136,30 @@ url = "https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale
 flavour = "aws_asg"
 title = "Amazon EC2 Auto Scaling user guide"
 url = "https://docs.aws.amazon.com/autoscaling/ec2/userguide/"
+
+[[quiz]]
+q = "A spike arrives within two seconds, the scale-out delay is a minute, and nothing in front can buffer the work. What happens?"
+q_es = "Un pico llega en dos segundos, el retardo de escalado es de un minuto y nada delante puede amortiguar el trabajo. ¿Qué pasa?"
+options = ["The zone adds instances at once, so no request suffers", "The spike lands on the old fleet, and requests queue or drop until new instances arrive", "The zone scales in to save money during the spike", "Load is spread over the maximum instance count straight away"]
+options_es = ["La zona añade instancias al instante, así que ninguna petición lo nota", "El pico cae sobre la flota antigua, y las peticiones se encolan o se descartan hasta que llegan instancias nuevas", "La zona quita instancias para ahorrar durante el pico", "La carga se reparte enseguida entre el máximo de instancias"]
+answer = 1
+why = "Autoscaling always reacts after the fact: the metric has to rise and the new instances have to start. Sudden spikes need a buffer, a higher minimum or more headroom."
+why_es = "El autoescalado siempre reacciona a posteriori: la métrica tiene que subir y las instancias nuevas tienen que arrancar. Los picos repentinos necesitan un amortiguador, un mínimo más alto o más margen."
+
+[[quiz]]
+q = "The app servers in an Autoscaling zone grow to twenty instances, all calling the same database, yet latency keeps rising. What is the likely cause?"
+q_es = "Los servidores de aplicación de una zona de Autoescalado crecen hasta veinte instancias, todas llamando a la misma base de datos, y aun así la latencia sigue subiendo. ¿Cuál es la causa probable?"
+options = ["The database has become the bottleneck, and more compute only sends it more load", "Autoscaling always overshoots and then flaps", "The zone's minimum is set too high", "A load balancer cannot spread traffic over that many instances"]
+options_es = ["La base de datos se ha convertido en el cuello de botella, y más cómputo solo le manda más carga", "El autoescalado siempre se pasa y luego oscila", "El mínimo de la zona es demasiado alto", "Un balanceador no puede repartir el tráfico entre tantas instancias"]
+answer = 0
+why = "Scaling the compute does not scale what sits behind it. Check the capacity behind the zone at the maximum instance count, and cap the maximum to what it can take."
+why_es = "Escalar el cómputo no escala lo que tiene detrás. Comprueba la capacidad de lo que hay detrás de la zona con el máximo de instancias, y limita el máximo a lo que aguante."
+
+[[quiz]]
+q = "You lower the zone's target utilisation from 70% to 50%. What do you get?"
+q_es = "Bajas la utilización objetivo de la zona del 70 % al 50 %. ¿Qué consigues?"
+options = ["Fewer instances and a smaller bill", "New instances that start faster", "More headroom for the start of a spike, at a higher cost", "A higher maximum instance count"]
+options_es = ["Menos instancias y una factura menor", "Instancias nuevas que arrancan más rápido", "Más margen para el comienzo de un pico, a un coste mayor", "Un número máximo de instancias más alto"]
+answer = 2
+why = "A lower target keeps more instances running for the same load, so there is spare capacity while new ones start. The bill follows the average instance count, so it rises."
+why_es = "Un objetivo más bajo mantiene más instancias para la misma carga, así que hay capacidad de sobra mientras arrancan las nuevas. La factura sigue el número medio de instancias, así que sube."

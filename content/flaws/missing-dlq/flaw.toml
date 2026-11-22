@@ -1,0 +1,47 @@
+id = "missing-dlq"
+number = 3
+title = "Retries with nowhere to go"
+title_es = "Reintentos sin destino"
+story = "After each order, the shop queues a receipt, and workers send it through a partner's messaging API."
+story_es = "Tras cada pedido, la tienda pone en cola un recibo, y unos workers lo envían por la API de mensajería de un socio."
+symptom = "The partner had a half-minute outage, and hundreds of receipts were never sent and can't be found."
+symptom_es = "El socio tuvo una caída de medio minuto, y cientos de recibos no se enviaron nunca y no aparecen por ningún sitio."
+target_test = "partner-outage"
+explanation = "Each failed receipt was retried a few times, a few seconds apart, and then dropped: with no dead-letter queue, a message that runs out of retries is simply lost. Wiring a DLQ keeps every message that keeps failing, ready to replay once the partner is back."
+explanation_es = "Cada recibo fallido se reintentó unas pocas veces, con unos segundos entre intentos, y luego se descartó: sin cola de mensajes fallidos, un mensaje que agota sus reintentos se pierde sin más. Conectar una DLQ guarda cada mensaje que sigue fallando, listo para reenviarse cuando vuelva el socio."
+kinds = ["dlq", "queue"]
+
+[[scenario.tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[scenario.nfr]
+peak_rps = 200
+p95_ms = 60000
+availability = 0.99
+budget_usd = 4000
+
+[[scenario.externals]]
+name = "partner"
+median_ms = 50
+p99_ms = 200
+
+[[scenario.request_types]]
+id = "receipt"
+name = "Receipt"
+name_es = "Recibo"
+share = 1.0
+route = ["compute", "broker", "worker", "external:partner"]
+measure = "completion"
+
+[[scenario.tests]]
+id = "partner-outage"
+name = "The partner's API is down for 30 s"
+name_es = "La API del socio cae durante 30 s"
+chaos = [{ external = { name = "partner", at = 15, for = 30, down = true } }]
+
+[scenario.pass]
+p95_ms = 60000
+error_rate = 0.01
+lost = 0

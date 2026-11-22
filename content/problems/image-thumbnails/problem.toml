@@ -1,0 +1,50 @@
+id = "image-thumbnails"
+number = 16
+set = 2
+difficulty = "easy"
+title = "Image Thumbnails"
+title_es = "Miniaturas de imágenes"
+teaches = "Hand slow work to a queue; leases bring back a crashed worker's jobs"
+teaches_es = "Pasar el trabajo lento a una cola; los leases recuperan los trabajos de un worker caído"
+tags = ["queues", "workers", "object-storage", "leases"]
+
+[nfr]
+peak_rps = 300
+p95_ms = 5000
+availability = 0.999
+budget_usd = 5000
+
+[[request_types]]
+id = "upload"
+name = "Upload a photo"
+name_es = "Subir una foto"
+share = 1.0
+route = ["edge?", "compute", "datastore:write:object", "broker", "worker", "datastore:write:object"]
+payload_kb = 2048
+measure = "completion"
+
+[[tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "burst"
+name = "Upload burst"
+name_es = "Una avalancha de subidas"
+hidden = true
+traffic = { spike = { at = 20, x = 3, for = 10 } }
+pass = { p95_ms = 20000 }
+
+[[tests]]
+id = "worker-crash"
+name = "A worker crashes"
+name_es = "Se cae un worker"
+hidden = true
+duration_s = 120
+chaos = [{ kill = { kind = "worker", at = 20, for = 30 } }]
+pass = { p95_ms = 20000 }
+
+[pass]
+error_rate = 0.001
+lost = 0

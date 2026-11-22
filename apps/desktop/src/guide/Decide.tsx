@@ -1,8 +1,8 @@
 // /decide/$id: a "Which one do I need?" guide, one question at a time, ending at a Guide
 // entry. /glossary: the terms the app uses, searchable.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useParams } from "@tanstack/react-router";
+import { Link, useParams, useSearch } from "@tanstack/react-router";
 import { BookA, ChevronRight, RotateCcw, Search, Signpost } from "lucide-react";
 import type { DecideFlow, DecideOption, Registry } from "@/bindings";
 import { EmptyState, Page } from "@/components/Page";
@@ -119,6 +119,14 @@ export function GlossaryPage() {
   const glossary = useGlossary();
   const [q, setQ] = useState("");
   const es = i18n.language.startsWith("es");
+  const { term: target } = useSearch({ from: "/glossary" });
+  // A link from a term in the prose: bring that term into view and move focus to it.
+  useEffect(() => {
+    if (!target || !glossary.data) return;
+    const el = document.getElementById(target);
+    el?.scrollIntoView?.({ block: "center" });
+    el?.focus({ preventScroll: true });
+  }, [target, glossary.data]);
   if (glossary.error) {
     return (
       <Page title={t("glossary.title")}>
@@ -153,7 +161,13 @@ export function GlossaryPage() {
       ) : (
         <dl className="divide-y rounded-xl border bg-card" data-testid="glossary">
           {terms.map(({ g, term, def }) => (
-            <div key={g.id} id={g.id} className="grid gap-1 px-5 py-3 sm:grid-cols-[14rem_1fr] sm:gap-6">
+            <div
+              key={g.id}
+              id={g.id}
+              tabIndex={g.id === target ? -1 : undefined}
+              data-current={g.id === target ? "true" : undefined}
+              className="grid scroll-mt-4 gap-1 px-5 py-3 outline-none data-[current=true]:bg-accent/40 sm:grid-cols-[14rem_1fr] sm:gap-6"
+            >
               <dt className="font-semibold">{term}</dt>
               <dd className="text-sm">
                 {def}

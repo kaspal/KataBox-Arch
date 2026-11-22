@@ -257,6 +257,116 @@ async glossary() : Promise<Result<GlossaryTerm[], AppError>> {
 }
 },
 /**
+ * The numbers cheat sheet (M5.1).
+ */
+async numbers() : Promise<Result<NumberFigure[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("numbers") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Estimation drills (all, or one problem's), without their answers.
+ */
+async drills(problemId: string | null) : Promise<Result<Drill[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("drills", { problemId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Check an estimate: the verdict, the answer and the worked solution (recorded).
+ */
+async checkEstimate(problemId: string, drillId: string, answer: number) : Promise<Result<EstimateCheck, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("check_estimate", { problemId, drillId, answer }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * The estimation drills answered so far.
+ */
+async estimateStatuses() : Promise<Result<EstimateStatus[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("estimate_statuses") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * The Find-the-flaw drills (each opens as the problem `flaw--<id>`).
+ */
+async listFlaws() : Promise<Result<FlawSummary[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_flaws") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * The learning paths with each item's progress (M5.4).
+ */
+async learningPaths() : Promise<Result<PathView[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("learning_paths") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * A concept card was played to its end (a learning-path item).
+ */
+async setConceptPlayed(kind: ComponentKind) : Promise<Result<null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_concept_played", { kind }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * A Guide entry's or pattern's quiz (`guide:<kind>` / `pattern:<id>`), without answers.
+ */
+async quiz(page: string) : Promise<Result<QuizItem[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("quiz", { page }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Answer a quiz question; `today` is the user's local date (`YYYY-MM-DD`).
+ */
+async answerQuiz(questionId: string, choice: number, today: string) : Promise<Result<QuizResult, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("answer_quiz", { questionId, choice, today }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * The questions due for review today (at most 10), in review order.
+ */
+async reviewsDue(today: string) : Promise<Result<QuizItem[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("reviews_due", { today }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * The pattern library, in order (each with its template for the preview).
  */
 async listPatterns() : Promise<Result<PatternSummary[], AppError>> {
@@ -365,6 +475,97 @@ async confirmClose() : Promise<Result<null, AppError>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+/**
+ * KataBox practice related to an Arch page (M6.7): titles only.
+ */
+async kataboxLinks(target: string) : Promise<Result<KataboxLink[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("katabox_links", { target }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * A design as Mermaid text (for Copy). `names`: kind, protocol and group names in the
+ * user's language.
+ */
+async mermaidText(design: Design, names: Partial<{ [key in string]: string }>) : Promise<string> {
+    return await TAURI_INVOKE("mermaid_text", { design, names });
+},
+/**
+ * Show the Save dialog and write an image export the UI rendered (M7.3). `None` when
+ * cancelled.
+ */
+async saveExport(format: ExportFormat, data: number[], suggestedName: string) : Promise<Result<string | null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("save_export", { format, data, suggestedName }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Show the Save dialog and write the design as a `.mmd` file. `None` when cancelled.
+ */
+async saveMermaid(design: Design, names: Partial<{ [key in string]: string }>, suggestedName: string) : Promise<Result<string | null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("save_mermaid", { design, names, suggestedName }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Show the Open dialog for a `.kbpack`, then open and check it (nothing is installed
+ * yet). `None` when cancelled.
+ */
+async previewPack() : Promise<Result<PackPreview | null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("preview_pack") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Install a previewed pack.
+ */
+async applyPack(token: number) : Promise<Result<PackInfo, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("apply_pack", { token }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Drop a previewed pack.
+ */
+async cancelPack(token: number) : Promise<Result<null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cancel_pack", { token }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async listPacks() : Promise<Result<PackInfo[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_packs") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async uninstallPack(id: string) : Promise<Result<null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("uninstall_pack", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -439,7 +640,16 @@ export type AppErrorCode =
 /**
  * The bundled problem catalogue (content.db) is missing or unreadable.
  */
-"content_missing"
+"content_missing" | 
+/**
+ * A problem pack failed its checks (the message lists why).
+ */
+"pack_refused" | 
+/**
+ * A pack can't replace the installed one: an older version, or the same version with
+ * different contents.
+ */
+"pack_version"
 export type AppInfo = { version: string; dev_data: boolean }
 export type Bottleneck = { node: string; kind: ComponentKind; from_s: number; utilisation: number; reason: BottleneckReason }
 /**
@@ -568,9 +778,14 @@ export type ChaosEvent =
  */
 { latency: { target: Selector; add_ms: number; at: number; for?: number | null } } | 
 /**
- * The zone (Region or AZ label or id) is cut off from the rest.
+ * The zone (Region or AZ label or id) is lost: every card in it goes down.
  */
 { partition: { zone: string; at: number; for?: number | null } } | 
+/**
+ * A network split: the zone (Region or AZ label or id) keeps running, but nothing
+ * crosses its border (calls, hops, publishes, replication) until it heals.
+ */
+{ split: { zone: string; at: number; for?: number | null } } | 
 /**
  * Traffic multiplied by `x`.
  */
@@ -580,9 +795,26 @@ export type ChaosEvent =
  */
 { flush: { target: Selector; at: number } } | 
 /**
- * An external provider goes down, or slows by `add_ms`.
+ * An external provider goes down, slows by `add_ms`, or cuts its rate limit to `rate`
+ * calls per second.
  */
-{ external: { name: string; at: number; for?: number | null; down?: boolean; add_ms?: number } }
+{ external: { name: string; at: number; for?: number | null; down?: boolean; add_ms?: number; rate?: number | null } }
+/**
+ * How close an answer was.
+ */
+export type Closeness = 
+/**
+ * Within the drill's band.
+ */
+"close" | 
+/**
+ * Within ×10 but outside the band.
+ */
+"too_high" | "too_low" | 
+/**
+ * More than ten times off: probably a units slip.
+ */
+"way_off"
 export type CompareRow = { label: string; label_es: string; 
 /**
  * One cell per compared flavour, in `flavours_compared.flavours` order.
@@ -632,7 +864,30 @@ export type DesignIssue = { code: IssueCode;
 ids: string[] }
 export type Difficulty = "easy" | "medium" | "hard"
 export type DifficultyCount = { total: number; attempted: number; solved: number }
+/**
+ * A drill as the UI gets it before answering: no answer, no formula, no solution.
+ */
+export type Drill = { problem_id: string; id: string; kind: DrillKind; prompt: string; prompt_es: string; inputs: Partial<{ [key in string]: number }>; unit: string }
+export type DrillKind = "qps" | "storage" | "bandwidth" | "servers" | 
+/**
+ * How much a part must hold at once: a queue's depth, connections, calls in flight.
+ */
+"capacity"
 export type Edge = { id: string; from: string; to: string; protocol: Protocol }
+export type EstimateCheck = { ok: boolean; closeness: Closeness; answer: number; 
+/**
+ * The worked solution as written, with `{name}` and `{answer}` placeholders: the UI
+ * fills them with `inputs` and `answer` in the reader's number format.
+ */
+solution: string; solution_es: string; inputs: Partial<{ [key in string]: number }> }
+/**
+ * One drill's record: how many checks, and whether any was within its band.
+ */
+export type EstimateStatus = { problem_id: string; drill_id: string; tries: number; done: boolean }
+/**
+ * What an image export is (M7.3).
+ */
+export type ExportFormat = "svg" | "png"
 export type ExternalBrief = { name: string; median_ms: number; p99_ms: number; rate_limit: number | null }
 /**
  * Why the first card failed.
@@ -669,6 +924,10 @@ cost: Cost;
  */
 sim: SimDefaults | null }
 export type FlavoursCompared = { flavours: Flavour[]; rows: CompareRow[] }
+/**
+ * One row of the Find-the-flaw list.
+ */
+export type FlawSummary = { id: string; number: number; title: string; title_es: string; kinds: ComponentKind[]; solved: boolean }
 export type GlossaryTerm = { id: string; term: string; term_es: string; definition: string; definition_es: string; 
 /**
  * A Guide entry that explains it further.
@@ -703,7 +962,12 @@ formula: string; formula_es: string; flavours_compared?: FlavoursCompared | null
 /**
  * Problem ids where this kind is a key move.
  */
-practice?: string[]; interview_tip: string; interview_tip_es: string; sources: Source[] }
+practice?: string[]; interview_tip: string; interview_tip_es: string; sources: Source[]; 
+/**
+ * Three quick-check questions (M5.5). Never sent to the UI with the entry: the app
+ * serves them without their answers.
+ */
+quiz?: QuizQuestion[] }
 /**
  * A whole entry: the structured fields, the prose in both languages and the read mark.
  */
@@ -768,6 +1032,18 @@ lint: string[]; tests: TestResult[]; score: Score;
  */
 cost_month: number; ref_cost: number }
 /**
+ * What a KataBox target is.
+ */
+export type KataboxKind = "learn" | "problem"
+/**
+ * A resolved link, as the UI shows it.
+ */
+export type KataboxLink = { kind: KataboxKind; 
+/**
+ * `<subject>/<topic>` for Learn, the problem id for problems.
+ */
+id: string; title: string; title_es: string }
+/**
  * A set of kinds: any kind in `categories` or `kinds`, minus `except`.
  */
 export type KindSet = { categories: Category[]; kinds: ComponentKind[]; except: ComponentKind[] }
@@ -784,6 +1060,11 @@ color_token: string; flavours: FlavourSpec[]; default_flavour: Flavour; props: P
  * How the kind sits on the canvas: a card, or a wrapper around cards (Autoscaling).
  */
 placement: Placement }
+/**
+ * What a problem's latency limits measure (review F2): every request type's answer, every
+ * type's completion (async work done), or a mix.
+ */
+export type LatencyMeasure = "response" | "completion" | "mixed"
 /**
  * Size caps for a design. Sent to the UI with the registry.
  */
@@ -851,18 +1132,79 @@ down_seconds: number[] }
  * A sticky note (hand-written font on the canvas).
  */
 export type Note = { id: string; text: string; position: Point; size: Size }
+export type NumberFigure = { id: string; group: NumberGroup; label: string; label_es: string; value: number; unit: string; note: string; note_es: string; source: string }
+/**
+ * The sheet's sections, in display order.
+ */
+export type NumberGroup = "memory" | "storage" | "network" | "servers" | "sizes" | "time"
 /**
  * A design read from disk, with the path it came from.
  */
 export type OpenedDesign = { path: string; design: Design }
 /**
+ * What applying a previewed pack would do.
+ */
+export type PackChange = 
+/**
+ * Not installed before.
+ */
+{ kind: "new" } | 
+/**
+ * Replaces an older installed version.
+ */
+{ kind: "upgrade"; from: string } | 
+/**
+ * Installed before and removed: comes back.
+ */
+{ kind: "reinstall" } | 
+/**
+ * The same version and contents are already installed: nothing to do.
+ */
+{ kind: "same" }
+/**
+ * An installed (or removed) pack.
+ */
+export type PackInfo = { id: string; name: string; author: string; version: string; licence: string; sha256: string; installed_at: number; removed: boolean; 
+/**
+ * Problems in the installed pack (0 once removed).
+ */
+problems: number }
+/**
+ * The import preview: shown before anything is installed.
+ */
+export type PackPreview = { 
+/**
+ * Pass back to `apply_pack` or `cancel_pack`.
+ */
+token: number; id: string; name: string; author: string; version: string; licence: string; sha256: string; problems: PackProblem[]; change: PackChange }
+/**
+ * A problem a pack holds (its stored id, `<pack>--<id>`).
+ */
+export type PackProblem = { id: string; title_en: string; title_es: string; difficulty: string }
+/**
  * What a passing run needs. Unset limits aren't checked.
  */
-export type PassCriteria = { p95_ms?: number | null; error_rate?: number | null; availability?: number | null; stale_rate?: number | null; 
+export type PassCriteria = { p95_ms?: number | null; 
+/**
+ * Judged only on tests with at least `P99_MIN_SAMPLES` completed requests of the
+ * measured types (review A4); `ka-pack` refuses a problem whose tests have fewer.
+ */
+p99_ms?: number | null; error_rate?: number | null; availability?: number | null; stale_rate?: number | null; 
 /**
  * Messages that may be lost (usually 0).
  */
 lost?: number | null }
+/**
+ * One step of a path as the UI shows it.
+ */
+export type PathItem = { kind: PathItemKind; target: string; 
+/**
+ * Content titles (patterns, problems, drills); Guide and concept items are named by
+ * the UI from the component kind.
+ */
+title: string | null; title_es: string | null; done: boolean }
+export type PathItemKind = "guide" | "concept" | "pattern" | "problem" | "estimate" | "flaw" | "quiz"
+export type PathView = { id: string; number: number; title: string; title_es: string; blurb: string; blurb_es: string; items: PathItem[] }
 export type PatternEntry = { id: string; 
 /**
  * Library order.
@@ -883,7 +1225,11 @@ practice?: string[];
 /**
  * How much of it the simulator shows ("Fully", "Partly: …"): honest about what is modelled.
  */
-in_simulator: string; in_simulator_es: string }
+in_simulator: string; in_simulator_es: string; 
+/**
+ * Three quick-check questions (M5.5), served without their answers.
+ */
+quiz?: QuizQuestion[] }
 export type PatternPage = { entry: PatternEntry; md_en: string; md_es: string; template: Design; read: boolean }
 export type PatternSummary = { id: string; number: number; title: string; title_es: string; one_liner: string; one_liner_es: string; kinds: ComponentKind[]; template: Design; read: boolean }
 export type Percentiles = { p50_ms: number; p95_ms: number; p99_ms: number }
@@ -909,7 +1255,15 @@ export type Point = { x: number; y: number }
  * What the Solve page shows. Hidden tests come with their names only; hints only up to the
  * unlocked tier; the editorial and the reference only once solved.
  */
-export type ProblemBrief = { summary: ProblemSummary; nfr: Nfr; statement_en: string; statement_es: string; request_types: RequestTypeBrief[]; externals: ExternalBrief[]; tests: TestBrief[]; 
+export type ProblemBrief = { summary: ProblemSummary; nfr: Nfr; 
+/**
+ * The problem-wide p99 limit, when it has one (shown with the targets).
+ */
+p99_ms: number | null; 
+/**
+ * What the latency limits measure: the answer, the finished async work, or both.
+ */
+judged_on: LatencyMeasure; statement_en: string; statement_es: string; request_types: RequestTypeBrief[]; externals: ExternalBrief[]; tests: TestBrief[]; 
 /**
  * Unlocked tiers (0–3) and their text.
  */
@@ -926,7 +1280,11 @@ status: string | null; best_score: number | null;
 /**
  * The cheapest Accepted submission's monthly cost.
  */
-best_cost: number | null }
+best_cost: number | null; 
+/**
+ * The name of the pack it came from (M6.4); None for built-in problems.
+ */
+pack: string | null }
 export type ProblemTest = { problem_id: string; test_id: string }
 export type Progress = { easy: DifficultyCount; medium: DifficultyCount; hard: DifficultyCount; streak: number; 
 /**
@@ -962,6 +1320,34 @@ export type PropValue = number | boolean | string
  * sync calls solid, async messages dashed, replication dotted.
  */
 export type Protocol = "http" | "grpc" | "ws" | "query" | "publish" | "consume" | "replicate"
+/**
+ * A question as the UI gets it before answering: no answer, no explanation.
+ */
+export type QuizItem = { 
+/**
+ * `guide:<kind>:<n>` or `pattern:<id>:<n>` (n = 1..=3).
+ */
+id: string; q: string; q_es: string; options: string[]; options_es: string[] }
+/**
+ * One question as written in content.
+ */
+export type QuizQuestion = { q: string; q_es: string; 
+/**
+ * Three or four options; `answer` is the index of the right one.
+ */
+options: string[]; options_es: string[]; answer: number; 
+/**
+ * Why the answer is right (shown after answering).
+ */
+why: string; why_es: string }
+/**
+ * What answering returns.
+ */
+export type QuizResult = { correct: boolean; answer: number; why: string; why_es: string; 
+/**
+ * When the question comes back for review (`YYYY-MM-DD`); None if it won't.
+ */
+due_on: string | null }
 /**
  * A recent file, and whether it is still on disk.
  */
@@ -1029,7 +1415,11 @@ latency: Percentiles; response: Percentiles;
 /**
  * For request types with async work.
  */
-completion: Percentiles | null; lost: number; dead_lettered: number; stale_reads: number; stale_rate: number; cost_month: number; per_type: TypeResult[]; nodes: NodeResult[]; 
+completion: Percentiles | null; lost: number; dead_lettered: number; 
+/**
+ * Failed attempts that were retried: not errors, since the message lived on (review F3).
+ */
+retried?: number; stale_reads: number; stale_rate: number; cost_month: number; per_type: TypeResult[]; nodes: NodeResult[]; 
 /**
  * One entry per simulated second.
  */
@@ -1121,7 +1511,12 @@ queue_per_server: number;
 /**
  * Seconds before a replica takes over from a dead primary (data kinds).
  */
-failover_s: number }
+failover_s: number; 
+/**
+ * Service slots a write occupies, relative to a read (data kinds; 1 = the same).
+ * DynamoDB partitions take a third as many writes as reads per second (ADR 0006).
+ */
+write_slots: number }
 export type SimRow = (
 /**
  * A prop key of the kind (its default per flavour, overrides applied).
@@ -1129,7 +1524,7 @@ export type SimRow = (
 { prop: string } | 
 /**
  * A `SimDefaults` field: `servers_per_instance`, `service_ms`, `p99_ratio`,
- * `queue_per_server`, `failover_s`.
+ * `queue_per_server`, `failover_s`, `write_slots`.
  */
 { sim: string } | 
 /**
@@ -1208,7 +1603,11 @@ export type TestBrief = { id: string; name: string; name_es: string; hidden: boo
  * The result of one test. Hidden tests carry the same numbers, but never their traffic or
  * chaos: the definition stays in Rust.
  */
-export type TestResult = { id: string; name: string; name_es: string; hidden: boolean; verdict: Verdict; p95_ms: number; error_rate: number; availability: number; stale_rate: number; lost: number; throughput_rps: number; cost_month: number; 
+export type TestResult = { id: string; name: string; name_es: string; hidden: boolean; verdict: Verdict; p95_ms: number; p99_ms: number; error_rate: number; availability: number; stale_rate: number; lost: number; 
+/**
+ * Failed attempts that were retried (not errors: the message lived on; review F3).
+ */
+retried?: number; throughput_rps: number; cost_month: number; 
 /**
  * The limits this test was held to.
  */

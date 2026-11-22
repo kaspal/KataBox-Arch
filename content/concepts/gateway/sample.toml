@@ -1,0 +1,27 @@
+id = "gateway"
+number = 18
+title = "API Gateway"
+title_es = "API Gateway"
+summary = "One front door for many services: routing, auth and quotas, for the price of a hop."
+summary_es = "Una puerta de entrada para muchos servicios: enrutado, autenticación y cuotas, al precio de un salto."
+problem = "url-shortener"
+
+[[step]]
+snapshot = "load-balancer.kbarch"
+title = "A load balancer in front"
+title_es = "Un balanceador delante"
+caption = "The URL shortener as it ships: a load balancer spreads clicks over the app servers."
+caption_es = "El acortador de URLs tal cual: un balanceador reparte los clics entre los servidores de aplicaciones."
+focus = ["lb"]
+run = { test = "normal" }
+callout = { metric = "p95_ms", after = 21.8, target = 80 }
+
+[[step]]
+snapshot = "gateway.kbarch"
+title = "A gateway does more, and costs a hop"
+title_es = "Una pasarela hace más, y cuesta un salto"
+caption = "An API gateway in the same place routes, checks keys and applies quotas. Each request now spends a little longer at the front door, a fair price when you need what it does."
+caption_es = "Una API gateway en el mismo lugar enruta, comprueba claves y aplica cuotas. Cada petición pasa ahora un poco más de tiempo en la puerta de entrada, un precio justo cuando necesitas lo que hace."
+focus = ["lb"]
+run = { test = "normal" }
+callout = { metric = "p95_ms", before = 21.8, after = 24.1, target = 80 }

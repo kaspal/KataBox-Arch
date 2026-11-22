@@ -7,6 +7,7 @@ import type { SubmitResult, TestResult, Verdict } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Markdown } from "@/components/Markdown";
+import { formatMs, percentileLabel } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { CompareButton } from "@/solve/compare/CompareButton";
 import { useUnlockHint } from "@/solve/problem/BriefPanel";
@@ -53,7 +54,8 @@ function TestRow({ test, onReplay }: { test: TestResult; onReplay: (t: TestResul
   const { t, i18n } = useTranslation();
   const es = i18n.language.startsWith("es");
   const nodes = useEditor((s) => s.doc.nodes);
-  const n1 = new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 });
+  // What the latency limits measure: the answer, or finished async work (review F2).
+  const judged = useProblemMode()?.brief.judged_on ?? "response";
   const pct = new Intl.NumberFormat(i18n.language, { style: "percent", maximumFractionDigits: 2 });
   const b = test.bottleneck;
   const card = b ? nodes.find((n) => n.id === b.node) : undefined;
@@ -73,13 +75,21 @@ function TestRow({ test, onReplay }: { test: TestResult; onReplay: (t: TestResul
         <VerdictChip v={test.verdict} />
       </div>
       {test.verdict !== "invalid_design" && (
-        <dl className="grid grid-cols-3 gap-2 text-xs">
+        <dl className={`grid gap-2 text-xs ${test.limits.p99_ms != null ? "grid-cols-4" : "grid-cols-3"}`}>
           <div>
-            <dt className="text-muted-foreground">{t("metrics.p95")}</dt>
+            <dt className="text-muted-foreground">{percentileLabel(t, "p95", judged)}</dt>
             <dd className="font-mono tabular-nums">
-              {n1.format(test.p95_ms)} ms{test.limits.p95_ms != null && ` / ${n1.format(test.limits.p95_ms)}`}
+              {formatMs(i18n.language, test.p95_ms)}{test.limits.p95_ms != null && ` / ${formatMs(i18n.language, test.limits.p95_ms)}`}
             </dd>
           </div>
+          {test.limits.p99_ms != null && (
+            <div data-testid="p99">
+              <dt className="text-muted-foreground">{percentileLabel(t, "p99", judged)}</dt>
+              <dd className="font-mono tabular-nums">
+                {formatMs(i18n.language, test.p99_ms)} / {formatMs(i18n.language, test.limits.p99_ms)}
+              </dd>
+            </div>
+          )}
           <div>
             <dt className="text-muted-foreground">{t("metrics.errorRate")}</dt>
             <dd className="font-mono tabular-nums">
@@ -92,6 +102,11 @@ function TestRow({ test, onReplay }: { test: TestResult; onReplay: (t: TestResul
             <dd className="font-mono tabular-nums">{pct.format(test.availability)}</dd>
           </div>
         </dl>
+      )}
+      {(test.retried ?? 0) > 0 && test.verdict !== "invalid_design" && (
+        <p className="text-xs text-muted-foreground" data-testid="retried">
+          {t("results.retried", { count: Math.round(test.retried ?? 0), n: new Intl.NumberFormat(i18n.language).format(Math.round(test.retried ?? 0)) })}
+        </p>
       )}
       {b && (
         <div className="flex items-center justify-between gap-2 rounded bg-muted/60 p-2 text-xs" data-testid="bottleneck">
@@ -199,7 +214,7 @@ function ResultsExtras({ accepted }: { accepted: boolean }) {
           {last && (
             <div className="text-sm">
               <div className="mb-1 text-xs font-semibold text-muted-foreground">{t("brief.hint", { n: brief.hints_unlocked })}</div>
-              <Markdown>{last}</Markdown>
+              <Markdown trust={brief.summary.pack !== null ? "pack" : "app"}>{last}</Markdown>
             </div>
           )}
           {brief.hints_unlocked < 3 && (

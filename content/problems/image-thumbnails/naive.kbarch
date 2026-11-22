@@ -1,0 +1,128 @@
+{
+  "schema_version": 3,
+  "id": "image-thumbnails-naive",
+  "name": "Image Thumbnails (first try)",
+  "problem_id": "image-thumbnails",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "mobile",
+      "label": "Photo apps",
+      "position": {
+        "x": 260,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "Load balancer",
+      "position": {
+        "x": 260,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Upload API",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "photos",
+      "kind": "object",
+      "flavour": "s3",
+      "label": "Photos",
+      "position": {
+        "x": 0,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "queue",
+      "kind": "queue",
+      "flavour": "sqs",
+      "label": "Thumbnail jobs",
+      "position": {
+        "x": 520,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "thumbs",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Thumbnailers",
+      "position": {
+        "x": 520,
+        "y": 680
+      },
+      "props": {
+        "instances": 16,
+        "service_ms": 200
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "api",
+      "to": "photos",
+      "protocol": "query"
+    },
+    {
+      "id": "e3",
+      "from": "api",
+      "to": "queue",
+      "protocol": "publish"
+    },
+    {
+      "id": "e4",
+      "from": "queue",
+      "to": "thumbs",
+      "protocol": "consume"
+    },
+    {
+      "id": "e5",
+      "from": "thumbs",
+      "to": "photos",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

@@ -1,0 +1,59 @@
+id = "region-outage"
+number = 27
+set = 2
+difficulty = "hard"
+title = "Survive a Region Outage"
+title_es = "Sobrevivir a la caída de una región"
+teaches = "Run in several regions behind DNS, with replicas that can be promoted, so losing a region or the links between regions is survivable"
+teaches_es = "Funcionar en varias regiones detrás de DNS, con réplicas que se pueden promover, para sobrevivir a la pérdida de una región o de los enlaces entre regiones"
+tags = ["regions", "dns", "replication", "failover", "partitioning"]
+
+[nfr]
+peak_rps = 6000
+read_ratio = 0.9
+p95_ms = 250
+availability = 0.999
+budget_usd = 9000
+
+[[request_types]]
+id = "read"
+name = "Read an account"
+name_es = "Leer una cuenta"
+share = 0.9
+route = ["edge?", "compute", "cache?", "datastore"]
+key_space = 1_000_000
+key_skew = { zipf = 1.0 }
+
+[[request_types]]
+id = "write"
+name = "Update an account"
+name_es = "Actualizar una cuenta"
+share = 0.1
+route = ["edge?", "compute", "datastore:write"]
+key_space = 1_000_000
+key_skew = { zipf = 1.0 }
+
+[[tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "region-lost"
+name = "The primary's region goes dark"
+name_es = "Se apaga la región del primario"
+hidden = true
+duration_s = 120
+chaos = [{ partition = { zone = "@primary", at = 30 } }]
+pass = { error_rate = 0.08, availability = 0.92, p95_ms = 1000 }
+
+[[tests]]
+id = "region-split"
+name = "The primary's region is cut off for 20 s"
+name_es = "La región del primario queda aislada 20 s"
+hidden = true
+chaos = [{ split = { zone = "@primary", at = 20, for = 20 } }]
+pass = { error_rate = 0.08, availability = 0.92, p95_ms = 1000, stale_rate = 0.1 }
+
+[pass]
+error_rate = 0.001

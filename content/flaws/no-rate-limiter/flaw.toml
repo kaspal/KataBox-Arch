@@ -1,0 +1,49 @@
+id = "no-rate-limiter"
+number = 6
+title = "Everyone pays for one bad client"
+title_es = "Todos pagan por un mal cliente"
+story = "A public API serves fifty customers, each with its own key."
+story_es = "Una API pública da servicio a cincuenta clientes, cada uno con su propia clave."
+symptom = "One customer's buggy script sent thousands of calls a second, and every other customer's calls started failing too."
+symptom_es = "El script defectuoso de un cliente envió miles de llamadas por segundo, y las llamadas de todos los demás clientes empezaron a fallar también."
+target_test = "abuse"
+explanation = "Nothing stood between one key's flood and the shared servers, so the flood took everyone's capacity. A rate limiter in front gives each key a token bucket: the noisy key gets 429 answers, and the others keep their share."
+explanation_es = "Nada se interponía entre la avalancha de una clave y los servidores compartidos, así que la avalancha se llevó la capacidad de todos. Un limitador delante da a cada clave un cubo de fichas: la clave ruidosa recibe respuestas 429 y los demás conservan su parte."
+kinds = ["ratelimit"]
+
+[[scenario.tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[scenario.nfr]
+peak_rps = 3000
+p95_ms = 100
+availability = 0.999
+budget_usd = 1500
+
+[[scenario.request_types]]
+id = "api"
+name = "API call"
+name_es = "Llamada a la API"
+share = 0.99
+route = ["edge", "compute", "datastore"]
+api_keys = 50
+
+[[scenario.request_types]]
+id = "abuse"
+name = "Calls from one misbehaving key"
+name_es = "Llamadas de una clave abusiva"
+share = 0.01
+route = ["edge", "compute", "datastore"]
+api_keys = 1
+abusive = true
+
+[[scenario.tests]]
+id = "abuse"
+name = "One key floods the API"
+name_es = "Una clave inunda la API"
+type_multipliers = { abuse = 300 }
+
+[scenario.pass]
+error_rate = 0.001

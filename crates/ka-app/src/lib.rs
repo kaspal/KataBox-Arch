@@ -7,7 +7,9 @@ pub mod error;
 pub mod guide;
 pub mod kbarch;
 pub mod live;
+pub mod packs;
 pub mod patterns;
+pub mod practice;
 pub mod problems;
 mod runs;
 pub mod samples;
@@ -30,6 +32,26 @@ pub use sandbox::SandboxPreset;
 
 pub type Result<T, E = AppError> = std::result::Result<T, E>;
 
+/// The largest image export the app writes (review A7).
+pub const MAX_EXPORT_BYTES: usize = 256 * 1024 * 1024;
+
+/// What an image export is (M7.3).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(rename_all = "snake_case")]
+pub enum ExportFormat {
+    Svg,
+    Png,
+}
+
+impl ExportFormat {
+    pub fn extension(self) -> &'static str {
+        match self {
+            ExportFormat::Svg => "svg",
+            ExportFormat::Png => "png",
+        }
+    }
+}
 /// Where the app keeps its data. Debug builds use `-dev` folders (see `src-tauri`).
 #[derive(Debug, Clone)]
 pub struct AppPaths {
@@ -39,6 +61,8 @@ pub struct AppPaths {
     /// The bundled problem catalogue (`content.db`, read-only). None or missing: the app
     /// runs without problems.
     pub content_db: Option<PathBuf>,
+    /// Where installed problem packs live (`<data>/packs`). None: packs are off.
+    pub packs_dir: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -75,6 +99,8 @@ pub struct App {
     session_paths: Mutex<HashSet<String>>,
     /// The problem catalogue, if it was found and opened.
     content: Option<ka_store::ContentDb>,
+    /// Installed problem packs (M6.4).
+    packs: packs::Packs,
     /// The live run, if one is playing (one at a time), and the id of the next.
     live: Mutex<Option<(u32, live::LiveRun)>>,
     next_run: std::sync::atomic::AtomicU32,
@@ -91,9 +117,12 @@ impl App {
             Some(p) if p.exists() => Some(ka_store::ContentDb::open(p).await?),
             _ => None,
         };
+        let packs = packs::Packs::new(paths.packs_dir.clone());
+        packs.load(&user.packs().await?).await?;
         Ok(App {
             user,
             content,
+            packs,
             registry: registry(),
             info: AppInfo {
                 version: env!("CARGO_PKG_VERSION").into(),
@@ -125,6 +154,7 @@ impl App {
         if let Some(c) = &self.content {
             c.close().await;
         }
+        self.packs.close().await;
     }
 
     // --- Settings -------------------------------------------------------------------
@@ -240,6 +270,54 @@ impl App {
         self.saved(&path, design).await
     }
 
+    /// Write an image export (M7.3) the UI rendered, to a path the user picked in the Save
+    /// dialog. Exports over [`MAX_EXPORT_BYTES`] are refused (review A7).
+    pub fn write_export(
+        &self,
+        path: PathBuf,
+        format: ExportFormat,
+        bytes: &[u8],
+    ) -> Result<String> {
+        if bytes.len() > MAX_EXPORT_BYTES {
+            return Err(AppError::new(
+                AppErrorCode::FileTooLarge,
+                format!("an export of {} bytes", bytes.len()),
+            ));
+        }
+        let ext = format.extension();
+        let path = if path
+            .extension()
+            .is_some_and(|e| e.eq_ignore_ascii_case(ext))
+        {
+            path
+        } else {
+            path.with_extension(ext)
+        };
+        std::fs::write(&path, bytes).map_err(|e| AppError::new(AppErrorCode::Io, e.to_string()))?;
+        Ok(path_string(&path))
+    }
+
+    /// Export a design as a Mermaid diagram to a path the user picked in the Save dialog
+    /// (M6.6). `names` are the kind, protocol and group names in the user's language.
+    pub fn export_mermaid(
+        &self,
+        path: PathBuf,
+        design: &Design,
+        names: &ka_core::mermaid::Names,
+    ) -> Result<String> {
+        let path = if path
+            .extension()
+            .is_some_and(|e| e.eq_ignore_ascii_case("mmd"))
+        {
+            path
+        } else {
+            path.with_extension("mmd")
+        };
+        std::fs::write(&path, ka_core::mermaid::to_mermaid(design, names))
+            .map_err(|e| AppError::new(AppErrorCode::Io, e.to_string()))?;
+        Ok(path_string(&path))
+    }
+
     /// Save to a path opened or saved earlier this session (plain Save).
     pub async fn save_known(&self, path: &str, design: &Design) -> Result<String> {
         if !self.remembered(path) {
@@ -291,6 +369,7 @@ mod tests {
             user_db: dir.join("user.db"),
             dev_data: true,
             content_db: None,
+            packs_dir: None,
         })
         .await
         .unwrap();
@@ -383,6 +462,34 @@ mod tests {
         // It is now both in Recents and savable without a dialog.
         app.save_known(&opened.path, &opened.design).await.unwrap();
         assert_eq!(app.recent_files().await.unwrap().len(), 1);
+        app.close().await;
+    }
+
+    #[tokio::test]
+    async fn exports_get_their_extension_and_a_size_cap() {
+        let dir = temp_dir("exports");
+        let app = App::open(AppPaths {
+            user_db: dir.join("user.db"),
+            dev_data: false,
+            content_db: None,
+            packs_dir: None,
+        })
+        .await
+        .unwrap();
+        let written = app
+            .write_export(dir.join("diagram"), ExportFormat::Svg, b"<svg/>")
+            .unwrap();
+        assert!(written.ends_with("diagram.svg"), "{written}");
+        assert_eq!(std::fs::read(&written).unwrap(), b"<svg/>");
+        let png = app
+            .write_export(dir.join("shot.PNG"), ExportFormat::Png, &[137, 80])
+            .unwrap();
+        assert!(png.ends_with("shot.PNG"), "{png}");
+        let huge = vec![0u8; MAX_EXPORT_BYTES + 1];
+        let e = app
+            .write_export(dir.join("big"), ExportFormat::Png, &huge)
+            .unwrap_err();
+        assert_eq!(e.code, AppErrorCode::FileTooLarge);
         app.close().await;
     }
 }

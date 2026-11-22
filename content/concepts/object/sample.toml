@@ -1,0 +1,27 @@
+id = "object"
+number = 8
+title = "Object Storage"
+title_es = "Almacenamiento de objetos"
+summary = "Keeps large blobs cheaply and safely, and serves them in parallel, away from the database."
+summary_es = "Guarda blobs grandes de forma barata y segura, y los sirve en paralelo, lejos de la base de datos."
+problem = "pastebin"
+
+[[step]]
+snapshot = "in-database.kbarch"
+title = "Big pastes in the database"
+title_es = "Pastes grandes en la base de datos"
+caption = "Here every paste, up to a megabyte, lives in PostgreSQL. A burst of new pastes means big writes, each slower than the last, and the database falls behind."
+caption_es = "Aquí cada paste, de hasta un megabyte, vive en PostgreSQL. Una ráfaga de pastes nuevos significa escrituras grandes, cada una más lenta, y la base de datos se queda atrás."
+focus = ["db"]
+run = { test = "paste-burst", start_s = 4 }
+callout = { metric = "error_rate", after = 0.419, target = 0.001 }
+
+[[step]]
+snapshot = "in-buckets.kbarch"
+title = "Blobs go to a bucket"
+title_es = "Los blobs van a un bucket"
+caption = "The same burst with the pastes in S3. Object storage takes many uploads in parallel and its time doesn't grow with a busy table, and a cache keeps the popular pastes close."
+caption_es = "La misma ráfaga con los pastes en S3. El almacenamiento de objetos acepta muchas subidas en paralelo y su tiempo no crece con una tabla ocupada, y una caché mantiene cerca los pastes populares."
+focus = ["blobs", "cache"]
+run = { test = "paste-burst", start_s = 4 }
+callout = { metric = "error_rate", before = 0.419, after = 0, target = 0.001 }

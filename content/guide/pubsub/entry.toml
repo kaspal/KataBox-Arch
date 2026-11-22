@@ -132,3 +132,30 @@ url = "https://docs.aws.amazon.com/sns/"
 flavour = "redis_pubsub"
 title = "Redis documentation"
 url = "https://redis.io/docs/latest/"
+
+[[quiz]]
+q = "A chat message arrives at one of several servers that hold users' live connections. Members of the conversation are connected to other servers too. What delivers the message to all of them?"
+q_es = "Un mensaje de chat llega a uno de varios servidores que mantienen las conexiones en vivo de los usuarios. Los miembros de la conversación están conectados también a otros servidores. ¿Qué entrega el mensaje a todos ellos?"
+options = ["A queue, so that exactly one server handles each message", "A topic that every server subscribes to, so each one gets a copy", "A scheduler that polls the database for new messages", "A rate limiter in front of the servers"]
+options_es = ["Una cola, para que un solo servidor procese cada mensaje", "Un topic al que se suscriben todos los servidores, para que cada uno reciba una copia", "Un planificador que consulta la base de datos en busca de mensajes nuevos", "Un limitador de tasa delante de los servidores"]
+answer = 1
+why = "Every server needs every message to pass it on to its own users, which is fan-out: pub/sub's job. A queue gives each message to only one consumer."
+why_es = "Cada servidor necesita cada mensaje para pasarlo a sus propios usuarios, y eso es difusión: el trabajo de pub/sub. Una cola da cada mensaje a un solo consumidor."
+
+[[quiz]]
+q = "A topic has three subscribers. Two are fast and nearly idle; the third is overloaded. What happens to message completion time?"
+q_es = "Un topic tiene tres suscriptores. Dos son rápidos y están casi ociosos; el tercero está saturado. ¿Qué pasa con el tiempo de finalización de los mensajes?"
+options = ["The topic drops the slow subscriber automatically", "Messages finish on time, since two of the three copies are fast", "The publisher is told to slow down", "Every message finishes late, since it is done only when its slowest copy is"]
+options_es = ["El topic quita automáticamente al suscriptor lento", "Los mensajes terminan a tiempo, ya que dos de las tres copias son rápidas", "Se pide a quien publica que vaya más despacio", "Cada mensaje termina tarde, porque solo acaba cuando acaba su copia más lenta"]
+answer = 3
+why = "A message completes when the slowest copy is done, so one overloaded subscriber stretches every message. Give it more capacity, or put a queue in front of it so it drains at its own pace."
+why_es = "Un mensaje termina cuando acaba la copia más lenta, así que un suscriptor saturado alarga todos los mensajes. Dale más capacidad, o pon una cola delante para que vacíe a su ritmo."
+
+[[quiz]]
+q = "A topic receives 2,000 messages per second and has two subscribers. You add a third. How much traffic must the new subscriber handle?"
+q_es = "Un topic recibe 2.000 mensajes por segundo y tiene dos suscriptores. Añades un tercero. ¿Cuánto tráfico debe atender el nuevo suscriptor?"
+options = ["The full 2,000 per second", "About a third, since the load is shared", "Only the messages the other two fail on", "Nothing until the other two are saturated"]
+options_es = ["Los 2.000 por segundo completos", "Más o menos un tercio, porque la carga se reparte", "Solo los mensajes en los que fallan los otros dos", "Nada hasta que los otros dos se saturen"]
+answer = 0
+why = "Every subscriber gets a copy of every message, so each one must be sized for the full publish rate, and the total load grows with every subscriber added."
+why_es = "Cada suscriptor recibe una copia de cada mensaje, así que cada uno debe dimensionarse para todo el ritmo de publicación, y la carga total crece con cada suscriptor que se añade."

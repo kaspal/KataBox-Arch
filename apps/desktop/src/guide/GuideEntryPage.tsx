@@ -20,6 +20,8 @@ import { DifficultyBadge, useLocalized } from "@/pages/Problems";
 import { GlyphTile } from "@/solve/icons";
 import { categoryName, flavourName, kindName, kindSpec } from "@/solve/registry";
 import { simLabel, simValue } from "@/guide/values";
+import { QuizBlock } from "@/practice/QuizBlock";
+import { RelatedInKatabox } from "@/guide/RelatedInKatabox";
 import { Player } from "@/tour/Player";
 import { DesignThumb } from "@/tour/SamplesPage";
 
@@ -149,6 +151,9 @@ function Entry({ page, registry }: { page: GuidePage; registry: Registry }) {
               snapshots: concept.data.snapshots,
             }}
             registry={registry}
+            onLastStep={() => {
+              void api.setConceptPlayed(e.kind).then(() => qc.invalidateQueries({ queryKey: queryKeys.paths }));
+            }}
             header={
               <>
                 <h2 className="font-display text-xl font-semibold">{t("guide.conceptCard")}</h2>
@@ -358,6 +363,8 @@ function Entry({ page, registry }: { page: GuidePage; registry: Registry }) {
           </section>
         </aside>
       </div>
+      <QuizBlock page={`guide:${e.kind}`} />
+      <RelatedInKatabox target={`guide:${e.kind}`} />
     </div>
   );
 }

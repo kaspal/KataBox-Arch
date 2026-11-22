@@ -1,0 +1,34 @@
+# Estimation drills for the Ad Click Aggregator.
+
+[[drill]]
+id = "partition-ceiling"
+kind = "capacity"
+prompt = "On a stream, each partition hands out one click at a time. With the counters in an in-memory store, a click holds an aggregator slot for about {count_ms} ms in all (hops, the work and the increment). How many clicks a second can a stream with {partitions} partitions count?"
+prompt_es = "En un stream, cada partición entrega un clic cada vez. Con los contadores en un almacén en memoria, un clic ocupa un hueco de agregador unos {count_ms} ms en total (saltos, el trabajo y el incremento). ¿Cuántos clics por segundo puede contar un stream con {partitions} particiones?"
+inputs = { partitions = 128, count_ms = 3.6 }
+formula = "partitions * 1000 / count_ms"
+unit = "rps"
+solution = "One partition counts 1,000 ÷ {count_ms} ≈ 278 clicks a second. × {partitions} partitions ≈ {answer} a second: more than three times the 9,900 of a normal peak. If each click waits about 10 ms on a database write instead, the same partitions count only 12,800 a second, too few for a doubled peak."
+solution_es = "Una partición cuenta 1000 ÷ {count_ms} ≈ 278 clics por segundo. × {partitions} particiones ≈ {answer} por segundo: más del triple de los 9900 del pico normal. Si cada clic espera en cambio unos 10 ms a una escritura en base de datos, las mismas particiones cuentan solo 12 800 por segundo, muy pocos para un pico doble."
+
+[[drill]]
+id = "late-burst-backlog"
+kind = "capacity"
+prompt = "Late events arrive all at once: for {burst_s} seconds, {clicks_per_s} clicks a second reach a stream that counts at most {ceiling_per_s} a second. How many clicks are waiting in the stream when the burst ends?"
+prompt_es = "Los eventos atrasados llegan de golpe: durante {burst_s} segundos llegan {clicks_per_s} clics por segundo a un stream que cuenta como mucho {ceiling_per_s} por segundo. ¿Cuántos clics esperan en el stream cuando termina la ráfaga?"
+inputs = { clicks_per_s = 39_600, ceiling_per_s = 35_500, burst_s = 10 }
+formula = "(clicks_per_s - ceiling_per_s) * burst_s"
+unit = "count"
+solution = "{clicks_per_s} − {ceiling_per_s} = 4,100 clicks a second left over, × {burst_s} s ≈ {answer} clicks waiting. Once the burst ends, 9,900 a second arrive and 35,500 can be counted, so the backlog shrinks by about 25,600 a second and clears in under 2 seconds. Nothing is lost: the stream holds the clicks until they are counted."
+solution_es = "{clicks_per_s} − {ceiling_per_s} = 4100 clics por segundo que sobran, × {burst_s} s ≈ {answer} clics esperando. Al acabar la ráfaga llegan 9900 por segundo y se pueden contar 35 500, así que el atasco baja unos 25 600 por segundo y se vacía en menos de 2 segundos. No se pierde nada: el stream guarda los clics hasta que se cuentan."
+
+[[drill]]
+id = "messages-per-month"
+kind = "capacity"
+prompt = "Every one of the {clicks_per_s} clicks a second at peak is one message on the stream, and the stream is billed per message. If the peak lasted all month ({seconds_per_month} seconds), how many messages would that be?"
+prompt_es = "Cada uno de los {clicks_per_s} clics por segundo del pico es un mensaje en el stream, y el stream se cobra por mensaje. Si el pico durara todo el mes ({seconds_per_month} segundos), ¿cuántos mensajes serían?"
+inputs = { clicks_per_s = 9_900, seconds_per_month = 2_592_000 }
+formula = "clicks_per_s * seconds_per_month"
+unit = "count"
+solution = "{clicks_per_s} × {seconds_per_month} s ≈ {answer} messages, about 25.7 billion. At $0.20 per million that is about $5,100 a month, most of the budget. Collectors that add up clicks per ad before publishing would send far fewer messages."
+solution_es = "{clicks_per_s} × {seconds_per_month} s ≈ {answer} mensajes, unos 25 700 millones. A 0,20 $ por millón son unos 5100 $ al mes, la mayor parte del presupuesto. Unas collectors que sumaran los clics por anuncio antes de publicar enviarían muchos menos mensajes."

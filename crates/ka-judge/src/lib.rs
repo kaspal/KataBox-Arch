@@ -60,10 +60,14 @@ pub struct TestResult {
     pub hidden: bool,
     pub verdict: Verdict,
     pub p95_ms: f64,
+    pub p99_ms: f64,
     pub error_rate: f64,
     pub availability: f64,
     pub stale_rate: f64,
     pub lost: f64,
+    /// Failed attempts that were retried (not errors: the message lived on; review F3).
+    #[serde(default)]
+    pub retried: f64,
     pub throughput_rps: f64,
     pub cost_month: f64,
     /// The limits this test was held to.
@@ -136,6 +140,7 @@ fn verdict(r: &RunResult, limits: &PassCriteria, cost: f64, budget: f64) -> Verd
         return Verdict::DroppedRequests;
     }
     if over(r.latency.p95_ms, limits.p95_ms)
+        || (p99_judged(r) && over(r.latency.p99_ms, limits.p99_ms))
         || limits.availability.is_some_and(|a| r.availability < a)
         || over(r.stale_rate, limits.stale_rate)
     {
@@ -145,6 +150,16 @@ fn verdict(r: &RunResult, limits: &PassCriteria, cost: f64, budget: f64) -> Verd
         return Verdict::OverBudget;
     }
     Verdict::Accepted
+}
+
+/// Simulated requests the run completed (sampling counted back out).
+pub fn simulated_completions(r: &RunResult) -> f64 {
+    r.ok * r.sample_factor
+}
+
+/// A p99 limit is judged only with enough simulated completions to measure it (review A4).
+pub fn p99_judged(r: &RunResult) -> bool {
+    simulated_completions(r) >= ka_core::scenario::P99_MIN_SAMPLES
 }
 
 /// The card that gave way first: the earliest second in which a card is down, or at least
@@ -306,10 +321,12 @@ pub fn judge_with(
         hidden: t.hidden,
         verdict: Verdict::InvalidDesign,
         p95_ms: 0.0,
+        p99_ms: 0.0,
         error_rate: 0.0,
         availability: 0.0,
         stale_rate: 0.0,
         lost: 0.0,
+        retried: 0.0,
         throughput_rps: 0.0,
         cost_month: 0.0,
         limits: problem.pass_for(t),
@@ -366,10 +383,12 @@ pub fn judge_with(
                     hidden: t.hidden,
                     verdict: v,
                     p95_ms: r.latency.p95_ms,
+                    p99_ms: r.latency.p99_ms,
                     error_rate: r.error_rate,
                     availability: r.availability,
                     stale_rate: r.stale_rate,
                     lost: r.lost,
+                    retried: r.retried,
                     throughput_rps: r.throughput_rps,
                     cost_month: r.cost_month,
                     limits,

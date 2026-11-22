@@ -3,15 +3,16 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { CheckCircle2, CircleDashed, CircleDot, List, Play, Shuffle } from "lucide-react";
+import { CheckCircle2, CircleDashed, CircleDot, List, Package, Play, Ruler, Shuffle } from "lucide-react";
 import type { Difficulty, ProblemSummary } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState, Page } from "@/components/Page";
 import { describeError } from "@/lib/errors";
-import { useProblems, useProgress } from "@/lib/queries";
+import { useEstimateStatuses, useProblems, useProgress } from "@/lib/queries";
 import { cn } from "@/lib/utils";
+import { ImportPackButton } from "@/packs/PackImport";
 
 const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard"];
 
@@ -69,11 +70,16 @@ export function ProblemsPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const problems = useProblems();
+  // Estimation drills done per problem (scored lightly: a mark here, never in the judge's score).
+  const statuses = useEstimateStatuses();
+  const estimated = new Map<string, number>();
+  for (const s of statuses.data ?? []) if (s.done) estimated.set(s.problem_id, (estimated.get(s.problem_id) ?? 0) + 1);
   const progress = useProgress();
   const loc = useLocalized();
   const [query, setQuery] = useState("");
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [tag, setTag] = useState<string | null>(null);
+  const [source, setSource] = useState<"all" | "builtin" | "packs">("all");
 
   const all = useMemo(() => problems.data ?? [], [problems.data]);
   const tags = useMemo(() => [...new Set(all.flatMap((p) => p.tags))].sort(), [all]);
@@ -82,8 +88,10 @@ export function ProblemsPage() {
     (p) =>
       (!difficulty || p.difficulty === difficulty) &&
       (!tag || p.tags.includes(tag)) &&
+      (source === "all" || (source === "packs") === (p.pack !== null)) &&
       (!q || normalise(`${p.title_en} ${p.title_es} ${p.teaches_en} ${p.teaches_es} ${p.tags.join(" ")}`).includes(q)),
   );
+  const hasPacks = all.some((p) => p.pack !== null);
   const unsolved = all.filter((p) => p.status !== "solved");
   const continueWith = all.find((p) => p.id === progress.data?.continue_with);
   const open = (p: ProblemSummary) => void navigate({ to: "/problems/$id", params: { id: p.id } });
@@ -115,6 +123,7 @@ export function ProblemsPage() {
             <Shuffle aria-hidden className="size-4" />
             {t("problems.random")}
           </Button>
+          <ImportPackButton />
         </>
       }
     >
@@ -140,6 +149,15 @@ export function ProblemsPage() {
             </Button>
           ))}
         </div>
+        {hasPacks && (
+          <div className="flex flex-wrap gap-2" role="group" aria-label={t("problems.source.label")}>
+            {(["all", "builtin", "packs"] as const).map((s) => (
+              <Button key={s} size="sm" variant={source === s ? "default" : "outline"} aria-pressed={source === s} onClick={() => setSource(s)}>
+                {t(`problems.source.${s}`)}
+              </Button>
+            ))}
+          </div>
+        )}
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-2" role="group" aria-label={t("problems.filterTopic")}>
             {tags.map((g) => (
@@ -171,9 +189,22 @@ export function ProblemsPage() {
               <span className="min-w-0">
                 <span className="block truncate font-semibold">{loc.title(p)}</span>
                 <span className="block truncate text-xs text-muted-foreground">{loc.teaches(p)}</span>
+                {p.pack !== null && (
+                  <span className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground" data-testid="pack-badge">
+                    <Package aria-hidden className="size-3.5" />
+                    {t("problems.fromPack", { name: p.pack })}
+                  </span>
+                )}
               </span>
               <span className="flex items-center gap-4">
                 <DifficultyBadge d={p.difficulty} />
+                {estimated.has(p.id) && (
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title={t("problems.estimated")} data-testid="estimated-mark">
+                    <Ruler aria-hidden className="size-3.5" />
+                    <span className="sr-only">{t("problems.estimated")}</span>
+                    {estimated.get(p.id)}
+                  </span>
+                )}
                 <StatusMark status={p.status} />
                 <span className="w-16 text-right font-mono text-xs tabular-nums text-muted-foreground">
                   {p.best_score === null ? "—" : t("problems.best", { score: p.best_score })}

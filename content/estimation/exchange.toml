@@ -1,0 +1,34 @@
+# Estimation drills for the Order-Matching Exchange.
+
+[[drill]]
+id = "open-gateways"
+kind = "servers"
+prompt = "At peak, brokers send {orders_per_s} orders a second, and the opening bell multiplies that by {open_factor}. A Go gateway instance handles {concurrency} requests at once and spends {service_ms} ms on each. How many gateway instances does the open need, before any headroom?"
+prompt_es = "En el pico, los brókeres envían {orders_per_s} órdenes por segundo, y la campana de apertura lo multiplica por {open_factor}. Una instancia Go de la pasarela atiende {concurrency} peticiones a la vez y dedica {service_ms} ms a cada una. ¿Cuántas instancias de la pasarela necesita la apertura, sin contar margen?"
+inputs = { orders_per_s = 10_000, open_factor = 4, concurrency = 64, service_ms = 5 }
+formula = "orders_per_s * open_factor / (concurrency * 1000 / service_ms)"
+unit = "count"
+solution = "One instance handles {concurrency} × 1,000 ÷ {service_ms} = 12,800 orders a second. At the open, {orders_per_s} × {open_factor} = 40,000 arrive, so you need 40,000 ÷ 12,800 ≈ {answer} instances: round up to 4. Running them near 100% busy leaves no room for bursts, so give the gateway some headroom; 3 instances, plenty for a normal session, fall just short at the open."
+solution_es = "Una instancia atiende {concurrency} × 1000 ÷ {service_ms} = 12 800 órdenes por segundo. En la apertura llegan {orders_per_s} × {open_factor} = 40 000, así que necesitas 40 000 ÷ 12 800 ≈ {answer} instancias: redondea a 4. Tenerlas casi al 100 % no deja sitio para las ráfagas, así que dale margen a la pasarela; 3 instancias, de sobra para una sesión normal, se quedan justo cortas en la apertura."
+
+[[drill]]
+id = "open-partitions"
+kind = "capacity"
+prompt = "A stream hands out one order per partition at a time, and each order holds its partition for about {hold_ms} ms while a matcher works on it (the hop, the match and the write to the order book). How many partitions do you need to match {orders_per_s} orders a second at the open?"
+prompt_es = "Un stream entrega una orden por partición cada vez, y cada orden ocupa su partición unos {hold_ms} ms mientras un matcher trabaja en ella (el salto, el casamiento y la escritura en el libro de órdenes). ¿Cuántas particiones necesitas para casar {orders_per_s} órdenes por segundo en la apertura?"
+inputs = { orders_per_s = 40_000, hold_ms = 3 }
+formula = "orders_per_s * hold_ms / 1000"
+unit = "count"
+solution = "One partition matches 1,000 ÷ {hold_ms} ≈ 333 orders a second. {orders_per_s} ÷ 333 ≈ {answer} partitions, or put another way, {orders_per_s} × {hold_ms} ms ÷ 1,000 orders in flight at once. 128 partitions leave a little room. 48 partitions match only about 16,000 a second: enough for a normal session, far too few for the open, and adding matchers would not help."
+solution_es = "Una partición casa 1000 ÷ {hold_ms} ≈ 333 órdenes por segundo. {orders_per_s} ÷ 333 ≈ {answer} particiones o, dicho de otro modo, {orders_per_s} × {hold_ms} ms ÷ 1000 órdenes en curso a la vez. 128 particiones dejan algo de margen. 48 particiones solo casan unas 16 000 por segundo: suficiente para una sesión normal, muy poco para la apertura, y añadir matchers no ayudaría."
+
+[[drill]]
+id = "p99-tail"
+kind = "capacity"
+prompt = "Your exchange matches {orders_per_s} orders a second for {duration_s} seconds, and the p99 limit is 50 ms. How many orders in that time may take longer than 50 ms without breaking the limit?"
+prompt_es = "Tu bolsa casa {orders_per_s} órdenes por segundo durante {duration_s} segundos, y el límite p99 es de 50 ms. ¿Cuántas órdenes de ese periodo pueden tardar más de 50 ms sin romper el límite?"
+inputs = { orders_per_s = 10_000, duration_s = 60 }
+formula = "orders_per_s * duration_s / 100"
+unit = "count"
+solution = "{orders_per_s} × {duration_s} s = 600,000 orders. The p99 lets 1 in 100 be slower: {answer} orders. That sounds like a lot, but a stall of a second at the gateway or a stuck partition holds up 10,000 orders at once, so one short hiccup is enough to break it."
+solution_es = "{orders_per_s} × {duration_s} s = 600 000 órdenes. El p99 permite que 1 de cada 100 vaya más lenta: {answer} órdenes. Parece mucho, pero un parón de un segundo en la pasarela o una partición atascada retiene 10 000 órdenes de golpe, así que basta un tropiezo breve para romperlo."

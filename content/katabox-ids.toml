@@ -1,0 +1,169 @@
+# KataBox ids and titles that KataBox Arch links to (M6.7): a read-only snapshot of KataBox's
+# content/ at the commit below. Refresh it by hand when KataBox renames or removes one;
+# `ka-pack validate` checks every link in crosslinks.toml resolves here.
+katabox_commit = "25fbba1"
+
+[[learn]]
+id = "linear/lru-cache"
+title = "LRU cache"
+title_es = "Caché LRU"
+
+[[learn]]
+id = "hashing/separate-chaining"
+title = "Hash table: separate chaining"
+title_es = "Tabla hash: encadenamiento"
+
+[[learn]]
+id = "hashing/bloom-filter"
+title = "Bloom filter"
+title_es = "Filtro de Bloom"
+
+[[learn]]
+id = "hashing/rolling-hash"
+title = "Rolling hash"
+title_es = "Hash rodante"
+
+[[learn]]
+id = "linear/queue-ring-buffer"
+title = "Queue and circular buffer"
+title_es = "Cola y búfer circular"
+
+[[learn]]
+id = "searching/sliding-window"
+title = "Sliding window"
+title_es = "Ventana deslizante"
+
+[[learn]]
+id = "databases/join-algorithms"
+title = "Join algorithms"
+title_es = "Algoritmos de unión"
+
+[[learn]]
+id = "databases/group-by"
+title = "GROUP BY"
+title_es = "GROUP BY"
+
+[[learn]]
+id = "databases/window-functions"
+title = "Window functions"
+title_es = "Funciones de ventana"
+
+[[learn]]
+id = "trees/b-tree-insert"
+title = "B-tree: insert and split"
+title_es = "Árbol B: inserción y división"
+
+[[learn]]
+id = "trees/trie"
+title = "Trie"
+title_es = "Trie (árbol de prefijos)"
+
+[[learn]]
+id = "strings/suffix-array"
+title = "Suffix array"
+title_es = "Arreglo de sufijos"
+
+[[learn]]
+id = "trees/binary-heap"
+title = "Binary heap and priority queue"
+title_es = "Montículo binario y cola de prioridad"
+
+[[learn]]
+id = "trees/fenwick-tree"
+title = "Fenwick tree"
+title_es = "Árbol de Fenwick"
+
+[[learn]]
+id = "graphs/topological-sort"
+title = "Topological sort"
+title_es = "Orden topológico"
+
+[[learn]]
+id = "graphs/dijkstra"
+title = "Dijkstra's shortest paths"
+title_es = "Caminos más cortos de Dijkstra"
+
+[[learn]]
+id = "grid-pathfinding/a-star"
+title = "A* search"
+title_es = "Búsqueda A*"
+
+[[learn]]
+id = "graphs/bfs"
+title = "Breadth-first search"
+title_es = "Búsqueda en anchura (BFS)"
+
+[[learn]]
+id = "sorting/merge-sort"
+title = "Merge Sort"
+title_es = "Ordenación por mezcla (Merge Sort)"
+
+[[learn]]
+id = "dynamic-programming/edit-distance"
+title = "Edit distance"
+title_es = "Distancia de edición"
+
+[[learn]]
+id = "dynamic-programming/lcs"
+title = "Longest common subsequence"
+title_es = "Subsecuencia común más larga"
+
+[[learn]]
+id = "graphs/bridges-articulation"
+title = "Bridges and articulation points"
+title_es = "Puentes y puntos de articulación"
+
+[[learn]]
+id = "strings/rabin-karp"
+title = "Rabin-Karp"
+title_es = "Rabin-Karp"
+
+[[problem]]
+id = "catalog-prefixes"
+title = "Catalogue Prefixes"
+title_es = "Prefijos del catálogo"
+
+[[problem]]
+id = "league-rank"
+title = "League Rank"
+title_es = "Clasificación de la liga"
+
+[[problem]]
+id = "score-ranks"
+title = "Score Ranks"
+title_es = "Puestos por puntuación"
+
+[[problem]]
+id = "nearest-stalls"
+title = "Nearest Stalls"
+title_es = "Los puestos más cercanos"
+
+[[problem]]
+id = "cheapest-route"
+title = "Cheapest Route"
+title_es = "La ruta más barata"
+
+[[problem]]
+id = "deadline-jobs"
+title = "Deadline Jobs"
+title_es = "Encargos con plazo"
+
+[[problem]]
+id = "print-queue"
+title = "Print Queue"
+title_es = "Cola de impresión"
+
+[[problem]]
+id = "orders-per-day"
+title = "Orders per Day"
+title_es = "Pedidos por día"
+
+[[problem]]
+id = "two-queues-merge"
+title = "Two Queues Merge"
+title_es = "Dos colas en una"
+
+[[problem]]
+id = "median-heights"
+title = "Median Heights"
+title_es = "Alturas medianas"

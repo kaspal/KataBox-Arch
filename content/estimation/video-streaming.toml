@@ -1,0 +1,34 @@
+# Estimation drills for Video Streaming.
+
+[[drill]]
+id = "egress-bandwidth"
+kind = "bandwidth"
+prompt = "At peak, players fetch {segment_rps} video segments a second, and an average segment is {segment_mb} MB (a few seconds of video). How much bandwidth leaves the service, in Gbps?"
+prompt_es = "En el pico, los reproductores piden {segment_rps} segmentos de vídeo por segundo, y un segmento medio ocupa {segment_mb} MB (unos segundos de vídeo). ¿Cuánto ancho de banda sale del servicio, en Gbps?"
+inputs = { segment_rps = 3_960, segment_mb = 2 }
+formula = "segment_rps * segment_mb * 8 / 1000"
+unit = "Gbps"
+solution = "{segment_rps} × {segment_mb} MB = 7,920 MB a second. × 8 bits = 63,360 Mbps, about {answer} Gbps. That fills the 10 Gbps links of several servers, which is why segments come from a CDN."
+solution_es = "{segment_rps} × {segment_mb} MB = 7920 MB por segundo. × 8 bits = 63 360 Mbps, unos {answer} Gbps. Eso llena los enlaces de 10 Gbps de varios servidores; por eso los segmentos salen de una CDN."
+
+[[drill]]
+id = "upload-storage-year"
+kind = "storage"
+prompt = "Creators upload {uploads_per_day} videos a day, {minutes_per_video} minutes long on average. One minute of 1080p source is about {mb_per_minute} MB, and the source plus its renditions take {renditions_x}× the source size. How much storage does a year of uploads need, in TB?"
+prompt_es = "Los creadores suben {uploads_per_day} vídeos al día, de {minutes_per_video} minutos de media. Un minuto de original en 1080p ocupa unos {mb_per_minute} MB, y el original más sus versiones ocupan {renditions_x} veces el tamaño del original. ¿Cuánto almacenamiento necesita un año de subidas, en TB?"
+inputs = { uploads_per_day = 100_000, minutes_per_video = 5, mb_per_minute = 40, renditions_x = 2 }
+formula = "uploads_per_day * minutes_per_video * mb_per_minute * renditions_x * 365 / 1e6"
+unit = "TB"
+solution = "{uploads_per_day} × {minutes_per_video} min × {mb_per_minute} MB = 20 million MB, 20 TB of source a day. × {renditions_x} for the renditions = 40 TB a day, × 365 ≈ {answer} TB a year, about 15 PB. Only object storage grows like that."
+solution_es = "{uploads_per_day} × {minutes_per_video} min × {mb_per_minute} MB = 20 millones de MB, 20 TB de originales al día. × {renditions_x} por las versiones = 40 TB al día, × 365 ≈ {answer} TB al año, unos 15 PB. Solo un almacenamiento de objetos crece así."
+
+[[drill]]
+id = "transcode-workers"
+kind = "servers"
+prompt = "At peak, {upload_rps} uploads a second reach the queue. A transcoder spends {transcode_ms} ms on each, and one worker instance runs {slots_per_worker} transcodes at a time. How many transcoder workers keep up?"
+prompt_es = "En el pico llegan a la cola {upload_rps} subidas por segundo. Un transcodificador dedica {transcode_ms} ms a cada una, y una instancia de worker ejecuta {slots_per_worker} transcodificaciones a la vez. ¿Cuántos workers de transcodificación hacen falta para no quedarse atrás?"
+inputs = { upload_rps = 40, transcode_ms = 400, slots_per_worker = 4 }
+formula = "upload_rps * transcode_ms / 1000 / slots_per_worker"
+unit = "count"
+solution = "{upload_rps} a second × 0.4 s = 16 transcodes running at once. ÷ {slots_per_worker} per worker = {answer} workers. Add one or two for headroom; when uploads burst, the queue holds the extra and autoscaling adds workers."
+solution_es = "{upload_rps} por segundo × 0,4 s = 16 transcodificaciones en marcha a la vez. ÷ {slots_per_worker} por worker = {answer} workers. Añade uno o dos de margen; cuando las subidas llegan en ráfaga, la cola guarda el exceso y el autoescalado añade workers."

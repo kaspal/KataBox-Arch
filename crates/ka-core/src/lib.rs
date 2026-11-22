@@ -6,13 +6,21 @@
 //! - [`wiring`]: which protocol may connect which kinds, as a data table the UI also gets.
 //! - [`validate`]: checks a design against the registry and the wiring table.
 
+pub mod crosslinks;
 pub mod decide;
 pub mod design;
 pub mod detmath;
+pub mod estimate;
+pub mod flaw;
 pub mod guide;
+pub mod mermaid;
+pub mod numbers;
+pub mod paths;
 pub mod pattern;
 pub mod problem;
+pub mod quiz;
 pub mod registry;
+pub mod review;
 pub mod rng;
 pub mod scenario;
 pub mod story;

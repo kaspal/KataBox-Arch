@@ -1,0 +1,61 @@
+id = "feature-flags"
+number = 19
+set = 2
+difficulty = "easy"
+title = "Feature Flags"
+title_es = "Feature flags"
+teaches = "Cache a read-heavy config with a short TTL: fast reads, flips seen within seconds, and reads that survive the database"
+teaches_es = "Cachear una configuración muy leída con un TTL corto: lecturas rápidas, cambios visibles en segundos y lecturas que sobreviven a la base de datos"
+tags = ["caching", "ttl", "staleness", "read-heavy"]
+# Staleness depends on reads landing just after a flip; sampling 60,000 req/s down to the
+# default 5,000 under-counts those collisions (review A1 accuracy check), so run at full rate.
+sample_cap = 60000
+
+[nfr]
+peak_rps = 60000
+read_ratio = 0.999
+p95_ms = 30
+availability = 0.999
+budget_usd = 2500
+
+[[request_types]]
+id = "read"
+name = "Evaluate a flag"
+name_es = "Evaluar un flag"
+share = 0.999
+route = ["edge?", "compute", "cache?", "datastore"]
+key_space = 20_000
+key_skew = { zipf = 1.1 }
+value_kb = 1
+
+[[request_types]]
+id = "flip"
+name = "Flip a flag"
+name_es = "Cambiar un flag"
+share = 0.001
+route = ["edge?", "compute", "datastore:write"]
+key_space = 20_000
+
+[[tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "flip-storm"
+name = "A flip storm"
+name_es = "Una tormenta de cambios"
+hidden = true
+type_multipliers = { flip = 5 }
+
+[[tests]]
+id = "db-down"
+name = "The config database is down for 20 s"
+name_es = "La base de datos de configuración cae 20 s"
+hidden = true
+chaos = [{ kill = { kind = "sql", role = "primary", at = 20, for = 20 } }]
+pass = { error_rate = 0.01, availability = 0.99 }
+
+[pass]
+error_rate = 0.001
+stale_rate = 0.05

@@ -61,7 +61,9 @@
     "path_not_allowed": "Usa Guardar como o Abrir para elegir antes un archivo.",
     "internal": "Algo salió mal dentro de la app.",
     "no_path": "Ninguna solicitud puede atravesar este diseño. Conecta un cliente a un servicio.",
-    "content_missing": "Falta el catálogo de problemas en esta instalación. Vuelve a instalar la app."
+    "content_missing": "Falta el catálogo de problemas en esta instalación. Vuelve a instalar la app.",
+    "pack_refused": "Este paquete no ha superado las comprobaciones de seguridad y contenido, así que no se ha instalado nada.",
+    "pack_version": "Este paquete no puede sustituir al instalado: es más antiguo, o es la misma versión con otro contenido."
   },
   "files": {
     "unsaved": {
@@ -118,7 +120,12 @@
     "statBusy": "{{util}} % ocupado",
     "statQueued": "{{util}} % ocupado · {{queue}} en cola",
     "statDown": "caído",
-    "rate": "{{rate}}/s"
+    "rate": "{{rate}}/s",
+    "instances_one": "{{count}} instancia",
+    "instances_other": "{{count}} instancias",
+    "edgeAria": "{{protocol}} de {{from}} a {{to}}",
+    "statShortBusy": "{{util}} %",
+    "statShortQueued": "{{util}} % · c{{queue}}"
   },
   "wiring": {
     "reason": {
@@ -172,11 +179,13 @@
     "props": "Propiedades",
     "ballpark": "aproximado",
     "ballparkHint": "Un valor calibrado: una aproximación prudente cuya fuente aún se está confirmando.",
+    "reset": "Volver {{prop}} a su valor por defecto",
+    "resetHint": "Volver al valor por defecto ({{value}})",
     "cited": "citado",
     "citedHint": "Un valor calibrado tomado de una fuente citada.",
     "calibrationNote": "Los valores marcados están calibrados (ver docs/calibration.md). Los demás son decisiones de diseño que tomas tú.",
     "delete": "Borrar",
-    "zoneHint": "Las tarjetas dentro de una zona se mueven con ella. La latencia de red entre zonas llega con la simulación.",
+    "zoneHint": "Las tarjetas dentro de una zona se mueven con ella. Las llamadas entre regiones tardan unos 70 ms en cada sentido, y entre zonas de disponibilidad unos 1,5 ms.",
     "protocol": "Protocolo",
     "designName": "Nombre del diseño",
     "count": {
@@ -194,7 +203,8 @@
     "autoscaleHint": "Las tarjetas de cómputo dentro de este marco escalan entre el mínimo y el máximo de instancias, y añaden instancias cuando la utilización se mantiene por encima del objetivo.",
     "scaling": "Política de escalado",
     "brief": "Enunciado",
-    "learnMore": "Saber más"
+    "learnMore": "Saber más",
+    "tabs": "Panel lateral"
   },
   "home": {
     "eyebrow": "Tu mesa de diseño de sistemas",
@@ -209,6 +219,11 @@
     "practice": "Práctica",
     "continue": "Continuar",
     "recommended": "Siguiente recomendado",
+    "onPath": "{{name}} · {{done}} de {{total}} hechos",
+    "dueForReview": "Para repasar",
+    "dueCount_one": "{{count}} pregunta",
+    "dueCount_other": "{{count}} preguntas",
+    "dueBody": "Preguntas de cuestionario falladas, de vuelta para un repaso rápido.",
     "streak_one": "Racha de {{count}} día",
     "streak_other": "Racha de {{count}} días",
     "watch": "Mira cómo funciona",
@@ -360,6 +375,9 @@
       "shards": "Shards",
       "replication_lag_ms": "Retraso de replicación",
       "failover_s": "Tiempo de failover",
+      "read_from": "Leer de",
+      "cdc_buffer_s": "Búfer de CDC",
+      "session_timeout_s": "Tiempo de sesión",
       "partitions": "Particiones",
       "replication_factor": "Factor de replicación",
       "consistency": "Consistencia",
@@ -368,7 +386,7 @@
       "persistence": "Persistencia",
       "replicas": "Réplicas",
       "max_depth": "Profundidad máxima",
-      "visibility_timeout_s": "Tiempo de visibilidad",
+      "visibility_timeout_s": "Tiempo de espera de visibilidad",
       "max_retries": "Reintentos máximos",
       "retention_h": "Retención",
       "retention_days": "Retención",
@@ -378,7 +396,9 @@
     "choice": {
       "round_robin": "Round robin",
       "least_conn": "Menos conexiones",
-      "ip_hash": "Hash de IP",
+      "key_hash": "Hash de clave (sticky)",
+      "any": "Principal y réplicas",
+      "primary": "Solo la principal",
       "eventual": "Eventual",
       "strong": "Fuerte",
       "lru": "LRU",
@@ -429,11 +449,18 @@
       "flush": "Una caché se vacía a los {{at}} s",
       "external": "Un proveedor falla a los {{at}} s"
     },
-    "test": "Prueba a ejecutar"
+    "test": "Prueba a ejecutar",
+    "announce": {
+      "starting": "Iniciando la ejecución…",
+      "playing": "La ejecución está en marcha.",
+      "paused": "La ejecución está en pausa.",
+      "finished": "La ejecución ha terminado. La pestaña Métricas tiene los resultados."
+    }
   },
   "metrics": {
     "empty": "Ejecuta el diseño para ver métricas en vivo.",
     "p95": "Latencia p95",
+    "p99": "Latencia p99",
     "throughput": "Rendimiento",
     "errorRate": "Tasa de errores",
     "cost": "Coste",
@@ -444,7 +471,8 @@
     "sampled": "Se simula el {{pct}} % de las solicitudes; los recuentos se escalan de vuelta.",
     "p95Trend": "Latencia p95 por segundo",
     "stale": "Lecturas obsoletas",
-    "availability": "Disponibilidad"
+    "availability": "Disponibilidad",
+    "retried": "Reintentos"
   },
   "breaking": {
     "title": "Punto de ruptura",
@@ -476,17 +504,29 @@
       "attempted": "Intentado",
       "new": "Sin empezar"
     },
+    "estimated": "Ejercicios de estimación hechos",
     "best": "Mejor {{score}}",
     "random": "Problema al azar",
     "continue": "Continuar: {{title}}",
     "none": "Ningún problema coincide.",
-    "unavailable": "Los problemas no están disponibles"
+    "unavailable": "Los problemas no están disponibles",
+    "source": {
+      "label": "Origen",
+      "all": "Todos",
+      "builtin": "Incluidos",
+      "packs": "Paquetes"
+    },
+    "fromPack": "Del paquete {{name}}"
   },
   "brief": {
     "teaches": "Enseña: {{what}}",
+    "numbers": "Chuleta de números",
+    "estimateFirst": "Estima primero",
+    "estimated": "{{done}} de {{total}} estimadas",
     "targets": "Objetivos",
     "peak": "Tráfico pico",
     "p95": "Latencia p95",
+    "p99": "Latencia p99",
     "availability": "Disponibilidad",
     "budget": "Presupuesto",
     "traffic": "Tráfico",
@@ -525,7 +565,9 @@
       "queue_overflow": "{{name}} desbordó su cola desde los {{at}} s.",
       "down": "{{name}} estuvo caído desde los {{at}} s."
     },
-    "stuck": "¿Te has atascado?"
+    "stuck": "¿Te has atascado?",
+    "retried_one": "{{n}} intento falló y se reintentó: no es un error, porque el mensaje se entregó o se guardó igualmente.",
+    "retried_other": "{{n}} intentos fallaron y se reintentaron: no son errores, porque los mensajes se entregaron o se guardaron igualmente."
   },
   "compare": {
     "open": "Comparar con la referencia",
@@ -618,7 +660,8 @@
       "service_ms": "Tiempo de servicio",
       "p99_ratio": "Cola lenta (p99 ÷ mediana)",
       "queue_per_server": "Huecos de cola por trabajador",
-      "failover_s": "Tiempo de failover"
+      "failover_s": "Tiempo de failover",
+      "write_slots": "Plazas por escritura"
     },
     "costField": {
       "per_instance_month": "Precio por instancia",
@@ -657,5 +700,154 @@
     "title": "Glosario",
     "search": "Buscar en el glosario",
     "see": "Ver {{name}}."
+  },
+  "quiz": {
+    "title": "Comprobación rápida",
+    "intro": "Tres preguntas sobre esta página. Una fallada vuelve para repasarla mañana, y luego cada vez menos a menudo.",
+    "right": "Respuesta correcta",
+    "wrong": "Tu respuesta",
+    "correct": "Correcto.",
+    "incorrect": "No exactamente.",
+    "backOn": "Vuelve para repasar el {{date}}.",
+    "reviewTitle": "Repaso",
+    "position": "Pregunta {{n}} de {{total}}",
+    "fromPattern": "Patrón: {{id}}",
+    "next": "Siguiente pregunta",
+    "finish": "Terminar",
+    "nothingDue": "Nada que repasar hoy",
+    "nothingDueBody": "Las preguntas que falles en los cuestionarios de la Guía y de los patrones vuelven aquí cuando toca.",
+    "sessionDone": "Repaso terminado",
+    "sessionDoneBody_one": "Has repasado {{count}} pregunta.",
+    "sessionDoneBody_other": "Has repasado {{count}} preguntas."
+  },
+  "paths": {
+    "title": "Itinerarios",
+    "intro": "Cinco recorridos ordenados por la Guía, las tarjetas de concepto, los patrones, los problemas y los ejercicios. El progreso sale de lo que ya has hecho. Sigue un itinerario y el Inicio te sugerirá su siguiente paso.",
+    "follow": "Seguir este itinerario",
+    "following": "Siguiendo",
+    "progress": "{{done}} de {{total}} hechos",
+    "progressLabel": "Progreso en {{name}}",
+    "done": "Hecho",
+    "todo": "Pendiente",
+    "item": {
+      "guide": "Lee: {{name}}",
+      "concept": "Mira: la tarjeta de concepto de {{name}}",
+      "pattern": "Patrón: {{name}}",
+      "problem": "Resuelve: {{name}}",
+      "estimate": "Estima: {{name}}",
+      "flaw": "Encuentra el fallo: {{name}}",
+      "quiz": "Cuestionario: {{name}}"
+    }
+  },
+  "flaws": {
+    "title": "Encuentra el fallo",
+    "intro": "Cada diseño parece correcto y aguanta un día normal, pero tiene un fallo que una prueba deja al descubierto. Ejecútalo, encuentra el fallo, corrígelo y envíalo hasta que pase todas las pruebas. Una vez corregido, la explicación y la solución de referencia aparecen en el resumen.",
+    "progress": "{{solved}} de {{total}} corregidos",
+    "fixed": "Corregido",
+    "open": "Por corregir",
+    "drill": "Encuentra el fallo",
+    "task": "Encuentra el fallo y corrígelo para que pase todas las pruebas."
+  },
+  "estimate": {
+    "title": "Ejercicios de estimación",
+    "intro": "Práctica de cálculos rápidos: calcula la cifra, escríbela y comprueba. Vale todo lo que caiga dentro de la banda del ejercicio; la solución explicada muestra un camino. Las cifras aproximadas están en la",
+    "problem": "Problema",
+    "random": "Ejercicio al azar",
+    "progress": "{{done}} de {{total}} ejercicios hechos",
+    "yourAnswer": "Tu respuesta",
+    "placeholder": "Tu estimación",
+    "check": "Comprobar",
+    "again": "Otra vez",
+    "done": "Hecho",
+    "answerWas": "La respuesta:",
+    "closeness": {
+      "close": "Bastante cerca: dentro de la banda.",
+      "too_high": "Demasiado alta, pero del orden correcto.",
+      "too_low": "Demasiado baja, pero del orden correcto.",
+      "way_off": "Más de diez veces lejos: revisa las unidades."
+    }
+  },
+  "numbers": {
+    "title": "Chuleta de números",
+    "search": "Buscar en los números",
+    "intro": "Velocidades y tamaños aproximados para estimaciones rápidas: órdenes de magnitud, no benchmarks. Las cifras marcadas como «simulador» son las que usa el simulador, así que tus estimaciones y sus ejecuciones coinciden.",
+    "group": {
+      "memory": "Memoria",
+      "storage": "Almacenamiento y bases de datos",
+      "network": "Red",
+      "servers": "Servidores y servicios",
+      "sizes": "Tamaños",
+      "time": "Tiempo y tráfico"
+    },
+    "source": {
+      "cited": "Fuente: {{host}}",
+      "needed": "Fuente por comprobar (sugerida: {{host}})",
+      "arithmetic": "Aritmética",
+      "simulator": "La cifra del propio simulador"
+    }
+  },
+  "packs": {
+    "title": "Paquetes de problemas",
+    "intro": "Un paquete es un conjunto de problemas extra que alguien ha compartido como archivo .kbpack. Al importarlo se comprueba primero (sus archivos, su texto y una ejecución juzgada de cada diseño); no se instala nada hasta que lo confirmes.",
+    "import": "Importar paquete…",
+    "checking": "Comprobando el paquete…",
+    "previewTitle": "¿Instalar este paquete?",
+    "previewBody": "Ha superado todas las comprobaciones. Esto es lo que contiene.",
+    "unsigned": "Paquete sin firmar, de {{author}} (según el propio paquete). Instala solo paquetes de personas en las que confíes.",
+    "field": {
+      "name": "Nombre",
+      "author": "Autoría",
+      "version": "Versión",
+      "licence": "Licencia",
+      "sha": "SHA-256"
+    },
+    "problems_one": "{{count}} problema",
+    "problems_other": "{{count}} problemas",
+    "change": {
+      "new": "Nuevo: se añadirá a tus problemas.",
+      "upgrade": "Sustituye a la versión {{from}}, que está instalada.",
+      "reinstall": "Ya quitaste este paquete antes: volverá.",
+      "same": "Este mismo paquete ya está instalado."
+    },
+    "install": "Instalar",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "installed": "{{name}} instalado.",
+    "refusedTitle": "No se ha instalado el paquete",
+    "reasons": "Motivos",
+    "none": "No hay paquetes instalados.",
+    "line": "de {{author}} · versión {{version}} · {{n}} problemas",
+    "uninstall": "Desinstalar",
+    "uninstallNamed": "Desinstalar {{name}}",
+    "uninstallConfirm": "¿Desinstalar {{name}}? Sus problemas salen del catálogo; tus envíos se quedan en tu historial.",
+    "recommend": "Recomendar en Inicio problemas de los paquetes"
+  },
+  "export": {
+    "menu": "Exportar",
+    "copyMermaid": "Copiar como Mermaid",
+    "saveMermaid": "Guardar como Mermaid…",
+    "copied": "Diagrama Mermaid copiado.",
+    "saveSvg": "Guardar como imagen SVG…",
+    "savePng": "Guardar como imagen PNG…"
+  },
+  "katabox": {
+    "title": "Relacionado en KataBox",
+    "kind": {
+      "learn": "Tema de Aprender",
+      "problem": "Problema"
+    },
+    "hint": "Los algoritmos detrás de esta página, para practicarlos en KataBox."
+  },
+  "latency": {
+    "p95": {
+      "response": "Latencia p95",
+      "completion": "Finalización p95",
+      "mixed": "p95 (respuestas y finalizaciones)"
+    },
+    "p99": {
+      "response": "Latencia p99",
+      "completion": "Finalización p99",
+      "mixed": "p99 (respuestas y finalizaciones)"
+    }
   }
 }

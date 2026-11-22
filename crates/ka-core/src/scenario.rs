@@ -247,8 +247,16 @@ pub enum ChaosEvent {
         #[serde(default, rename = "for")]
         for_s: Option<f64>,
     },
-    /// The zone (Region or AZ label or id) is cut off from the rest.
+    /// The zone (Region or AZ label or id) is lost: every card in it goes down.
     Partition {
+        zone: String,
+        at: f64,
+        #[serde(default, rename = "for")]
+        for_s: Option<f64>,
+    },
+    /// A network split: the zone (Region or AZ label or id) keeps running, but nothing
+    /// crosses its border (calls, hops, publishes, replication) until it heals.
+    Split {
         zone: String,
         at: f64,
         #[serde(default, rename = "for")]
@@ -267,7 +275,8 @@ pub enum ChaosEvent {
         target: Selector,
         at: f64,
     },
-    /// An external provider goes down, or slows by `add_ms`.
+    /// An external provider goes down, slows by `add_ms`, or cuts its rate limit to `rate`
+    /// calls per second.
     External {
         name: String,
         at: f64,
@@ -277,6 +286,8 @@ pub enum ChaosEvent {
         down: bool,
         #[serde(default)]
         add_ms: f64,
+        #[serde(default)]
+        rate: Option<f64>,
     },
 }
 
@@ -286,6 +297,7 @@ impl ChaosEvent {
             ChaosEvent::Kill { at, .. }
             | ChaosEvent::Latency { at, .. }
             | ChaosEvent::Partition { at, .. }
+            | ChaosEvent::Split { at, .. }
             | ChaosEvent::Traffic { at, .. }
             | ChaosEvent::Flush { at, .. }
             | ChaosEvent::External { at, .. } => *at,
@@ -300,6 +312,10 @@ impl ChaosEvent {
 pub struct PassCriteria {
     #[serde(default)]
     pub p95_ms: Option<f64>,
+    /// Judged only on tests with at least `P99_MIN_SAMPLES` completed requests of the
+    /// measured types (review A4); `ka-pack` refuses a problem whose tests have fewer.
+    #[serde(default)]
+    pub p99_ms: Option<f64>,
     #[serde(default)]
     pub error_rate: Option<f64>,
     #[serde(default)]
@@ -311,11 +327,15 @@ pub struct PassCriteria {
     pub lost: Option<f64>,
 }
 
+/// Completed requests a test needs before its p99 is judged (review A4).
+pub const P99_MIN_SAMPLES: f64 = 1000.0;
+
 impl PassCriteria {
     /// `self` with every limit set in `over` replacing it (a test's overrides).
     pub fn merged(&self, over: &PassCriteria) -> PassCriteria {
         PassCriteria {
             p95_ms: over.p95_ms.or(self.p95_ms),
+            p99_ms: over.p99_ms.or(self.p99_ms),
             error_rate: over.error_rate.or(self.error_rate),
             availability: over.availability.or(self.availability),
             stale_rate: over.stale_rate.or(self.stale_rate),

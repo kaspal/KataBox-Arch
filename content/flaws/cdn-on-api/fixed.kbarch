@@ -1,0 +1,85 @@
+{
+  "schema_version": 3,
+  "id": "flaw-cdn-on-api-fixed",
+  "name": "Quotes API",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Trading screens",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "nginx",
+      "label": "",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Quotes API",
+      "position": {
+        "x": 0,
+        "y": 510
+      },
+      "props": {
+        "instances": 3
+      },
+      "group_id": null
+    },
+    {
+      "id": "cache",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "Live quotes",
+      "position": {
+        "x": 0,
+        "y": 680
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "app",
+      "to": "cache",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { EVENT_MS, HOP_MS, MAX_DROPS_PER_FRAME, MAX_HITS_PER_FRAME, newRing, pushFrame, RING, visible } from "@/solve/run/PacketLayer";
-import { PACKET_DROP, PACKET_HIT, type Frame } from "@/solve/run/frames";
+import { EVENT_MS, HOP_MS, MAX_DROPS_PER_FRAME, MAX_HITS_PER_FRAME, MIN_SPACING_PX, newRing, pushFrame, RING, routeLength, spacingGapMs, visible } from "@/solve/run/PacketLayer";
+import { PACKET_DROP, PACKET_HIT, PACKET_REVERSE, type Frame } from "@/solve/run/frames";
 
 function frame(packets: { edge: number; type?: number; start: number }[], windowMs = 33): Frame {
   const n = packets.length;
@@ -16,6 +16,7 @@ function frame(packets: { edge: number; type?: number; start: number }[], window
     errorRate: 0,
     costMonth: 0,
     staleRate: 0,
+  retried: 0,
     util: new Uint8Array(0),
     queue: new Uint16Array(0),
     nodeFlags: new Uint8Array(0),
@@ -65,5 +66,35 @@ describe("the packet ring", () => {
     const n = visible(ring, 49 * 33);
     expect(n).toBeGreaterThan(1500);
     expect(n).toBeLessThanOrEqual(RING);
+  });
+
+  it("keeps dots on one connection at least MIN_SPACING_PX apart (no bead line)", () => {
+    const ring = newRing();
+    // A 280 px connection: a dot crosses it in HOP_MS, so dots 14 px apart start 30 ms apart.
+    ring.gapMs[0] = spacingGapMs(280);
+    expect(ring.gapMs[0]).toBeCloseTo((HOP_MS * MIN_SPACING_PX) / 280);
+    // 1,000 req/s on that connection for one second: 33 per frame.
+    const busy = Array.from({ length: 33 }, (_, i) => ({ edge: 0, start: i }));
+    for (let k = 0; k < 30; k++) pushFrame(ring, frame(busy), k * 33);
+    // At most one dot per 30 ms on screen at once: HOP_MS / 30 = 20.
+    const n = visible(ring, 29 * 33);
+    expect(n).toBeGreaterThan(10);
+    expect(n).toBeLessThanOrEqual(Math.ceil(HOP_MS / ring.gapMs[0]) + 1);
+    // Each direction has its own spacing; marks and other connections are never thinned.
+    const both = [
+      { edge: 0, start: 0 },
+      { edge: 0, start: 0, type: PACKET_REVERSE },
+      { edge: 0, start: 0, type: PACKET_HIT },
+      { edge: 1, start: 0 },
+    ];
+    const fresh = newRing();
+    fresh.gapMs[0] = 1000;
+    pushFrame(fresh, frame(both), 0);
+    expect(visible(fresh, 1)).toBe(4);
+  });
+
+  it("measures a curve's length", () => {
+    const straight = { p0: { x: 0, y: 0 }, p1: { x: 100, y: 0 }, p2: { x: 200, y: 0 }, p3: { x: 300, y: 0 } };
+    expect(routeLength(straight as never)).toBeCloseTo(300, 5);
   });
 });

@@ -1,0 +1,27 @@
+id = "stream"
+number = 16
+title = "Stream"
+title_es = "Stream"
+summary = "An ordered log split into partitions; the partition count caps how many consumers work at once."
+summary_es = "Un registro ordenado dividido en particiones; el número de particiones limita cuántos consumidores trabajan a la vez."
+problem = "online-judge"
+
+[[step]]
+snapshot = "few-partitions.kbarch"
+title = "Fewer partitions than workers"
+title_es = "Menos particiones que workers"
+caption = "Submissions now go to a Kafka stream. Each partition is read by one consumer at a time, so thirty-two partitions let only thirty-two of the ninety-six judge slots work, and the backlog grows."
+caption_es = "Ahora los envíos van a un stream de Kafka. Cada partición la lee un solo consumidor a la vez, así que treinta y dos particiones dejan trabajar solo a treinta y dos de las noventa y seis plazas de juez, y el retraso crece."
+focus = ["queue", "judges"]
+run = { test = "normal" }
+callout = { metric = "p95_ms", after = 58920, target = 20000 }
+
+[[step]]
+snapshot = "more-partitions.kbarch"
+title = "Partitions set the parallelism"
+title_es = "Las particiones fijan el paralelismo"
+caption = "With one partition per judge slot, all ninety-six can work at once, and the wait drops. Pick the partition count for the most consumers you will ever need."
+caption_es = "Con una partición por plaza de juez, las noventa y seis pueden trabajar a la vez, y la espera baja. Elige el número de particiones para el máximo de consumidores que vayas a necesitar."
+focus = ["queue"]
+run = { test = "normal" }
+callout = { metric = "p95_ms", before = 58920, after = 6540, target = 20000 }

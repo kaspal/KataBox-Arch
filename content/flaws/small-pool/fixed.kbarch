@@ -1,0 +1,69 @@
+{
+  "schema_version": 3,
+  "id": "flaw-small-pool-fixed",
+  "name": "Reports",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Analysts",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Reports API",
+      "position": {
+        "x": 0,
+        "y": 170
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Warehouse",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {
+        "service_ms": 20
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "app",
+      "to": "db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

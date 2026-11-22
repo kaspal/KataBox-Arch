@@ -178,3 +178,53 @@ pub fn golden_c() -> (Design, Scenario) {
     let s = scenario(400.0, 30.0, vec![event]);
     (d, s)
 }
+
+/// (d) Change data capture: client → app → PostgreSQL --CDC--> Kafka → indexer →
+/// Elasticsearch, with the stream down from t=10 s for 8 s (changes wait, none lost).
+pub fn golden_d() -> (Design, Scenario) {
+    use ComponentKind as K;
+    let d = design(
+        vec![
+            node("client", K::Client, Flavour::Web, &[]),
+            node("app", K::App, Flavour::Go, &[("instances", 2.0)]),
+            node("db", K::Sql, Flavour::Postgresql, &[]),
+            node("cdc", K::Stream, Flavour::Kafka, &[]),
+            node(
+                "indexer",
+                K::Worker,
+                Flavour::Celery,
+                &[("service_ms", 5.0)],
+            ),
+            node("search", K::Search, Flavour::Elasticsearch, &[]),
+        ],
+        vec![
+            edge("client", "app", Protocol::Http),
+            edge("app", "db", Protocol::Query),
+            edge("db", "cdc", Protocol::Publish),
+            edge("cdc", "indexer", Protocol::Consume),
+            edge("indexer", "search", Protocol::Query),
+        ],
+    );
+    let mut update = rtype(
+        "update",
+        1.0,
+        &[
+            "compute",
+            "datastore:write:sql",
+            "cdc",
+            "worker",
+            "datastore:write:search",
+        ],
+    );
+    update.measure = Measure::Completion;
+    let mut s = scenario(300.0, 30.0, vec![update]);
+    s.chaos.push(ka_core::scenario::ChaosEvent::Kill {
+        target: ka_core::scenario::Selector {
+            id: Some("cdc".into()),
+            ..Default::default()
+        },
+        at: 10.0,
+        for_s: Some(8.0),
+    });
+    (d, s)
+}

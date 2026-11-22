@@ -107,3 +107,30 @@ url = "https://developer.android.com/"
 flavour = "mobile"
 title = "Apple Developer Documentation"
 url = "https://developer.apple.com/documentation/"
+
+[[quiz]]
+q = "In a problem (not the Sandbox) there are two client cards: web at 300 rps and mobile at 100 rps. What do those numbers decide?"
+q_es = "En un problema (no en el Sandbox) hay dos tarjetas de cliente: web con 300 rps y móvil con 100 rps. ¿Qué deciden esos números?"
+options = ["The total load: 400 requests per second", "Only each card's share of the scenario's load: web sends three quarters of it", "The peak load, while the scenario sets the average", "Load added on top of the scenario's load"]
+options_es = ["La carga total: 400 peticiones por segundo", "Solo la parte de cada tarjeta en la carga del escenario: la web envía tres cuartas partes", "La carga de pico, mientras el escenario fija la media", "Carga que se suma a la del escenario"]
+answer = 1
+why = "In a problem the scenario sets the total load, and the client cards share it in proportion to their rps. Only in the Sandbox is the sum of the rps the load."
+why_es = "En un problema la carga total la fija el escenario, y las tarjetas de cliente se la reparten en proporción a sus rps. Solo en el Sandbox la suma de los rps es la carga."
+
+[[quiz]]
+q = "In the simulator, a request gets no answer within a few seconds. What does the client do?"
+q_es = "En el simulador, una petición no recibe respuesta en unos segundos. ¿Qué hace el cliente?"
+options = ["It retries until an answer comes back", "It keeps the request for later", "It gives up, and the request counts as an error", "Nothing is counted, because the client does no work"]
+options_es = ["Reintenta hasta que llega una respuesta", "Guarda la petición para más tarde", "Se rinde, y la petición cuenta como error", "No se cuenta nada, porque el cliente no hace ningún trabajo"]
+answer = 2
+why = "Like a real user, the client stops waiting after a few seconds. A slow request is therefore not just slow: past that limit it becomes an error."
+why_es = "Como un usuario real, el cliente deja de esperar pasados unos segundos. Así que una petición lenta no solo es lenta: pasado ese límite se convierte en un error."
+
+[[quiz]]
+q = "A report is built every night at 2 a.m., with no user involved. What should start that work in the design?"
+q_es = "Cada noche a las 2 se genera un informe, sin que intervenga ningún usuario. ¿Qué debería arrancar ese trabajo en el diseño?"
+options = ["A Scheduler card", "A Client card with a low rps", "A Client card wired straight to the database", "A Load Balancer"]
+options_es = ["Una tarjeta de Planificador", "Una tarjeta de Cliente con pocos rps", "Una tarjeta de Cliente conectada directamente a la base de datos", "Un Balanceador de carga"]
+answer = 0
+why = "A Client stands for users and devices sending requests. Work started by a timer belongs to a Scheduler."
+why_es = "Un Cliente representa a usuarios y dispositivos que envían peticiones. El trabajo que arranca un temporizador corresponde a un Planificador."

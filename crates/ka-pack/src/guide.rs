@@ -19,12 +19,13 @@ use ka_core::{ComponentKind, Registry};
 use crate::problems::ProblemDir;
 use crate::{Issue, TODO_MARKER, issue};
 
-pub const SIM_FIELDS: [&str; 5] = [
+pub const SIM_FIELDS: [&str; 6] = [
     "servers_per_instance",
     "service_ms",
     "p99_ratio",
     "queue_per_server",
     "failover_s",
+    "write_slots",
 ];
 pub const COST_FIELDS: [&str; 3] = ["per_instance_month", "per_gb_month", "per_million"];
 /// Props the simulator doesn't read (design notes only): an "In the simulator" row may not
@@ -125,6 +126,9 @@ pub fn validate_guide(
         let file = format!("{}/entry.toml", g.dir);
         let id = kind_id(e.kind);
         let mut bad = |m: String| issues.push(issue(&file, m));
+        for m in ka_core::quiz::check(&e.quiz) {
+            bad(format!("quiz: {m}"));
+        }
         if g.dir != format!("guide/{id}") {
             bad(format!("kind `{id}` doesn't match its folder"));
         }

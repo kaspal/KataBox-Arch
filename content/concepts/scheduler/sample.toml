@@ -1,0 +1,27 @@
+id = "scheduler"
+number = 14
+title = "Scheduler"
+title_es = "Planificador"
+summary = "Starts jobs on a timetable, which means many of them start at the same moment."
+summary_es = "Lanza trabajos según un horario, lo que significa que muchos empiezan en el mismo momento."
+problem = "job-scheduler"
+
+[[step]]
+snapshot = "cron.kbarch"
+title = "Jobs on a timetable"
+title_es = "Trabajos con horario"
+caption = "Cron publishes jobs to a queue on their schedule, and workers run them. Most of the day the load is steady and jobs finish quickly."
+caption_es = "Cron publica los trabajos en una cola según su horario, y los workers los ejecutan. Casi todo el día la carga es estable y los trabajos terminan rápido."
+focus = ["sched", "queue"]
+run = { test = "normal" }
+callout = { metric = "p95_ms", after = 275 }
+
+[[step]]
+snapshot = "cron.kbarch"
+title = "Everything at midnight"
+title_es = "Todo a medianoche"
+caption = "At midnight every daily job fires at once: ten times the usual rate. The queue holds the herd and the pool scales out, so jobs wait longer but all of them run."
+caption_es = "A medianoche se lanzan a la vez todos los trabajos diarios: diez veces el ritmo habitual. La cola contiene la avalancha y el grupo escala, así que los trabajos esperan más pero se ejecutan todos."
+focus = ["sched", "queue", "workers"]
+run = { test = "midnight", start_s = 16 }
+callout = { metric = "p95_ms", after = 24170 }

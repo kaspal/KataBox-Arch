@@ -50,6 +50,11 @@ enum Ev {
     Requeue {
         r: u32,
     },
+    /// A message whose consumer died comes back when its lease runs out (a queue's
+    /// visibility timeout, a stream's consumer session timeout).
+    Redeliver {
+        r: u32,
+    },
     Second(u32),
     /// Chaos event `i` starts / ends (only scheduled when the scenario has chaos).
     Chaos(u16),
@@ -121,6 +126,23 @@ struct Req {
     attempts: u32,
     broker: u32,
     group: u32,
+    /// The data card the last write call committed on (the source of a `cdc` step).
+    wrote: u32,
+    /// When a change-data-capture message was committed (0: not a CDC message).
+    cdc_at: u64,
+    /// A CDC change on its way to its stream (not yet accepted).
+    cdc_pending: bool,
+}
+
+/// A network split in progress (chaos `split`).
+#[derive(Debug, Clone)]
+struct SplitRt {
+    chaos: u16,
+    zone: String,
+    since: u64,
+    checks: u8,
+    /// Health checks have noticed it: routing avoids crossing it.
+    known: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -183,6 +205,8 @@ struct ExternalRt {
     last: u64,
     down: bool,
     add_ms: f64,
+    /// A rate limit cut by chaos (calls per second), replacing the provider's own.
+    rate_cut: Option<f64>,
 }
 
 #[derive(Debug, Clone)]
@@ -235,6 +259,8 @@ pub struct Engine {
     seconds: Vec<Second>,
     lost: f64,
     dead_lettered: f64,
+    /// Failed attempts that were retried (not errors: the message lives on).
+    retried: f64,
     stale_reads: f64,
     reads: f64,
     /// Max traffic multiplier per source (for thinning).
@@ -249,6 +275,14 @@ pub struct Engine {
     last_write: Vec<i64>,
     /// Autoscaling: a decision waiting for its delay, per group.
     scale_pending: Vec<bool>,
+    /// Network splits in progress.
+    splits: Vec<SplitRt>,
+    /// Per data card: committed changes waiting for their CDC stream, in commit order.
+    cdc_backlog: Vec<VecDeque<u32>>,
+    /// Keys and commit times of CDC messages in the order streams accepted them (tests).
+    cdc_audit: Option<Vec<(u64, u64)>>,
+    /// Messages still unfinished at the end have been counted (once).
+    censored: bool,
 }
 
 /// One forward hop of a simulated request, for the live packet layer.
@@ -291,6 +325,8 @@ pub struct Snapshot {
     pub cost_month: f64,
     /// Stale reads over reads so far.
     pub stale_rate: f64,
+    /// Failed attempts retried so far (weighted back to real traffic).
+    pub retried: f64,
 }
 
 impl Engine {
@@ -388,6 +424,7 @@ impl Engine {
             seconds: vec![Second::default(); nsec],
             lost: 0.0,
             dead_lettered: 0.0,
+            retried: 0.0,
             stale_reads: 0.0,
             reads: 0.0,
             max_mult,
@@ -395,6 +432,10 @@ impl Engine {
             chaos_targets: vec![Vec::new(); c.scenario.chaos.len()],
             last_write: Vec::new(),
             scale_pending: vec![false; c.scaling.len()],
+            splits: Vec::new(),
+            cdc_backlog: vec![VecDeque::new(); c.nodes.len()],
+            cdc_audit: None,
+            censored: false,
             nodes,
             c,
         };
@@ -455,6 +496,44 @@ impl Engine {
             self.handle(s.ev);
         }
         self.now = self.now.max(t.min(self.c.duration_us + DRAIN_US));
+        if !self.censored && self.now >= self.c.duration_us + DRAIN_US {
+            self.censored = true;
+            self.censor_unfinished();
+        }
+    }
+
+    /// Asynchronous work still unfinished when the run ends (a backlog behind a dead or
+    /// slow consumer, changes waiting for their stream) counts as completed at the end,
+    /// with its age then: a lower bound on its real completion time. Without this, work
+    /// that never finishes would simply be missing from the completion percentiles, and a
+    /// design whose only consumer dies would look fast. Not lost: it is still in a broker.
+    fn censor_unfinished(&mut self) {
+        let end = self.now;
+        let w = self.c.weight;
+        let mut groups_seen = std::collections::BTreeSet::new();
+        for i in 0..self.reqs.len() {
+            let q = &self.reqs[i];
+            if q.pending == u32::MAX / 2 || q.done || q.dead || !q.resp_sent {
+                continue;
+            }
+            let ty = q.ty as usize;
+            let mut start = q.start;
+            if q.group != NONE {
+                if !groups_seen.insert(q.group) {
+                    continue;
+                }
+                start = self.groups[q.group as usize].start;
+            }
+            if q.seg == 0 && !q.cdc_pending {
+                continue;
+            }
+            let lat = end.saturating_sub(start) as f64;
+            let m = &mut self.types[ty];
+            m.completion.add(lat, w);
+            if self.c.types[ty].def.measure == Measure::Completion {
+                m.measured.add(lat, w);
+            }
+        }
     }
 
     /// Record forward hops for the packet layer (live runs). Tracing never changes the run.
@@ -465,6 +544,16 @@ impl Engine {
     /// The hops recorded since the last call.
     pub fn take_packets(&mut self) -> Vec<Packet> {
         self.trace.as_mut().map(std::mem::take).unwrap_or_default()
+    }
+
+    /// Record the (key, commit time) of every CDC message as its stream accepts it, to
+    /// check per-key ordering. Never changes the run.
+    pub fn set_cdc_audit(&mut self, on: bool) {
+        self.cdc_audit = on.then(Vec::new);
+    }
+
+    pub fn cdc_audit(&self) -> &[(u64, u64)] {
+        self.cdc_audit.as_deref().unwrap_or_default()
     }
 
     pub fn duration_us(&self) -> u64 {
@@ -494,9 +583,10 @@ impl Engine {
                         + f64::from(l.busy) * now.saturating_sub(l.busy_since) as f64;
                     queue += l.queue.len();
                 }
-                cost_month += n.cost.per_instance_month * self.mean_instances(i).max(1.0)
-                    + n.cost.per_gb_month * n.spec.memory_gb
-                    + n.cost.per_million * (rt.served / elapsed_s) * MONTH_S / 1e6;
+                cost_month +=
+                    n.cost.per_instance_month * self.mean_instances(i).max(1.0) * n.spec.cost_lanes
+                        + n.cost.per_gb_month * n.spec.memory_gb
+                        + n.cost.per_million * (rt.served / elapsed_s) * MONTH_S / 1e6;
                 NodeSnap {
                     busy_us,
                     servers: f64::from(rt.lane_servers) * f64::from(n.spec.lanes),
@@ -521,6 +611,7 @@ impl Engine {
             nodes,
             last_second,
             cost_month: round2(cost_month),
+            retried: self.retried,
             stale_rate: if self.reads > 0.0 {
                 self.stale_reads / self.reads
             } else {
@@ -580,6 +671,10 @@ impl Engine {
                 self.reqs[r as usize].pending -= 1;
                 let b = self.reqs[r as usize].broker;
                 self.enqueue_broker(r, b);
+            }
+            Ev::Redeliver { r } => {
+                self.reqs[r as usize].pending -= 1;
+                self.redeliver(r);
             }
             Ev::Second(sec) => self.on_second(sec),
         }
@@ -658,6 +753,9 @@ impl Engine {
             attempts: 0,
             broker: NONE,
             group: NONE,
+            wrote: NONE,
+            cdc_at: 0,
+            cdc_pending: false,
         };
         if let Some(i) = self.free.pop() {
             self.reqs[i as usize] = req;
@@ -699,7 +797,7 @@ impl Engine {
         let live: Vec<u32> = cands
             .iter()
             .copied()
-            .filter(|c| !self.nodes[*c as usize].known_down)
+            .filter(|c| !self.nodes[*c as usize].known_down && !self.known_cut(from, *c))
             .collect();
         let list: &[u32] = if live.is_empty() { cands } else { &live };
         if list.is_empty() {
@@ -717,7 +815,7 @@ impl Engine {
             (0..list.len())
                 .min_by_key(|&i| (load(list[i]), i))
                 .unwrap_or(0)
-        } else if n.kind == ComponentKind::Lb && n.spec.algorithm == "ip_hash" {
+        } else if n.kind == ComponentKind::Lb && n.spec.algorithm == "key_hash" {
             (mix(key) % list.len() as u64) as usize
         } else {
             let rt = &mut self.nodes[from as usize];
@@ -807,20 +905,30 @@ impl Engine {
             self.maybe_free(r);
             return;
         }
+        let from = self.reqs[r as usize].from;
+        let unreachable = self.cut(from, node);
         if self.reqs[r as usize].phase == Phase::BrokerIn {
-            self.broker_accept(r, node);
+            if unreachable {
+                self.publish_failed(r, node);
+            } else {
+                self.broker_accept(r, node);
+            }
             return;
         }
         // A consumer's reserved slot is used by this arrival only; the calls it makes
         // afterwards queue for their servers like any request.
         let reserved = std::mem::take(&mut self.reqs[r as usize].reserved);
-        if self.nodes[node as usize].down {
+        if self.nodes[node as usize].down || unreachable {
             if reserved {
                 self.set_busy(node, 0, -1);
             }
-            let from = self.reqs[r as usize].from;
             self.mark(r, from, node, false);
-            self.fail(r);
+            if self.reqs[r as usize].phase == Phase::Consumer {
+                // A message handed to a consumer that died (or was cut off) on the way.
+                self.lease_lost(r);
+            } else {
+                self.fail(r);
+            }
             return;
         }
         let lane = self.lane_of(node, r);
@@ -859,6 +967,10 @@ impl Engine {
         let mut median = n.spec.service_ms;
         if matches!(n.kind, ComponentKind::Sql | ComponentKind::Nosql) {
             median *= 1.0 + ty.payload_kb / 64.0;
+        }
+        if q.phase == Phase::Call && q.call_write && n.spec.role == Role::Datastore {
+            // A write occupies `write_slots` read slots (DynamoDB: 3).
+            median *= n.spec.write_slots;
         }
         if q.seg >= 1 {
             median *= q.units;
@@ -929,9 +1041,14 @@ impl Engine {
             return;
         }
         if self.nodes[node as usize].down {
-            // The card died while working on it.
+            // The card died while working on it. A consumer's message comes back when its
+            // lease runs out; anything else fails now.
             self.release(node, lane);
-            self.fail(r);
+            if phase == Phase::Consumer {
+                self.lease_lost(r);
+            } else {
+                self.fail(r);
+            }
             return;
         }
         if holds {
@@ -1011,7 +1128,7 @@ impl Engine {
             let live: Vec<Target> = targets
                 .iter()
                 .copied()
-                .filter(|t| self.target_alive(*t))
+                .filter(|t| self.target_alive(*t, caller))
                 .collect();
             if live.is_empty() && aside {
                 self.reqs[r as usize].step += 1;
@@ -1029,7 +1146,7 @@ impl Engine {
                     return;
                 }
                 Target::Node(n) => n,
-                Target::Cluster(cl) => self.cluster_member(cl, writes),
+                Target::Cluster(cl) => self.cluster_member(cl, writes, caller),
             };
             let q = &mut self.reqs[r as usize];
             q.phase = Phase::Call;
@@ -1044,31 +1161,41 @@ impl Engine {
         }
     }
 
-    /// Does routing believe this call target is up?
-    fn target_alive(&self, t: Target) -> bool {
+    /// Does routing believe this call target is up, and reachable from `caller`?
+    fn target_alive(&self, t: Target, caller: u32) -> bool {
+        let ok = |m: u32| !self.nodes[m as usize].known_down && !self.known_cut(caller, m);
         match t {
-            Target::Node(n) => !self.nodes[n as usize].known_down,
-            Target::Cluster(cl) => self.c.clusters[cl as usize]
-                .members
-                .iter()
-                .any(|m| !self.nodes[*m as usize].known_down),
+            Target::Node(n) => ok(n),
+            Target::Cluster(cl) => self.c.clusters[cl as usize].members.iter().any(|m| ok(*m)),
             Target::External(_) => true,
         }
     }
 
-    fn cluster_member(&mut self, cl: u32, write: bool) -> u32 {
+    fn cluster_member(&mut self, cl: u32, write: bool, caller: u32) -> u32 {
         let primary = self.cluster_primary[cl as usize];
-        if write {
+        if write || self.c.nodes[primary as usize].spec.read_from_primary {
             return primary;
         }
         let members = &self.c.clusters[cl as usize].members;
-        let live: Vec<u32> = members
+        let mut live: Vec<u32> = members
             .iter()
             .copied()
-            .filter(|m| !self.nodes[*m as usize].known_down)
+            .filter(|m| !self.nodes[*m as usize].known_down && !self.known_cut(caller, *m))
             .collect();
         if live.is_empty() {
             return primary;
+        }
+        // Reads stay in the caller's Region when a live member is there (the nearest replica).
+        let region = |n: u32| self.c.nodes[n as usize].region;
+        if caller != NONE && region(caller).is_some() {
+            let local: Vec<u32> = live
+                .iter()
+                .copied()
+                .filter(|&m| region(m) == region(caller))
+                .collect();
+            if !local.is_empty() {
+                live = local;
+            }
         }
         self.cluster_rr[cl as usize] = self.cluster_rr[cl as usize].wrapping_add(1);
         live[self.cluster_rr[cl as usize] % live.len()]
@@ -1111,6 +1238,7 @@ impl Engine {
             Role::Datastore => {
                 if write {
                     self.record_write(key);
+                    self.reqs[r as usize].wrote = node;
                 } else {
                     // One read, answered by the store: stale on a replica that hasn't caught
                     // up with the key's last write.
@@ -1127,6 +1255,11 @@ impl Engine {
             _ => {}
         }
         let caller = self.reqs[r as usize].caller;
+        if self.cut(node, caller) {
+            // A split opened while the call ran: the answer never arrives.
+            self.push_req(self.now + EXTERNAL_DOWN_US, Ev::CallFail { r }, r);
+            return;
+        }
         let lat = hop_latency_us(&self.c, node, caller, Protocol::Query);
         self.push_req(self.now + lat, Ev::CallBack { r }, r);
     }
@@ -1138,8 +1271,13 @@ impl Engine {
         }
         let caller = self.reqs[r as usize].caller;
         if caller != NONE && self.nodes[caller as usize].down {
-            // The caller died while waiting: its request is lost with it.
-            self.fail(r);
+            // The caller died while waiting: a synchronous request is lost with it; a
+            // consumer's message comes back when its lease runs out.
+            if self.reqs[r as usize].seg >= 1 {
+                self.lease_lost(r);
+            } else {
+                self.fail(r);
+            }
             return;
         }
         self.reqs[r as usize].step += 1;
@@ -1155,7 +1293,7 @@ impl Engine {
             self.push_req(now + EXTERNAL_DOWN_US, Ev::CallFail { r }, r);
             return;
         }
-        if let Some(limit) = def.rate_limit {
+        if let Some(limit) = ext.rate_cut.or(def.rate_limit) {
             let rate = limit * sample;
             ext.tokens = (ext.tokens + rate * (now - ext.last) as f64 / 1e6).min(rate.max(1.0));
             ext.last = now;
@@ -1177,16 +1315,52 @@ impl Engine {
     // --- Segment ends, brokers --------------------------------------------------------
 
     fn segment_end(&mut self, r: u32) {
-        self.release_caller(r);
         let q = &self.reqs[r as usize];
         let (ty, seg, caller) = (q.ty as usize, q.seg as usize, q.caller);
         let nseg = self.c.types[ty].route.segments.len();
+        // An optional hand-off with no broker wired: the caller goes on with the next
+        // segment's calls itself, still holding its slot (the answer waits for them).
+        if !q.hit_end
+            && seg + 1 < nseg
+            && caller != NONE
+            && self.c.types[ty].route.segments[seg + 1]
+                .broker
+                .as_ref()
+                .is_some_and(|b| b.optional)
+            && self.c.types[ty].plan.brokers[seg + 1][caller as usize].is_empty()
+        {
+            let q = &mut self.reqs[r as usize];
+            q.seg += 1;
+            q.step = 0;
+            self.run_calls(r);
+            return;
+        }
+        self.release_caller(r);
+        let q = &self.reqs[r as usize];
         if q.hit_end || seg + 1 >= nseg {
             if !self.reqs[r as usize].resp_sent {
                 self.succeed_sync(r);
             } else {
                 self.complete_async(r);
             }
+            return;
+        }
+        let cdc = self.c.types[ty].route.segments[seg + 1]
+            .broker
+            .as_ref()
+            .is_some_and(|b| b.cdc);
+        if cdc {
+            // Change data capture: the caller's answer leaves at the commit; the database
+            // publishes the change.
+            if !self.reqs[r as usize].resp_sent {
+                self.record_response(r, self.now);
+            }
+            let q = &mut self.reqs[r as usize];
+            q.cdc_at = self.now.max(1);
+            q.cdc_pending = true;
+            q.caller = NONE;
+            let src = q.wrote;
+            self.cdc_publish(r, src);
             return;
         }
         let brokers = self.c.types[ty].plan.brokers[seg + 1][caller as usize].clone();
@@ -1199,9 +1373,164 @@ impl Engine {
         self.send(r, caller, b, Protocol::Publish, false);
     }
 
+    /// The CDC stream a change on `src` goes to: chosen by key among the source's streams,
+    /// so one key always takes the same one. None if it can't be reached now.
+    fn cdc_target(&self, r: u32, src: u32) -> Option<Option<u32>> {
+        let q = &self.reqs[r as usize];
+        let streams = &self.c.types[q.ty as usize].plan.brokers[q.seg as usize + 1][src as usize];
+        if streams.is_empty() {
+            // This card has no CDC edge (a promoted replica without one): nothing publishes.
+            return None;
+        }
+        let b = streams[(mix(q.key) % streams.len() as u64) as usize];
+        let reachable = !self.nodes[b as usize].down && !self.cut(src, b);
+        Some(reachable.then_some(b))
+    }
+
+    /// Publish a committed change from data card `src`, keeping per-card commit order: if
+    /// changes are already waiting, it waits behind them.
+    fn cdc_publish(&mut self, r: u32, src: u32) {
+        if src == NONE {
+            self.cdc_lost(r);
+            return;
+        }
+        if !self.cdc_backlog[src as usize].is_empty() {
+            self.cdc_backlog[src as usize].push_back(r);
+            return;
+        }
+        match self.cdc_target(r, src) {
+            None => self.cdc_lost(r),
+            Some(None) => self.cdc_backlog[src as usize].push_back(r),
+            Some(Some(b)) => {
+                self.reqs[r as usize].phase = Phase::BrokerIn;
+                self.send(r, src, b, Protocol::Publish, false);
+            }
+        }
+    }
+
+    /// Send waiting changes whose stream is reachable again, in order; changes older than
+    /// the card's `cdc_buffer_s` are lost.
+    fn cdc_flush(&mut self, src: u32) {
+        let buffer = (self.c.nodes[src as usize].spec.cdc_buffer_s.max(0.0) * 1e6) as u64;
+        while let Some(&r) = self.cdc_backlog[src as usize].front() {
+            if self.now.saturating_sub(self.reqs[r as usize].cdc_at) > buffer {
+                self.cdc_backlog[src as usize].pop_front();
+                self.cdc_lost(r);
+                continue;
+            }
+            match self.cdc_target(r, src) {
+                None => {
+                    self.cdc_backlog[src as usize].pop_front();
+                    self.cdc_lost(r);
+                }
+                Some(None) => break,
+                Some(Some(b)) => {
+                    self.cdc_backlog[src as usize].pop_front();
+                    self.reqs[r as usize].phase = Phase::BrokerIn;
+                    self.send(r, src, b, Protocol::Publish, false);
+                }
+            }
+        }
+    }
+
+    fn cdc_lost(&mut self, r: u32) {
+        self.lost += self.c.weight;
+        self.finish(r);
+    }
+
+    /// A publish reached a broker that is down, full or cut off. A CDC change goes back to
+    /// the front of its database's backlog (delayed, not lost); anything else fails.
+    fn publish_failed(&mut self, r: u32, b: u32) {
+        let from = self.reqs[r as usize].from;
+        self.mark(r, from, b, false);
+        let q = &self.reqs[r as usize];
+        if q.cdc_pending && q.wrote != NONE {
+            // Back into the backlog in commit order (several may bounce at once).
+            let (src, at) = (q.wrote, q.cdc_at);
+            let backlog = &self.cdc_backlog[src as usize];
+            let i = backlog
+                .iter()
+                .position(|&o| self.reqs[o as usize].cdc_at > at)
+                .unwrap_or(backlog.len());
+            self.cdc_backlog[src as usize].insert(i, r);
+        } else {
+            self.fail(r);
+        }
+    }
+
+    /// The consumer holding a queue or stream message died: the message comes back when
+    /// its lease runs out (a queue's `visibility_timeout_s`, a stream's
+    /// `session_timeout_s`), holding its broker slot until then. Other brokers fail it.
+    fn lease_lost(&mut self, r: u32) {
+        let q = &self.reqs[r as usize];
+        let b = q.broker;
+        if !q.resp_sent || b == NONE || q.group != NONE {
+            self.fail(r);
+            return;
+        }
+        let spec = &self.c.nodes[b as usize].spec;
+        let timeout_s = match self.c.nodes[b as usize].kind {
+            ComponentKind::Queue => spec.visibility_timeout_s,
+            ComponentKind::Stream => spec.session_timeout_s,
+            _ => {
+                self.fail(r);
+                return;
+            }
+        };
+        self.release_caller(r);
+        let q = &mut self.reqs[r as usize];
+        q.step = 0;
+        q.caller = NONE;
+        q.hit_end = false;
+        q.fill_cache = NONE;
+        q.reserved = false;
+        let at = self.now + (timeout_s.max(0.0) * 1e6) as u64;
+        self.push_req(at, Ev::Redeliver { r }, r);
+    }
+
+    /// A lease ran out: the broker slot frees and the message counts an attempt.
+    fn redeliver(&mut self, r: u32) {
+        self.message_done(r);
+        let w = self.c.weight;
+        let q = &mut self.reqs[r as usize];
+        let b = q.broker;
+        q.attempts += 1;
+        if q.attempts <= self.c.nodes[b as usize].spec.max_retries {
+            self.retried += w;
+            self.enqueue_broker(r, b);
+        } else if self.c.dlq_of[b as usize].is_some() {
+            self.dead_lettered += w;
+            self.finish(r);
+        } else {
+            self.lost += w;
+            self.finish(r);
+        }
+    }
+
+    /// Does a split separate cards `a` and `b` now? (Cards outside every zone are on the
+    /// outside of each split.)
+    fn cut(&self, a: u32, b: u32) -> bool {
+        if a == NONE || b == NONE || self.splits.is_empty() {
+            return false;
+        }
+        self.splits
+            .iter()
+            .any(|s| self.in_zone(a, &s.zone) != self.in_zone(b, &s.zone))
+    }
+
+    /// A split routing has learned about (after two health checks).
+    fn known_cut(&self, a: u32, b: u32) -> bool {
+        if a == NONE || b == NONE || self.splits.is_empty() {
+            return false;
+        }
+        self.splits
+            .iter()
+            .any(|s| s.known && self.in_zone(a, &s.zone) != self.in_zone(b, &s.zone))
+    }
+
     fn broker_accept(&mut self, r: u32, b: u32) {
         if self.nodes[b as usize].down {
-            self.fail(r);
+            self.publish_failed(r, b);
             return;
         }
         let depth = self.brokers[b as usize].queue.len() as f64;
@@ -1209,10 +1538,15 @@ impl Engine {
             let w = self.c.weight;
             self.nodes[b as usize].drops += w;
             self.nodes[b as usize].sec_drops += w;
-            let from = self.reqs[r as usize].from;
-            self.mark(r, from, b, false);
-            self.fail(r);
+            self.publish_failed(r, b);
             return;
+        }
+        if std::mem::take(&mut self.reqs[r as usize].cdc_pending) {
+            let q = &self.reqs[r as usize];
+            let entry = (q.key, q.cdc_at);
+            if let Some(audit) = &mut self.cdc_audit {
+                audit.push(entry);
+            }
         }
         let w = self.c.weight;
         self.nodes[b as usize].served += w;
@@ -1325,7 +1659,7 @@ impl Engine {
             for k in 0..n {
                 let c = consumers[(start + k) % n];
                 let rt = &self.nodes[c as usize];
-                if !rt.down && rt.lanes[0].busy < rt.lane_servers {
+                if !rt.down && rt.lanes[0].busy < rt.lane_servers && !self.cut(b, c) {
                     chosen = Some(c);
                     self.nodes[b as usize].rr = start + k + 1;
                     break;
@@ -1478,6 +1812,7 @@ impl Engine {
         }
         let retries = self.c.nodes[b as usize].spec.max_retries;
         if q.attempts <= retries {
+            self.retried += w;
             let backoff = 1_000_000u64 << (q.attempts - 1).min(5);
             self.push_req(self.now + backoff, Ev::Requeue { r }, r);
         } else if self.c.dlq_of[b as usize].is_some() {
@@ -1602,6 +1937,16 @@ impl Engine {
         if written == i64::MIN {
             return false;
         }
+        // Cut off from its primary by a split: it has nothing written since the split.
+        let primary = self.cluster_primary[cl as usize];
+        if let Some(s) = self
+            .splits
+            .iter()
+            .find(|s| self.in_zone(node, &s.zone) != self.in_zone(primary, &s.zone))
+            && written >= s.since as i64
+        {
+            return true;
+        }
         let lag_us = (self.c.nodes[node as usize].spec.replication_lag_ms * 1000.0) as i64;
         (self.now as i64) - written < lag_us
     }
@@ -1708,6 +2053,12 @@ impl Engine {
     }
 
     fn on_second(&mut self, _sec: u32) {
+        // Changes waiting for a CDC stream: send what can go, expire what waited too long.
+        for src in 0..self.cdc_backlog.len() as u32 {
+            if !self.cdc_backlog[src as usize].is_empty() {
+                self.cdc_flush(src);
+            }
+        }
         let now = self.now;
         for (i, rt) in self.nodes.iter_mut().enumerate() {
             let mut integral = 0.0;
@@ -1773,9 +2124,10 @@ impl Engine {
                 let secs = rt.util_series.len().max(1) as f64;
                 let utilisation = rt.util_series.iter().sum::<f64>() / secs;
                 let per_s = rt.served / dur;
-                let cost = n.cost.per_instance_month * self.mean_instances(i).max(1.0)
-                    + n.cost.per_gb_month * n.spec.memory_gb
-                    + n.cost.per_million * per_s * MONTH_S / 1e6;
+                let cost =
+                    n.cost.per_instance_month * self.mean_instances(i).max(1.0) * n.spec.cost_lanes
+                        + n.cost.per_gb_month * n.spec.memory_gb
+                        + n.cost.per_million * per_s * MONTH_S / 1e6;
                 cost_total += cost;
                 NodeResult {
                     id: n.id.clone(),
@@ -1820,6 +2172,7 @@ impl Engine {
             completion: (completion.total() > 0.0).then(|| pct(&completion)),
             lost: self.lost,
             dead_lettered: self.dead_lettered,
+            retried: self.retried,
             stale_reads: self.stale_reads,
             stale_rate: if self.reads > 0.0 {
                 self.stale_reads / self.reads
@@ -1872,8 +2225,43 @@ impl Engine {
         hits
     }
 
+    /// A chaos zone as written, or `@primary`: the Region holding the current primary of
+    /// the design's main data store (its first SQL cluster, else its first NoSQL one, by
+    /// card id). With no Region around that primary the whole design is the zone (`*`),
+    /// so leaving Regions out can't dodge a region test.
+    fn resolve_zone(&self, zone: &str) -> String {
+        if zone != "@primary" {
+            return zone.to_owned();
+        }
+        let primary = [ComponentKind::Sql, ComponentKind::Nosql]
+            .iter()
+            .find_map(|k| {
+                self.c
+                    .clusters
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, cl)| self.c.nodes[cl.members[0] as usize].kind == *k)
+                    .map(|(i, _)| self.cluster_primary[i])
+                    .min_by(|a, b| {
+                        self.c.nodes[*a as usize]
+                            .id
+                            .cmp(&self.c.nodes[*b as usize].id)
+                    })
+            });
+        primary
+            .and_then(|p| self.c.nodes[p as usize].region)
+            .map_or_else(|| "*".to_owned(), |z| self.c.zones[z as usize].id.clone())
+    }
+
     fn in_zone(&self, node: u32, zone: &str) -> bool {
         let n = &self.c.nodes[node as usize];
+        if zone == "*" {
+            // The whole design, except the cards that stand for the outside world.
+            return !matches!(
+                n.kind,
+                ComponentKind::Client | ComponentKind::Dns | ComponentKind::Cdn
+            );
+        }
         [n.az, n.region].into_iter().flatten().any(|z| {
             let z = &self.c.zones[z as usize];
             z.id == zone || z.label == zone
@@ -1896,8 +2284,9 @@ impl Engine {
                 for_s = *f;
             }
             C::Partition { zone, for_s: f, .. } => {
+                let zone = self.resolve_zone(zone);
                 targets = (0..self.c.nodes.len() as u32)
-                    .filter(|&n| self.in_zone(n, zone))
+                    .filter(|&n| self.in_zone(n, &zone))
                     .collect();
                 for &n in &targets {
                     self.kill(n);
@@ -1927,13 +2316,31 @@ impl Engine {
                 for_s: f,
                 down,
                 add_ms,
+                rate,
                 ..
             } => {
                 if let Some(x) = self.c.externals.iter().position(|x| &x.name == name) {
+                    let sample = self.c.sample;
                     let ext = &mut self.externals[x];
                     ext.down |= *down;
                     ext.add_ms += add_ms.max(0.0);
+                    if let Some(rate) = rate {
+                        let rate = rate.max(0.0);
+                        ext.rate_cut = Some(rate);
+                        ext.tokens = ext.tokens.min((rate * sample).max(1.0));
+                    }
                 }
+                for_s = *f;
+            }
+            C::Split { zone, for_s: f, .. } => {
+                let zone = self.resolve_zone(zone);
+                self.splits.push(SplitRt {
+                    chaos: i,
+                    zone,
+                    since: self.now,
+                    checks: 0,
+                    known: false,
+                });
                 for_s = *f;
             }
             // Traffic is read from the scenario when arrivals are generated.
@@ -1964,7 +2371,11 @@ impl Engine {
                 }
             }
             C::External {
-                name, down, add_ms, ..
+                name,
+                down,
+                add_ms,
+                rate,
+                ..
             } => {
                 if let Some(x) = self.c.externals.iter().position(|x| &x.name == name) {
                     let ext = &mut self.externals[x];
@@ -1972,6 +2383,23 @@ impl Engine {
                         ext.down = false;
                     }
                     ext.add_ms = (ext.add_ms - add_ms.max(0.0)).max(0.0);
+                    if rate.is_some() {
+                        ext.rate_cut = None;
+                    }
+                }
+            }
+            C::Split { .. } => {
+                self.splits.retain(|s| s.chaos != i);
+                // Work held back by the split may move again.
+                for b in 0..self.c.nodes.len() as u32 {
+                    if self.c.nodes[b as usize].spec.role == Role::Broker {
+                        self.try_dispatch(b);
+                    }
+                }
+                for src in 0..self.cdc_backlog.len() as u32 {
+                    if !self.cdc_backlog[src as usize].is_empty() {
+                        self.cdc_flush(src);
+                    }
                 }
             }
             C::Flush { .. } | C::Traffic { .. } => {}
@@ -2029,6 +2457,13 @@ impl Engine {
         ) {
             self.try_dispatch(n);
         }
+        if self.c.nodes[n as usize].kind == ComponentKind::Stream {
+            for src in 0..self.cdc_backlog.len() as u32 {
+                if !self.cdc_backlog[src as usize].is_empty() {
+                    self.cdc_flush(src);
+                }
+            }
+        }
     }
 
     fn flush(&mut self, n: u32) {
@@ -2044,6 +2479,12 @@ impl Engine {
     /// Health checks: a card whose state differs from what routing believes for two checks
     /// in a row is believed (dead cards leave rotation 2-4 s after dying).
     fn health_check(&mut self) {
+        for s in &mut self.splits {
+            if !s.known {
+                s.checks += 1;
+                s.known = s.checks >= HEALTH_CHECKS;
+            }
+        }
         for rt in &mut self.nodes {
             if rt.down != rt.known_down {
                 rt.checks += 1;

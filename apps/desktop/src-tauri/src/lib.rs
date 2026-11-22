@@ -17,6 +17,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use ka_app::guide::{GuidePage, GuideSummary};
 use ka_app::live::FrameSink;
+use ka_app::packs::{PackInfo, PackPreview};
 use ka_app::patterns::{PatternPage, PatternSummary};
 use ka_app::problems::{ProblemBrief, ProblemSummary, Progress, SubmitResult};
 use ka_app::samples::{Sample, SampleSummary};
@@ -52,6 +53,8 @@ const CLOSE_REQUESTED_EVENT: &str = "close-requested";
 
 const KBARCH_FILTER: &str = "KataBox Arch design";
 const KBARCH_EXTENSIONS: &[&str] = &["kbarch"];
+const KBPACK_FILTER: &str = "KataBox Arch problem pack";
+const KBPACK_EXTENSIONS: &[&str] = &["kbpack"];
 
 // --- App and settings -----------------------------------------------------------------
 
@@ -142,6 +145,152 @@ async fn save_design_as(
 #[specta::specta]
 async fn validate_design(state: State<'_, AppState>, design: Design) -> Res<Vec<DesignIssue>> {
     Ok(state.app()?.validate(&design))
+}
+
+/// KataBox practice related to an Arch page (M6.7): titles only.
+#[tauri::command]
+#[specta::specta]
+async fn katabox_links(
+    state: State<'_, AppState>,
+    target: String,
+) -> Res<Vec<ka_core::crosslinks::KataboxLink>> {
+    state.app()?.katabox_links(&target).await
+}
+
+// --- Mermaid export (M6.6) ---------------------------------------------------------------
+
+/// A design as Mermaid text (for Copy). `names`: kind, protocol and group names in the
+/// user's language.
+#[tauri::command]
+#[specta::specta]
+fn mermaid_text(design: Design, names: std::collections::BTreeMap<String, String>) -> String {
+    ka_core::mermaid::to_mermaid(&design, &names)
+}
+
+/// Show the Save dialog and write the design as a `.mmd` file. `None` when cancelled.
+#[tauri::command]
+#[specta::specta]
+async fn save_mermaid(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    design: Design,
+    names: std::collections::BTreeMap<String, String>,
+    suggested_name: String,
+) -> Res<Option<String>> {
+    let svc = state.app()?;
+    use tauri_plugin_dialog::DialogExt;
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .add_filter("Mermaid", &["mmd"])
+            .set_file_name(suggested_name)
+            .blocking_save_file()
+    })
+    .await
+    .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    let Some(path) = picked else {
+        return Ok(None);
+    };
+    let path = path
+        .into_path()
+        .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    Ok(Some(svc.export_mermaid(path, &design, &names)?))
+}
+
+/// Show the Save dialog and write an image export the UI rendered (M7.3). `None` when
+/// cancelled.
+#[tauri::command]
+#[specta::specta]
+async fn save_export(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    format: ka_app::ExportFormat,
+    data: Vec<u8>,
+    suggested_name: String,
+) -> Res<Option<String>> {
+    let svc = state.app()?;
+    if data.len() > ka_app::MAX_EXPORT_BYTES {
+        return Err(AppError::new(
+            AppErrorCode::FileTooLarge,
+            "export too large",
+        ));
+    }
+    use tauri_plugin_dialog::DialogExt;
+    let (name, ext) = match format {
+        ka_app::ExportFormat::Svg => ("SVG image", "svg"),
+        ka_app::ExportFormat::Png => ("PNG image", "png"),
+    };
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .add_filter(name, &[ext])
+            .set_file_name(suggested_name)
+            .blocking_save_file()
+    })
+    .await
+    .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    let Some(path) = picked else {
+        return Ok(None);
+    };
+    let path = path
+        .into_path()
+        .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    Ok(Some(svc.write_export(path, format, &data)?))
+}
+// --- Problem packs (M6.4) ---------------------------------------------------------------
+
+/// Show the Open dialog for a `.kbpack`, then open and check it (nothing is installed
+/// yet). `None` when cancelled.
+#[tauri::command]
+#[specta::specta]
+async fn preview_pack(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Res<Option<PackPreview>> {
+    let svc = state.app()?;
+    use tauri_plugin_dialog::DialogExt;
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .add_filter(KBPACK_FILTER, KBPACK_EXTENSIONS)
+            .blocking_pick_file()
+    })
+    .await
+    .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    let Some(path) = picked else {
+        return Ok(None);
+    };
+    let path = path
+        .into_path()
+        .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    Ok(Some(svc.preview_pack(&path).await?))
+}
+
+/// Install a previewed pack.
+#[tauri::command]
+#[specta::specta]
+async fn apply_pack(state: State<'_, AppState>, token: u32) -> Res<PackInfo> {
+    state.app()?.apply_pack(token).await
+}
+
+/// Drop a previewed pack.
+#[tauri::command]
+#[specta::specta]
+async fn cancel_pack(state: State<'_, AppState>, token: u32) -> Res<()> {
+    state.app()?.cancel_pack(token);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn list_packs(state: State<'_, AppState>) -> Res<Vec<PackInfo>> {
+    state.app()?.list_packs().await
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn uninstall_pack(state: State<'_, AppState>, id: String) -> Res<()> {
+    state.app()?.uninstall_pack(&id).await
 }
 
 async fn pick_file(app: tauri::AppHandle, save_as: Option<String>) -> Res<Option<PathBuf>> {
@@ -292,6 +441,95 @@ async fn decide_flows(state: State<'_, AppState>) -> Res<Vec<ka_core::decide::De
 #[specta::specta]
 async fn glossary(state: State<'_, AppState>) -> Res<Vec<ka_core::decide::GlossaryTerm>> {
     state.app()?.glossary().await
+}
+
+/// The numbers cheat sheet (M5.1).
+#[tauri::command]
+#[specta::specta]
+async fn numbers(state: State<'_, AppState>) -> Res<Vec<ka_core::numbers::NumberFigure>> {
+    state.app()?.numbers().await
+}
+
+/// Estimation drills (all, or one problem's), without their answers.
+#[tauri::command]
+#[specta::specta]
+async fn drills(
+    state: State<'_, AppState>,
+    problem_id: Option<String>,
+) -> Res<Vec<ka_core::estimate::Drill>> {
+    state.app()?.drills(problem_id.as_deref()).await
+}
+
+/// Check an estimate: the verdict, the answer and the worked solution (recorded).
+#[tauri::command]
+#[specta::specta]
+async fn check_estimate(
+    state: State<'_, AppState>,
+    problem_id: String,
+    drill_id: String,
+    answer: f64,
+) -> Res<ka_core::estimate::EstimateCheck> {
+    state
+        .app()?
+        .check_estimate(&problem_id, &drill_id, answer)
+        .await
+}
+
+/// The estimation drills answered so far.
+#[tauri::command]
+#[specta::specta]
+async fn estimate_statuses(state: State<'_, AppState>) -> Res<Vec<ka_store::EstimateStatus>> {
+    state.app()?.estimate_statuses().await
+}
+
+/// The Find-the-flaw drills (each opens as the problem `flaw--<id>`).
+#[tauri::command]
+#[specta::specta]
+async fn list_flaws(state: State<'_, AppState>) -> Res<Vec<ka_core::flaw::FlawSummary>> {
+    state.app()?.list_flaws().await
+}
+
+/// The learning paths with each item's progress (M5.4).
+#[tauri::command]
+#[specta::specta]
+async fn learning_paths(state: State<'_, AppState>) -> Res<Vec<ka_core::paths::PathView>> {
+    state.app()?.paths().await
+}
+
+/// A concept card was played to its end (a learning-path item).
+#[tauri::command]
+#[specta::specta]
+async fn set_concept_played(state: State<'_, AppState>, kind: ka_core::ComponentKind) -> Res<()> {
+    state.app()?.set_concept_played(kind).await
+}
+
+/// A Guide entry's or pattern's quiz (`guide:<kind>` / `pattern:<id>`), without answers.
+#[tauri::command]
+#[specta::specta]
+async fn quiz(state: State<'_, AppState>, page: String) -> Res<Vec<ka_core::quiz::QuizItem>> {
+    state.app()?.quiz(&page).await
+}
+
+/// Answer a quiz question; `today` is the user's local date (`YYYY-MM-DD`).
+#[tauri::command]
+#[specta::specta]
+async fn answer_quiz(
+    state: State<'_, AppState>,
+    question_id: String,
+    choice: u32,
+    today: String,
+) -> Res<ka_core::quiz::QuizResult> {
+    state.app()?.answer_quiz(&question_id, choice, &today).await
+}
+
+/// The questions due for review today (at most 10), in review order.
+#[tauri::command]
+#[specta::specta]
+async fn reviews_due(
+    state: State<'_, AppState>,
+    today: String,
+) -> Res<Vec<ka_core::quiz::QuizItem>> {
+    state.app()?.reviews_due(&today, 10).await
 }
 
 /// The pattern library, in order (each with its template for the preview).
@@ -469,6 +707,16 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         sample,
         decide_flows,
         glossary,
+        numbers,
+        drills,
+        check_estimate,
+        estimate_statuses,
+        list_flaws,
+        learning_paths,
+        set_concept_played,
+        quiz,
+        answer_quiz,
+        reviews_due,
         list_patterns,
         pattern,
         set_pattern_read,
@@ -479,6 +727,15 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         set_window_title,
         set_dirty,
         confirm_close,
+        katabox_links,
+        mermaid_text,
+        save_export,
+        save_mermaid,
+        preview_pack,
+        apply_pack,
+        cancel_pack,
+        list_packs,
+        uninstall_pack,
     ])
 }
 
@@ -558,12 +815,16 @@ fn open_app(handle: &tauri::AppHandle) -> Res<App> {
         .path()
         .resolve("content.db", tauri::path::BaseDirectory::Resource)
         .ok();
+    let data = data_folder(dir);
     let paths = AppPaths {
-        user_db: data_folder(dir).join("user.db"),
+        user_db: data.join("user.db"),
         dev_data: cfg!(debug_assertions),
         content_db,
+        packs_dir: Some(data.join("packs")),
     };
-    tauri::async_runtime::block_on(App::open(paths))
+    let mut app = tauri::async_runtime::block_on(App::open(paths))?;
+    app.set_pack_opener(std::sync::Arc::new(ka_pack::kbpack::Opener));
+    Ok(app)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

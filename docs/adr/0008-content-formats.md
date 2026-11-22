@@ -124,3 +124,17 @@ The arguments are parsed by hand, as in KataBox.
 - **Size.** `content.db` adds a few hundred KB to the bundle; the report records the size at each gate.
 - **Schema changes.** Any new field is a `content.db` schema bump with a round-trip test, by the rules in
   `next-prompt.md`.
+
+## Practice content (M5)
+- **`numbers.toml`:** the numbers cheat sheet. Every figure has a source: a URL, `needed: <URL>` until checked,
+  `arithmetic`, or `simulator` (a figure read from the registry's calibration).
+- **`estimation/<problem-id>.toml`:** back-of-the-envelope drills. Each states its inputs and a formula (numbers,
+  input names, `+ - * / ^` and parentheses only), and `ka-pack` computes the answer, so no answer is typed by hand.
+  A formula must use every input, and every prompt must show every input.
+- **`flaws/<id>/`:** Find-the-flaw drills: `flaw.toml` (story, symptom, target test, explanation, kinds, and a
+  `[scenario]` shaped like a problem's traffic part), three-tier hints in both languages, `broken.kbarch` and
+  `fixed.kbarch`. `validate --run` proves the broken design passes `normal` and fails its target test, and that the
+  fix passes every test. A drill is judged, run, drafted and recorded as the problem `flaw--<id>`, so the Solve page
+  works unchanged.
+- **`content.db` schema 2** stores all of these in one generic `docs (kind, id, json)` table, so new practice
+  content adds rows, not schemas.

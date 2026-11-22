@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Page } from "@/components/Page";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
-import { useProblems, useProgress, useRecentFiles, useSamples } from "@/lib/queries";
+import { usePaths, useProblems, useProgress, useRecentFiles, useReviewsDue, useSamples } from "@/lib/queries";
+import { ItemLink, useActivePath, useItemLabel } from "@/practice/PathsPage";
 import { useFileActions } from "@/solve/files";
 
 // The gallery draws designs with React Flow: load it apart from Home's own code.
@@ -64,16 +65,65 @@ function when(ms: number, lang: string): string {
   return new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" }).format(new Date(ms));
 }
 
-/** Continue the last attempted problem, and the next one to try. Hidden without content. */
+/** Missed quiz questions due today (M5.5): a short review session. */
+function DueForReview() {
+  const { t } = useTranslation();
+  const due = useReviewsDue();
+  const n = due.data?.length ?? 0;
+  if (n === 0) return null;
+  return (
+    <Link
+      to="/review"
+      className="flex flex-col gap-1 rounded-xl border bg-card p-4 shadow-[0_1px_0_var(--desk)] hover:bg-accent/50"
+      data-testid="home-review"
+    >
+      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("home.dueForReview")}</span>
+      <span className="font-semibold">{t("home.dueCount", { count: n })}</span>
+      <span className="text-xs text-muted-foreground">{t("home.dueBody")}</span>
+    </Link>
+  );
+}
+
+/** The next unfinished item of the path the user follows (M5.4), if any. */
+function PathNext() {
+  const { t, i18n } = useTranslation();
+  const active = useActivePath();
+  const paths = usePaths();
+  const label = useItemLabel();
+  const path = paths.data?.find((p) => p.id === active.id);
+  const item = path?.items.find((i) => !i.done);
+  if (!path || !item) return null;
+  const es = i18n.language.startsWith("es");
+  return (
+    <ItemLink
+      item={item}
+      className="flex flex-col gap-1 rounded-xl border bg-card p-4 shadow-[0_1px_0_var(--desk)] hover:bg-accent/50"
+      testId="home-path-next"
+    >
+      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("home.recommended")}</span>
+      <span className="font-semibold">{label(item)}</span>
+      <span className="text-xs text-muted-foreground">
+        {t("home.onPath", { name: es ? path.title_es : path.title, done: path.items.filter((i) => i.done).length, total: path.items.length })}
+      </span>
+    </ItemLink>
+  );
+}
+
+/** Continue the last attempted problem, and the next thing to try: the followed path's next
+ * item, else the next unsolved problem. Hidden without content. */
 function PracticeCards() {
   const { t } = useTranslation();
   const problems = useProblems();
   const progress = useProgress();
+  const active = useActivePath();
+  const paths = usePaths();
   const loc = useLocalized();
   const find = (id: string | null | undefined) => problems.data?.find((p) => p.id === id);
   const cont = find(progress.data?.continue_with);
-  const next = find(progress.data?.recommended);
-  if (!cont && !next) return null;
+  const following = paths.data?.find((p) => p.id === active.id)?.items.some((i) => !i.done) ?? false;
+  const next = following ? undefined : find(progress.data?.recommended);
+  const due = (useReviewsDue().data?.length ?? 0) > 0;
+  if (!cont && !next && !following && !due) return null;
   const card = (p: ProblemSummary, label: string, testId: string) => (
     <Link
       to="/problems/$id"
@@ -95,7 +145,9 @@ function PracticeCards() {
         {t("home.practice")}
       </h2>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
+        <DueForReview />
         {cont && card(cont, t("home.continue"), "home-continue")}
+        {following && <PathNext />}
         {next && next.id !== cont?.id && card(next, t("home.recommended"), "home-recommended")}
       </div>
       {progress.data && (

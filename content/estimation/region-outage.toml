@@ -1,0 +1,34 @@
+# Estimation drills for Survive a Region Outage.
+
+[[drill]]
+id = "cross-region-write"
+kind = "capacity"
+prompt = "An App Server in eu-west takes about {app_ms} ms per request, and the database primary is in us-east. A call between Regions takes {hop_ms} ms each way, and PostgreSQL spends about {db_ms} ms on a write. How long does a write from eu-west take, in ms?"
+prompt_es = "Un App Server en eu-west tarda unos {app_ms} ms por petición, y el primario de la base de datos está en us-east. Una llamada entre Regiones tarda {hop_ms} ms en cada sentido, y PostgreSQL dedica unos {db_ms} ms a una escritura. ¿Cuánto tarda una escritura desde eu-west, en ms?"
+inputs = { app_ms = 5, hop_ms = 70, db_ms = 5 }
+formula = "app_ms + 2 * hop_ms + db_ms"
+unit = "ms"
+solution = "{app_ms} ms + 2 × {hop_ms} ms + {db_ms} ms = {answer} ms. A local read takes about 10 ms. The cross-region writes are about 6.7% of all requests, more than 5%, so the p95 lands on them: still under the 250 ms target, with room for a little queueing."
+solution_es = "{app_ms} ms + 2 × {hop_ms} ms + {db_ms} ms = {answer} ms. Una lectura local tarda unos 10 ms. Las escrituras entre regiones son cerca del 6,7 % de todas las peticiones, más del 5 %, así que el p95 cae en ellas: aun así, por debajo del objetivo de 250 ms, con margen para algo de cola."
+
+[[drill]]
+id = "survivor-load"
+kind = "qps"
+prompt = "The service peaks at {peak_rps} requests a second, spread evenly over {regions} Regions. One Region goes dark and DNS sends its customers to the others. How many requests a second must each surviving Region carry?"
+prompt_es = "El servicio llega a {peak_rps} peticiones por segundo en el pico, repartidas por igual entre {regions} Regiones. Una Región se apaga y DNS manda a sus clientes a las demás. ¿Cuántas peticiones por segundo tiene que llevar cada Región superviviente?"
+inputs = { peak_rps = 6_000, regions = 3 }
+formula = "peak_rps / (regions - 1)"
+unit = "rps"
+solution = "{peak_rps} ÷ ({regions} − 1) = {answer} requests a second, half again what each Region carries on a normal day. Size every Region for that, not for its normal share. With only two Regions, the survivor would have to carry all 6,000."
+solution_es = "{peak_rps} ÷ ({regions} − 1) = {answer} peticiones por segundo, la mitad más de lo que lleva cada Región en un día normal. Dimensiona cada Región para eso, no para su parte normal. Con solo dos Regiones, la superviviente tendría que llevar las 6000."
+
+[[drill]]
+id = "failover-writes"
+kind = "capacity"
+prompt = "The service takes {peak_rps} requests a second and {write_pct}% are writes. The primary's Region goes dark, and a replica takes {failover_s} s to be promoted; reads go on from the replicas meanwhile. How many writes fail before the new primary takes them?"
+prompt_es = "El servicio recibe {peak_rps} peticiones por segundo y el {write_pct} % son escrituras. Se apaga la Región del primario, y una réplica tarda {failover_s} s en pasar a primario; mientras tanto, las lecturas siguen saliendo de las réplicas. ¿Cuántas escrituras fallan antes de que el nuevo primario las acepte?"
+inputs = { peak_rps = 6_000, write_pct = 10, failover_s = 30 }
+formula = "peak_rps * write_pct / 100 * failover_s"
+unit = "count"
+solution = "{write_pct}% of {peak_rps} = 600 writes a second, × {failover_s} s = {answer} failed writes. In a 120-second run of 720,000 requests that is 2.5%; the requests caught in the lost Region before health checks notice add a little more."
+solution_es = "El {write_pct} % de {peak_rps} = 600 escrituras por segundo, × {failover_s} s = {answer} escrituras fallidas. En una ejecución de 120 segundos con 720 000 peticiones, eso es un 2,5 %; las peticiones atrapadas en la Región perdida antes de que los health checks lo detecten suman algo más."

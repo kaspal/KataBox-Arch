@@ -1,0 +1,67 @@
+id = "webhooks"
+number = 18
+set = 2
+difficulty = "easy"
+title = "Webhook Delivery"
+title_es = "Entrega de webhooks"
+teaches = "Retry with backoff long enough to outlast an outage, keep what still fails, and size senders for slow endpoints"
+teaches_es = "Reintentar con espera creciente el tiempo suficiente para superar una caída, guardar lo que aún falla y dimensionar los emisores para endpoints lentos"
+tags = ["queues", "retries", "dlq", "external-providers"]
+
+[nfr]
+peak_rps = 2000
+p95_ms = 5000
+availability = 0.999
+budget_usd = 5000
+
+[[externals]]
+name = "endpoints"
+median_ms = 200
+p99_ms = 2000
+
+[[externals]]
+name = "acme"
+median_ms = 100
+p99_ms = 800
+
+[[request_types]]
+id = "event"
+name = "Deliver an event"
+name_es = "Entregar un evento"
+share = 0.7
+route = ["compute", "broker", "worker", "external:endpoints"]
+measure = "completion"
+
+[[request_types]]
+id = "acme-event"
+name = "Deliver an event to Acme"
+name_es = "Entregar un evento a Acme"
+share = 0.3
+route = ["compute", "broker", "worker", "external:acme"]
+measure = "completion"
+
+[[tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "acme-down"
+name = "Acme's endpoint is down for a minute"
+name_es = "El endpoint de Acme cae durante un minuto"
+hidden = true
+duration_s = 150
+chaos = [{ external = { name = "acme", at = 20, for = 60, down = true } }]
+pass = { p95_ms = 120000 }
+
+[[tests]]
+id = "slow-endpoints"
+name = "Customers' endpoints slow down"
+name_es = "Los endpoints de los clientes se vuelven lentos"
+hidden = true
+chaos = [{ external = { name = "endpoints", at = 15, for = 30, add_ms = 1000 } }]
+pass = { p95_ms = 10000 }
+
+[pass]
+error_rate = 0.01
+lost = 0

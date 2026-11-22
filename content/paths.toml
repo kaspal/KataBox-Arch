@@ -1,0 +1,157 @@
+# Learning paths (M5.4): ordered tracks through the Guide, concept cards, patterns, problems,
+# estimation drills, Find-the-flaw drills and quizzes. Items are `<kind>:<target>`; every one
+# must exist (`ka-pack validate`). Progress comes from what the user has already done.
+
+[[path]]
+id = "foundations"
+number = 1
+title = "Foundations"
+title_es = "Fundamentos"
+blurb = "The pieces almost every design uses: clients, load balancers, app servers, databases, caches and CDNs, and how to tell when each one is the bottleneck."
+blurb_es = "Las piezas que usa casi cualquier diseño: clientes, balanceadores, servidores de aplicaciones, bases de datos, cachés y CDN, y cómo saber cuándo cada una es el cuello de botella."
+items = [
+  "guide:client",
+  "guide:lb",
+  "concept:lb",
+  "guide:app",
+  "concept:app",
+  "guide:sql",
+  "concept:sql",
+  "guide:cache",
+  "concept:cache",
+  "quiz:guide:cache",
+  "pattern:cache-aside",
+  "quiz:pattern:cache-aside",
+  "estimate:url-shortener",
+  "problem:url-shortener",
+  "flaw:cache-no-ttl",
+  "problem:session-store",
+  "problem:feature-flags",
+  "pattern:read-replicas",
+  "flaw:single-primary",
+  "guide:cdn",
+  "concept:cdn",
+  "problem:static-site-cdn",
+  "problem:pastebin",
+]
+
+[[path]]
+id = "async-systems"
+number = 2
+title = "Async systems"
+title_es = "Sistemas asíncronos"
+blurb = "When work doesn't have to happen while someone waits: queues, streams, pub/sub, workers, retries and dead-letter queues."
+blurb_es = "Cuando el trabajo no tiene que hacerse mientras alguien espera: colas, streams, pub/sub, workers, reintentos y colas de mensajes fallidos."
+items = [
+  "guide:queue",
+  "concept:queue",
+  "quiz:guide:queue",
+  "guide:worker",
+  "concept:worker",
+  "flaw:sync-email",
+  "problem:image-thumbnails",
+  "guide:dlq",
+  "concept:dlq",
+  "flaw:missing-dlq",
+  "problem:notifications",
+  "problem:webhooks",
+  "problem:bulk-email",
+  "guide:scheduler",
+  "concept:scheduler",
+  "problem:job-scheduler",
+  "guide:stream",
+  "concept:stream",
+  "problem:page-view-counter",
+  "problem:logs-pipeline",
+  "guide:pubsub",
+  "concept:pubsub",
+  "pattern:fan-out",
+  "pattern:outbox",
+  "pattern:backpressure",
+  "problem:news-feed",
+]
+
+[[path]]
+id = "data-at-scale"
+number = 3
+title = "Data at scale"
+title_es = "Datos a escala"
+blurb = "Choosing and shaping data stores: SQL and NoSQL, search and object storage, replicas, shards and partitions, and the hot keys that break them."
+blurb_es = "Elegir y dar forma a los almacenes de datos: SQL y NoSQL, búsqueda y almacenamiento de objetos, réplicas, shards y particiones, y las claves calientes que los rompen."
+items = [
+  "guide:sql",
+  "pattern:read-replicas",
+  "flaw:replica-reads",
+  "guide:nosql",
+  "concept:nosql",
+  "pattern:sharding",
+  "quiz:pattern:sharding",
+  "flaw:hot-partition",
+  "guide:object",
+  "concept:object",
+  "problem:file-sync",
+  "estimate:pastebin",
+  "guide:search",
+  "concept:search",
+  "problem:marketplace-search",
+  "problem:typeahead",
+  "pattern:cqrs",
+  "problem:payments-ledger",
+  "problem:ad-clicks",
+  "problem:leaderboard",
+  "problem:ride-sharing",
+]
+
+[[path]]
+id = "reliability"
+number = 4
+title = "Reliability"
+title_es = "Fiabilidad"
+blurb = "Keeping a system up when parts fail or traffic misbehaves: failover, rate limits, autoscaling, sizing, and seeing what is going on."
+blurb_es = "Mantener un sistema en pie cuando fallan piezas o el tráfico se porta mal: failover, límites de tasa, autoescalado, dimensionado y ver qué está pasando."
+items = [
+  "guide:ratelimit",
+  "concept:ratelimit",
+  "pattern:rate-limiting",
+  "quiz:pattern:rate-limiting",
+  "flaw:no-rate-limiter",
+  "problem:rate-limiter",
+  "flaw:small-pool",
+  "problem:checkout",
+  "guide:autoscale",
+  "concept:autoscale",
+  "problem:online-judge",
+  "pattern:circuit-breaker",
+  "pattern:saga",
+  "flaw:gold-plated",
+  "problem:region-outage",
+  "guide:metrics",
+  "guide:logs",
+  "guide:tracing",
+  "problem:flash-sale",
+]
+
+[[path]]
+id = "real-time"
+number = 5
+title = "Real-time"
+title_es = "Tiempo real"
+blurb = "Long-lived connections and live data: WebSocket gateways, pub/sub between servers, edge caching, and spikes that arrive all at once."
+blurb_es = "Conexiones de larga duración y datos en vivo: pasarelas WebSocket, pub/sub entre servidores, caché en el borde y picos que llegan de golpe."
+items = [
+  "guide:lb",
+  "guide:gateway",
+  "concept:gateway",
+  "guide:pubsub",
+  "concept:pubsub",
+  "quiz:guide:pubsub",
+  "problem:chat",
+  "problem:collab-docs",
+  "flaw:cdn-on-api",
+  "guide:serverless",
+  "concept:serverless",
+  "problem:video-streaming",
+  "problem:ride-sharing",
+  "problem:flash-sale",
+  "problem:exchange",
+]

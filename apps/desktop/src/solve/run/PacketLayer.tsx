@@ -4,6 +4,11 @@
 // a comet tail; a cache hit is a ring at the far end; a drop is a cross in the danger colour.
 //
 // - Packets live in a fixed ring of typed arrays: nothing is allocated per packet.
+// - Packets read as single requests, not a bead line (M1–M3 review F1): on each connection
+//   and direction a new packet starts only after a gap that keeps dots at least
+//   `MIN_SPACING_PX` apart along the curve, dots skip the protocol chip's stretch of the
+//   curve, and the canvas sits below React Flow's renderer, so chips and cards paint above
+//   the packets.
 // - The animation clock only advances while the run plays and the window is visible, so a
 //   pause freezes the picture and a resume carries on from it.
 // - With reduced motion there are no packets (connections show their throughput instead).
@@ -22,7 +27,13 @@ export const HOP_MS = 600;
 export const EVENT_MS = 450;
 /** Frames arrive about every 33 ms: a frame's packets start spread over that span. */
 const FRAME_MS = 33;
-const RADIUS = 3.5;
+const RADIUS = 2.75;
+/** The closest two dots on one connection may ride, along its curve (flow px). */
+export const MIN_SPACING_PX = 14;
+/** The stretch of the curve (0–1) the protocol chip covers: no dot is drawn there. */
+export const CHIP_GAP: readonly [number, number] = [0.4, 0.6];
+/** Connections a run can have (frame edge indices are u16). */
+const MAX_EDGES = 65536;
 /** Marks drawn per frame: a busy cache hits hundreds of times a second, and its rings would
  * pile up into a blob. A few per frame keep the sparkle; drops get more room. */
 export const MAX_HITS_PER_FRAME = 2;
@@ -35,6 +46,10 @@ export type Ring = {
   start: Float64Array;
   dur: Float32Array;
   head: number;
+  /** Per connection and direction (edge × 2 + reverse): the last accepted start. */
+  lastStart: Float64Array;
+  /** Per connection: the smallest start gap (ms) between two of its dots; 0 = no limit. */
+  gapMs: Float32Array;
 };
 
 export function newRing(): Ring {
@@ -44,7 +59,31 @@ export function newRing(): Ring {
     start: new Float64Array(RING),
     dur: new Float32Array(RING),
     head: 0,
+    lastStart: new Float64Array(2 * MAX_EDGES).fill(-Infinity),
+    gapMs: new Float32Array(MAX_EDGES),
   };
+}
+
+/** The start gap that keeps dots `MIN_SPACING_PX` apart on a curve this long. */
+export function spacingGapMs(lengthPx: number): number {
+  return lengthPx > 0 ? (HOP_MS * MIN_SPACING_PX) / lengthPx : 0;
+}
+
+/** A cubic Bézier's length, from a few chords (good enough for spacing). */
+export function routeLength(r: Route): number {
+  let len = 0;
+  let px = r.p0.x;
+  let py = r.p0.y;
+  for (let k = 1; k <= 12; k++) {
+    const u = k / 12;
+    const v = 1 - u;
+    const x = v * v * v * r.p0.x + 3 * v * v * u * r.p1.x + 3 * v * u * u * r.p2.x + u * u * u * r.p3.x;
+    const y = v * v * v * r.p0.y + 3 * v * v * u * r.p1.y + 3 * v * u * u * r.p2.y + u * u * u * r.p3.y;
+    len += Math.hypot(x - px, y - py);
+    px = x;
+    py = y;
+  }
+  return len;
 }
 
 export function pushFrame(ring: Ring, f: Frame, clock: number) {
@@ -55,10 +94,22 @@ export function pushFrame(ring: Ring, f: Frame, clock: number) {
     const t = f.packetType[i];
     if (t & PACKET_HIT && ++hits > MAX_HITS_PER_FRAME) continue;
     if (t & PACKET_DROP && ++drops > MAX_DROPS_PER_FRAME) continue;
+    const edge = f.packetEdge[i];
+    const start = clock + (f.packetStart[i] / f.windowMs) * FRAME_MS;
+    if (!(t & (PACKET_HIT | PACKET_DROP)) && edge >= 0 && edge < MAX_EDGES) {
+      // Too close behind the last dot on this connection and direction: skip it. Edge labels
+      // still carry the real rate.
+      const gap = ring.gapMs[edge];
+      const lane = 2 * edge + (t & PACKET_REVERSE ? 1 : 0);
+      if (gap > 0) {
+        if (Math.abs(start - ring.lastStart[lane]) < gap) continue;
+        ring.lastStart[lane] = start;
+      }
+    }
     const at = ring.head;
-    ring.edge[at] = f.packetEdge[i];
+    ring.edge[at] = edge;
     ring.type[at] = t;
-    ring.start[at] = clock + (f.packetStart[i] / f.windowMs) * FRAME_MS;
+    ring.start[at] = start;
     ring.dur[at] = t & (PACKET_HIT | PACKET_DROP) ? EVENT_MS : HOP_MS;
     ring.head = (at + 1) % RING;
   }
@@ -119,7 +170,12 @@ export function PacketLayer() {
         const b = e && s.nodeLookup.get(e.target);
         return e && a && b ? routeEdge(nodeRect(a), nodeRect(b), e.data?.slots) : null;
       });
+      routes.forEach((r, i) => {
+        if (i < MAX_EDGES) ring.gapMs[i] = r ? spacingGapMs(routeLength(r)) : 0;
+      });
     };
+    // The spacing needs the routes before the first frame arrives.
+    ensureRoutes();
 
     let cleared = true;
     const draw = () => {
@@ -174,6 +230,8 @@ export function PacketLayer() {
         for (let k = 0; k < tail; k++) {
           let u = ease(Math.max(0, t - k * 0.06));
           if (rev) u = 1 - u;
+          // Leave the protocol chip clear.
+          if (u > CHIP_GAP[0] && u < CHIP_GAP[1]) continue;
           const v = 1 - u;
           // The cubic Bézier, inline (no objects per packet).
           const x = v * v * v * r.p0.x + 3 * v * v * u * r.p1.x + 3 * v * u * u * r.p2.x + u * u * u * r.p3.x;
@@ -217,5 +275,7 @@ export function PacketLayer() {
   }, [store, reduced]);
 
   if (reduced) return null;
-  return <canvas ref={canvasRef} aria-hidden className="pointer-events-none absolute inset-0 z-[4] size-full" data-testid="packet-layer" />;
+  // z-3: under React Flow's renderer (z-4), so chips and cards paint above the packets; above
+  // the pane, which holds the canvas background.
+  return <canvas ref={canvasRef} aria-hidden className="pointer-events-none absolute inset-0 z-[3] size-full" data-testid="packet-layer" />;
 }

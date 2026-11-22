@@ -135,3 +135,30 @@ url = "https://docs.aws.amazon.com/s3/"
 flavour = "gcs"
 title = "Cloud Storage documentation"
 url = "https://cloud.google.com/storage/docs"
+
+[[quiz]]
+q = "Users upload profile photos that are shown on many pages. Where should the photo bytes and the record about each photo live?"
+q_es = "Los usuarios suben fotos de perfil que se muestran en muchas páginas. ¿Dónde deberían ir los bytes de la foto y el registro sobre cada una?"
+options = ["The bytes in a SQL table, next to the user's row", "The bytes in object storage, with a small record in a database that points to them", "Everything in object storage, found by listing keys whenever you need to filter", "The bytes in a cache only, since they are read so often"]
+options_es = ["Los bytes en una tabla SQL, junto a la fila del usuario", "Los bytes en almacenamiento de objetos, con un registro pequeño en una base de datos que apunta a ellos", "Todo en almacenamiento de objetos, buscando por listado de claves cuando haga falta filtrar", "Los bytes solo en una caché, ya que se leen muy a menudo"]
+answer = 1
+why = "Large, write-once bodies belong in object storage, while the small metadata needs queries, so it goes in a database. Blobs in the database slow every query, listing is not a query, and a cache is not durable storage."
+why_es = "Los cuerpos grandes de una sola escritura van en almacenamiento de objetos, y los metadatos pequeños necesitan consultas, así que van en una base de datos. Los blobs en la base de datos ralentizan cada consulta, listar no es consultar y una caché no es almacenamiento duradero."
+
+[[quiz]]
+q = "In the simulator, one Object Storage card serves both tiny text pastes and large videos. How does the object's size affect its service time?"
+q_es = "En el simulador, una tarjeta de almacenamiento de objetos sirve tanto textos diminutos como vídeos grandes. ¿Cómo afecta el tamaño del objeto a su tiempo de servicio?"
+options = ["It grows in proportion to the size, as on a SQL card", "Large objects saturate the card after a few requests", "It doesn't: the time to first byte is the same whatever the size", "Only writes get slower; reads stay the same"]
+options_es = ["Crece en proporción al tamaño, como en una tarjeta SQL", "Los objetos grandes saturan la tarjeta tras unas pocas peticiones", "No le afecta: el tiempo hasta el primer byte es el mismo sea cual sea el tamaño", "Solo se ralentizan las escrituras; las lecturas siguen igual"]
+answer = 2
+why = "The card models time to first byte, which does not grow with the object's size, unlike SQL or NoSQL cards. Its capacity is very large, so it rarely saturates."
+why_es = "La tarjeta modela el tiempo hasta el primer byte, que no crece con el tamaño del objeto, a diferencia de las tarjetas SQL o NoSQL. Su capacidad es muy grande, así que rara vez se satura."
+
+[[quiz]]
+q = "A few popular files are fetched from object storage on every page view. Storage is far from saturated, yet latency and the bill are both higher than you want. What is the best fix?"
+q_es = "Unos pocos ficheros populares se piden al almacenamiento de objetos en cada visita. El almacenamiento está lejos de saturarse, pero la latencia y la factura son más altas de lo que quieres. ¿Cuál es la mejor solución?"
+options = ["Move the files into the SQL database", "Split the files across more buckets", "Route every download through the app servers", "Put a CDN or a cache in front for the hot objects"]
+options_es = ["Mover los ficheros a la base de datos SQL", "Repartir los ficheros entre más buckets", "Pasar cada descarga por los servidores de aplicaciones", "Poner una CDN o una caché delante para los objetos más pedidos"]
+answer = 3
+why = "Each storage request is slower than a cache read and is billed per request, so repeat reads should be answered closer to the user. Capacity is not the problem, and routing bytes through the app only wastes its slots."
+why_es = "Cada petición al almacenamiento es más lenta que una lectura de caché y se cobra por petición, así que las lecturas repetidas deben responderse más cerca del usuario. La capacidad no es el problema, y pasar los bytes por la aplicación solo gasta sus huecos."

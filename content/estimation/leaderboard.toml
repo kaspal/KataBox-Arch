@@ -1,0 +1,23 @@
+# Estimation drills for the Game Leaderboard.
+
+[[drill]]
+id = "score-writes"
+kind = "qps"
+prompt = "{daily_players} people play each day and finish {matches_per_player} matches each; every match ends with one score submitted. The busiest hour runs at {peak_factor}× the daily average. How many score writes a second arrive at peak?"
+prompt_es = "{daily_players} personas juegan cada día y terminan {matches_per_player} partidas cada una; cada partida acaba enviando una puntuación. La hora de más tráfico va a {peak_factor} veces la media diaria. ¿Cuántas escrituras de puntuación por segundo llegan en el pico?"
+inputs = { daily_players = 4_000_000, matches_per_player = 12, peak_factor = 3 }
+formula = "daily_players * matches_per_player / 86400 * peak_factor"
+unit = "rps"
+solution = "{daily_players} × {matches_per_player} = 48 million scores a day. ÷ 86,400 s ≈ 556 a second on average, × {peak_factor} at peak gives about {answer} a second, close to the 20% of 8,000 requests/s in this problem."
+solution_es = "{daily_players} × {matches_per_player} = 48 millones de puntuaciones al día. ÷ 86 400 s ≈ 556 por segundo de media, × {peak_factor} en el pico da unas {answer} por segundo, cerca del 20 % de las 8000 peticiones/s de este problema."
+
+[[drill]]
+id = "sorted-set-memory"
+kind = "storage"
+prompt = "{players} players each have an entry on {boards_per_player} of the leaderboards. One sorted-set entry (player id and score, plus the set's own overhead) takes about {bytes_per_entry} bytes. How much memory do all the boards need, in MB?"
+prompt_es = "{players} jugadores tienen una entrada en {boards_per_player} de las clasificaciones. Una entrada de un conjunto ordenado (id del jugador y puntuación, más lo que añade el propio conjunto) ocupa unos {bytes_per_entry} bytes. ¿Cuánta memoria necesitan todas las clasificaciones, en MB?"
+inputs = { players = 4_000_000, boards_per_player = 2, bytes_per_entry = 100 }
+formula = "players * boards_per_player * bytes_per_entry / 1e6"
+unit = "MB"
+solution = "{players} × {boards_per_player} = 8 million entries. × {bytes_per_entry} B = 800 million bytes, about {answer} MB. All the boards fit in the memory of one cache node, so an in-memory store can be the leaderboard itself; a replica covers restarts."
+solution_es = "{players} × {boards_per_player} = 8 millones de entradas. × {bytes_per_entry} B = 800 millones de bytes, unos {answer} MB. Todas las clasificaciones caben en la memoria de un solo nodo de caché, así que un almacén en memoria puede ser la propia clasificación; una réplica cubre los reinicios."

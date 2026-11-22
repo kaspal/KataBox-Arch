@@ -34,4 +34,7 @@ pub struct PatternEntry {
     /// How much of it the simulator shows ("Fully", "Partly: …"): honest about what is modelled.
     pub in_simulator: String,
     pub in_simulator_es: String,
+    /// Three quick-check questions (M5.5), served without their answers.
+    #[serde(default)]
+    pub quiz: Vec<crate::quiz::QuizQuestion>,
 }

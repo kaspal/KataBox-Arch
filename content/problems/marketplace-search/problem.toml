@@ -1,0 +1,59 @@
+id = "marketplace-search"
+number = 22
+set = 2
+difficulty = "medium"
+title = "Marketplace Search"
+title_es = "Búsqueda en un marketplace"
+teaches = "Serve search from a search engine fed by change data capture, with a cache for the hottest queries"
+teaches_es = "Servir la búsqueda desde un motor de búsqueda alimentado por captura de cambios, con una caché para las consultas más populares"
+tags = ["search", "cdc", "streams", "caching"]
+
+[nfr]
+peak_rps = 5000
+read_ratio = 0.95
+p95_ms = 200
+availability = 0.999
+budget_usd = 2500
+
+[[request_types]]
+id = "search"
+name = "Search listings"
+name_es = "Buscar anuncios"
+share = 0.95
+route = ["edge?", "compute", "cache?", "datastore:search"]
+key_space = 200_000
+key_skew = { zipf = 1.1 }
+value_kb = 8
+
+[[request_types]]
+id = "update"
+name = "Update a listing"
+name_es = "Actualizar un anuncio"
+share = 0.05
+route = ["edge?", "compute", "datastore:write:sql", "cdc", "worker", "datastore:write:search"]
+key_space = 1_000_000
+measure = "completion"
+
+[[tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "reindex"
+name = "A reindex at peak"
+name_es = "Una reindexación en hora punta"
+hidden = true
+chaos = [{ latency = { kind = "search", all = true, add_ms = 30, at = 15, for = 30 } }]
+pass = { p95_ms = 400 }
+
+[[tests]]
+id = "hot-query"
+name = "Everyone searches for the same thing"
+name_es = "Todo el mundo busca lo mismo"
+hidden = true
+key_skew_override = { zipf = 1.5 }
+
+[pass]
+error_rate = 0.001
+lost = 0

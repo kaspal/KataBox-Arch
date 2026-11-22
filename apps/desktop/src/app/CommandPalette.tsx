@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { BookOpen, FilePlus2, FileText, FolderOpen, Gauge, Languages, Monitor, Moon, Save, SaveAll, Sun } from "lucide-react";
+import { BookOpen, Bug, Calculator, CalendarCheck, FilePlus2, Route as RouteIcon, Ruler, FileText, FolderOpen, Gauge, Languages, Monitor, Moon, Save, SaveAll, Sun } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -68,6 +68,26 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
               {t(item.labelKey)}
             </CommandItem>
           ))}
+          <CommandItem value={`page ${t("quiz.reviewTitle")}`} onSelect={() => run(() => void navigate({ to: "/review" }))}>
+            <CalendarCheck aria-hidden />
+            {t("quiz.reviewTitle")}
+          </CommandItem>
+          <CommandItem value={`page ${t("paths.title")}`} onSelect={() => run(() => void navigate({ to: "/paths" }))}>
+            <RouteIcon aria-hidden />
+            {t("paths.title")}
+          </CommandItem>
+          <CommandItem value={`page ${t("numbers.title")}`} onSelect={() => run(() => void navigate({ to: "/numbers" }))}>
+            <Calculator aria-hidden />
+            {t("numbers.title")}
+          </CommandItem>
+          <CommandItem value={`page ${t("estimate.title")}`} onSelect={() => run(() => void navigate({ to: "/estimate", search: {} }))}>
+            <Ruler aria-hidden />
+            {t("estimate.title")}
+          </CommandItem>
+          <CommandItem value={`page ${t("flaws.title")}`} onSelect={() => run(() => void navigate({ to: "/flaws" }))}>
+            <Bug aria-hidden />
+            {t("flaws.title")}
+          </CommandItem>
           {import.meta.env.DEV && (
             <CommandItem value={`page ${t("palette.devPerf")}`} onSelect={() => run(() => void navigate({ to: "/dev/perf" }))}>
               <Gauge aria-hidden />

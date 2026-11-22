@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "job-scheduler-naive",
   "name": "Distributed Job Scheduler (first try)",
   "problem_id": "job-scheduler",
@@ -41,9 +41,7 @@
         "x": 0,
         "y": 340
       },
-      "props": {
-        "instances": 2
-      },
+      "props": {},
       "group_id": null
     },
     {

@@ -78,9 +78,14 @@ note = "With replicas wired by Replicate, how long until one takes over from a d
 note_es = "Con réplicas unidas por Replicate, cuánto tarda una en sustituir a una principal caída."
 
 [[sim]]
+sim = "write_slots"
+note = "How many read slots one write occupies. A DynamoDB partition takes a third as many writes as reads per second, so writes count triple."
+note_es = "Cuántas plazas de lectura ocupa una escritura. Una partición de DynamoDB admite un tercio de escrituras que de lecturas por segundo, así que las escrituras cuentan el triple."
+
+[[sim]]
 cost = "per_instance_month"
-note = "A fixed monthly price per card, whatever the partition count."
-note_es = "Un precio mensual fijo por tarjeta, sea cual sea el número de particiones."
+note = "Priced per partition: a card at its flavour's default partition count costs this; more partitions cost more, fewer cost less."
+note_es = "Se cobra por partición: una tarjeta con el número de particiones por defecto de su sabor cuesta esto; más particiones cuestan más y menos, menos."
 
 [[sim]]
 cost = "per_million"
@@ -158,3 +163,30 @@ url = "https://cassandra.apache.org/doc/latest/"
 flavour = "mongodb"
 title = "MongoDB documentation"
 url = "https://www.mongodb.com/docs/"
+
+[[quiz]]
+q = "The partition key is the country, and 70% of the traffic comes from one country. What does doubling the partitions do?"
+q_es = "La clave de partición es el país, y el 70 % del tráfico viene de un solo país. ¿Qué consigue duplicar las particiones?"
+options = ["It doubles the capacity for that country", "Little: that key always lands on one partition, which stays saturated", "The store splits the hot key over the new partitions by itself", "It turns reads for that country into strong reads"]
+options_es = ["Duplica la capacidad para ese país", "Poco: esa clave siempre cae en una partición, que sigue saturada", "El almacén reparte solo la clave caliente entre las particiones nuevas", "Convierte las lecturas de ese país en lecturas fuertes"]
+answer = 1
+why = "A key always maps to the same partition, so the hottest key sets the real limit. Pick a key with many evenly used values, add a suffix to hot keys, or cache the hot reads."
+why_es = "Una clave siempre va a la misma partición, así que la clave más caliente marca el límite real. Elige una clave con muchos valores usados por igual, añade un sufijo a las claves calientes o cachea las lecturas calientes."
+
+[[quiz]]
+q = "Analysts write new queries every week that join orders, users and products. Is a NoSQL store a good fit for them?"
+q_es = "Los analistas escriben cada semana consultas nuevas que cruzan pedidos, usuarios y productos. ¿Les encaja un almacén NoSQL?"
+options = ["Yes: it scales for any kind of query", "Yes, as long as you add enough partitions", "No: it is built for known key lookups and will not join tables for you"]
+options_es = ["Sí: escala para cualquier tipo de consulta", "Sí, siempre que añadas suficientes particiones", "No: está pensado para accesos por clave conocidos y no cruza tablas por ti"]
+answer = 2
+why = "NoSQL trades joins and flexible queries for scale, and its tables are shaped around queries known up front. Ad hoc joins point to a relational database."
+why_es = "NoSQL cambia los cruces y las consultas flexibles por escala, y sus tablas se diseñan para consultas conocidas de antemano. Los cruces improvisados apuntan a una base de datos relacional."
+
+[[quiz]]
+q = "With eventually consistent reads, a user saves a profile change, reloads and sees the old value. Why?"
+q_es = "Con lecturas eventualmente consistentes, un usuario guarda un cambio en su perfil, recarga y ve el valor antiguo. ¿Por qué?"
+options = ["The read reached a replica that had not caught up with the write yet", "The write was lost and must be sent again", "The profile's partition is hot and returned an error", "The partition key is wrong, so the read went to another table"]
+options_es = ["La lectura llegó a una réplica que aún no había recibido la escritura", "La escritura se perdió y hay que enviarla otra vez", "La partición del perfil está caliente y devolvió un error", "La clave de partición es incorrecta, así que la lectura fue a otra tabla"]
+answer = 0
+why = "Eventual consistency lets replicas lag behind for a moment. Ask for strong reads where it matters, or design the flow so a short delay is harmless."
+why_es = "La consistencia eventual permite que las réplicas vayan un poco por detrás. Pide lecturas fuertes donde importe, o diseña el flujo para que un breve retraso no haga daño."

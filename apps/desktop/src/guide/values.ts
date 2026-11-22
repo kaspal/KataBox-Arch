@@ -33,6 +33,7 @@ export function simValue(t: TFunction, lang: string, spec: KindSpec, flavour: Fl
       case "failover_s":
         return `${num(n)} ${unitName(t, "s")}`;
       case "p99_ratio":
+      case "write_slots":
         return `×${num(n)}`;
       default:
         return num(n);

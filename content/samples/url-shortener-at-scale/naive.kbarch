@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "sample-url-naive",
   "name": "URL Shortener: one database",
   "problem_id": "url-shortener",

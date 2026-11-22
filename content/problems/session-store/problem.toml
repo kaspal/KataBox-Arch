@@ -1,0 +1,58 @@
+id = "session-store"
+number = 17
+set = 2
+difficulty = "easy"
+title = "Session Store"
+title_es = "Almacén de sesiones"
+teaches = "Keep sessions out of the app servers, in a replicated store that survives a failover"
+teaches_es = "Guardar las sesiones fuera de los servidores de aplicación, en un almacén replicado que sobrevive a una conmutación"
+tags = ["caching", "replication", "failover", "stateless"]
+
+[nfr]
+peak_rps = 20000
+p95_ms = 50
+availability = 0.999
+budget_usd = 1500
+
+[[request_types]]
+id = "page"
+name = "Load a signed-in page"
+name_es = "Cargar una página con sesión"
+share = 0.9
+route = ["edge", "compute", "cache"]
+key_space = 2_000_000
+value_kb = 2
+
+[[request_types]]
+id = "login"
+name = "Sign in"
+name_es = "Iniciar sesión"
+share = 0.1
+route = ["edge", "compute", "cache:write"]
+key_space = 2_000_000
+value_kb = 2
+
+[[tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "app-dies"
+name = "An app server dies"
+name_es = "Se cae un servidor de aplicación"
+hidden = true
+chaos = [{ kill = { kind = "app", at = 20 } }]
+pass = { availability = 0.97, error_rate = 0.03, p95_ms = 100 }
+
+[[tests]]
+id = "redis-failover"
+name = "The session store's primary fails"
+name_es = "Falla el primario del almacén de sesiones"
+hidden = true
+duration_s = 120
+chaos = [{ kill = { kind = "cache", role = "primary", at = 20 } }]
+pass = { availability = 0.95, error_rate = 0.05 }
+
+[pass]
+error_rate = 0.001

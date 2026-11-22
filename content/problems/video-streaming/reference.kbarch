@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "video-streaming-reference",
   "name": "Video Streaming (reference)",
   "problem_id": "video-streaming",
@@ -63,9 +63,7 @@
         "x": 0,
         "y": 510
       },
-      "props": {
-        "instances": 2
-      },
+      "props": {},
       "group_id": null
     },
     {

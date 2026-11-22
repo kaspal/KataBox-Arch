@@ -49,7 +49,37 @@ const routeTree = rootRoute.addChildren([
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/glossary",
+    // `?term=<id>`: a glossary link from content prose lands on that term.
+    validateSearch: (s: Record<string, unknown>): { term?: string } =>
+      typeof s.term === "string" && /^[a-z0-9-]{1,64}$/.test(s.term) ? { term: s.term } : {},
     component: lazyRouteComponent(() => import("@/guide/Decide"), "GlossaryPage"),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/numbers",
+    component: lazyRouteComponent(() => import("@/practice/NumbersPage"), "NumbersPage"),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/review",
+    component: lazyRouteComponent(() => import("@/practice/ReviewPage"), "ReviewPage"),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/paths",
+    component: lazyRouteComponent(() => import("@/practice/PathsPage"), "PathsPage"),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/flaws",
+    component: lazyRouteComponent(() => import("@/practice/FlawsPage"), "FlawsPage"),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/estimate",
+    validateSearch: (s: Record<string, unknown>): { problem?: string } =>
+      typeof s.problem === "string" && /^[a-z0-9-]{1,64}$/.test(s.problem) ? { problem: s.problem } : {},
+    component: lazyRouteComponent(() => import("@/practice/EstimatePage"), "EstimatePage"),
   }),
   createRoute({
     getParentRoute: () => rootRoute,

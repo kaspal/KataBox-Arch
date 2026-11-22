@@ -55,3 +55,30 @@ practice = [
 
 in_simulator = "Mostly: pub/sub sends one copy to every subscriber and the message completes when all are done; where a problem has a fan-out size, the work per message grows with it. Ordering and duplicate delivery are not modelled."
 in_simulator_es = "Casi todo: el pub/sub envía una copia a cada suscriptor y el mensaje termina cuando acaban todos; si un problema tiene un tamaño de fan-out, el trabajo por mensaje crece con él. El orden y la entrega duplicada no se modelan."
+
+[[quiz]]
+q = "With fan-out, when can the original request return?"
+q_es = "Con fan-out, ¿cuándo puede volver la petición original?"
+options = ["Only after every subscriber has finished its work", "After the slowest subscriber acknowledges the event", "As soon as the event is published to the topic", "After the publisher has called each consumer directly"]
+options_es = ["Solo cuando cada suscriptor ha terminado su trabajo", "Cuando el suscriptor más lento confirma el evento", "En cuanto el evento se publica en el topic", "Cuando el publicador ha llamado directamente a cada consumidor"]
+answer = 2
+why = "The publisher hands the event to the topic and moves on; each subscriber gets its own copy and works at its own pace, outside the request."
+why_es = "El publicador entrega el evento al topic y sigue; cada suscriptor recibe su propia copia y trabaja a su ritmo, fuera de la petición."
+
+[[quiz]]
+q = "What is the main cost of fan-out?"
+q_es = "¿Cuál es el coste principal del fan-out?"
+options = ["Work multiplies downstream: one event becomes a job per subscriber", "The publisher must change every time a consumer is added", "Every consumer must succeed or the publish is rolled back", "All consumers see the event at exactly the same moment"]
+options_es = ["El trabajo se multiplica aguas abajo: un evento se convierte en un trabajo por suscriptor", "Hay que cambiar al publicador cada vez que se añade un consumidor", "Todos los consumidores deben tener éxito o la publicación se deshace", "Todos los consumidores ven el evento exactamente en el mismo momento"]
+answer = 0
+why = "The publisher stays small, but the cost moves downstream: one event can turn into a large amount of work, and consumers finish at different times."
+why_es = "El publicador sigue siendo pequeño, pero el coste se traslada aguas abajo: un evento puede convertirse en mucho trabajo, y los consumidores terminan en momentos distintos."
+
+[[quiz]]
+q = "In a news feed, why do accounts with huge audiences usually get a hybrid approach?"
+q_es = "En un feed de noticias, ¿por qué las cuentas con audiencias enormes suelen recibir un enfoque híbrido?"
+options = ["Pub/sub cannot deliver to more than one subscriber", "Writing a copy into millions of feeds per post is too expensive, so their posts are merged in at read time", "Their followers do not mind seeing posts late", "The database caches reads for big accounts by itself"]
+options_es = ["El pub/sub no puede entregar a más de un suscriptor", "Escribir una copia en millones de feeds por publicación es demasiado caro, así que sus publicaciones se mezclan al leer", "A sus seguidores no les importa ver las publicaciones tarde", "La base de datos guarda en caché por sí sola las lecturas de las cuentas grandes"]
+answer = 1
+why = "Fan-out on write makes reads cheap but costs one write per follower; for the biggest authors that is too much, so they are merged in at read time instead."
+why_es = "El fan-out en escritura abarata las lecturas pero cuesta una escritura por seguidor; para los autores más grandes es demasiado, así que se mezclan al leer."

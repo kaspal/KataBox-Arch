@@ -8,6 +8,7 @@ import { UI_LANGS, type UiLangCode } from "@/i18n";
 import { CONTRASTS, MOTIONS, THEMES, usePrefs, type ContrastPref, type MotionPref, type ThemePref } from "@/lib/prefs";
 import { useAppInfo } from "@/lib/queries";
 import { useSnap } from "@/lib/settings";
+import { PacksSettings } from "@/packs/PackImport";
 
 const THEME_ICON: Record<ThemePref, typeof Sun> = { system: Monitor, light: Sun, dark: Moon };
 
@@ -126,6 +127,7 @@ export function Settings() {
             </ToggleGroup>
           </Row>
         </Section>
+        <PacksSettings />
         <Section title={t("settings.about")}>
           <Row label={t("settings.version")}>
             <span className="flex items-center gap-2 font-mono text-sm">

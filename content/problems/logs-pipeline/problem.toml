@@ -1,0 +1,59 @@
+id = "logs-pipeline"
+number = 23
+set = 2
+difficulty = "medium"
+title = "Logs & Metrics Pipeline"
+title_es = "Pipeline de logs y métricas"
+teaches = "Ingest through a partitioned stream with spare consumer capacity, so a burst or a rebalance only delays data"
+teaches_es = "Ingerir a través de un stream particionado con capacidad de consumo de sobra, para que un pico o un rebalanceo solo retrasen los datos"
+tags = ["streams", "partitioning", "workers", "object-storage", "search"]
+
+[nfr]
+peak_rps = 1000
+p95_ms = 2000
+availability = 0.999
+budget_usd = 6000
+
+[[request_types]]
+id = "ingest"
+name = "Ship a batch of log lines"
+name_es = "Enviar un lote de líneas de log"
+share = 0.99
+route = ["edge?", "compute", "broker", "worker", "datastore:write:object"]
+key_space = 5_000
+payload_kb = 256
+measure = "completion"
+
+[[request_types]]
+id = "query"
+name = "Search the logs"
+name_es = "Buscar en los logs"
+share = 0.01
+route = ["edge?", "compute", "datastore:search"]
+key_space = 100_000
+
+[[tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "ingest-surge"
+name = "An incident triples the logs"
+name_es = "Un incidente triplica los logs"
+hidden = true
+traffic = { spike = { at = 20, x = 3, for = 10 } }
+pass = { p95_ms = 15000 }
+
+[[tests]]
+id = "rebalance"
+name = "A consumer dies and the group rebalances"
+name_es = "Cae un consumidor y el grupo se rebalancea"
+hidden = true
+duration_s = 120
+chaos = [{ kill = { kind = "worker", at = 20 } }]
+pass = { p95_ms = 15000 }
+
+[pass]
+error_rate = 0.001
+lost = 0

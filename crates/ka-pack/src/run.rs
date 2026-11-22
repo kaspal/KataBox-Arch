@@ -12,14 +12,24 @@ pub fn summary(j: &Judgement) -> String {
         .iter()
         .map(|t| {
             format!(
-                "{}{}: {:?} (p95 {:.1} ms, errors {:.3}%, lost {:.0}, cost ${:.0})",
+                "{}{}: {:?} (p95 {:.1} ms{}, errors {:.3}%, lost {:.0}, cost ${:.0}{})",
                 t.id,
                 if t.hidden { " [hidden]" } else { "" },
                 t.verdict,
                 t.p95_ms,
+                if t.limits.p99_ms.is_some() {
+                    format!(", p99 {:.1} ms", t.p99_ms)
+                } else {
+                    String::new()
+                },
                 t.error_rate * 100.0,
                 t.lost,
-                t.cost_month
+                t.cost_month,
+                if t.stale_rate > 0.0 {
+                    format!(", stale {:.2}%", t.stale_rate * 100.0)
+                } else {
+                    String::new()
+                }
             )
         })
         .collect::<Vec<_>>()
@@ -38,6 +48,25 @@ pub fn check_problem(p: &ProblemDir, registry: &Registry) -> (Vec<Issue>, Judgem
             format!("must be Accepted on every test: {}", summary(&reference)),
         ));
     }
+    // A p99 limit needs enough completions to be measured (review A4).
+    for t in &p.def.tests {
+        if p.def.pass_for(t).p99_ms.is_none() {
+            continue;
+        }
+        if let Ok(r) = ka_judge::run_test(&p.def, t, &p.reference, registry)
+            && !ka_judge::p99_judged(&r)
+        {
+            issues.push(issue(
+                format!("{}/problem.toml", p.dir),
+                format!(
+                    "test {}: a p99 limit needs at least {} completed requests; the reference completes {:.0}",
+                    t.id,
+                    ka_core::scenario::P99_MIN_SAMPLES,
+                    ka_judge::simulated_completions(&r)
+                ),
+            ));
+        }
+    }
     let naive = judge(&p.def, &p.naive, registry, reference.cost_month);
     if naive.verdict == Verdict::InvalidDesign {
         issues.push(issue(
@@ -55,6 +84,14 @@ pub fn check_problem(p: &ProblemDir, registry: &Registry) -> (Vec<Issue>, Judgem
         ));
     }
     (issues, reference, naive)
+}
+
+/// [`check_problem`] over every problem, printing nothing (packs, M6.4).
+pub fn run_checks_quiet(problems: &[ProblemDir], registry: &Registry) -> Vec<Issue> {
+    problems
+        .iter()
+        .flat_map(|p| check_problem(p, registry).0)
+        .collect()
 }
 
 pub fn run_checks(problems: &[ProblemDir], registry: &Registry, verbose: bool) -> Vec<Issue> {

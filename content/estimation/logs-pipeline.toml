@@ -1,0 +1,34 @@
+# Estimation drills for the Logs & Metrics Pipeline.
+
+[[drill]]
+id = "ingest-bandwidth"
+kind = "bandwidth"
+prompt = "At peak, services ship {batches_per_s} batches of log lines a second, and each batch is {batch_kb} KB. How much data a second flows into the pipeline, in MB/s?"
+prompt_es = "En el pico, los servicios envían {batches_per_s} lotes de líneas de log por segundo, y cada lote ocupa {batch_kb} KB. ¿Cuántos datos por segundo entran en el pipeline, en MB/s?"
+inputs = { batches_per_s = 990, batch_kb = 256 }
+formula = "batches_per_s * batch_kb / 1000"
+unit = "MB/s"
+solution = "{batches_per_s} × {batch_kb} KB = 253,440 KB a second, about {answer} MB/s, or roughly 2 Gbps. Every byte passes through the Collector, the stream and a Shipper on its way to the archive, so this is the flow each stage must carry, and an incident triples it."
+solution_es = "{batches_per_s} × {batch_kb} KB = 253 440 KB por segundo, unos {answer} MB/s, o aproximadamente 2 Gbps. Cada byte pasa por la Collector, el stream y un Shipper camino del archivo, así que este es el flujo que debe aguantar cada etapa, y un incidente lo triplica."
+
+[[drill]]
+id = "archive-per-day"
+kind = "storage"
+prompt = "Services ship {batches_per_s} batches a second of {batch_kb} KB each, and you assume that rate around the clock. How much does the archive grow in a day, in TB?"
+prompt_es = "Los servicios envían {batches_per_s} lotes por segundo de {batch_kb} KB cada uno, y supones ese ritmo durante todo el día. ¿Cuánto crece el archivo en un día, en TB?"
+inputs = { batches_per_s = 990, batch_kb = 256 }
+formula = "batches_per_s * batch_kb * 86400 / 1e9"
+unit = "TB"
+solution = "{batches_per_s} × {batch_kb} KB ≈ 253 MB a second. × 86,400 s ≈ 21.9 million MB, about {answer} TB a day before compression. Only object storage grows like that at a sensible price, and a retention policy has to delete old logs sooner or later."
+solution_es = "{batches_per_s} × {batch_kb} KB ≈ 253 MB por segundo. × 86 400 s ≈ 21,9 millones de MB, unos {answer} TB al día antes de comprimir. Solo el almacenamiento de objetos crece así a un precio razonable, y tarde o temprano una política de retención tiene que borrar los logs antiguos."
+
+[[drill]]
+id = "surge-backlog"
+kind = "capacity"
+prompt = "A stream with {partitions} partitions hands out one batch per partition at a time, and archiving a batch takes about {archive_ms} ms. During an incident, {surge_per_s} batches a second arrive for {surge_s} seconds. How many batches pile up in the stream by the end of the surge?"
+prompt_es = "Un stream con {partitions} particiones entrega un lote por partición cada vez, y archivar un lote lleva unos {archive_ms} ms. Durante un incidente llegan {surge_per_s} lotes por segundo durante {surge_s} segundos. ¿Cuántos lotes se acumulan en el stream al final del pico?"
+inputs = { partitions = 128, archive_ms = 65, surge_per_s = 2_970, surge_s = 10 }
+formula = "(surge_per_s - partitions * 1000 / archive_ms) * surge_s"
+unit = "count"
+solution = "One partition archives 1,000 ÷ {archive_ms} ≈ 15 batches a second, so {partitions} partitions archive about 1,969 a second. {surge_per_s} arrive, about 1,000 a second too many, × {surge_s} s ≈ {answer} batches waiting. After the surge, 990 arrive and 1,969 can leave, so the backlog clears in about 10 seconds. With 96 partitions the ceiling is about 1,477 a second: a backlog half as large again, cleared at only about 490 a second."
+solution_es = "Una partición archiva 1000 ÷ {archive_ms} ≈ 15 lotes por segundo, así que {partitions} particiones archivan unos 1969 por segundo. Llegan {surge_per_s}, unos 1000 por segundo de más, × {surge_s} s ≈ {answer} lotes esperando. Tras el pico llegan 990 y pueden salir 1969, así que el atasco se vacía en unos 10 segundos. Con 96 particiones el techo ronda los 1477 por segundo: un atasco la mitad más grande, que se vacía a solo unos 490 por segundo."

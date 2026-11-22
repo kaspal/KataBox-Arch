@@ -10,7 +10,7 @@ A dead provider changes the sums. Each call to it fails only after a 1 s connect
 
 The Notify API runs on 2 Go instances and publishes to an SQS Queue with max_retries set to 10. A Dead-letter Queue is wired from that queue. 32 Celery Senders, each with a concurrency of 32, consume it: 1,024 slots in all. This costs about $4,001 per month.
 
-"The email provider goes down" stops email for 40 seconds, starting at 15 seconds. It allows half the requests to error and a p95 of 60 seconds, but no lost messages. Retries come after 1, 2, 4, 8, 16 and 32 seconds, which outlasts the outage, so the emails go through once the provider is back. Anything that still failed would land in the Dead-letter Queue. "A marketing blast" sends 5 times the traffic for 10 seconds and allows a p95 of 15 seconds; this design clears it with a p95 of about 1.2 seconds.
+"The email provider goes down" stops email for 40 seconds, starting at 15 seconds. It allows a p95 of 60 seconds and no lost messages. Failed sends that are retried aren't errors (the notification is still on its way); Results counts them separately as retried attempts. Retries come after 1, 2, 4, 8, 16 and 32 seconds, which outlasts the outage, so the emails go through once the provider is back. Anything that still failed would land in the Dead-letter Queue. "A marketing blast" sends 5 times the traffic for 10 seconds and allows a p95 of 15 seconds; this design clears it with a p95 of about 1.2 seconds.
 
 ## Why the first try breaks
 

@@ -1,0 +1,34 @@
+# Estimation drills for Image Thumbnails.
+
+[[drill]]
+id = "upload-bandwidth"
+kind = "bandwidth"
+prompt = "At peak, people upload {uploads_per_s} photos a second, each about {photo_mb} MB. How much data a second flows into object storage just for the originals, in MB/s?"
+prompt_es = "En el pico, la gente sube {uploads_per_s} fotos por segundo, de unos {photo_mb} MB cada una. ¿Cuántos datos por segundo entran en el almacenamiento de objetos solo con los originales, en MB/s?"
+inputs = { uploads_per_s = 300, photo_mb = 2 }
+formula = "uploads_per_s * photo_mb"
+unit = "MB/s"
+solution = "{uploads_per_s} × {photo_mb} MB = {answer} MB/s, close to 5 Gbps. That is fine for object storage, which is built for it, but it is a lot to push through a single app server's memory, so the Upload API stores the photo and hands the rest of the work to a queue."
+solution_es = "{uploads_per_s} × {photo_mb} MB = {answer} MB/s, cerca de 5 Gbps. Para el almacenamiento de objetos no es problema, está hecho para eso, pero es mucho para pasarlo por la memoria de un solo servidor de aplicaciones; por eso la Upload API guarda la foto y le pasa el resto del trabajo a una cola."
+
+[[drill]]
+id = "worker-slots"
+kind = "capacity"
+prompt = "Thumbnail jobs arrive at {jobs_per_s} a second. Each one holds a Worker slot for {resize_ms} ms of resizing plus {write_ms} ms to write the thumbnails. How many Worker slots are busy at once, on average?"
+prompt_es = "Los trabajos de miniatura llegan a {jobs_per_s} por segundo. Cada uno ocupa un hueco de Worker {resize_ms} ms para redimensionar más {write_ms} ms para escribir las miniaturas. ¿Cuántos huecos de Worker hay ocupados a la vez, de media?"
+inputs = { jobs_per_s = 300, resize_ms = 200, write_ms = 50 }
+formula = "jobs_per_s * (resize_ms + write_ms) / 1000"
+unit = "count"
+solution = "Slots in use = arrival rate × time per job. {jobs_per_s} × 0.25 s = {answer} slots. That is the floor: bursts and slow jobs need more, and if one Worker card can crash, the cards left must still have that many."
+solution_es = "Huecos ocupados = ritmo de llegada × tiempo por trabajo. {jobs_per_s} × 0,25 s = {answer} huecos. Eso es el mínimo: las avalanchas y los trabajos lentos piden más, y si una tarjeta de Workers puede caer, las que quedan tienen que seguir teniendo esa cantidad."
+
+[[drill]]
+id = "crash-backlog"
+kind = "capacity"
+prompt = "Uploads arrive at {jobs_per_s} jobs a second, and the only Worker card is down for {down_s} s. When it comes back it can finish {capacity_per_s} jobs a second. How many seconds does it take to clear the backlog after it returns?"
+prompt_es = "Las subidas llegan a {jobs_per_s} trabajos por segundo, y la única tarjeta de Workers está caída {down_s} s. Cuando vuelve puede terminar {capacity_per_s} trabajos por segundo. ¿Cuántos segundos tarda en vaciar la cola acumulada desde que vuelve?"
+inputs = { jobs_per_s = 300, down_s = 30, capacity_per_s = 512 }
+formula = "jobs_per_s * down_s / (capacity_per_s - jobs_per_s)"
+unit = "s"
+solution = "{jobs_per_s} × {down_s} s = 9,000 jobs pile up. New jobs keep arriving, so only {capacity_per_s} − {jobs_per_s} = 212 a second go to the backlog: 9,000 ÷ 212 ≈ {answer} s. Jobs that waited through the outage and the drain finish a minute or so late, which is why a second Worker card is cheaper than spare capacity on one."
+solution_es = "{jobs_per_s} × {down_s} s = 9000 trabajos acumulados. Siguen llegando trabajos nuevos, así que solo {capacity_per_s} − {jobs_per_s} = 212 por segundo van a la cola acumulada: 9000 ÷ 212 ≈ {answer} s. Los trabajos que esperaron la caída y el vaciado terminan un minuto o así tarde; por eso una segunda tarjeta de Workers sale más barata que margen de sobra en una sola."

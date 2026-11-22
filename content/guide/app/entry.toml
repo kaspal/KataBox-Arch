@@ -147,3 +147,30 @@ url = "https://go.dev/doc/"
 flavour = "django"
 title = "Django documentation"
 url = "https://docs.djangoproject.com/"
+
+[[quiz]]
+q = "The database behind your app servers slows from 10 ms to 200 ms per query, while the app's own work stays the same. What happens to the app tier?"
+q_es = "La base de datos detrás de tus servidores de aplicación pasa de 10 ms a 200 ms por consulta, mientras el trabajo propio de la aplicación sigue igual. ¿Qué le pasa a la capa de aplicación?"
+options = ["Nothing: its own work has not changed, so neither has its capacity", "Its slots stay busy while they wait, so requests queue and then get dropped", "The load balancer sends the extra requests straight to the database", "It gets faster, because it has less work of its own to do"]
+options_es = ["Nada: su trabajo propio no ha cambiado, así que su capacidad tampoco", "Sus huecos siguen ocupados mientras esperan, así que las peticiones se encolan y luego se descartan", "El balanceador manda las peticiones de más directamente a la base de datos", "Va más rápida, porque tiene menos trabajo propio"]
+answer = 1
+why = "A request keeps its slot until every downstream call answers. A slower database means each slot is held longer, so the same instances serve fewer requests per second."
+why_es = "Una petición conserva su hueco hasta que responden todas sus llamadas. Una base de datos más lenta hace que cada hueco se ocupe más tiempo, así que las mismas instancias sirven menos peticiones por segundo."
+
+[[quiz]]
+q = "Your app servers keep each user's shopping cart in their own memory. What is the main problem?"
+q_es = "Tus servidores de aplicación guardan el carrito de cada usuario en su propia memoria. ¿Cuál es el problema principal?"
+options = ["Each request takes longer to process", "The load balancer cannot reach instances that hold state", "Carts are lost when that instance dies, and each user is tied to one instance", "The price of each instance goes up"]
+options_es = ["Cada petición tarda más en procesarse", "El balanceador no puede llegar a las instancias que guardan estado", "Los carritos se pierden cuando cae esa instancia, y cada usuario queda atado a una instancia", "Sube el precio de cada instancia"]
+answer = 2
+why = "Stateful instances lose data when they fail and stop any instance from serving any request. Keep the state in a cache or a database so the app tier stays stateless."
+why_es = "Las instancias con estado pierden datos cuando fallan e impiden que cualquier instancia sirva cualquier petición. Guarda el estado en una caché o una base de datos para que la capa de aplicación siga sin estado."
+
+[[quiz]]
+q = "Which of these jobs does NOT belong on the app servers?"
+q_es = "¿Cuál de estos trabajos NO corresponde a los servidores de aplicación?"
+options = ["Checking an order and writing it to the database", "Joining data from a cache and another service to build a page", "Deciding whether a user may see a record", "Serving the same images and scripts to every visitor"]
+options_es = ["Comprobar un pedido y escribirlo en la base de datos", "Juntar datos de una caché y de otro servicio para montar una página", "Decidir si un usuario puede ver un registro", "Servir las mismas imágenes y scripts a todos los visitantes"]
+answer = 3
+why = "Static files need no logic, so they are better served from a CDN or object storage. The other jobs need checks, joins or decisions, which is what app servers are for."
+why_es = "Los ficheros estáticos no necesitan lógica, así que es mejor servirlos desde una CDN o un almacenamiento de objetos. Los otros trabajos necesitan comprobaciones, cruces o decisiones, que es para lo que están los servidores de aplicación."

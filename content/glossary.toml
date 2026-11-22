@@ -96,7 +96,7 @@ see = "dlq"
 [[term]]
 id = "visibility-timeout"
 term = "Visibility timeout"
-term_es = "Tiempo de invisibilidad"
+term_es = "Tiempo de espera de visibilidad"
 definition = "While a consumer works on a message, the queue hides it from the others. If the consumer has not confirmed it when this time runs out, the message comes back for another try."
 definition_es = "Mientras un consumidor trabaja en un mensaje, la cola lo oculta a los demás. Si el consumidor no lo ha confirmado cuando se agota este tiempo, el mensaje vuelve para otro intento."
 see = "queue"

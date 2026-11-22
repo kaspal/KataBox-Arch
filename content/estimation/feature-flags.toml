@@ -1,0 +1,34 @@
+# Estimation drills for Feature Flags.
+
+[[drill]]
+id = "db-members-without-cache"
+kind = "servers"
+prompt = "The service peaks at {peak_rps} requests a second, {read_pct}% of them flag reads. With no cache, every read is a database query. One PostgreSQL member works {concurrency} queries at a time at {query_ms} ms each. How many members would the reads alone need?"
+prompt_es = "El servicio llega a {peak_rps} peticiones por segundo en el pico, el {read_pct} % lecturas de flags. Sin caché, cada lectura es una consulta a la base de datos. Un miembro de PostgreSQL trabaja con {concurrency} consultas a la vez a {query_ms} ms cada una. ¿Cuántos miembros necesitarían solo las lecturas?"
+inputs = { peak_rps = 60_000, read_pct = 99.9, concurrency = 100, query_ms = 5 }
+formula = "peak_rps * read_pct / 100 / (concurrency * 1000 / query_ms)"
+unit = "count"
+solution = "One member handles {concurrency} ÷ 0.005 s = 20,000 queries a second. The reads are about 59,940 a second, so 59,940 ÷ 20,000 ≈ {answer} members running flat out, and more for headroom. A primary and one replica are not enough; a cache is the cheaper fix."
+solution_es = "Un miembro atiende {concurrency} ÷ 0,005 s = 20 000 consultas por segundo. Las lecturas son unas 59 940 por segundo, así que 59 940 ÷ 20 000 ≈ {answer} miembros a plena carga, y más con margen. Una principal y una réplica no bastan; una caché es el arreglo más barato."
+
+[[drill]]
+id = "misses-to-db"
+kind = "qps"
+prompt = "Flag reads arrive at {read_rps} a second, and a cache in front of the database answers {hit_pct}% of them. How many reads a second still reach the database?"
+prompt_es = "Las lecturas de flags llegan a {read_rps} por segundo, y una caché delante de la base de datos responde el {hit_pct} % de ellas. ¿Cuántas lecturas por segundo siguen llegando a la base de datos?"
+inputs = { read_rps = 59_940, hit_pct = 98 }
+formula = "read_rps * (100 - hit_pct) / 100"
+unit = "rps"
+solution = "Only the misses go on: {read_rps} × (100 − {hit_pct})% ≈ {answer} a second, a small fraction of one PostgreSQL member's 20,000. A shorter TTL lowers the hit rate and sends more; a longer one sends fewer but keeps old values around longer."
+solution_es = "Solo siguen adelante los fallos de caché: {read_rps} × (100 − {hit_pct}) % ≈ {answer} por segundo, una parte pequeña de las 20 000 de un miembro de PostgreSQL. Un TTL más corto baja la tasa de aciertos y envía más; uno más largo envía menos, pero conserva valores antiguos durante más tiempo."
+
+[[drill]]
+id = "flip-interval"
+kind = "capacity"
+prompt = "At peak {peak_rps} requests a second arrive, and {flip_pct}% of them flip a flag, spread evenly over {flags} flags. On average, how many seconds pass between two flips of the same flag?"
+prompt_es = "En el pico llegan {peak_rps} peticiones por segundo, y el {flip_pct} % cambia un flag, repartidas por igual entre {flags} flags. De media, ¿cuántos segundos pasan entre dos cambios del mismo flag?"
+inputs = { peak_rps = 60_000, flip_pct = 0.1, flags = 20_000 }
+formula = "flags / (peak_rps * flip_pct / 100)"
+unit = "s"
+solution = "{flip_pct}% of {peak_rps} = 60 flips a second. {flags} ÷ 60 ≈ {answer} seconds between flips of one flag. A 3 s TTL is tiny next to that, so few reads see an old value; a 300 s TTL is about as long, so many would."
+solution_es = "El {flip_pct} % de {peak_rps} = 60 cambios por segundo. {flags} ÷ 60 ≈ {answer} segundos entre cambios de un mismo flag. Un TTL de 3 s es minúsculo a su lado, así que pocas lecturas ven un valor antiguo; uno de 300 s dura casi lo mismo, así que muchas lo verían."

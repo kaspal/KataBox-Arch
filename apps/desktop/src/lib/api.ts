@@ -16,6 +16,14 @@ import {
   type GuideSummary,
   type DecideFlow,
   type GlossaryTerm,
+  type NumberFigure,
+  type Drill,
+  type EstimateCheck,
+  type EstimateStatus,
+  type FlawSummary,
+  type PathView,
+  type QuizItem,
+  type QuizResult,
   type PatternPage,
   type PatternSummary,
   type Sample,
@@ -35,6 +43,10 @@ import {
   type RunInfo,
   type RunResult,
   type SandboxPreset,
+  ExportFormat,
+  KataboxLink,
+  PackInfo,
+  PackPreview,
 } from "@/bindings";
 
 export async function call<T>(p: Promise<Result<T, AppError>>): Promise<T> {
@@ -117,6 +129,41 @@ export const api = {
   /** The "Which one do I need?" decision guides, in order. */
   decideFlows: (): Promise<DecideFlow[]> => call(commands.decideFlows()),
   glossary: (): Promise<GlossaryTerm[]> => call(commands.glossary()),
+  /** The numbers cheat sheet, in sheet order. */
+  numbers: (): Promise<NumberFigure[]> => call(commands.numbers()),
+  /** Estimation drills (every problem's, or one problem's), without their answers. */
+  drills: (problemId?: string): Promise<Drill[]> => call(commands.drills(problemId ?? null)),
+  /** Judge an estimate (recorded) and reveal the answer with its worked solution. */
+  checkEstimate: (problemId: string, drillId: string, answer: number): Promise<EstimateCheck> =>
+    call(commands.checkEstimate(problemId, drillId, answer)),
+  estimateStatuses: (): Promise<EstimateStatus[]> => call(commands.estimateStatuses()),
+  /** The Find-the-flaw drills (each opens as the problem `flaw--<id>`). */
+  listFlaws: (): Promise<FlawSummary[]> => call(commands.listFlaws()),
+  /** The learning paths, each item with its progress. */
+  learningPaths: (): Promise<PathView[]> => call(commands.learningPaths()),
+  /** A page's quiz (`guide:<kind>` / `pattern:<id>`), without answers. */
+  quiz: (page: string): Promise<QuizItem[]> => call(commands.quiz(page)),
+  /** Answer a question (the option's index); `today` is the local date, YYYY-MM-DD. */
+  answerQuiz: (questionId: string, choice: number, today: string): Promise<QuizResult> => call(commands.answerQuiz(questionId, choice, today)),
+  /** Today's review questions (at most 10), in review order. */
+  reviewsDue: (today: string): Promise<QuizItem[]> => call(commands.reviewsDue(today)),
+  // KataBox practice related to an Arch page (M6.7): `guide:<kind>`, `pattern:<id>`, `problem:<id>`.
+  kataboxLinks: (target: string): Promise<KataboxLink[]> => call(commands.kataboxLinks(target)),
+  // Mermaid export (M6.6): names are kind, protocol and group names in the user's language.
+  mermaidText: (design: Design, names: Record<string, string>): Promise<string> => commands.mermaidText(design, names),
+  saveMermaid: (design: Design, names: Record<string, string>, suggestedName: string): Promise<string | null> =>
+    call(commands.saveMermaid(design, names, suggestedName)),
+  // Image export (M7.3): the bytes the UI rendered; Rust opens the Save dialog. null when cancelled.
+  saveExport: (format: ExportFormat, data: Uint8Array, suggestedName: string): Promise<string | null> =>
+    call(commands.saveExport(format, Array.from(data), suggestedName)),
+  // Problem packs (M6.4): Rust opens the file dialog; null when cancelled.
+  previewPack: (): Promise<PackPreview | null> => call(commands.previewPack()),
+  applyPack: (token: number): Promise<PackInfo> => call(commands.applyPack(token)),
+  cancelPack: (token: number): Promise<null> => call(commands.cancelPack(token)),
+  listPacks: (): Promise<PackInfo[]> => call(commands.listPacks()),
+  uninstallPack: (id: string): Promise<null> => call(commands.uninstallPack(id)),
+  /** A concept card was played to its end. */
+  setConceptPlayed: (kind: ComponentKind): Promise<void> => call(commands.setConceptPlayed(kind)).then(() => undefined),
   /** The pattern library, in order, each with its template. */
   listPatterns: (): Promise<PatternSummary[]> => call(commands.listPatterns()),
   pattern: (id: string): Promise<PatternPage> => call(commands.pattern(id)),

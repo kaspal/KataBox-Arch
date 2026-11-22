@@ -1,0 +1,42 @@
+id = "hot-partition"
+number = 4
+title = "One partition does all the work"
+title_es = "Una partición hace todo el trabajo"
+story = "A social app keeps user profiles in DynamoDB, spread over eight partitions by user id."
+story_es = "Una app social guarda los perfiles en DynamoDB, repartidos en ocho particiones por id de usuario."
+symptom = "When a celebrity joins and everyone opens their profile, the app slows to a crawl, although the database looks mostly idle."
+symptom_es = "Cuando una celebridad se une y todo el mundo abre su perfil, la app va a paso de tortuga, aunque la base de datos parece casi ociosa."
+target_test = "celebrity-day"
+explanation = "One key always lands on one partition, so one wildly popular profile sends most reads to a single partition while the other seven idle. More partitions don't help a single key. A cache in front answers the hot key from memory, so the partition only sees the misses."
+explanation_es = "Una clave cae siempre en la misma partición, así que un perfil popularísimo manda casi todas las lecturas a una sola partición mientras las otras siete esperan. Más particiones no ayudan a una sola clave. Una caché delante responde la clave caliente desde memoria, y la partición solo ve los fallos."
+kinds = ["nosql", "cache"]
+
+[[scenario.tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[scenario.nfr]
+peak_rps = 6000
+p95_ms = 40
+availability = 0.999
+budget_usd = 12000
+
+[[scenario.request_types]]
+id = "profile"
+name = "Open a profile"
+name_es = "Abrir un perfil"
+share = 1.0
+route = ["compute", "cache?", "datastore:nosql"]
+key_space = 1000000
+key_skew = { zipf = 1.0 }
+
+[[scenario.tests]]
+id = "celebrity-day"
+name = "A celebrity joins"
+name_es = "Llega una celebridad"
+key_skew_override = { zipf = 1.6 }
+
+[scenario.pass]
+p95_ms = 40
+error_rate = 0.001
