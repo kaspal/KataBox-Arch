@@ -115,6 +115,7 @@ export function createFakeApi(opts: FakeOptions = {}) {
         first_failure: { node: design.nodes[design.nodes.length - 1]?.id ?? "x", reason: "saturated" as const, at_s: 4, utilisation: 0.97 },
         failing_p95_ms: 480,
         failing_error_rate: 0.02,
+        stale_rate: 0.012,
         runs: 14,
       };
     }),

@@ -426,7 +426,8 @@
     "busiest": "Busiest components",
     "down": "down",
     "sampled": "Simulating {{pct}}% of requests; counts are scaled back up.",
-    "p95Trend": "p95 latency per second"
+    "p95Trend": "p95 latency per second",
+    "stale": "Stale reads"
   },
   "breaking": {
     "title": "Breaking point",
@@ -440,6 +441,7 @@
     },
     "latencyOnly": "Latency gives way first (p95 {{p95}} ms) without any card saturating.",
     "stale": "The design has changed since; find it again.",
-    "limits": "Breaking means p95 above 200 ms or more than 1% errors, in 20 s runs of growing traffic."
+    "limits": "Breaking means p95 above 200 ms or more than 1% errors, in 20 s runs of growing traffic.",
+    "staleReads": "At that load, {{pct}} of reads are stale."
   }
 }

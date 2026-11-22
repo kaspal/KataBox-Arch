@@ -426,7 +426,8 @@
     "busiest": "Componentes más ocupados",
     "down": "caído",
     "sampled": "Se simula el {{pct}} % de las solicitudes; los recuentos se escalan de vuelta.",
-    "p95Trend": "Latencia p95 por segundo"
+    "p95Trend": "Latencia p95 por segundo",
+    "stale": "Lecturas obsoletas"
   },
   "breaking": {
     "title": "Punto de ruptura",
@@ -440,6 +441,7 @@
     },
     "latencyOnly": "La latencia cede primero (p95 de {{p95}} ms) sin que ninguna tarjeta se sature.",
     "stale": "El diseño ha cambiado desde entonces; vuelve a buscarlo.",
-    "limits": "Romper significa p95 por encima de 200 ms o más de un 1 % de errores, en ejecuciones de 20 s con tráfico creciente."
+    "limits": "Romper significa p95 por encima de 200 ms o más de un 1 % de errores, en ejecuciones de 20 s con tráfico creciente.",
+    "staleReads": "Con esa carga, el {{pct}} de las lecturas están obsoletas."
   }
 }

@@ -53,6 +53,7 @@ export function MetricsPanel() {
         <Tile label={t("metrics.throughput")} value={n0.format(frame.rps)} unit={t("units.rps")} testId="metric-rps" />
         <Tile label={t("metrics.errorRate")} value={pct.format(frame.errorRate)} testId="metric-errors" />
         <Tile label={t("metrics.cost")} value={usd.format(frame.costMonth)} unit={t("metrics.perMonth")} testId="metric-cost" />
+        <Tile label={t("metrics.stale")} value={pct.format(frame.staleRate)} testId="metric-stale" />
       </div>
       <p className="text-xs text-muted-foreground">{t("metrics.lastSecond")}</p>
       {series.length > 1 && (

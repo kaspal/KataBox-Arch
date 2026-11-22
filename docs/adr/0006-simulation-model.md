@@ -129,6 +129,19 @@ A request type's `route` is a list of steps, `role[:qualifier…][?]`, with `a|b
   - servers (and the sampling stretch) change at runtime;
   - cost uses the time-averaged instance count.
 
+### Stale reads (M1.7)
+- **Keys are shared across request types:** rank k is the same item for reads and writes.
+- **Writes.** Each tracked key (up to 200k ranks) remembers its last write: a store write, or a `cache:write`.
+- **A read counts once:** a cache hit, or the store read after a miss. It is stale when:
+  - **a replica lags:** it is served by a replica (not the current primary) within that replica's
+    `replication_lag_ms` of the key's last write;
+  - **a cached copy is old:** a cache-aside hit whose copy was filled before the key's last write. Cache-aside
+    doesn't invalidate, and that is the lesson.
+- **Write-through** (`cache:write`) refills the key for every request type, so its readers see the new value.
+- **Untracked keys** (the analytic tail) are never counted stale. This is a documented undercount.
+- **The metric:** `stale_rate` = stale reads / reads, per run. Live frames carry it, the Metrics tab shows it, and the
+  breaking point reports it at the limit. Problems may set `pass.stale_rate`.
+
 ### The breaking point (M1.6)
 - **`breaking::find_limit`:**
   - runs the scenario's mix in 20 s windows at traffic multipliers ×0.25, ×0.375, … (growing ×1.5);

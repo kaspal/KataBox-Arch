@@ -34,7 +34,7 @@ pause, speed, seek. And it needs that without turning thousands of packets a sec
 
 ### Frames (`KAF1`)
 - **The format:** packed little-endian binary, specified in `live.rs` and decoded in `solve/run/frames.ts`:
-  - a 44-byte header (time, flags, speed, four tiles, and the packet total before thinning);
+  - a 48-byte header (time, flags, speed, four tiles, the packet total before thinning, and the stale-read rate);
   - 6 bytes per card (utilisation, queue, flags);
   - 7 bytes per packet: the edge; the request type with the async, cache-hit, drop and reverse bits; the start
     offset; the travel time.
@@ -54,8 +54,8 @@ pause, speed, seek. And it needs that without turning thousands of packets a sec
 - **No fallback needed.** The base64 fallback in the plan wasn't needed; verified in the real app.
 
 ### Sandbox traffic (plan ★8)
-- **Load:** the client cards' `rps`, split into 90% reads and 10% writes. Each type takes the most complete route the
-  design supports:
+- **Load:** the client cards' `rps`, split into 90% reads and 10% writes. Reads favour popular items (Zipf 1.0 over a
+  million keys); writes touch any item (uniform). Each type takes the most complete route the design supports:
   - reads: `edge? → compute → cache? → datastore`, then `… → cache`, then `edge? → compute`;
   - writes: `… → datastore:write`, then `edge? → compute`.
 - **Presets** (60 s each):

@@ -69,6 +69,8 @@ pub struct BreakingPoint {
     /// What failed in that window.
     pub failing_p95_ms: f64,
     pub failing_error_rate: f64,
+    /// Stale reads over reads in the last passing window (replica lag, cache-aside).
+    pub stale_rate: f64,
     /// Windows simulated.
     pub runs: u32,
 }
@@ -145,6 +147,7 @@ pub fn find_limit(
     };
     // Grow until a window fails.
     let mut pass = 0.0;
+    let mut stale_rate = 0.0;
     let mut x = START;
     let mut failing = loop {
         let r = run(x)?;
@@ -152,6 +155,7 @@ pub fn find_limit(
             break Some((x, r));
         }
         pass = x;
+        stale_rate = r.stale_rate;
         if x >= CEILING {
             break None;
         }
@@ -167,6 +171,7 @@ pub fn find_limit(
                 fail_r = r;
             } else {
                 pass = mid;
+                stale_rate = r.stale_rate;
             }
         }
         return Ok(BreakingPoint {
@@ -177,6 +182,7 @@ pub fn find_limit(
             first_failure: first_failure(&fail_r),
             failing_p95_ms: fail_r.latency.p95_ms,
             failing_error_rate: fail_r.error_rate,
+            stale_rate,
             runs,
         });
     }
@@ -188,6 +194,7 @@ pub fn find_limit(
         first_failure: None,
         failing_p95_ms: 0.0,
         failing_error_rate: 0.0,
+        stale_rate,
         runs,
     })
 }

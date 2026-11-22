@@ -365,6 +365,7 @@ describe("live runs", () => {
     const result = await screen.findByTestId("breaking-result");
     expect(result).toHaveTextContent("Holds about 31,250 req/s (31.3× the clients' traffic).");
     expect(result).toHaveTextContent("API gives way first: every server busy within 5 s of the failing run.");
+    expect(result).toHaveTextContent("At that load, 1.2% of reads are stale.");
     act(() => useEditor.getState().setProp("a1", "instances", 6));
     expect(await screen.findByText("The design has changed since; find it again.")).toBeInTheDocument();
   });

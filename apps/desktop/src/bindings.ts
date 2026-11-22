@@ -274,6 +274,10 @@ first_failure: FirstFailure | null;
  */
 failing_p95_ms: number; failing_error_rate: number; 
 /**
+ * Stale reads over reads in the last passing window (replica lag, cache-aside).
+ */
+stale_rate: number; 
+/**
  * Windows simulated.
  */
 runs: number }

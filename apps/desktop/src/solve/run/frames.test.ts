@@ -24,6 +24,9 @@ describe("live-run frames", () => {
     expect(f.p95Ms).toBeGreaterThan(0);
     expect(f.errorRate).toBe(0);
     expect(f.costMonth).toBeGreaterThan(0);
+    // Sandbox writes spread over a million keys: few cached copies predate a write yet.
+    expect(f.staleRate).toBeGreaterThanOrEqual(0);
+    expect(f.staleRate).toBeLessThan(0.05);
     expect(f.util).toHaveLength(4);
     expect(f.util[0]).toBe(0); // the client
     expect(f.util[1]).toBeGreaterThan(0); // the app
@@ -62,20 +65,22 @@ describe("live-run frames", () => {
     v.setUint16(36, 2, true);
     v.setUint16(38, 1, true);
     v.setUint32(40, 9, true);
+    v.setFloat32(44, 0.25, true);
     // Records in reverse order: node 1, then node 0.
-    v.setUint16(44, 1, true);
-    v.setUint8(46, 97);
-    v.setUint16(47, 300, true);
-    v.setUint8(49, 3);
-    v.setUint16(50, 0, true);
-    v.setUint8(52, 5);
-    v.setUint16(56, 1, true);
-    v.setUint8(58, 1 | PACKET_ASYNC);
-    v.setUint16(59, 12, true);
-    v.setUint16(61, 7, true);
+    v.setUint16(48, 1, true);
+    v.setUint8(50, 97);
+    v.setUint16(51, 300, true);
+    v.setUint8(53, 3);
+    v.setUint16(54, 0, true);
+    v.setUint8(56, 5);
+    v.setUint16(60, 1, true);
+    v.setUint8(62, 1 | PACKET_ASYNC);
+    v.setUint16(63, 12, true);
+    v.setUint16(65, 7, true);
     const f = decodeFrame(buf);
     expect(f.finished).toBe(true);
     expect(f.packetTotal).toBe(9);
+    expect(f.staleRate).toBe(0.25);
     expect(f.playing).toBe(false);
     expect([...f.util]).toEqual([5, 97]);
     expect([...f.queue]).toEqual([0, 300]);

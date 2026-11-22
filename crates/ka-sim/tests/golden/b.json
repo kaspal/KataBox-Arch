@@ -22,8 +22,8 @@
   "completion": null,
   "lost": 0.0,
   "dead_lettered": 0.0,
-  "stale_reads": 0.0,
-  "stale_rate": 0.0,
+  "stale_reads": 278.4000000000002,
+  "stale_rate": 0.0008095979229617605,
   "cost_month": 1181.0,
   "per_type": [
     {

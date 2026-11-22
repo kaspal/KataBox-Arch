@@ -15,6 +15,7 @@ function frame(packets: { edge: number; type?: number; start: number }[], window
     rps: 0,
     errorRate: 0,
     costMonth: 0,
+    staleRate: 0,
     util: new Uint8Array(0),
     queue: new Uint16Array(0),
     nodeFlags: new Uint8Array(0),

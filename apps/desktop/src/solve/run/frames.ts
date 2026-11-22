@@ -1,7 +1,7 @@
 // Decodes the binary frames of a live run (`KAF1`, little-endian). The layout is defined
 // once, in crates/ka-app/src/live.rs; `frames.test.ts` decodes a frame Rust wrote.
 
-export const HEADER_BYTES = 44;
+export const HEADER_BYTES = 48;
 export const NODE_BYTES = 6;
 export const PACKET_BYTES = 7;
 
@@ -31,6 +31,8 @@ export type Frame = {
   errorRate: number;
   /** Monthly cost at the traffic seen so far. */
   costMonth: number;
+  /** Stale reads over reads so far (replica lag, cache-aside copies older than a write). */
+  staleRate: number;
   /** By node index: utilisation (0–100), queued requests, flags (NODE_DOWN, NODE_OVERLOADED). */
   util: Uint8Array;
   queue: Uint16Array;
@@ -90,6 +92,7 @@ export function decodeFrame(buf: ArrayBuffer): Frame {
     rps: v.getFloat32(24, true),
     errorRate: v.getFloat32(28, true),
     costMonth: v.getFloat32(32, true),
+    staleRate: v.getFloat32(44, true),
     util,
     queue,
     nodeFlags,

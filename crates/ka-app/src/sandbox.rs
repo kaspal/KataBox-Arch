@@ -38,14 +38,20 @@ const WRITE_ROUTES: [&[&str]; 2] = [
     &["edge?", "compute"],
 ];
 
+/// Reads favour popular items (Zipf 1.0 over a million keys); writes touch any item
+/// (uniform), so a cached Sandbox design shows some stale reads without every hot key being
+/// rewritten every second.
 fn request_type(id: &str, share: f64, route: &[&str]) -> serde_json::Value {
-    serde_json::json!({
+    let mut t = serde_json::json!({
         "id": id,
         "share": share,
         "route": route,
         "key_space": 1_000_000,
-        "key_skew": { "zipf": 1.0 },
-    })
+    });
+    if id == "read" {
+        t["key_skew"] = serde_json::json!({ "zipf": 1.0 });
+    }
+    t
 }
 
 fn scenario(types: Vec<serde_json::Value>, preset: SandboxPreset) -> Scenario {

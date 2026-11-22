@@ -57,6 +57,11 @@ export function BreakingPoint() {
           ) : (
             !r.beyond_ceiling && <p>{t("breaking.latencyOnly", { p95: n0.format(r.failing_p95_ms) })}</p>
           )}
+          {r.stale_rate > 0 && (
+            <p className="text-muted-foreground">
+              {t("breaking.staleReads", { pct: new Intl.NumberFormat(i18n.language, { style: "percent", maximumFractionDigits: 2 }).format(r.stale_rate) })}
+            </p>
+          )}
           {found && found.key !== currentKey && <p className="text-xs text-muted-foreground">{t("breaking.stale")}</p>}
         </div>
       )}

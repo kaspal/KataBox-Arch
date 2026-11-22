@@ -242,6 +242,10 @@ pub struct Engine {
     trace: Option<Vec<Packet>>,
     /// The cards each chaos event hit (resolved when it starts).
     chaos_targets: Vec<Vec<u32>>,
+    /// The last write time per tracked key rank (index = rank; i64::MIN: never). Keys are
+    /// shared across request types: rank k is the same item for reads and writes. Empty
+    /// until the first write.
+    last_write: Vec<i64>,
     /// Autoscaling: a decision waiting for its delay, per group.
     scale_pending: Vec<bool>,
 }
@@ -284,6 +288,8 @@ pub struct Snapshot {
     pub last_second: Option<SecondResult>,
     /// Monthly cost at the traffic seen so far.
     pub cost_month: f64,
+    /// Stale reads over reads so far.
+    pub stale_rate: f64,
 }
 
 impl Engine {
@@ -386,6 +392,7 @@ impl Engine {
             max_mult,
             trace: None,
             chaos_targets: vec![Vec::new(); c.scenario.chaos.len()],
+            last_write: Vec::new(),
             scale_pending: vec![false; c.scaling.len()],
             nodes,
             c,
@@ -513,6 +520,11 @@ impl Engine {
             nodes,
             last_second,
             cost_month: round2(cost_month),
+            stale_rate: if self.reads > 0.0 {
+                self.stale_reads / self.reads
+            } else {
+                0.0
+            },
         }
     }
 
@@ -1065,11 +1077,25 @@ impl Engine {
         let (ty, key) = (self.reqs[r as usize].ty as usize, self.reqs[r as usize].key);
         let q = &self.reqs[r as usize];
         let (write, aside, fill_cache) = (q.call_write, q.call_aside, q.fill_cache);
+        let w = self.c.weight;
         match self.c.nodes[node as usize].spec.role {
-            Role::Cache if write => self.fill(node, ty, key),
+            // A write-through: the cache holds the new value for every reader of the key.
+            Role::Cache if write => {
+                self.record_write(key);
+                for t in 0..self.c.types.len() {
+                    if t == ty || self.has_fills(node, t) {
+                        self.fill(node, t, key);
+                    }
+                }
+            }
             Role::Cache if aside => {
-                self.reads += self.c.weight;
                 if self.cache_hit(node, ty, key) {
+                    // One read, answered by the cache: stale if the key was written after
+                    // the cache filled it (cache-aside doesn't invalidate).
+                    self.reads += w;
+                    if self.fill_before_write(node, ty, key) {
+                        self.stale_reads += w;
+                    }
                     self.reqs[r as usize].hit_end = true;
                     let caller = self.reqs[r as usize].caller;
                     self.mark(r, caller, node, true);
@@ -1077,9 +1103,20 @@ impl Engine {
                     self.reqs[r as usize].fill_cache = node;
                 }
             }
+            Role::Cache => {
+                // A cache used as the store.
+                self.reads += w;
+            }
             Role::Datastore => {
-                if !write {
-                    self.reads += self.c.weight;
+                if write {
+                    self.record_write(key);
+                } else {
+                    // One read, answered by the store: stale on a replica that hasn't caught
+                    // up with the key's last write.
+                    self.reads += w;
+                    if self.replica_behind(node, key) {
+                        self.stale_reads += w;
+                    }
                 }
                 if fill_cache != NONE {
                     self.fill(fill_cache, ty, key);
@@ -1533,6 +1570,61 @@ impl Engine {
         let window = window_us as f64 / 1e6;
         let p = 1.0 - detmath::exp(-t.rate * pmf * window);
         self.rng_misc.uniform() < p
+    }
+
+    fn record_write(&mut self, key: u64) {
+        if key == 0 || key > TRACKED_KEYS {
+            return;
+        }
+        if self.last_write.is_empty() {
+            self.last_write = vec![i64::MIN; TRACKED_KEYS as usize + 1];
+        }
+        self.last_write[key as usize] = self.now as i64;
+    }
+
+    fn last_write_of(&self, key: u64) -> i64 {
+        self.last_write
+            .get(key as usize)
+            .copied()
+            .unwrap_or(i64::MIN)
+    }
+
+    /// Is this a replica whose copy of `key` is older than the key's last write?
+    fn replica_behind(&self, node: u32, key: u64) -> bool {
+        let Some(cl) = self.c.cluster_of[node as usize] else {
+            return false;
+        };
+        if self.cluster_primary[cl as usize] == node {
+            return false;
+        }
+        let written = self.last_write_of(key);
+        if written == i64::MIN {
+            return false;
+        }
+        let lag_us = (self.c.nodes[node as usize].spec.replication_lag_ms * 1000.0) as i64;
+        (self.now as i64) - written < lag_us
+    }
+
+    /// Was the cached copy of `key` filled before the key's last write? (Tracked keys only:
+    /// the analytic tail has no per-key fill times.)
+    fn fill_before_write(&self, node: u32, ty: usize, key: u64) -> bool {
+        let written = self.last_write_of(key);
+        if written == i64::MIN || key == 0 {
+            return false;
+        }
+        let Some(cache) = self.caches[node as usize].as_ref() else {
+            return false;
+        };
+        match cache.fills[ty].get((key - 1) as usize) {
+            Some(&f) if f != i64::MIN => f < written,
+            _ => false,
+        }
+    }
+
+    fn has_fills(&self, node: u32, ty: usize) -> bool {
+        self.caches[node as usize]
+            .as_ref()
+            .is_some_and(|c| !c.fills[ty].is_empty())
     }
 
     fn fill(&mut self, node: u32, ty: usize, key: u64) {
