@@ -172,6 +172,8 @@
     "props": "Propiedades",
     "ballpark": "aproximado",
     "ballparkHint": "Un valor calibrado: una aproximación prudente cuya fuente aún se está confirmando.",
+    "reset": "Volver {{prop}} a su valor por defecto",
+    "resetHint": "Volver al valor por defecto ({{value}})",
     "cited": "citado",
     "citedHint": "Un valor calibrado tomado de una fuente citada.",
     "calibrationNote": "Los valores marcados están calibrados (ver docs/calibration.md). Los demás son decisiones de diseño que tomas tú.",

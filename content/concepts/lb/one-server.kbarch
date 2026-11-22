@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "concept-lb-one",
   "name": "Load balancer: one server",
   "problem_id": null,

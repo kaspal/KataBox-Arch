@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "sample-url-cache",
   "name": "URL Shortener: a cache in front",
   "problem_id": "url-shortener",

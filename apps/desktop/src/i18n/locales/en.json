@@ -172,6 +172,8 @@
     "props": "Properties",
     "ballpark": "ballpark",
     "ballparkHint": "A calibrated default: a conservative ballpark whose source is still being confirmed.",
+    "reset": "Reset {{prop}} to its default",
+    "resetHint": "Back to the default ({{value}})",
     "cited": "cited",
     "citedHint": "A calibrated default taken from a cited source.",
     "calibrationNote": "Tagged defaults are calibrated figures (see docs/calibration.md). The others are design choices for you to set.",

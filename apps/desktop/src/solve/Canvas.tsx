@@ -35,7 +35,7 @@ import { ComponentCard, type CardFlowNode } from "@/solve/nodes/ComponentCard";
 import { PacketLayer } from "@/solve/run/PacketLayer";
 import { NoteNode, type NoteFlowNode } from "@/solve/nodes/NoteNode";
 import { ZoneNode, type ZoneFlowNode } from "@/solve/nodes/ZoneNode";
-import { defaultProps, flavourName, kindName, kindSpec } from "@/solve/registry";
+import { flavourName, kindName, kindSpec } from "@/solve/registry";
 import { CARD_H, CARD_W, NOTE_SIZE, ZONE_SIZE, useEditor } from "@/solve/store";
 import { checkWire, makeWiring } from "@/solve/wiring";
 
@@ -303,7 +303,7 @@ function CanvasInner() {
     (kind: ComponentKind, flavour: Flavour, centre: Point) => {
       const spec = kindSpec(registry, kind);
       if (spec.placement === "wrapper") {
-        store().addGroup("autoscale", placeAt(centre, ZONE_SIZE.autoscale), { flavour, props: defaultProps(spec, flavour) });
+        store().addGroup("autoscale", placeAt(centre, ZONE_SIZE.autoscale), { flavour, props: {} });
       } else {
         store().addNode(registry, kind, flavour, placeAt(centre, { w: CARD_W, h: CARD_H }));
       }

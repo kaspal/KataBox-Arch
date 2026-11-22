@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "concept-cache-redis",
   "name": "Cache: Redis in front",
   "problem_id": null,

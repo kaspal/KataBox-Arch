@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "sample-flash-sale-reference",
   "name": "flash-sale: reference",
   "problem_id": "flash-sale",
@@ -92,8 +92,8 @@
         "y": 680
       },
       "props": {
-        "instances": 8,
-        "concurrency": 64
+        "concurrency": 64,
+        "instances": 8
       },
       "group_id": null
     },

@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "ride-sharing-reference",
   "name": "Ride Sharing (reference)",
   "problem_id": "ride-sharing",
@@ -65,9 +65,7 @@
         "x": 260,
         "y": 510
       },
-      "props": {
-        "memory_gb": 2
-      },
+      "props": {},
       "group_id": null
     }
   ],

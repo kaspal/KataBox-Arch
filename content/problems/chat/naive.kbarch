@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "chat-naive",
   "name": "Chat (first try)",
   "problem_id": "chat",
@@ -37,9 +37,7 @@
         "x": 0,
         "y": 340
       },
-      "props": {
-        "instances": 2
-      },
+      "props": {},
       "group_id": null
     },
     {

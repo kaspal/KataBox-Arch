@@ -49,3 +49,24 @@ A format change bumps `SCHEMA_VERSION` and adds a migration step with a test fil
   and CDN `hit_rate` (computed from TTL and the traffic's key skew). *Migration:* dropped.
 
 Each migration rule has its own test with a v1 file.
+
+## Version 3 (M5.0, 2026-11-22)
+- **Sparse props.** A card (and an autoscaling policy) stores only the props the user set. Every
+  other prop follows the flavour's default, then the kind's default, which is how the simulator
+  already resolved a missing prop. New cards are written with `props: {}`; the inspector shows the
+  effective value and offers "Reset to default" for a set one; a flavour change keeps what the user
+  set and nothing else. Calibration changes now reach every card that doesn't override them.
+  *Migration:* a prop equal to its flavour's current default is dropped (no behaviour change), and
+  so is a prop equal to one of the M0 placeholder defaults that calibration replaced
+  (`PLACEHOLDERS_V1`, five values frozen from commit 6f0267c: cache `service_ms` 0.5, Django
+  `concurrency` 64, MySQL `concurrency` 100, Sidekiq `concurrency` 8, Cloud Run
+  `concurrency_limit` 1000), so old files pick up the calibrated value. A user who typed exactly
+  one of those values loses it; that trade-off was accepted (M1–M3 review, Q1).
+- **`ip_hash` → `key_hash`.** The LB algorithm is renamed to match what it does (it hashes the
+  request key). *Migration:* the value is renamed; the simulator still reads the old name.
+- **Content.** `ka-pack migrate` rewrites every shipped `.kbarch` in v3. `validate --run` gave
+  identical output before and after (review A2).
+
+Tests: `crates/ka-app/tests/migrations.rs` opens a real v1 and v2 file
+(`tests/fixtures/v1.kbarch`, `v2.kbarch`), checks each dropped placeholder, the flavour rule, the
+rename, and that a migrated file saves as v3 and reads back the same.

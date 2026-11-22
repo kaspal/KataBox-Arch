@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "id": "v1-sample",
+  "name": "Saved by M0 (v1): placeholder defaults, an Autoscaling card",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "mobile",
+      "label": "",
+      "position": { "x": 0, "y": 0 },
+      "props": { "rps": 2500 },
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "nodejs",
+      "label": "",
+      "position": { "x": 240, "y": 0 },
+      "props": { "instances": 2, "concurrency": 64, "service_ms": 10 },
+      "group_id": null
+    },
+    {
+      "id": "scaler",
+      "kind": "autoscale",
+      "flavour": "aws_asg",
+      "label": "",
+      "position": { "x": 240, "y": 200 },
+      "props": { "min_instances": 2, "max_instances": 10, "target_util": 70, "scale_delay_s": 60 },
+      "group_id": null
+    },
+    {
+      "id": "cache",
+      "kind": "cache",
+      "flavour": "memcached",
+      "label": "",
+      "position": { "x": 480, "y": -120 },
+      "props": { "memory_gb": 2, "ttl_s": 300, "eviction": "lru", "persistence": false, "service_ms": 0.5 },
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "",
+      "position": { "x": 480, "y": 0 },
+      "props": { "read_replicas": 0, "shards": 2, "concurrency": 100, "service_ms": 5, "replication_lag_ms": 50 },
+      "group_id": null
+    },
+    {
+      "id": "edge",
+      "kind": "cdn",
+      "flavour": "cloudfront",
+      "label": "",
+      "position": { "x": 0, "y": -160 },
+      "props": { "hit_rate": 80, "ttl_s": 3600 },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    { "id": "e1", "from": "client", "to": "app", "protocol": "http" },
+    { "id": "e2", "from": "app", "to": "cache", "protocol": "query" },
+    { "id": "e3", "from": "app", "to": "db", "protocol": "query" },
+    { "id": "e4", "from": "scaler", "to": "app", "protocol": "http" }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": { "x": 0, "y": 0, "zoom": 1 }
+}

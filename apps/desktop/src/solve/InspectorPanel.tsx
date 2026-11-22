@@ -4,13 +4,13 @@
 import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "@tanstack/react-router";
-import { Trash2, BookOpen } from "lucide-react";
+import { Trash2, BookOpen, RotateCcw } from "lucide-react";
 import type { Edge, Flavour, Group, Node, Note, PropSpec, PropValue, Protocol, Registry, Scaling } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GlyphTile } from "@/solve/icons";
-import { choiceName, flavourName, kindName, kindSpec, propName, unitName } from "@/solve/registry";
+import { choiceName, defaultProps, flavourName, kindName, kindSpec, propName, unitName } from "@/solve/registry";
 import { BriefPanel } from "@/solve/problem/BriefPanel";
 import { useProblemMode } from "@/solve/problem/context";
 import { MetricsPanel } from "@/solve/run/MetricsPanel";
@@ -24,6 +24,7 @@ function Field({
   children,
   error,
   tag,
+  action,
 }: {
   label: string;
   htmlFor: string;
@@ -31,6 +32,8 @@ function Field({
   error?: string;
   /** A short marker after the label, e.g. "ballpark" for a calibrated default. */
   tag?: { text: string; title: string };
+  /** A small control beside the label (e.g. reset to default). */
+  action?: React.ReactNode;
 }) {
   return (
     <div className="space-y-1">
@@ -38,11 +41,14 @@ function Field({
         <label htmlFor={htmlFor} className="text-xs font-medium text-muted-foreground">
           {label}
         </label>
-        {tag && (
-          <span title={tag.title} data-testid="calibration-tag" className="rounded border px-1 text-[10px] leading-4 text-muted-foreground">
-            {tag.text}
-          </span>
-        )}
+        <span className="flex items-center gap-1">
+          {action}
+          {tag && (
+            <span title={tag.title} data-testid="calibration-tag" className="rounded border px-1 text-[10px] leading-4 text-muted-foreground">
+              {tag.text}
+            </span>
+          )}
+        </span>
       </div>
       {children}
       {error && (
@@ -102,10 +108,27 @@ function TextField({
   );
 }
 
-function PropField({ spec, value, onChange }: { spec: PropSpec; value: PropValue | undefined; onChange: (v: PropValue) => void }) {
+/**
+ * One prop. Cards store only the props the user set (`.kbarch` v3): `value` is the card's own
+ * value, `fallback` the flavour's default shown when it has none. A set value can be reset.
+ */
+function PropField({
+  spec,
+  value,
+  fallback,
+  onChange,
+  onReset,
+}: {
+  spec: PropSpec;
+  value: PropValue | undefined;
+  fallback: PropValue | undefined;
+  onChange: (v: PropValue) => void;
+  onReset?: () => void;
+}) {
   const { t } = useTranslation();
   const id = useId();
-  const current = value ?? spec.default;
+  const byDefault = fallback ?? spec.default;
+  const current = value ?? byDefault;
   // Plain counts and unitless props show no suffix.
   const unit = spec.unit === "none" || spec.unit === "count" ? "" : unitName(t, spec.unit);
   const label = propName(t, spec.key);
@@ -117,22 +140,39 @@ function PropField({ spec, value, onChange }: { spec: PropSpec; value: PropValue
   const [draft, setDraft] = useState(String(current));
   const [error, setError] = useState<string | undefined>();
   useEffect(() => {
-    setDraft(String(value ?? spec.default));
+    setDraft(String(value ?? byDefault));
     setError(undefined);
-  }, [value, spec.default]);
+  }, [value, byDefault]);
+  const shown = (v: PropValue) => (typeof v === "string" ? choiceName(t, v) : typeof v === "boolean" ? (v ? t("guide.yes") : t("guide.no")) : String(v));
+  const reset =
+    value !== undefined && onReset ? (
+      <button
+        type="button"
+        onClick={onReset}
+        data-testid="prop-reset"
+        title={t("inspector.resetHint", { value: shown(byDefault) })}
+        aria-label={t("inspector.reset", { prop: label })}
+        className="rounded p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <RotateCcw aria-hidden className="size-3" />
+      </button>
+    ) : undefined;
 
   const ty = spec.ty;
   if (ty.type === "bool") {
     return (
       <label className="flex items-center justify-between gap-3 py-1 text-sm">
         <span>{label}</span>
-        <input type="checkbox" className="size-4 accent-[var(--primary)]" checked={current === true} onChange={(e) => onChange(e.target.checked)} />
+        <span className="flex items-center gap-2">
+          {reset}
+          <input type="checkbox" className="size-4 accent-[var(--primary)]" checked={current === true} onChange={(e) => onChange(e.target.checked)} />
+        </span>
       </label>
     );
   }
   if (ty.type === "choice") {
     return (
-      <Field label={label} htmlFor={id}>
+      <Field label={label} htmlFor={id} action={reset}>
         <Select value={String(current)} onValueChange={(v) => onChange(v)}>
           <SelectTrigger id={id} className="w-full bg-card">
             <SelectValue />
@@ -159,7 +199,7 @@ function PropField({ spec, value, onChange }: { spec: PropSpec; value: PropValue
     if (n !== current) onChange(n);
   };
   return (
-    <Field label={unit ? `${label} (${unit})` : label} htmlFor={id} error={error} tag={tag}>
+    <Field label={unit ? `${label} (${unit})` : label} htmlFor={id} error={error} tag={tag} action={reset}>
       <Input
         id={id}
         type="number"
@@ -194,8 +234,10 @@ function NodeInspector({ registry, node }: { registry: Registry; node: Node }) {
   const spec = kindSpec(registry, node.kind);
   const updateNode = useEditor((s) => s.updateNode);
   const setProp = useEditor((s) => s.setProp);
+  const resetProp = useEditor((s) => s.resetProp);
   const setFlavour = useEditor((s) => s.setFlavour);
   const flavourId = useId();
+  const defaults = defaultProps(spec, node.flavour);
   return (
     <div className="space-y-4" data-testid="inspector-node">
       <div className="flex items-center gap-3">
@@ -238,7 +280,14 @@ function NodeInspector({ registry, node }: { registry: Registry; node: Node }) {
       <div className="space-y-3 border-t pt-4">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("inspector.props")}</h3>
         {spec.props.map((p) => (
-          <PropField key={p.key} spec={p} value={node.props[p.key]} onChange={(v) => setProp(node.id, p.key, v)} />
+          <PropField
+            key={p.key}
+            spec={p}
+            value={node.props[p.key]}
+            fallback={defaults[p.key]}
+            onChange={(v) => setProp(node.id, p.key, v)}
+            onReset={() => resetProp(node.id, p.key)}
+          />
         ))}
         {spec.props.some((p) => p.calibration) && <p className="text-xs text-muted-foreground">{t("inspector.calibrationNote")}</p>}
       </div>
@@ -275,6 +324,7 @@ function ScalingFields({ registry, group, scaling }: { registry: Registry; group
   const updateScaling = useEditor((s) => s.updateScaling);
   const spec = kindSpec(registry, "autoscale");
   const flavourId = useId();
+  const defaults = defaultProps(spec, scaling.flavour);
   return (
     <div className="space-y-3 border-t pt-4">
       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("inspector.scaling")}</h3>
@@ -297,7 +347,13 @@ function ScalingFields({ registry, group, scaling }: { registry: Registry; group
           key={p.key}
           spec={p}
           value={scaling.props[p.key]}
+          fallback={defaults[p.key]}
           onChange={(v) => updateScaling(group.id, { ...scaling, props: { ...scaling.props, [p.key]: v } })}
+          onReset={() => {
+            const props = { ...scaling.props };
+            delete props[p.key];
+            updateScaling(group.id, { ...scaling, props });
+          }}
         />
       ))}
       <p className="text-xs text-muted-foreground">{t("inspector.autoscaleHint")}</p>

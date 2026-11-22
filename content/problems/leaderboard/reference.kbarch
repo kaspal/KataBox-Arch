@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "leaderboard-reference",
   "name": "Game Leaderboard (reference)",
   "problem_id": "leaderboard",
@@ -52,9 +52,9 @@
         "y": 510
       },
       "props": {
+        "failover_s": 2,
         "memory_gb": 1,
-        "ttl_s": 0,
-        "failover_s": 2
+        "ttl_s": 0
       },
       "group_id": null
     },

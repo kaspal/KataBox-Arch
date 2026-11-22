@@ -1,8 +1,9 @@
 //! `.kbarch` files (ADR 0003): pretty-printed JSON of a [`Design`], strict on read.
 //!
 //! - **Read:** the size is checked before reading; then `schema_version` decides: newer is
-//!   refused, older is migrated (none yet: v1 is the first); then the strict parse
-//!   (unknown fields refused) and [`ka_core::validate`].
+//!   refused, older is migrated (v1 → v2 → v3, one step per version, each tested with a
+//!   file of the old version); then the strict parse (unknown fields refused) and
+//!   [`ka_core::validate`].
 //! - **Write:** validate first, then write a temp file next to the target and rename it
 //!   over the target, so a crash never leaves a half-written design.
 
@@ -64,24 +65,115 @@ pub fn parse(bytes: &[u8], registry: &Registry) -> Result<Design> {
             format!("the file is format v{version}; this app reads up to v{SCHEMA_VERSION}"),
         ));
     }
-    let value = migrate(value, version)?;
+    let value = migrate(value, version, registry)?;
     let design: Design = serde_json::from_value(value).map_err(invalid_file)?;
     check(&design, registry)?;
     Ok(design)
 }
 
-/// Bring an older file up to [`SCHEMA_VERSION`]. Each future format change adds a step
-/// here (and a test with a file of the old version).
-fn migrate(mut value: Value, version: u64) -> Result<Value> {
+/// Bring an older file up to [`SCHEMA_VERSION`]. Each format change adds a step here (and
+/// a test with a file of the old version).
+fn migrate(mut value: Value, version: u64, registry: &Registry) -> Result<Value> {
     let mut at = version;
     if at == 1 {
         value = v1_to_v2(value);
         at = 2;
     }
+    if at == 2 {
+        value = v2_to_v3(value, registry);
+        at = 3;
+    }
     match at {
-        2 => Ok(value),
+        3 => Ok(value),
         v => Err(invalid_file(format!("unknown schema_version {v}"))),
     }
+}
+
+/// The M0 placeholder defaults that differ from today's calibrated ones (commit 6f0267c,
+/// before M1.2): (kind, flavour or "" for any, prop, value). Before v3 every card stored
+/// every default, so a card holding exactly one of these got it from the app, not the user.
+/// Every other M0 default equals today's and is dropped by the "equals the default" rule.
+pub const PLACEHOLDERS_V1: &[(&str, &str, &str, f64)] = &[
+    ("cache", "", "service_ms", 0.5),
+    ("app", "django", "concurrency", 64.0),
+    ("sql", "mysql", "concurrency", 100.0),
+    ("worker", "sidekiq", "concurrency", 8.0),
+    ("serverless", "cloud_run", "concurrency_limit", 1000.0),
+];
+
+/// v2 → v3 (ADR 0003): cards keep only the props the user set.
+/// - LB `algorithm = "ip_hash"` becomes `"key_hash"` (the same behaviour, renamed);
+/// - a prop equal to its flavour's current default is dropped (no change in behaviour);
+/// - a prop equal to an M0 placeholder default is dropped, so the card picks up the
+///   calibrated value;
+/// - autoscaling wrappers' policies are thinned the same way.
+///
+/// Unknown kinds, flavours or props are left for the strict parse to refuse.
+fn v2_to_v3(mut value: Value, registry: &Registry) -> Value {
+    let Some(obj) = value.as_object_mut() else {
+        return value;
+    };
+    obj.insert("schema_version".into(), Value::from(3));
+    let parse = |v: Option<&Value>| v.and_then(|v| v.as_str()).map(str::to_owned);
+    let thin = |kind: &str, flavour: &str, props: &mut serde_json::Map<String, Value>| {
+        let Ok(k) = serde_json::from_value::<ka_core::ComponentKind>(Value::from(kind)) else {
+            return;
+        };
+        let flav = serde_json::from_value::<ka_core::Flavour>(Value::from(flavour)).ok();
+        let spec = registry.kind(k);
+        if kind == "lb" && props.get("algorithm").and_then(Value::as_str) == Some("ip_hash") {
+            props.insert("algorithm".into(), Value::from("key_hash"));
+        }
+        props.retain(|key, v| {
+            let v: &Value = v;
+            let current = flav
+                .and_then(|f| spec.flavour(f))
+                .and_then(|f| f.overrides.iter().find(|o| &o.key == key))
+                .map(|o| o.value.clone())
+                .or_else(|| spec.prop(key).map(|p| p.default.clone()));
+            let same = |d: &ka_core::PropValue| match (d, v) {
+                (ka_core::PropValue::Number(a), Value::Number(b)) => b.as_f64() == Some(*a),
+                (ka_core::PropValue::Bool(a), Value::Bool(b)) => a == b,
+                (ka_core::PropValue::Text(a), Value::String(b)) => a == b,
+                _ => false,
+            };
+            if current.as_ref().is_some_and(same) {
+                return false;
+            }
+            let placeholder = PLACEHOLDERS_V1.iter().any(|(pk, pf, pp, pv)| {
+                *pk == kind
+                    && (pf.is_empty() || *pf == flavour)
+                    && pp == key
+                    && v.as_f64() == Some(*pv)
+            });
+            !placeholder
+        });
+    };
+    if let Some(nodes) = obj.get_mut("nodes").and_then(Value::as_array_mut) {
+        for n in nodes {
+            let (Some(kind), Some(flavour)) = (parse(n.get("kind")), parse(n.get("flavour")))
+            else {
+                continue;
+            };
+            if let Some(props) = n.get_mut("props").and_then(Value::as_object_mut) {
+                thin(&kind, &flavour, props);
+            }
+        }
+    }
+    if let Some(groups) = obj.get_mut("groups").and_then(Value::as_array_mut) {
+        for g in groups {
+            let Some(scaling) = g.get_mut("scaling").and_then(Value::as_object_mut) else {
+                continue;
+            };
+            let Some(flavour) = parse(scaling.get("flavour")) else {
+                continue;
+            };
+            if let Some(props) = scaling.get_mut("props").and_then(Value::as_object_mut) {
+                thin("autoscale", &flavour, props);
+            }
+        }
+    }
+    value
 }
 
 /// Props removed from the registry in v2, by kind: SQL read replicas are cards now, and
@@ -607,7 +699,8 @@ pub(crate) mod tests {
         let d = parse(v1_file().to_string().as_bytes(), &registry()).unwrap();
         let db = d.nodes.iter().find(|n| n.id == "db").unwrap();
         assert!(!db.props.contains_key("read_replicas"));
-        assert_eq!(db.props.get("shards"), Some(&PropValue::Number(1.0)));
+        // Then v3 drops `shards = 1`: it is the default.
+        assert!(db.props.is_empty(), "{:?}", db.props);
     }
 
     #[test]

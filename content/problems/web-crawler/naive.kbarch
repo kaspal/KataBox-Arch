@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "web-crawler-naive",
   "name": "Web Crawler (first try)",
   "problem_id": "web-crawler",
@@ -40,8 +40,8 @@
         "y": 340
       },
       "props": {
-        "instances": 6,
         "concurrency": 64,
+        "instances": 6,
         "service_ms": 20
       },
       "group_id": null

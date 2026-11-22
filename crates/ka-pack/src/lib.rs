@@ -11,6 +11,7 @@
 
 pub mod decide;
 pub mod guide;
+pub mod migrate;
 pub mod patterns;
 pub mod problems;
 pub mod run;

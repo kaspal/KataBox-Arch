@@ -20,7 +20,8 @@ use ka_pack::{
 const USAGE: &str = "usage:
   ka-pack new <id>
   ka-pack validate [--run [--verbose]] [--problems a,b] [--kind problems|samples|guide] [--content DIR]
-  ka-pack build --out FILE [--content DIR]";
+  ka-pack build --out FILE [--content DIR]
+  ka-pack migrate [--content DIR]   rewrite every .kbarch in the current format";
 
 struct Args {
     content: PathBuf,
@@ -103,6 +104,13 @@ fn main() -> ExitCode {
                 }
             }
         }
+        "migrate" => match ka_pack::migrate::rewrite(&args.content, &registry) {
+            Ok((changed, total)) => {
+                println!("{changed} of {total} .kbarch file(s) rewritten");
+                ExitCode::SUCCESS
+            }
+            Err(issues) => report(&issues),
+        },
         "validate" => {
             let kind = args.kind.as_deref();
             if let Some(k) = kind
