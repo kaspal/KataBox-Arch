@@ -1,0 +1,58 @@
+id = "leaderboard"
+number = 5
+set = 1
+difficulty = "easy"
+title = "Game Leaderboard"
+title_es = "Clasificación de un juego"
+teaches = "An in-memory store for a hot, small data set; replicas for restarts"
+teaches_es = "Un almacén en memoria para datos pequeños y calientes; réplicas para los reinicios"
+tags = ["in-memory", "caching", "write-heavy"]
+
+[nfr]
+peak_rps = 8000
+read_ratio = 0.8
+p95_ms = 50
+availability = 0.999
+budget_usd = 1500
+
+[[request_types]]
+id = "top"
+name = "Read the top 100"
+name_es = "Leer los 100 primeros"
+share = 0.8
+route = ["edge?", "compute", "cache|datastore"]
+key_space = 50
+key_skew = { zipf = 1.2 }
+payload_kb = 32
+
+[[request_types]]
+id = "score"
+name = "Submit a score"
+name_es = "Enviar una puntuación"
+share = 0.2
+route = ["edge?", "compute", "cache:write|datastore:write"]
+key_space = 1_000_000
+
+[[tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "tournament-end"
+name = "The tournament ends"
+name_es = "Termina el torneo"
+hidden = true
+type_multipliers = { score = 5 }
+traffic = { spike = { at = 20, x = 2, for = 20 } }
+
+[[tests]]
+id = "cache-restart"
+name = "The store restarts"
+name_es = "El almacén se reinicia"
+hidden = true
+chaos = [{ kill = { kind = "cache", role = "primary", at = 25, for = 10 } }]
+pass = { error_rate = 0.08, availability = 0.92 }
+
+[pass]
+error_rate = 0.001

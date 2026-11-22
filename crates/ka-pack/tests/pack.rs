@@ -271,7 +271,7 @@ fn run_checks_judge_the_reference_and_the_naive_design() {
     let same = std::fs::read(root.join("problems/demo/reference.kbarch")).unwrap();
     std::fs::write(root.join("problems/demo/naive.kbarch"), same).unwrap();
     let problems = load_problems(&root, &r).unwrap();
-    let issues = ka_pack::run::run_checks(&problems, &r);
+    let issues = ka_pack::run::run_checks(&problems, &r, false);
     assert!(
         issues
             .iter()

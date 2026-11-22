@@ -490,7 +490,7 @@ fn kind_cost(kind: ComponentKind) -> Cost {
         K::Sql => c(350.0, 0.0, 0.0),
         K::Nosql => c(120.0, 0.0, 0.5),
         K::Cache => c(0.0, 18.0, 0.0),
-        K::Object => c(0.0, 0.0, 4.0),
+        K::Object => c(0.0, 0.0, 1.0),
         K::Search => c(250.0, 0.0, 0.0),
         K::Queue => c(40.0, 0.0, 0.4),
         K::Stream => c(15.0, 0.0, 0.2),
@@ -860,6 +860,7 @@ pub fn registry() -> Registry {
                 choice("eviction", &["lru", "lfu", "ttl"], "lru"),
                 boolean("persistence", false),
                 service_ms(0.01),
+                int("failover_s", 1.0, 600.0, 15.0, Unit::S),
             ],
         ),
         kind(

@@ -16,12 +16,13 @@ use ka_pack::{Issue, build_content, load_problems, validate_problems, write_db};
 
 const USAGE: &str = "usage:
   ka-pack new <id>
-  ka-pack validate [--run] [--problems a,b] [--kind problems] [--content DIR]
+  ka-pack validate [--run [--verbose]] [--problems a,b] [--kind problems] [--content DIR]
   ka-pack build --out FILE [--content DIR]";
 
 struct Args {
     content: PathBuf,
     run: bool,
+    verbose: bool,
     problems: Option<Vec<String>>,
     kind: Option<String>,
     out: Option<PathBuf>,
@@ -32,6 +33,7 @@ fn parse(mut it: impl Iterator<Item = String>) -> Result<Args, String> {
     let mut a = Args {
         content: PathBuf::from("content"),
         run: false,
+        verbose: false,
         problems: None,
         kind: None,
         out: None,
@@ -42,6 +44,7 @@ fn parse(mut it: impl Iterator<Item = String>) -> Result<Args, String> {
         match arg.as_str() {
             "--content" => a.content = PathBuf::from(value("--content")?),
             "--run" => a.run = true,
+            "--verbose" => a.verbose = true,
             "--problems" => {
                 a.problems = Some(value("--problems")?.split(',').map(str::to_owned).collect())
             }
@@ -120,7 +123,7 @@ fn main() -> ExitCode {
                 return report(&issues);
             }
             if args.run {
-                let issues = ka_pack::run::run_checks(&problems, &registry);
+                let issues = ka_pack::run::run_checks(&problems, &registry, args.verbose);
                 if !issues.is_empty() {
                     return report(&issues);
                 }

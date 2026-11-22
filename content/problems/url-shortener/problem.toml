@@ -1,0 +1,63 @@
+id = "url-shortener"
+number = 1
+set = 1
+difficulty = "easy"
+title = "URL Shortener"
+title_es = "Acortador de URLs"
+teaches = "Caching hot reads, read replicas, failover"
+teaches_es = "Caché para lecturas calientes, réplicas de lectura, failover"
+tags = ["caching", "read-heavy", "replication", "failover"]
+
+[nfr]
+peak_rps = 12000
+read_ratio = 0.95
+p95_ms = 80
+availability = 0.999
+budget_usd = 2500
+
+[[request_types]]
+id = "redirect"
+name = "Follow a short link"
+name_es = "Seguir un enlace corto"
+share = 0.95
+route = ["edge?", "compute", "cache?", "datastore"]
+key_space = 10_000_000
+key_skew = { zipf = 1.1 }
+
+[[request_types]]
+id = "create"
+name = "Create a short link"
+name_es = "Crear un enlace corto"
+share = 0.05
+route = ["edge?", "compute", "datastore:write"]
+key_space = 10_000_000
+
+[[tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "hot-key"
+name = "One link everyone clicks"
+name_es = "Un enlace que todos pulsan"
+key_skew_override = { zipf = 1.4 }
+
+[[tests]]
+id = "viral"
+name = "A link goes viral"
+name_es = "Un enlace se hace viral"
+hidden = true
+traffic = { spike = { at = 20, x = 4, for = 15 } }
+pass = { p95_ms = 120 }
+
+[[tests]]
+id = "primary-dies"
+name = "The primary database dies"
+name_es = "Se cae la base de datos principal"
+hidden = true
+chaos = [{ kill = { kind = "sql", role = "primary", at = 30 } }]
+pass = { error_rate = 0.02, availability = 0.98 }
+
+[pass]
+error_rate = 0.001

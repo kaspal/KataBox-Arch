@@ -1,0 +1,123 @@
+{
+  "schema_version": 2,
+  "id": "static-site-cdn-reference",
+  "name": "Static Site + CDN (reference)",
+  "problem_id": "static-site-cdn",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Visitors",
+      "position": {
+        "x": 130,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "cdn",
+      "kind": "cdn",
+      "flavour": "cloudfront",
+      "label": "",
+      "position": {
+        "x": 0,
+        "y": 170
+      },
+      "props": {
+        "ttl_s": 86400
+      },
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "nginx",
+      "label": "",
+      "position": {
+        "x": 260,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "site",
+      "kind": "object",
+      "flavour": "s3",
+      "label": "Site files",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Form handler",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {
+        "instances": 1
+      },
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "",
+      "position": {
+        "x": 130,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "cdn",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "cdn",
+      "to": "site",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "cdn",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e3",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e4",
+      "from": "app",
+      "to": "db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

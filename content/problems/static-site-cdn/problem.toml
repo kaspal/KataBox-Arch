@@ -1,0 +1,55 @@
+id = "static-site-cdn"
+number = 4
+set = 1
+difficulty = "easy"
+title = "Static Site + CDN"
+title_es = "Sitio estático + CDN"
+teaches = "Serve static assets from the edge; protect the origin"
+teaches_es = "Servir recursos estáticos desde el borde; proteger el origen"
+tags = ["cdn", "caching", "static"]
+
+[nfr]
+peak_rps = 1500
+read_ratio = 0.99
+p95_ms = 60
+availability = 0.999
+budget_usd = 4000
+
+[[request_types]]
+id = "asset"
+name = "Page, image or script"
+name_es = "Página, imagen o script"
+share = 0.99
+route = ["edge?", "compute|datastore:object"]
+key_space = 20_000
+key_skew = { zipf = 1.0 }
+cacheable = true
+
+[[request_types]]
+id = "api"
+name = "Contact form"
+name_es = "Formulario de contacto"
+share = 0.01
+route = ["edge?", "compute", "datastore:write"]
+
+[[tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "purge"
+name = "A deploy purges the CDN"
+name_es = "Un despliegue purga la CDN"
+hidden = true
+chaos = [{ flush = { kind = "cdn", all = true, at = 20 } }]
+
+[[tests]]
+id = "slow-origin"
+name = "The origin slows down"
+name_es = "El origen se vuelve lento"
+hidden = true
+chaos = [{ latency = { kind = "object", all = true, add_ms = 300, at = 10, for = 40 } }, { latency = { kind = "app", all = true, add_ms = 300, at = 10, for = 40 } }]
+
+[pass]
+error_rate = 0.001

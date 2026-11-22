@@ -1,0 +1,56 @@
+id = "pastebin"
+number = 2
+set = 1
+difficulty = "easy"
+title = "Pastebin"
+title_es = "Pastebin"
+teaches = "Blobs belong in object storage; caching reads"
+teaches_es = "Los blobs van al almacenamiento de objetos; caché de lecturas"
+tags = ["object-storage", "caching", "write-heavy"]
+
+[nfr]
+peak_rps = 2000
+read_ratio = 0.85
+p95_ms = 150
+availability = 0.999
+budget_usd = 4000
+
+[[request_types]]
+id = "read"
+name = "Read a paste"
+name_es = "Leer un paste"
+share = 0.85
+route = ["edge?", "compute", "cache?", "datastore"]
+key_space = 5_000_000
+key_skew = { zipf = 1.0 }
+
+[[request_types]]
+id = "create"
+name = "Create a paste (up to 1 MB)"
+name_es = "Crear un paste (hasta 1 MB)"
+share = 0.15
+route = ["edge?", "compute", "datastore:write"]
+key_space = 5_000_000
+payload_kb = 1024
+
+[[tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "paste-burst"
+name = "A burst of large pastes"
+name_es = "Una ráfaga de pastes grandes"
+hidden = true
+type_multipliers = { create = 5 }
+
+[[tests]]
+id = "cold-cache"
+name = "Cold cache after a restart"
+name_es = "Caché fría tras un reinicio"
+hidden = true
+cold_caches = true
+
+[pass]
+error_rate = 0.001

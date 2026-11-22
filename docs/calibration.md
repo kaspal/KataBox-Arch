@@ -185,7 +185,7 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `object.servers_per_instance` | 1000 | in parallel per instance | source: needed (suggested: https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html); ≈ 20,000 GET/s at 50 ms: a few prefixes at the documented 5,500 GET/s each |
 | `object.p99_ratio` | 4 | × median | source: needed (suggested: https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html); tail spread of the service time |
 | `object.queue_per_server` | 4 | slots per server | source: needed (suggested: https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html); backlog before the card drops requests |
-| `object.cost.million` | 4 | $/million requests | source: needed (suggested: https://aws.amazon.com/s3/pricing/); teaching price, shaped like the list price |
+| `object.cost.million` | 1 | $/million requests | source: needed (suggested: https://aws.amazon.com/s3/pricing/); a read-heavy blend of GET (~$0.4/M) and PUT (~$5/M) list prices |
 
 ### `search`
 

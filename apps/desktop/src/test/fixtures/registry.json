@@ -5707,6 +5707,21 @@
               "type": "float"
             },
             "unit": "ms"
+          },
+          {
+            "calibration": {
+              "id": "cache.failover_s",
+              "status": "needed"
+            },
+            "default": 15,
+            "key": "failover_s",
+            "ty": {
+              "max": 600.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "s"
           }
         ]
       },
@@ -5719,7 +5734,7 @@
             "cost": {
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
-              "per_million": 4.0
+              "per_million": 1.0
             },
             "flavour": "s3",
             "overrides": [],
@@ -5735,7 +5750,7 @@
             "cost": {
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
-              "per_million": 4.0
+              "per_million": 1.0
             },
             "flavour": "gcs",
             "overrides": [],

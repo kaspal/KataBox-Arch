@@ -7,7 +7,7 @@ use ka_judge::{Judgement, Verdict, judge};
 use crate::problems::ProblemDir;
 use crate::{Issue, issue};
 
-fn summary(j: &Judgement) -> String {
+pub fn summary(j: &Judgement) -> String {
     j.tests
         .iter()
         .map(|t| {
@@ -56,10 +56,14 @@ pub fn check_problem(p: &ProblemDir, registry: &Registry) -> (Vec<Issue>, Judgem
     (issues, reference, naive)
 }
 
-pub fn run_checks(problems: &[ProblemDir], registry: &Registry) -> Vec<Issue> {
+pub fn run_checks(problems: &[ProblemDir], registry: &Registry, verbose: bool) -> Vec<Issue> {
     let mut issues = Vec::new();
     for p in problems {
         let (mut found, reference, naive) = check_problem(p, registry);
+        if verbose {
+            println!("  reference: {}", summary(&reference));
+            println!("  naive:     {}", summary(&naive));
+        }
         println!(
             "{}: reference {:?} score {} (${:.0}); naive {:?} score {}",
             p.def.id,
