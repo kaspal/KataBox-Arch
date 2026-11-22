@@ -68,8 +68,29 @@ A request type has:
   (`cargo test -p ka-pack --release --test accuracy -- --ignored --nocapture`); if a design's verdict differs between
   sampled and full runs, set a higher `sample_cap` at the top of `problem.toml` and say why in a comment.
 
-## Checklist
-- **Numbers:**
+## Card properties worth knowing
+- **SQL `read_from`:** `any` (reads spread over the primary and replicas; reads stay in the caller's Region when a
+  member is there) or `primary` (read-your-writes).
+- **Leases:** a queue's `visibility_timeout_s` and a stream's `session_timeout_s` decide when a dead consumer's
+  messages come back.
+- **CDC:** a database's `cdc_buffer_s` is how long committed changes wait for a stream that is down.
+- **Partitions:** a stream hands out one message per partition at a time, so `partitions` caps how much is consumed at
+  once; size it with the consumers.
+
+## Estimation drills
+`content/estimation/<problem-id>.toml` holds 2–3 `[[drill]]` entries per problem: `id`, `kind` (qps, storage,
+bandwidth, servers, capacity), `prompt`/`prompt_es` with `{input}` placeholders, `inputs`, a `formula` over the inputs
+(`+ - * / ^` and parentheses), `unit`, an optional `tolerance` and `solution`/`solution_es` (which may use
+`{answer}`). `ka-pack` computes every answer from the formula and refuses unknown or unused inputs. Ground the
+inputs in the problem's numbers so the drill teaches something the design needs.
+
+## Find-the-flaw drills
+`content/flaws/<id>/` holds `flaw.toml` (story, symptom, explanation, the target test and a `[scenario]` written like a
+problem's NFRs, request types and tests), three-tier hints, `broken.kbarch` and `fixed.kbarch`. `validate --run`
+proves the drill: the broken design passes Normal (unless the flaw is about Normal) and fails the target test; the
+fixed design passes every test.
+
+## Checklist- **Numbers:**
   - NFRs come from the problem's real-world shape;
   - the reference passes with headroom (not by 1%);
   - the naive design fails for the lesson's reason, not by accident.

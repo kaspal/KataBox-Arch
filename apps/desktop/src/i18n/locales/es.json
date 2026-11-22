@@ -183,7 +183,7 @@
     "citedHint": "Un valor calibrado tomado de una fuente citada.",
     "calibrationNote": "Los valores marcados están calibrados (ver docs/calibration.md). Los demás son decisiones de diseño que tomas tú.",
     "delete": "Borrar",
-    "zoneHint": "Las tarjetas dentro de una zona se mueven con ella. La latencia de red entre zonas llega con la simulación.",
+    "zoneHint": "Las tarjetas dentro de una zona se mueven con ella. Las llamadas entre regiones tardan unos 70 ms en cada sentido, y entre zonas de disponibilidad unos 1,5 ms.",
     "protocol": "Protocolo",
     "designName": "Nombre del diseño",
     "count": {

@@ -183,7 +183,7 @@
     "citedHint": "A calibrated default taken from a cited source.",
     "calibrationNote": "Tagged defaults are calibrated figures (see docs/calibration.md). The others are design choices for you to set.",
     "delete": "Delete",
-    "zoneHint": "Cards inside a zone move with it. Network latency between zones arrives with the simulation.",
+    "zoneHint": "Cards inside a zone move with it. Calls between Regions take about 70 ms each way, and between AZs about 1.5 ms.",
     "protocol": "Protocol",
     "designName": "Design name",
     "count": {
