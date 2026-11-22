@@ -2,7 +2,7 @@
 // per-second series, injected chaos and the controls. Rust owns the run
 // (ka-app/src/live.rs); this store only mirrors it.
 import { create } from "zustand";
-import type { ChaosEvent, Design, RunInfo, SandboxPreset } from "@/bindings";
+import type { ChaosEvent, Design, ProblemTest, RunInfo, SandboxPreset } from "@/bindings";
 import { api } from "@/lib/api";
 import { decodeFrame, type Frame } from "@/solve/run/frames";
 
@@ -21,6 +21,8 @@ type RunState = {
   /** Completed seconds so far (for the sparkline), in time order. */
   series: SeriesPoint[];
   preset: SandboxPreset;
+  /** On a problem's page: the test runs use (set by the page; null in the Sandbox). */
+  problemTest: ProblemTest | null;
   speed: number;
   /** Chaos the user injected into this run, each at the moment it was injected. */
   injected: ChaosEvent[];
@@ -34,6 +36,7 @@ type RunState = {
   seek: (seconds: number) => void;
   setSpeed: (speed: number) => void;
   setPreset: (preset: SandboxPreset) => void;
+  setProblemTest: (t: ProblemTest | null) => void;
   stop: () => void;
 };
 
@@ -95,6 +98,7 @@ export const useRun = create<RunState>()((set, get) => {
     frame: null,
     series: [],
     preset: "normal",
+    problemTest: null,
     speed: 1,
     injected: [],
     startedKey: null,
@@ -104,7 +108,8 @@ export const useRun = create<RunState>()((set, get) => {
       const injected = opts.keepInjected ? get().injected : [];
       set({ status: "starting", startedKey: simKey(design), injected });
       try {
-        const info = await api.startRun(design, get().preset, get().speed, injected, opts.startS ?? 0, (buf) => {
+        const options = { preset: get().preset, problem: get().problemTest, speed: get().speed, chaos: injected, startS: opts.startS ?? 0 };
+        const info = await api.startRun(design, options, (buf) => {
           if (mine !== token) return;
           let f: Frame;
           try {
@@ -147,6 +152,7 @@ export const useRun = create<RunState>()((set, get) => {
       send({ speed });
     },
     setPreset: (preset) => set({ preset }),
+    setProblemTest: (problemTest) => set({ problemTest }),
     stop: () => {
       token++;
       const info = get().info;

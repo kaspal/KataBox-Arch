@@ -31,14 +31,24 @@ pub struct RunInfo {
     pub start_s: f64,
 }
 
-/// What to run: the design, the traffic preset, the speed, chaos the user injected, and
-/// where to start playing.
+/// What to run: the design, the traffic (a Sandbox preset, or a problem's test), the speed,
+/// chaos the user injected, and where to start playing.
 #[derive(Debug, Clone, PartialEq)]
 pub struct RunRequest {
     pub preset: SandboxPreset,
+    /// A problem's test instead of the Sandbox preset (hidden tests too: their definition is
+    /// loaded here and never sent back).
+    pub problem: Option<ProblemTest>,
     pub speed: f64,
     pub chaos: Vec<ka_core::scenario::ChaosEvent>,
     pub start_s: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+pub struct ProblemTest {
+    pub problem_id: String,
+    pub test_id: String,
 }
 
 /// A control sent to the live run.
@@ -91,8 +101,8 @@ pub fn breaking_point(
 }
 
 impl App {
-    /// Start a live Sandbox run of `design`, replacing any run in progress.
-    pub fn start_run(
+    /// Start a live run of `design`, replacing any run in progress.
+    pub async fn start_run(
         &self,
         design: &Design,
         request: RunRequest,
@@ -100,6 +110,7 @@ impl App {
     ) -> Result<RunInfo> {
         let RunRequest {
             preset,
+            problem,
             speed,
             chaos,
             start_s,
@@ -117,8 +128,30 @@ impl App {
                 format!("{first:?}"),
             ));
         }
-        let mut scenario = sandbox_scenario(design, &self.registry, preset).map_err(sim_error)?;
-        scenario.chaos.extend(chaos);
+        // The scenario, its seed, and the chaos the timeline may show.
+        let (mut scenario, seed, mut shown) = match &problem {
+            None => {
+                let s = sandbox_scenario(design, &self.registry, preset).map_err(sim_error)?;
+                let shown = s.chaos.clone();
+                (s, SANDBOX_SEED, shown)
+            }
+            Some(pt) => {
+                let def = self.problem_def(&pt.problem_id).await?;
+                let test = def.test(&pt.test_id).ok_or_else(|| {
+                    AppError::new(AppErrorCode::NotFound, format!("test {}", pt.test_id))
+                })?;
+                let s = def.scenario(test);
+                // A hidden test's chaos never reaches the UI.
+                let shown = if test.hidden {
+                    Vec::new()
+                } else {
+                    s.chaos.clone()
+                };
+                (s, ka_judge::test_seed(&def.id, &test.id), shown)
+            }
+        };
+        scenario.chaos.extend(chaos.iter().cloned());
+        shown.extend(chaos);
         let compiled = Arc::new(
             compile(design, &self.registry, &scenario, &SimOptions::default())
                 .map_err(sim_error)?,
@@ -130,13 +163,13 @@ impl App {
             nodes: compiled.nodes.iter().map(|n| n.id.clone()).collect(),
             edges: design.edges.iter().map(|e| e.id.clone()).collect(),
             request_types: compiled.types.iter().map(|t| t.def.id.clone()).collect(),
-            chaos: scenario.chaos.clone(),
+            chaos: shown,
             start_s: start_s.min(scenario.duration_s),
         };
         // Stop the old run first (its thread joins on drop), outside the lock.
         let old = self.live_slot().take();
         drop(old);
-        let mut core = LiveCore::new(compiled, design, SANDBOX_SEED);
+        let mut core = LiveCore::new(compiled, design, seed);
         if info.start_s > 0.0 {
             core.seek((info.start_s * 1e6) as u64);
         }
@@ -212,6 +245,7 @@ mod tests {
     fn req(preset: SandboxPreset, speed: f64) -> RunRequest {
         RunRequest {
             preset,
+            problem: None,
             speed,
             chaos: Vec::new(),
             start_s: 0.0,
@@ -235,6 +269,7 @@ mod tests {
         let (tx, rx) = channel();
         let info = app
             .start_run(&design, req(SandboxPreset::Normal, 8.0), Collect(tx))
+            .await
             .unwrap();
         assert_eq!(info.nodes.len(), design.nodes.len());
         assert_eq!(info.edges.len(), design.edges.len());
@@ -264,10 +299,12 @@ mod tests {
         let (tx1, rx1) = channel();
         let first = app
             .start_run(&design, req(SandboxPreset::Normal, 1.0), Collect(tx1))
+            .await
             .unwrap();
         let (tx2, _rx2) = channel();
         let second = app
             .start_run(&design, req(SandboxPreset::Spike, 1.0), Collect(tx2))
+            .await
             .unwrap();
         assert_ne!(first.run_id, second.run_id);
         // The first run's thread has stopped: its channel drains, then closes.
@@ -298,12 +335,14 @@ mod tests {
                 &design,
                 RunRequest {
                     preset: SandboxPreset::Normal,
+                    problem: None,
                     speed: 1.0,
                     chaos: vec![kill.clone()],
                     start_s: 12.0,
                 },
                 Collect(tx),
             )
+            .await
             .unwrap();
         assert_eq!(info.chaos, vec![kill]);
         assert_eq!(info.start_s, 12.0);
@@ -335,6 +374,7 @@ mod tests {
         let (tx, _rx) = channel();
         let err = app
             .start_run(&design, req(SandboxPreset::Normal, 1.0), Collect(tx))
+            .await
             .unwrap_err();
         assert_eq!(err.code, AppErrorCode::NoPath);
     }

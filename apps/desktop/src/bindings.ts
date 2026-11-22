@@ -146,6 +146,72 @@ async findBreakingPoint(design: Design) : Promise<Result<BreakingPoint, AppError
     else return { status: "error", error: e  as any };
 }
 },
+async listProblems() : Promise<Result<ProblemSummary[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_problems") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * A problem's brief: hidden tests by name only, hints up to the unlocked tier.
+ */
+async problemBrief(id: string) : Promise<Result<ProblemBrief, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("problem_brief", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async unlockHint(id: string, tier: number) : Promise<Result<null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("unlock_hint", { id, tier }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async saveDraft(id: string, design: Design) : Promise<Result<null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("save_draft", { id, design }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Judge the design on every test of the problem (off the async runtime), then record it.
+ * `local_day` is the user's date (`YYYY-MM-DD`), for the streak.
+ */
+async submitDesign(id: string, design: Design, localDay: string) : Promise<Result<SubmitResult, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("submit_design", { id, design, localDay }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async submissions(id: string) : Promise<Result<SubmissionSummary[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("submissions", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Solved and attempted per difficulty, the streak (from the user's `today`) and what next.
+ */
+async progress(today: string) : Promise<Result<Progress, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("progress", { today }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 /**
  * The window title (the webview has no `setTitle` permission).
  */
@@ -254,6 +320,23 @@ export type AppErrorCode =
  */
 "content_missing"
 export type AppInfo = { version: string; dev_data: boolean }
+export type Bottleneck = { node: string; kind: ComponentKind; from_s: number; utilisation: number; reason: BottleneckReason }
+/**
+ * Why the bottleneck card is the bottleneck.
+ */
+export type BottleneckReason = 
+/**
+ * Every server busy and its queue growing.
+ */
+"saturated" | 
+/**
+ * Its queue full: it dropped requests.
+ */
+"queue_overflow" | 
+/**
+ * It was down (chaos) while requests needed it.
+ */
+"down"
 export type BreakingPoint = { 
 /**
  * Real requests per second the design holds (the last passing window), and its multiple
@@ -378,7 +461,10 @@ export type DesignIssue = { code: IssueCode;
  * The ids involved (cards, edges, zones, notes), or the prop key.
  */
 ids: string[] }
+export type Difficulty = "easy" | "medium" | "hard"
+export type DifficultyCount = { total: number; attempted: number; solved: number }
 export type Edge = { id: string; from: string; to: string; protocol: Protocol }
+export type ExternalBrief = { name: string; median_ms: number; p99_ms: number; rate_limit: number | null }
 /**
  * Why the first card failed.
  */
@@ -472,6 +558,19 @@ export type IssueCode =
  */
 "wrapper_as_card"
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
+export type Judgement = { problem_id: string; 
+/**
+ * Accepted when every test is; otherwise the most severe failing verdict.
+ */
+verdict: Verdict; 
+/**
+ * Why the design is invalid (only for Invalid Design).
+ */
+lint: string[]; tests: TestResult[]; score: Score; 
+/**
+ * The design's monthly cost on the first test, and the reference's.
+ */
+cost_month: number; ref_cost: number }
 /**
  * A set of kinds: any kind in `categories` or `kinds`, minus `except`.
  */
@@ -507,6 +606,26 @@ max_note: number }
 export type MetaKind = "region" | "az" | "note"
 export type MetaSpec = { kind: MetaKind; icon: string }
 /**
+ * The non-functional requirements shown in the brief.
+ */
+export type Nfr = { 
+/**
+ * Requests per second at a traffic multiplier of 1.
+ */
+peak_rps: number; 
+/**
+ * Share of reads, for the brief (the request types define the real mix).
+ */
+read_ratio?: number | null; p95_ms: number; 
+/**
+ * 0–1, e.g. 0.999.
+ */
+availability: number; 
+/**
+ * Monthly budget in teaching dollars (ADR 0006).
+ */
+budget_usd: number }
+/**
  * A component card. `position` is the card's top-left corner in canvas coordinates,
  * always absolute (never relative to its zone).
  */
@@ -540,6 +659,14 @@ export type Note = { id: string; text: string; position: Point; size: Size }
  * A design read from disk, with the path it came from.
  */
 export type OpenedDesign = { path: string; design: Design }
+/**
+ * What a passing run needs. Unset limits aren't checked.
+ */
+export type PassCriteria = { p95_ms?: number | null; error_rate?: number | null; availability?: number | null; stale_rate?: number | null; 
+/**
+ * Messages that may be lost (usually 0).
+ */
+lost?: number | null }
 export type Percentiles = { p50_ms: number; p95_ms: number; p99_ms: number }
 /**
  * How a kind is placed on the canvas.
@@ -554,6 +681,30 @@ export type Placement =
  */
 "wrapper"
 export type Point = { x: number; y: number }
+/**
+ * What the Solve page shows. Hidden tests come with their names only; hints only up to the
+ * unlocked tier; the editorial and the reference only once solved.
+ */
+export type ProblemBrief = { summary: ProblemSummary; nfr: Nfr; statement_en: string; statement_es: string; request_types: RequestTypeBrief[]; externals: ExternalBrief[]; tests: TestBrief[]; 
+/**
+ * Unlocked tiers (0–3) and their text.
+ */
+hints_unlocked: number; hints_en: string[]; hints_es: string[]; solved: boolean; editorial_en: string | null; editorial_es: string | null; reference: Design | null; draft: Design | null; runs: number }
+export type ProblemSummary = { id: string; number: number; set: number; difficulty: Difficulty; title_en: string; title_es: string; teaches_en: string; teaches_es: string; tags: string[]; 
+/**
+ * None until a submission; then "attempted" or "solved".
+ */
+status: string | null; best_score: number | null; 
+/**
+ * The cheapest Accepted submission's monthly cost.
+ */
+best_cost: number | null }
+export type ProblemTest = { problem_id: string; test_id: string }
+export type Progress = { easy: DifficultyCount; medium: DifficultyCount; hard: DifficultyCount; streak: number; 
+/**
+ * The next unsolved problem in catalogue order, and the most recently attempted one.
+ */
+recommended: string | null; continue_with: string | null }
 export type PropOverride = { key: string; value: PropValue }
 export type PropSpec = { key: string; ty: PropType; default: PropValue; unit: Unit; 
 /**
@@ -591,6 +742,7 @@ export type RecentEntry = { path: string; name: string; opened_at: number; exist
  * Everything the editor needs to know about components, sent to the UI once.
  */
 export type Registry = { categories: Category[]; kinds: KindSpec[]; meta: MetaSpec[]; wiring: WiringTable; limits: Limits }
+export type RequestTypeBrief = { id: string; name: string | null; name_es: string | null; share: number }
 export type Role = "primary" | "replica" | "any"
 /**
  * A control sent to the live run.
@@ -674,6 +826,7 @@ export type SandboxPreset =
  * An autoscaling group's policy: the Autoscaling kind's flavour and props (v2).
  */
 export type Scaling = { flavour: Flavour; props: Partial<{ [key in string]: PropValue }> }
+export type Score = { correctness: number; cost: number; latency: number; total: number }
 export type SecondResult = { t: number; requests: number; ok: number; errors: number; p95_ms: number }
 /**
  * Which card(s) a chaos event hits.
@@ -717,7 +870,11 @@ export type Size = { w: number; h: number }
  * Start a live Sandbox run. Frames (binary, `KAF1`) stream to the channel the UI created;
  * they arrive in JavaScript as ArrayBuffers.
  */
-export type StartRun = { design: Design; preset: SandboxPreset; speed: number; 
+export type StartRun = { design: Design; preset: SandboxPreset; 
+/**
+ * Run a problem's test instead of the Sandbox preset.
+ */
+problem: ProblemTest | null; speed: number; 
 /**
  * Chaos the user injected (each at the moment it was injected).
  */
@@ -730,11 +887,52 @@ start_s: number;
  * A `Channel` from `@tauri-apps/api/core`, serialized as its id.
  */
 on_frame: string }
+export type SubmissionSummary = { id: number; problem_id: string; created_at: number; verdict: string; score: number; correctness: number; cost_score: number; latency_score: number; cost_usd: number; p95_ms: number }
+export type SubmitResult = { submission_id: number; judgement: Judgement; 
+/**
+ * The problem was solved by this submission for the first time.
+ */
+first_solve: boolean; best_score: number }
+export type TestBrief = { id: string; name: string; name_es: string; hidden: boolean; duration_s: number }
+/**
+ * The result of one test. Hidden tests carry the same numbers, but never their traffic or
+ * chaos: the definition stays in Rust.
+ */
+export type TestResult = { id: string; name: string; name_es: string; hidden: boolean; verdict: Verdict; p95_ms: number; error_rate: number; availability: number; stale_rate: number; lost: number; throughput_rps: number; cost_month: number; 
+/**
+ * The limits this test was held to.
+ */
+limits: PassCriteria; bottleneck: Bottleneck | null; 
+/**
+ * Replay at failure: start the live run of this test here (two seconds before the
+ * bottleneck appears, or at the start).
+ */
+replay_at_s: number | null; seed: number }
 export type TypeResult = { id: string; requests: number; errors: number; latency: Percentiles; response: Percentiles; completion: Percentiles | null }
 /**
  * The unit shown after a prop's value (`units.<unit>` in the UI).
  */
 export type Unit = "none" | "count" | "ms" | "s" | "h" | "days" | "percent" | "rps" | "gb"
+/**
+ * A test's outcome, in the order the checks run: the first that fails is the verdict.
+ */
+export type Verdict = 
+/**
+ * The design can't run the problem (validation, a missing path, a required card).
+ */
+"invalid_design" | 
+/**
+ * Too many errors, or messages lost.
+ */
+"dropped_requests" | 
+/**
+ * p95, availability or stale reads outside the limits.
+ */
+"slo_breach" | 
+/**
+ * Costs more per month than the budget.
+ */
+"over_budget" | "accepted"
 export type Viewport = { x: number; y: number; zoom: number }
 /**
  * Why a pair with no allowed protocol is refused (the first matching denial wins).

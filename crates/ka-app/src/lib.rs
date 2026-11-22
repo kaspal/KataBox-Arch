@@ -5,6 +5,7 @@
 pub mod error;
 pub mod kbarch;
 pub mod live;
+pub mod problems;
 mod runs;
 pub mod sandbox;
 pub mod settings;
@@ -20,7 +21,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 pub use error::{AppError, AppErrorCode};
-pub use runs::{RunControl, RunInfo, RunRequest, breaking_point};
+pub use runs::{ProblemTest, RunControl, RunInfo, RunRequest, breaking_point};
 pub use sandbox::SandboxPreset;
 
 pub type Result<T, E = AppError> = std::result::Result<T, E>;

@@ -1,15 +1,61 @@
 // Home (matches the Home mockup's frame): the hero, New / Open, and the recent designs.
 // The samples gallery, progress and recommendations arrive with M2–M3.
 import { useTranslation } from "react-i18next";
+import { Link } from "@tanstack/react-router";
+import type { ProblemSummary } from "@/bindings";
+import { DifficultyBadge, useLocalized } from "@/pages/Problems";
 import { FilePlus2, FileText, FolderOpen, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Page } from "@/components/Page";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useRecentFiles } from "@/lib/queries";
+import { useProblems, useProgress, useRecentFiles } from "@/lib/queries";
 import { useFileActions } from "@/solve/files";
 
 function when(ms: number, lang: string): string {
   return new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" }).format(new Date(ms));
+}
+
+/** Continue the last attempted problem, and the next one to try. Hidden without content. */
+function PracticeCards() {
+  const { t } = useTranslation();
+  const problems = useProblems();
+  const progress = useProgress();
+  const loc = useLocalized();
+  const find = (id: string | null | undefined) => problems.data?.find((p) => p.id === id);
+  const cont = find(progress.data?.continue_with);
+  const next = find(progress.data?.recommended);
+  if (!cont && !next) return null;
+  const card = (p: ProblemSummary, label: string, testId: string) => (
+    <Link
+      to="/problems/$id"
+      params={{ id: p.id }}
+      className="flex flex-col gap-1 rounded-xl border bg-card p-4 shadow-[0_1px_0_var(--desk)] hover:bg-accent/50"
+      data-testid={testId}
+    >
+      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
+      <span className="font-semibold">
+        #{p.number} {loc.title(p)}
+      </span>
+      <span className="text-xs text-muted-foreground">{loc.teaches(p)}</span>
+      <DifficultyBadge d={p.difficulty} />
+    </Link>
+  );
+  return (
+    <section aria-labelledby="practice-title" className="space-y-4">
+      <h2 id="practice-title" className="font-display text-3xl font-semibold">
+        {t("home.practice")}
+      </h2>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
+        {cont && card(cont, t("home.continue"), "home-continue")}
+        {next && next.id !== cont?.id && card(next, t("home.recommended"), "home-recommended")}
+      </div>
+      {progress.data && (
+        <p className="text-sm text-muted-foreground" data-testid="home-streak">
+          {t("home.streak", { count: progress.data.streak })}
+        </p>
+      )}
+    </section>
+  );
 }
 
 export function Home() {
@@ -33,6 +79,7 @@ export function Home() {
         </>
       }
     >
+      <PracticeCards />
       <section aria-labelledby="recent-title" className="space-y-4">
         <h2 id="recent-title" className="font-display text-3xl font-semibold">
           {t("home.recent")}

@@ -40,7 +40,8 @@
     "cancel": "Cancel",
     "dismiss": "Dismiss",
     "on": "On",
-    "off": "Off"
+    "off": "Off",
+    "close": "Close"
   },
   "errors": {
     "generic": "Something went wrong.",
@@ -84,7 +85,9 @@
     "run": "Run",
     "aiReview": "AI review",
     "submit": "Submit",
-    "later": "Arrives in {{milestone}}"
+    "later": "Arrives in {{milestone}}",
+    "submitProblem": "Open a problem to submit a design",
+    "judging": "Judging…"
   },
   "canvas": {
     "label": "Canvas",
@@ -183,7 +186,8 @@
     "range": "Enter a number from {{min}} to {{max}}.",
     "rangeInt": "Enter a whole number from {{min}} to {{max}}.",
     "autoscaleHint": "Compute cards inside this frame scale between the minimum and maximum instances, adding instances when utilisation stays above the target.",
-    "scaling": "Scaling policy"
+    "scaling": "Scaling policy",
+    "brief": "Brief"
   },
   "home": {
     "eyebrow": "Your system design desk",
@@ -194,7 +198,12 @@
     "missing": "File not found",
     "openNamed": "Open {{name}}",
     "forget": "Forget",
-    "forgetNamed": "Remove {{name}} from recent designs"
+    "forgetNamed": "Remove {{name}} from recent designs",
+    "practice": "Practice",
+    "continue": "Continue",
+    "recommended": "Recommended next",
+    "streak_one": "{{count}}-day streak",
+    "streak_other": "{{count}}-day streak"
   },
   "placeholder": {
     "problems": {
@@ -414,7 +423,8 @@
       "traffic": "Traffic changes at {{at}} s",
       "flush": "A cache is emptied at {{at}} s",
       "external": "A provider fails at {{at}} s"
-    }
+    },
+    "test": "Test to run"
   },
   "metrics": {
     "empty": "Run the design to see live metrics.",
@@ -428,7 +438,8 @@
     "down": "down",
     "sampled": "Simulating {{pct}}% of requests; counts are scaled back up.",
     "p95Trend": "p95 latency per second",
-    "stale": "Stale reads"
+    "stale": "Stale reads",
+    "availability": "Availability"
   },
   "breaking": {
     "title": "Breaking point",
@@ -444,5 +455,69 @@
     "stale": "The design has changed since; find it again.",
     "limits": "Breaking means p95 above 200 ms or more than 1% errors, in 20 s runs of growing traffic.",
     "staleReads": "At that load, {{pct}} of reads are stale."
+  },
+  "problems": {
+    "search": "Search problems",
+    "all": "All",
+    "filterDifficulty": "Difficulty",
+    "filterTopic": "Topic",
+    "difficulty": {
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard"
+    },
+    "status": {
+      "solved": "Solved",
+      "attempted": "Attempted",
+      "new": "Not started"
+    },
+    "best": "Best {{score}}",
+    "random": "Random problem",
+    "continue": "Continue: {{title}}",
+    "none": "No problem matches.",
+    "unavailable": "Problems are unavailable"
+  },
+  "brief": {
+    "teaches": "Teaches: {{what}}",
+    "targets": "Targets",
+    "peak": "Peak traffic",
+    "p95": "p95 latency",
+    "availability": "Availability",
+    "budget": "Budget",
+    "traffic": "Traffic",
+    "externals": "External providers",
+    "externalLatency": "{{median}} ms median, {{p99}} ms p99",
+    "externalLimit": "{{limit}} req/s limit",
+    "tests": "Tests",
+    "hidden": "hidden",
+    "seconds": "{{s}} s",
+    "hints": "Hints",
+    "hint": "Hint {{n}}",
+    "showHint": "Show hint {{n}}",
+    "editorial": "Editorial"
+  },
+  "results": {
+    "title": "Results",
+    "score": "Score",
+    "correctness": "Correctness",
+    "cost": "Cost ({{cost}} vs the reference's {{ref}} a month)",
+    "latency": "Latency headroom",
+    "best": "Your best on this problem: {{score}}",
+    "summary": "{{passed}} of {{total}} tests passed; the design costs {{cost}} a month.",
+    "firstSolve": "Solved! The editorial is now in the Brief tab.",
+    "replay": "Replay at failure",
+    "aiLater": "An AI review that explains these results and challenges the design arrives in M4. It never changes a score.",
+    "verdict": {
+      "accepted": "Accepted",
+      "dropped_requests": "Dropped requests",
+      "slo_breach": "SLO breach",
+      "over_budget": "Over budget",
+      "invalid_design": "Invalid design"
+    },
+    "bottleneck": {
+      "saturated": "{{name}} saturated from {{at}} s.",
+      "queue_overflow": "{{name}} overflowed its queue from {{at}} s.",
+      "down": "{{name}} was down from {{at}} s."
+    }
   }
 }

@@ -16,9 +16,10 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use ka_app::live::FrameSink;
+use ka_app::problems::{ProblemBrief, ProblemSummary, Progress, SubmitResult};
 use ka_app::{
-    App, AppError, AppErrorCode, AppInfo, AppPaths, OpenedDesign, RecentEntry, RunControl, RunInfo,
-    RunRequest, SandboxPreset,
+    App, AppError, AppErrorCode, AppInfo, AppPaths, OpenedDesign, ProblemTest, RecentEntry,
+    RunControl, RunInfo, RunRequest, SandboxPreset,
 };
 use ka_core::{Design, DesignIssue, Registry};
 use serde_json::Value;
@@ -170,6 +171,8 @@ async fn pick_file(app: tauri::AppHandle, save_as: Option<String>) -> Res<Option
 struct StartRun {
     design: Design,
     preset: SandboxPreset,
+    /// Run a problem's test instead of the Sandbox preset.
+    problem: Option<ProblemTest>,
     speed: f64,
     /// Chaos the user injected (each at the moment it was injected).
     chaos: Vec<ka_core::scenario::ChaosEvent>,
@@ -197,16 +200,22 @@ async fn start_run(
     request: StartRun,
 ) -> Res<RunInfo> {
     let sink = ChannelSink(request.on_frame.channel_on(webview));
-    state.app()?.start_run(
+    let app = state.app()?;
+    if let Some(p) = &request.problem {
+        app.record_problem_run(&p.problem_id).await?;
+    }
+    app.start_run(
         &request.design,
         RunRequest {
             preset: request.preset,
+            problem: request.problem,
             speed: request.speed,
             chaos: request.chaos,
             start_s: request.start_s,
         },
         sink,
     )
+    .await
 }
 
 #[tauri::command]
@@ -233,6 +242,71 @@ async fn find_breaking_point(
     tauri::async_runtime::spawn_blocking(move || ka_app::breaking_point(&design, &registry))
         .await
         .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?
+}
+
+// --- Problems -------------------------------------------------------------------------
+
+#[tauri::command]
+#[specta::specta]
+async fn list_problems(state: State<'_, AppState>) -> Res<Vec<ProblemSummary>> {
+    state.app()?.list_problems().await
+}
+
+/// A problem's brief: hidden tests by name only, hints up to the unlocked tier.
+#[tauri::command]
+#[specta::specta]
+async fn problem_brief(state: State<'_, AppState>, id: String) -> Res<ProblemBrief> {
+    state.app()?.problem_brief(&id).await
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn unlock_hint(state: State<'_, AppState>, id: String, tier: i64) -> Res<()> {
+    state.app()?.unlock_hint(&id, tier).await
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn save_draft(state: State<'_, AppState>, id: String, design: Design) -> Res<()> {
+    state.app()?.save_draft(&id, &design).await
+}
+
+/// Judge the design on every test of the problem (off the async runtime), then record it.
+/// `local_day` is the user's date (`YYYY-MM-DD`), for the streak.
+#[tauri::command]
+#[specta::specta]
+async fn submit_design(
+    state: State<'_, AppState>,
+    id: String,
+    design: Design,
+    local_day: String,
+) -> Res<SubmitResult> {
+    let app = state.app()?;
+    let (problem, ref_cost) = app.problem_for_judging(&id).await?;
+    let registry = app.registry().clone();
+    let judged = design.clone();
+    let judgement = tauri::async_runtime::spawn_blocking(move || {
+        ka_app::problems::judge_design(&problem, &judged, &registry, ref_cost)
+    })
+    .await
+    .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    app.record_submission(&design, judgement, &local_day).await
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn submissions(
+    state: State<'_, AppState>,
+    id: String,
+) -> Res<Vec<ka_store::SubmissionSummary>> {
+    state.app()?.submissions(&id).await
+}
+
+/// Solved and attempted per difficulty, the streak (from the user's `today`) and what next.
+#[tauri::command]
+#[specta::specta]
+async fn progress(state: State<'_, AppState>, today: String) -> Res<Progress> {
+    state.app()?.progress(&today).await
 }
 
 // --- Window ---------------------------------------------------------------------------
@@ -300,6 +374,13 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         control_run,
         run_result,
         find_breaking_point,
+        list_problems,
+        problem_brief,
+        unlock_hint,
+        save_draft,
+        submit_design,
+        submissions,
+        progress,
         set_window_title,
         set_dirty,
         confirm_close,

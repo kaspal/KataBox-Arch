@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GlyphTile } from "@/solve/icons";
 import { choiceName, flavourName, kindName, kindSpec, propName, unitName } from "@/solve/registry";
+import { BriefPanel } from "@/solve/problem/BriefPanel";
+import { useProblemMode } from "@/solve/problem/context";
 import { MetricsPanel } from "@/solve/run/MetricsPanel";
 import { useRun } from "@/solve/run/runStore";
 import { useEditor } from "@/solve/store";
@@ -377,7 +379,8 @@ export function InspectorPanel({ registry }: { registry: Registry }) {
   const { t } = useTranslation();
   const doc = useEditor((s) => s.doc);
   const selection = useEditor((s) => s.selection);
-  const [tab, setTab] = useState<"inspect" | "metrics">("inspect");
+  const problem = useProblemMode();
+  const [tab, setTab] = useState<"brief" | "inspect" | "metrics">(problem ? "brief" : "inspect");
   // A run that starts from idle brings its metrics forward; selecting a card brings the
   // inspector back.
   useEffect(
@@ -423,6 +426,11 @@ export function InspectorPanel({ registry }: { registry: Registry }) {
   return (
     <aside aria-label={t("inspector.title")} className="flex h-full min-h-0 flex-col bg-background" data-testid="inspector">
       <div className="flex gap-4 border-b px-4 pt-3 text-sm" role="tablist">
+        {problem && (
+          <button type="button" role="tab" id="tab-brief" aria-selected={tab === "brief"} aria-controls="tabpanel-side" className={tabClass(tab === "brief")} onClick={() => setTab("brief")}>
+            {t("inspector.brief")}
+          </button>
+        )}
         <button type="button" role="tab" id="tab-inspect" aria-selected={tab === "inspect"} aria-controls="tabpanel-side" className={tabClass(tab === "inspect")} onClick={() => setTab("inspect")}>
           {t("inspector.title")}
         </button>
@@ -430,8 +438,8 @@ export function InspectorPanel({ registry }: { registry: Registry }) {
           {t("inspector.metrics")}
         </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4" role="tabpanel" id="tabpanel-side" aria-labelledby={tab === "inspect" ? "tab-inspect" : "tab-metrics"}>
-        {tab === "inspect" ? body : <MetricsPanel />}
+      <div className="min-h-0 flex-1 overflow-y-auto p-4" role="tabpanel" id="tabpanel-side" aria-labelledby={`tab-${tab}`}>
+        {tab === "brief" && problem ? <BriefPanel brief={problem.brief} /> : tab === "metrics" ? <MetricsPanel /> : body}
       </div>
     </aside>
   );

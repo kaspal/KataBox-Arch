@@ -1,16 +1,7 @@
 // Pages that later milestones fill in. Each says what arrives and when.
 import { useTranslation } from "react-i18next";
-import { BarChart3, BookOpen, List, PlayCircle } from "lucide-react";
+import { BarChart3, BookOpen, PlayCircle } from "lucide-react";
 import { EmptyState, Page } from "@/components/Page";
-
-export function Problems() {
-  const { t } = useTranslation();
-  return (
-    <Page title={t("nav.problems")}>
-      <EmptyState icon={List} title={t("placeholder.problems.title")} body={t("placeholder.problems.body")} />
-    </Page>
-  );
-}
 
 export function Guide() {
   const { t } = useTranslation();

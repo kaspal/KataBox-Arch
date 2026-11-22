@@ -9,6 +9,12 @@ import {
   type AppInfo,
   type BreakingPoint,
   type ChaosEvent,
+  type ProblemBrief,
+  type ProblemSummary,
+  type ProblemTest,
+  type Progress,
+  type SubmissionSummary,
+  type SubmitResult,
   type Design,
   type DesignIssue,
   type JsonValue,
@@ -36,6 +42,15 @@ function toArrayBuffer(data: unknown): ArrayBuffer {
   throw new Error("unexpected frame payload");
 }
 
+/** How to run a design live: a Sandbox preset or a problem's test. */
+export type RunOptions = {
+  preset: SandboxPreset;
+  problem: ProblemTest | null;
+  speed: number;
+  chaos: ChaosEvent[];
+  startS: number;
+};
+
 /** The event Rust emits when a close was held back by unsaved changes. */
 const CLOSE_REQUESTED = "close-requested";
 
@@ -55,23 +70,37 @@ export const api = {
   validateDesign: (design: Design): Promise<DesignIssue[]> => call(commands.validateDesign(design)),
 
   /** Start a live Sandbox run; `onFrame` receives each binary frame (`solve/run/frames.ts`). */
-  startRun: (
-    design: Design,
-    preset: SandboxPreset,
-    speed: number,
-    chaos: ChaosEvent[],
-    startS: number,
-    onFrame: (frame: ArrayBuffer) => void,
-  ): Promise<RunInfo> => {
+  startRun: (design: Design, opts: RunOptions, onFrame: (frame: ArrayBuffer) => void): Promise<RunInfo> => {
     const channel = new Channel<unknown>();
     channel.onmessage = (data) => onFrame(toArrayBuffer(data));
     // The channel serializes to its id; the bindings type that field as a string.
-    return call(commands.startRun({ design, preset, speed, chaos, start_s: startS, on_frame: channel as unknown as string }));
+    return call(
+      commands.startRun({
+        design,
+        preset: opts.preset,
+        problem: opts.problem,
+        speed: opts.speed,
+        chaos: opts.chaos,
+        start_s: opts.startS,
+        on_frame: channel as unknown as string,
+      }),
+    );
   },
   controlRun: (runId: number, control: RunControl): Promise<null> => call(commands.controlRun(runId, control)),
   runResult: (runId: number): Promise<RunResult | null> => call(commands.runResult(runId)),
   /** How much traffic the design holds before it fails (a few seconds of simulation). */
   findBreakingPoint: (design: Design): Promise<BreakingPoint> => call(commands.findBreakingPoint(design)),
+
+  listProblems: (): Promise<ProblemSummary[]> => call(commands.listProblems()),
+  /** A problem's brief: hidden tests by name only, hints up to the unlocked tier. */
+  problemBrief: (id: string): Promise<ProblemBrief> => call(commands.problemBrief(id)),
+  unlockHint: (id: string, tier: number): Promise<null> => call(commands.unlockHint(id, tier)),
+  saveDraft: (id: string, design: Design): Promise<null> => call(commands.saveDraft(id, design)),
+  /** Judge on every test and record the submission (`localDay`: the user's YYYY-MM-DD). */
+  submitDesign: (id: string, design: Design, localDay: string): Promise<SubmitResult> =>
+    call(commands.submitDesign(id, design, localDay)),
+  submissions: (id: string): Promise<SubmissionSummary[]> => call(commands.submissions(id)),
+  progress: (today: string): Promise<Progress> => call(commands.progress(today)),
 
   setWindowTitle: (title: string): Promise<null> => call(commands.setWindowTitle(title)),
   setDirty: (dirty: boolean): Promise<null> => call(commands.setDirty(dirty)),

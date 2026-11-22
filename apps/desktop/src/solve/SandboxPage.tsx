@@ -7,6 +7,7 @@ import {
   FilePlus2,
   FolderOpen,
   Grid3x3,
+  Loader2,
   Redo2,
   Save,
   SaveAll,
@@ -28,6 +29,7 @@ import { Canvas } from "@/solve/Canvas";
 import { displayName, useFileActions } from "@/solve/files";
 import { InspectorPanel } from "@/solve/InspectorPanel";
 import { LibraryPanel } from "@/solve/LibraryPanel";
+import { useProblemMode } from "@/solve/problem/context";
 import { RunControls } from "@/solve/run/RunControls";
 import { Timeline } from "@/solve/run/Timeline";
 import { isActive, simKey, useRun } from "@/solve/run/runStore";
@@ -75,6 +77,18 @@ function Later({ label, tip, icon: Icon, primary }: { label: string; tip: string
       </TooltipTrigger>
       <TooltipContent>{tip}</TooltipContent>
     </Tooltip>
+  );
+}
+
+function SubmitButton() {
+  const { t } = useTranslation();
+  const problem = useProblemMode();
+  if (!problem) return <Later label={t("sandbox.submit")} tip={t("sandbox.submitProblem")} icon={Send} primary />;
+  return (
+    <Button size="sm" className="gap-2" onClick={problem.submit} disabled={problem.submitting}>
+      {problem.submitting ? <Loader2 aria-hidden className="size-4 animate-spin motion-reduce:animate-none" /> : <Send aria-hidden className="size-4" />}
+      {problem.submitting ? t("sandbox.judging") : t("sandbox.submit")}
+    </Button>
   );
 }
 
@@ -134,7 +148,7 @@ function Toolbar() {
       <div className="flex items-center gap-2">
         <RunControls />
         <Later label={t("sandbox.aiReview")} tip={t("sandbox.later", { milestone: "M4" })} icon={Sparkles} />
-        <Later label={t("sandbox.submit")} tip={t("sandbox.later", { milestone: "M2" })} icon={Send} primary />
+        <SubmitButton />
       </div>
     </header>
   );

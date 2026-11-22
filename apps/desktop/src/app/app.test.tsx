@@ -261,10 +261,10 @@ describe("live runs", () => {
     const { user } = renderApp("/sandbox");
     await user.click(await screen.findByRole("button", { name: "Run" }));
     await waitFor(() => expect(fake().api.startRun).toHaveBeenCalledTimes(1));
-    const [sent, preset, speed, chaos, startS] = vi.mocked(fake().api.startRun).mock.calls[0];
+    const [sent, options] = vi.mocked(fake().api.startRun).mock.calls[0];
     expect(sent.nodes.map((n) => n.id)).toEqual(["c1", "a1"]);
     expect(sent.schema_version).toBe(2);
-    expect([preset, speed, chaos, startS]).toEqual(["normal", 1, [], 0]);
+    expect(options).toEqual({ preset: "normal", problem: null, speed: 1, chaos: [], startS: 0 });
     expect(screen.getByRole("tab", { name: "Metrics" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText("Run the design to see live metrics.")).toBeInTheDocument();
     act(() => fake().pushFrame(frame()));
@@ -334,7 +334,7 @@ describe("live runs", () => {
     await user.click(screen.getByRole("button", { name: "Inject" }));
     await user.click(await screen.findByRole("menuitem", { name: "Kill it" }));
     await waitFor(() => expect(fake().runs).toBe(2));
-    const [, , , chaos, startS] = vi.mocked(fake().api.startRun).mock.calls[1];
+    const { chaos, startS } = vi.mocked(fake().api.startRun).mock.calls[1][1];
     expect(chaos).toEqual([{ kill: { id: "a1", at: 2.999 } }]);
     expect(startS).toBe(2.999);
     // The timeline marks it.

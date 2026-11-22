@@ -40,7 +40,8 @@
     "cancel": "Cancelar",
     "dismiss": "Cerrar",
     "on": "Sí",
-    "off": "No"
+    "off": "No",
+    "close": "Cerrar"
   },
   "errors": {
     "generic": "Algo salió mal.",
@@ -84,7 +85,9 @@
     "run": "Ejecutar",
     "aiReview": "Revisión con IA",
     "submit": "Enviar",
-    "later": "Llega en {{milestone}}"
+    "later": "Llega en {{milestone}}",
+    "submitProblem": "Abre un problema para enviar un diseño",
+    "judging": "Evaluando…"
   },
   "canvas": {
     "label": "Lienzo",
@@ -183,7 +186,8 @@
     "range": "Escribe un número de {{min}} a {{max}}.",
     "rangeInt": "Escribe un número entero de {{min}} a {{max}}.",
     "autoscaleHint": "Las tarjetas de cómputo dentro de este marco escalan entre el mínimo y el máximo de instancias, y añaden instancias cuando la utilización se mantiene por encima del objetivo.",
-    "scaling": "Política de escalado"
+    "scaling": "Política de escalado",
+    "brief": "Enunciado"
   },
   "home": {
     "eyebrow": "Tu mesa de diseño de sistemas",
@@ -194,7 +198,12 @@
     "missing": "Archivo no encontrado",
     "openNamed": "Abrir {{name}}",
     "forget": "Olvidar",
-    "forgetNamed": "Quitar {{name}} de los diseños recientes"
+    "forgetNamed": "Quitar {{name}} de los diseños recientes",
+    "practice": "Práctica",
+    "continue": "Continuar",
+    "recommended": "Siguiente recomendado",
+    "streak_one": "Racha de {{count}} día",
+    "streak_other": "Racha de {{count}} días"
   },
   "placeholder": {
     "problems": {
@@ -414,7 +423,8 @@
       "traffic": "El tráfico cambia a los {{at}} s",
       "flush": "Una caché se vacía a los {{at}} s",
       "external": "Un proveedor falla a los {{at}} s"
-    }
+    },
+    "test": "Prueba a ejecutar"
   },
   "metrics": {
     "empty": "Ejecuta el diseño para ver métricas en vivo.",
@@ -428,7 +438,8 @@
     "down": "caído",
     "sampled": "Se simula el {{pct}} % de las solicitudes; los recuentos se escalan de vuelta.",
     "p95Trend": "Latencia p95 por segundo",
-    "stale": "Lecturas obsoletas"
+    "stale": "Lecturas obsoletas",
+    "availability": "Disponibilidad"
   },
   "breaking": {
     "title": "Punto de ruptura",
@@ -444,5 +455,69 @@
     "stale": "El diseño ha cambiado desde entonces; vuelve a buscarlo.",
     "limits": "Romper significa p95 por encima de 200 ms o más de un 1 % de errores, en ejecuciones de 20 s con tráfico creciente.",
     "staleReads": "Con esa carga, el {{pct}} de las lecturas están obsoletas."
+  },
+  "problems": {
+    "search": "Buscar problemas",
+    "all": "Todos",
+    "filterDifficulty": "Dificultad",
+    "filterTopic": "Tema",
+    "difficulty": {
+      "easy": "Fácil",
+      "medium": "Media",
+      "hard": "Difícil"
+    },
+    "status": {
+      "solved": "Resuelto",
+      "attempted": "Intentado",
+      "new": "Sin empezar"
+    },
+    "best": "Mejor {{score}}",
+    "random": "Problema al azar",
+    "continue": "Continuar: {{title}}",
+    "none": "Ningún problema coincide.",
+    "unavailable": "Los problemas no están disponibles"
+  },
+  "brief": {
+    "teaches": "Enseña: {{what}}",
+    "targets": "Objetivos",
+    "peak": "Tráfico pico",
+    "p95": "Latencia p95",
+    "availability": "Disponibilidad",
+    "budget": "Presupuesto",
+    "traffic": "Tráfico",
+    "externals": "Proveedores externos",
+    "externalLatency": "mediana de {{median}} ms, p99 de {{p99}} ms",
+    "externalLimit": "límite de {{limit}} solicitudes/s",
+    "tests": "Pruebas",
+    "hidden": "oculta",
+    "seconds": "{{s}} s",
+    "hints": "Pistas",
+    "hint": "Pista {{n}}",
+    "showHint": "Mostrar la pista {{n}}",
+    "editorial": "Solución comentada"
+  },
+  "results": {
+    "title": "Resultados",
+    "score": "Puntuación",
+    "correctness": "Corrección",
+    "cost": "Coste ({{cost}} frente a {{ref}} al mes de la referencia)",
+    "latency": "Margen de latencia",
+    "best": "Tu mejor puntuación en este problema: {{score}}",
+    "summary": "{{passed}} de {{total}} pruebas superadas; el diseño cuesta {{cost}} al mes.",
+    "firstSolve": "¡Resuelto! La solución comentada ya está en la pestaña Enunciado.",
+    "replay": "Repetir desde el fallo",
+    "aiLater": "Una revisión con IA que explica estos resultados y cuestiona el diseño llega en M4. Nunca cambia una puntuación.",
+    "verdict": {
+      "accepted": "Aceptado",
+      "dropped_requests": "Solicitudes perdidas",
+      "slo_breach": "SLO incumplido",
+      "over_budget": "Sobre presupuesto",
+      "invalid_design": "Diseño no válido"
+    },
+    "bottleneck": {
+      "saturated": "{{name}} saturado desde los {{at}} s.",
+      "queue_overflow": "{{name}} desbordó su cola desde los {{at}} s.",
+      "down": "{{name}} estuvo caído desde los {{at}} s."
+    }
   }
 }

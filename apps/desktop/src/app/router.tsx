@@ -10,14 +10,20 @@ import {
 } from "@tanstack/react-router";
 import { Shell } from "@/app/Shell";
 import { Home } from "@/pages/Home";
-import { Guide, Problems, Progress, Samples } from "@/pages/Placeholders";
+import { Guide, Progress, Samples } from "@/pages/Placeholders";
+import { ProblemsPage } from "@/pages/Problems";
 import { Settings } from "@/pages/Settings";
 
 const rootRoute = createRootRoute({ component: Shell });
 
 const routeTree = rootRoute.addChildren([
   createRoute({ getParentRoute: () => rootRoute, path: "/", component: Home }),
-  createRoute({ getParentRoute: () => rootRoute, path: "/problems", component: Problems }),
+  createRoute({ getParentRoute: () => rootRoute, path: "/problems", component: ProblemsPage }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/problems/$id",
+    component: lazyRouteComponent(() => import("@/solve/ProblemPage"), "ProblemPage"),
+  }),
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/sandbox",

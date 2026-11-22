@@ -1,8 +1,9 @@
 // An in-memory backend with the same shape as `api`, for UI tests. The registry is the
 // fixture Rust exports (`src/test/fixtures/registry.json`), so tests see the real data.
 import { vi } from "vitest";
-import type { AppError, ChaosEvent, Design, JsonValue, OpenedDesign, RecentEntry, Registry, RunControl, SandboxPreset } from "@/bindings";
-import type { Api } from "@/lib/api";
+import type { AppError, Design, JsonValue, OpenedDesign, ProblemBrief, RecentEntry, Registry, RunControl, SubmitResult } from "@/bindings";
+import { FAKE_BRIEF, fakeJudgement } from "@/test/fakeProblems";
+import type { Api, RunOptions } from "@/lib/api";
 import fixture from "@/test/fixtures/registry.json";
 
 export const REGISTRY = fixture.registry as unknown as Registry;
@@ -23,7 +24,11 @@ export type FakeOptions = {
   devData?: boolean;
   /** Make startRun fail with this error code. */
   runError?: AppError["code"];
+  /** What submitting a design to the fake problem returns. */
+  verdict?: SubmitResult["judgement"]["verdict"];
 };
+
+const FAKE_HINTS = { en: ["Look at the reads.", "Cache them.", "Redis in front of the database."], es: ["Mira las lecturas.", "Cachéalas.", "Redis delante de la base de datos."] };
 
 export function createFakeApi(opts: FakeOptions = {}) {
   const settings = new Map(Object.entries(opts.settings ?? {}));
@@ -36,6 +41,10 @@ export function createFakeApi(opts: FakeOptions = {}) {
   let runs = 0;
   let frameSink: ((f: ArrayBuffer) => void) | null = null;
   let runControls: RunControl[] = [];
+  let problemState: { status: string | null; best_score: number | null; best_cost: number | null } = { status: null, best_score: null, best_cost: null };
+  let hints = 0;
+  let draft: Design | null = null;
+  let submissionsCount = 0;
 
   const touch = (path: string, name: string) => {
     recent = [{ path, name, opened_at: 1_700_000_000_000 + recent.length, exists: true }, ...recent.filter((r) => r.path !== path)];
@@ -84,7 +93,8 @@ export function createFakeApi(opts: FakeOptions = {}) {
       return path;
     }),
     validateDesign: vi.fn(async () => []),
-    startRun: vi.fn(async (design: Design, _preset: SandboxPreset, _speed: number, chaos: ChaosEvent[], startS: number, onFrame: (f: ArrayBuffer) => void) => {
+    startRun: vi.fn(async (design: Design, run: RunOptions, onFrame: (f: ArrayBuffer) => void) => {
+      const { chaos, startS } = run;
       if (opts.runError) throw err(opts.runError);
       runs += 1;
       frameSink = onFrame;
@@ -105,6 +115,45 @@ export function createFakeApi(opts: FakeOptions = {}) {
       return null;
     }),
     runResult: vi.fn(async () => null),
+    listProblems: vi.fn(async () => [{ ...FAKE_BRIEF.summary, ...problemState }]),
+    problemBrief: vi.fn(async (id: string): Promise<ProblemBrief> => {
+      if (id !== FAKE_BRIEF.summary.id) throw err("not_found");
+      return {
+        ...FAKE_BRIEF,
+        summary: { ...FAKE_BRIEF.summary, ...problemState },
+        hints_unlocked: hints,
+        hints_en: FAKE_HINTS.en.slice(0, hints),
+        hints_es: FAKE_HINTS.es.slice(0, hints),
+        solved: problemState.status === "solved",
+        editorial_en: problemState.status === "solved" ? "## Editorial" : null,
+        editorial_es: problemState.status === "solved" ? "## Editorial" : null,
+        draft,
+      };
+    }),
+    unlockHint: vi.fn(async (_id: string, tier: number) => {
+      hints = Math.max(hints, tier);
+      return null;
+    }),
+    saveDraft: vi.fn(async (_id: string, d: Design) => {
+      draft = structuredClone(d);
+      return null;
+    }),
+    submitDesign: vi.fn(async (id: string): Promise<SubmitResult> => {
+      const judgement = fakeJudgement(id, opts.verdict ?? "accepted");
+      const solved = judgement.verdict === "accepted";
+      const first = solved && problemState.status !== "solved";
+      problemState = { status: solved || problemState.status === "solved" ? "solved" : "attempted", best_score: Math.max(problemState.best_score ?? 0, judgement.score.total), best_cost: null };
+      return { submission_id: ++submissionsCount, judgement, first_solve: first, best_score: problemState.best_score ?? 0 };
+    }),
+    submissions: vi.fn(async () => []),
+    progress: vi.fn(async () => ({
+      easy: { total: 1, attempted: problemState.status === "attempted" ? 1 : 0, solved: problemState.status === "solved" ? 1 : 0 },
+      medium: { total: 0, attempted: 0, solved: 0 },
+      hard: { total: 0, attempted: 0, solved: 0 },
+      streak: problemState.status ? 1 : 0,
+      recommended: problemState.status === "solved" ? null : FAKE_BRIEF.summary.id,
+      continue_with: problemState.status === "attempted" ? FAKE_BRIEF.summary.id : null,
+    })),
     findBreakingPoint: vi.fn(async (design: Design) => {
       if (opts.runError) throw err(opts.runError);
       return {

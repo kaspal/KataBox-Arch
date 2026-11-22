@@ -37,6 +37,17 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
     - a dead cache turns into misses;
     - autoscaling groups add and remove instances as load changes.
 
+- **Problems:**
+  - **The catalogue:** search, difficulty and topic filters, status and best score, plus Continue and Random
+    problem.
+  - **Each problem opens the editor with a Brief tab:** the statement, targets, traffic, external providers, its
+    tests (hidden ones by name only), hints you reveal one at a time, and the editorial once solved.
+  - **Drafts** save as you work.
+  - **Submit** judges the design on every test. Results show the verdict, a score (correctness, cost, latency), each
+    test's numbers, the bottleneck of a failing test, and "Replay at failure", which plays that test from just
+    before it broke.
+  - **Home** shows the problem to continue, the recommended next one, and your streak.
+
 ### Changed
 - Design files are format version 2. Version 1 files still open: an Autoscaling card becomes a
   frame around what it scaled, and two retired properties (SQL read replicas, CDN hit rate) are

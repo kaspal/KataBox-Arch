@@ -17,6 +17,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { flavourName } from "@/solve/registry";
 import { chaos } from "@/solve/run/chaos";
+import { useProblemMode } from "@/solve/problem/context";
 import { isActive, useRun } from "@/solve/run/runStore";
 import { toDesign, useEditor } from "@/solve/store";
 
@@ -63,6 +64,9 @@ export function RunControls() {
   const report = useReportError();
   const status = useRun((s) => s.status);
   const preset = useRun((s) => s.preset);
+  const problemTest = useRun((s) => s.problemTest);
+  const problem = useProblemMode();
+  const { i18n } = useTranslation();
   const run = useRun.getState();
 
   const start = () => {
@@ -82,18 +86,38 @@ export function RunControls() {
   }
   return (
     <div className="flex items-center gap-2" role="group" aria-label={t("run.controls")}>
-      <Select value={preset} onValueChange={(v) => run.setPreset(v as SandboxPreset)}>
-        <SelectTrigger size="sm" className="w-40 bg-card" aria-label={t("run.preset")}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {PRESETS.map((p) => (
-            <SelectItem key={p} value={p}>
-              {t(`run.presets.${p}`)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {problem ? (
+        <Select
+          value={problemTest?.test_id ?? ""}
+          onValueChange={(v) => run.setProblemTest({ problem_id: problem.id, test_id: v })}
+        >
+          <SelectTrigger size="sm" className="w-44 bg-card" aria-label={t("run.test")}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {problem.brief.tests
+              .filter((x) => !x.hidden)
+              .map((x) => (
+                <SelectItem key={x.id} value={x.id}>
+                  {i18n.language.startsWith("es") ? x.name_es : x.name}
+                </SelectItem>
+              ))}
+          </SelectContent>
+        </Select>
+      ) : (
+        <Select value={preset} onValueChange={(v) => run.setPreset(v as SandboxPreset)}>
+          <SelectTrigger size="sm" className="w-40 bg-card" aria-label={t("run.preset")}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PRESETS.map((p) => (
+              <SelectItem key={p} value={p}>
+                {t(`run.presets.${p}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
       <Button variant="outline" size="sm" className="gap-2" onClick={start}>
         {status === "finished" ? <RotateCcw aria-hidden className="size-4" /> : <Play aria-hidden className="size-4" />}
         {status === "finished" ? t("run.runAgain") : t("sandbox.run")}
