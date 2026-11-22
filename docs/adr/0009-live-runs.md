@@ -34,10 +34,12 @@ pause, speed, seek. And it needs that without turning thousands of packets a sec
 
 ### Frames (`KAF1`)
 - **The format:** packed little-endian binary, specified in `live.rs` and decoded in `solve/run/frames.ts`:
-  - a 40-byte header (time, flags, speed, four tiles);
+  - a 44-byte header (time, flags, speed, four tiles, and the packet total before thinning);
   - 6 bytes per card (utilisation, queue, flags);
-  - 7 bytes per packet (edge, request type and async bit, start offset, travel time).
-- **Packets** are thinned to at most 100 per frame, with a deterministic stride.
+  - 7 bytes per packet: the edge; the request type with the async, cache-hit, drop and reverse bits; the start
+    offset; the travel time.
+- **Packets** are thinned with a deterministic stride: at most 100 hops and 30 hit or drop events per frame. Events
+  are thinned separately, so drops stay visible.
 - **Utilisation** is measured over the frame's window, from busy server-time.
 - **Tiles** describe the last completed simulated second.
 - **Parity:** the export-bindings bin writes a frame Rust encoded to `src/test/fixtures/frame.kaf`, and the decoder's
@@ -65,7 +67,24 @@ pause, speed, seek. And it needs that without turning thousands of packets a sec
   edges and zone membership.
 - **What doesn't.** Moving a card doesn't restart. Opening another design, or leaving the Sandbox, stops the run.
 
+### The canvas (M1.4)
+- **The packet layer.** One `<canvas>` over the React Flow pane, drawn in flow coordinates:
+  - each packet rides its connection's slotted curve for 600 ms;
+  - async messages have a comet tail;
+  - a cache hit is a faint ring at the far end, and a drop is a cross in the danger colour (at most 2 hits and 6
+    drops drawn per frame, so a busy cache doesn't become a blob);
+  - colours come from the `--req-1..6` tokens, contrast-tested at 3:1 or more on the canvas and on cards.
+- **Pooling.** Packets live in a fixed ring of typed arrays, and the Bézier maths is inline, so nothing is
+  allocated per packet.
+- **The clock** advances only while the run plays and the window is visible.
+- **Card health:**
+  - a 10 Hz store gives each card its utilisation and queue as text, plus a bar coloured by the number;
+  - overloaded cards shake slightly (never with reduced motion), and dead ones grey out.
+- **Reduced motion:** no packets. Each connection's chip shows its throughput instead: thinned counts are scaled back
+  to real traffic with the packet total and the sample factor, then smoothed.
+- **Measured:** the dev-only `/dev/perf` page shows 50 cards with about 2,000 packets on screen at 60 fps, in a debug
+  build on the development machine.
+
 ## Consequences
-- **The packet layer (M1.4)** draws from the same frames, through `onFrame` listeners outside React state.
 - **Timeline and chaos (M1.5)** use `seek` and `control_run`.
 - **Snapshots cost memory:** 12 engine clones per 60 s run. They are bounded by the sampling cap.

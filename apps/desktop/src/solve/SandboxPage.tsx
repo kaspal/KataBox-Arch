@@ -30,6 +30,7 @@ import { InspectorPanel } from "@/solve/InspectorPanel";
 import { LibraryPanel } from "@/solve/LibraryPanel";
 import { RunControls } from "@/solve/run/RunControls";
 import { isActive, simKey, useRun } from "@/solve/run/runStore";
+import { startTelemetry } from "@/solve/run/telemetry";
 import { redo, toDesign, undo, useDirty, useEditor } from "@/solve/store";
 
 function IconAction({
@@ -179,6 +180,7 @@ const isTyping = (t: EventTarget | null) =>
 function Workspace({ registry }: { registry: Registry }) {
   const { t } = useTranslation();
   useRunFollowsEdits();
+  useEffect(() => startTelemetry(), []);
   const [layout, setLayout] = useSetting<SandboxLayout>("sandbox.layout", {}, parseLayout, { mirror: true });
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const saveLayout = useCallback(

@@ -110,6 +110,23 @@
     transform: none;
   }
 }
+/* An overloaded card shakes slightly during a live run (never with reduced motion). */
+@keyframes kb-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-1.5px); }
+  75% { transform: translateX(1.5px); }
+}
+.kb-overloaded {
+  animation: kb-shake 0.25s ease-in-out infinite;
+}
+.reduce-motion .kb-overloaded {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kb-overloaded {
+    animation: none;
+  }
+}
 .kb-canvas .react-flow__handle {
   width: 10px;
   height: 10px;

@@ -14,11 +14,16 @@
 //! header   magic "KAF1" [4] | kind u8 (1 = frame) | flags u8 (1 playing, 2 finished)
 //!          | frame u32 | t_ms u32 | window_ms u16 (simulated ms since the previous frame)
 //!          | speed f32 | p95_ms f32 | rps f32 | error_rate f32 | cost_month f32
-//!          | node_count u16 | packet_count u16                        (40 bytes)
+//!          | node_count u16 | packet_count u16
+//!          | packet_total u32 (hops and events in the window before thinning)   (44 bytes)
 //! node     idx u16 | util % u8 | queue u16 (saturating) | flags u8 (1 down, 2 overloaded)
-//! packet   edge idx u16 | type u8 (bits 0-2 the request type, bit 3 async)
+//! packet   edge idx u16 | type u8 (bits 0-2 the request type, bit 3 async, bit 4 cache
+//!          hit at the edge's far end, bit 5 dropped there, bit 6 travels the edge from its
+//!          target to its source; hits and drops have travel 0)
 //!          | start u16 (ms after the window began) | travel u16 (tenths of a ms)
 //! ```
+//!
+//! Hops and events are thinned separately (a deterministic stride), so drops stay visible.
 //!
 //! Tiles (p95, rps, error rate) describe the last completed simulated second; cost is per
 //! month at the traffic seen so far. Utilisation is measured over the frame's window.
@@ -33,15 +38,17 @@ use ka_core::Design;
 use ka_sim::{Compiled, Engine, RunResult};
 
 pub const MAGIC: &[u8; 4] = b"KAF1";
-pub const HEADER_BYTES: usize = 40;
+pub const HEADER_BYTES: usize = 44;
 pub const NODE_BYTES: usize = 6;
 pub const PACKET_BYTES: usize = 7;
 /// A snapshot every 5 simulated seconds bounds the re-simulation a seek needs.
 pub const SNAPSHOT_EVERY_US: u64 = 5_000_000;
 /// About 30 frames per wall-clock second.
 pub const FRAME_INTERVAL: Duration = Duration::from_millis(33);
-/// At most this many packets per frame (about 3,000 a second, ~1,500 on screen at once).
-pub const MAX_PACKETS_PER_FRAME: usize = 100;
+/// At most this many hops and this many hit/drop events per frame (about 3,000 hops a
+/// second, ~1,500 on screen at once).
+pub const MAX_HOPS_PER_FRAME: usize = 100;
+pub const MAX_EVENTS_PER_FRAME: usize = 30;
 pub const SPEEDS: [f64; 6] = [0.25, 0.5, 1.0, 2.0, 4.0, 8.0];
 
 const FLAG_PLAYING: u8 = 1;
@@ -49,14 +56,17 @@ const FLAG_FINISHED: u8 = 2;
 const NODE_DOWN: u8 = 1;
 const NODE_OVERLOADED: u8 = 2;
 const PACKET_ASYNC: u8 = 8;
+const PACKET_HIT: u8 = 16;
+const PACKET_DROP: u8 = 32;
+const PACKET_REVERSE: u8 = 64;
 
 /// The deterministic heart of a live run.
 pub struct LiveCore {
     engine: Engine,
     /// Engine states at 0, 5, 10… simulated seconds (each taken on first arrival).
     snapshots: BTreeMap<u64, Engine>,
-    /// (from node, to node) → design edge index, for packets.
-    edge_of: BTreeMap<(u32, u32), u16>,
+    /// (from node, to node) → design edge index, and whether that runs against the edge.
+    edge_of: BTreeMap<(u32, u32), (u16, bool)>,
     /// Busy server-µs per node at the start of the current window.
     prev_busy: Vec<f64>,
     prev_t: u64,
@@ -75,9 +85,13 @@ impl LiveCore {
         let mut edge_of = BTreeMap::new();
         for (i, e) in design.edges.iter().enumerate() {
             if let (Some(&a), Some(&b)) = (index.get(e.from.as_str()), index.get(e.to.as_str())) {
-                edge_of.entry((a, b)).or_insert(i as u16);
-                // Answers and consumer pulls may travel an edge backwards.
-                edge_of.entry((b, a)).or_insert(i as u16);
+                edge_of.insert((a, b), (i as u16, false));
+            }
+        }
+        // A hop with no edge its way may travel one backwards (a pull, an answer).
+        for (i, e) in design.edges.iter().enumerate() {
+            if let (Some(&a), Some(&b)) = (index.get(e.from.as_str()), index.get(e.to.as_str())) {
+                edge_of.entry((b, a)).or_insert((i as u16, true));
             }
         }
         let n = compiled.nodes.len();
@@ -164,7 +178,9 @@ impl LiveCore {
         self.frame_no = self.frame_no.wrapping_add(1);
 
         let mut out = Vec::with_capacity(
-            HEADER_BYTES + snap.nodes.len() * NODE_BYTES + MAX_PACKETS_PER_FRAME * PACKET_BYTES,
+            HEADER_BYTES
+                + snap.nodes.len() * NODE_BYTES
+                + (MAX_HOPS_PER_FRAME + MAX_EVENTS_PER_FRAME) * PACKET_BYTES,
         );
         out.extend_from_slice(MAGIC);
         out.push(1);
@@ -193,14 +209,23 @@ impl LiveCore {
             out.extend_from_slice(&(v as f32).to_le_bytes());
         }
         out.extend_from_slice(&(snap.nodes.len() as u16).to_le_bytes());
-        // Thin packets evenly to the per-frame cap (a deterministic stride).
+        // Thin hops and events evenly to their caps (a deterministic stride).
         let mapped: Vec<_> = packets
             .iter()
             .filter_map(|p| self.edge_of.get(&(p.from, p.to)).map(|e| (*e, p)))
             .collect();
-        let stride = mapped.len().div_ceil(MAX_PACKETS_PER_FRAME).max(1);
-        let chosen: Vec<_> = mapped.iter().step_by(stride).collect();
+        let thin = |events: bool, cap: usize| {
+            let all: Vec<_> = mapped
+                .iter()
+                .filter(|(_, p)| (p.hit || p.drop) == events)
+                .collect();
+            let stride = all.len().div_ceil(cap).max(1);
+            all.into_iter().step_by(stride).collect::<Vec<_>>()
+        };
+        let mut chosen = thin(false, MAX_HOPS_PER_FRAME);
+        chosen.extend(thin(true, MAX_EVENTS_PER_FRAME));
         out.extend_from_slice(&(chosen.len() as u16).to_le_bytes());
+        out.extend_from_slice(&(mapped.len().min(u32::MAX as usize) as u32).to_le_bytes());
         debug_assert_eq!(out.len(), HEADER_BYTES);
 
         for (i, n) in snap.nodes.iter().enumerate() {
@@ -224,8 +249,12 @@ impl LiveCore {
             out.push(flags);
         }
         let window_start = self.prev_t;
-        for (edge, p) in chosen {
-            let ty = (p.ty.min(7) as u8) | if p.is_async { PACKET_ASYNC } else { 0 };
+        for ((edge, reverse), p) in chosen {
+            let ty = (p.ty.min(7) as u8)
+                | if *reverse { PACKET_REVERSE } else { 0 }
+                | if p.is_async { PACKET_ASYNC } else { 0 }
+                | if p.hit { PACKET_HIT } else { 0 }
+                | if p.drop { PACKET_DROP } else { 0 };
             let start_ms =
                 (p.start_us.saturating_sub(window_start) / 1000).min(u64::from(u16::MAX));
             let travel = (p.travel_us / 100).min(u64::from(u16::MAX));
@@ -497,8 +526,13 @@ mod tests {
         assert!((1500.0..2500.0).contains(&rps), "rps {rps}");
         let nodes = usize::from(u16_at(&f, 36));
         let packets = usize::from(u16_at(&f, 38));
+        let total = u32_at(&f, 40) as usize;
         assert_eq!(nodes, 4);
-        assert!((1..=MAX_PACKETS_PER_FRAME).contains(&packets), "{packets}");
+        assert!(
+            (1..=MAX_HOPS_PER_FRAME + MAX_EVENTS_PER_FRAME).contains(&packets),
+            "{packets}"
+        );
+        assert!(total >= packets);
         assert_eq!(
             f.len(),
             HEADER_BYTES + nodes * NODE_BYTES + packets * PACKET_BYTES
@@ -508,12 +542,49 @@ mod tests {
         assert_eq!(u16_at(&f, node(1)), 1);
         assert!(f[node(1) + 2] > 0);
         assert_eq!(f[node(0) + 2], 0);
-        // Every packet names a design edge.
+        // Every packet names a design edge; cache hits are marked on the app → cache edge.
+        let mut hits = 0;
         for p in 0..packets {
             let at = HEADER_BYTES + nodes * NODE_BYTES + p * PACKET_BYTES;
             assert!(u16_at(&f, at) < 3);
             assert!(u16_at(&f, at + 3) <= 34, "starts within the window");
+            if f[at + 2] & PACKET_HIT != 0 {
+                hits += 1;
+                assert_eq!(u16_at(&f, at), 1, "the cache edge");
+                assert_eq!(u16_at(&f, at + 5), 0, "an event has no travel");
+            }
         }
+        assert!(hits > 0, "a warm cache hits");
+    }
+
+    #[test]
+    fn an_overloaded_card_shows_drops_and_its_flags() {
+        let mut d = design();
+        d.nodes[1] = node(
+            "a",
+            K::App,
+            Flavour::Go,
+            &[("instances", 1.0), ("concurrency", 1.0)],
+        );
+        let r = registry();
+        let s = sandbox_scenario(&d, &r, SandboxPreset::Normal).unwrap();
+        let c = Arc::new(compile(&d, &r, &s, &SimOptions::default()).unwrap());
+        let mut core = LiveCore::new(c, &d, 1);
+        let mut f = Vec::new();
+        for _ in 0..30 {
+            f = core.step(33_333, true, 1.0);
+        }
+        let nodes = usize::from(u16_at(&f, 36));
+        let packets = usize::from(u16_at(&f, 38));
+        let app = HEADER_BYTES + NODE_BYTES;
+        assert_eq!(f[app + 2], 100, "saturated");
+        assert_eq!(f[app + 5] & NODE_OVERLOADED, NODE_OVERLOADED);
+        let drops = (0..packets)
+            .map(|p| HEADER_BYTES + nodes * NODE_BYTES + p * PACKET_BYTES)
+            .filter(|at| f[at + 2] & PACKET_DROP != 0)
+            .inspect(|at| assert_eq!(u16_at(&f, *at), 0, "dropped on the client → app edge"))
+            .count();
+        assert!(drops > 0);
     }
 
     #[test]

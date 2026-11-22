@@ -17,6 +17,10 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
     components.
   - Pause, resume, stop and speed (0.25× to 8×).
   - Editing the design during a run restarts it with the change.
+  - Requests travel the connections as coloured dots, one colour per request type. Cache hits flash and dropped
+    requests show a cross.
+  - Each card shows how busy it is and its queue, as text and a coloured bar; overloaded cards shake.
+  - With reduced motion, connections show their requests per second instead of moving dots.
 
 ### Changed
 - Design files are format version 2. Version 1 files still open: an Autoscaling card becomes a

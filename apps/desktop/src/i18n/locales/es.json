@@ -24,7 +24,8 @@
     "add": "Añadir al lienzo",
     "addItem": "Añadir {{name}}",
     "theme": "Tema",
-    "language": "Idioma"
+    "language": "Idioma",
+    "devPerf": "Desarrollo: fotogramas de la capa de paquetes"
   },
   "theme": {
     "system": "Sistema",
@@ -105,7 +106,11 @@
     "pickFlavour": "¿Qué {{kind}}?",
     "pickProtocol": "Conectar con",
     "snap": "Ajustar a la cuadrícula",
-    "snapHint": "Las tarjetas se ajustan a una cuadrícula de 8 px. Mantén Alt al arrastrar para colocarlas libremente."
+    "snapHint": "Las tarjetas se ajustan a una cuadrícula de 8 px. Mantén Alt al arrastrar para colocarlas libremente.",
+    "statBusy": "{{util}} % ocupado",
+    "statQueued": "{{util}} % ocupado · {{queue}} en cola",
+    "statDown": "caído",
+    "rate": "{{rate}}/s"
   },
   "wiring": {
     "reason": {

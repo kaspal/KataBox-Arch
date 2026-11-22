@@ -8,6 +8,7 @@ import { renderApp } from "@/test/renderApp";
 import { unnamed } from "@/test/a11y";
 import { useEditor } from "@/solve/store";
 import { useRun } from "@/solve/run/runStore";
+import { useTelemetry } from "@/solve/run/telemetry";
 
 vi.mock("@/lib/api", async () => (await import("@/test/mockApi")).apiModule);
 const fake = useFakeApi();
@@ -292,6 +293,35 @@ describe("live runs", () => {
     const restarted = vi.mocked(fake().api.startRun).mock.calls[1][0];
     expect(restarted.nodes[1].props.instances).toBe(4);
     act(() => useRun.getState().stop());
+  });
+
+  it("cards show their live load; with reduced motion, connections show their throughput instead of packets", async () => {
+    // The app's motion setting (its local mirror is read at start-up).
+    localStorage.setItem("katabox-arch.ui.motion", "reduced");
+    try {
+      act(() => useEditor.getState().load(design, null));
+      const { user } = renderApp("/sandbox");
+      await user.click(await screen.findByRole("button", { name: "Run" }));
+      await waitFor(() => expect(fake().runs).toBe(1));
+      expect(screen.queryByTestId("packet-layer")).not.toBeInTheDocument();
+      act(() => fake().pushFrame(frame()));
+      // The app (frame node 1 → card a1) is busy; health refreshes within 100 ms.
+      const stats = await screen.findAllByTestId("card-stat");
+      expect(stats.map((s) => s.textContent)).toEqual([expect.stringMatching(/^0% busy/), expect.stringMatching(/^\d+% busy/)]);
+      // React Flow draws no edges in jsdom: the chip's number comes from here (checked in the real app).
+      expect(useTelemetry.getState().edgeRates.e1).toBeGreaterThan(0);
+      act(() => useRun.getState().stop());
+      await waitFor(() => expect(screen.queryByTestId("card-stat")).not.toBeInTheDocument());
+    } finally {
+      localStorage.removeItem("katabox-arch.ui.motion");
+      document.documentElement.classList.remove("reduce-motion");
+    }
+  });
+
+  it("the packet layer is on the canvas when motion is allowed", async () => {
+    act(() => useEditor.getState().load(design, null));
+    renderApp("/sandbox");
+    expect(await screen.findByTestId("packet-layer")).toBeInTheDocument();
   });
 
   it("a design with no path reports why instead of running", async () => {

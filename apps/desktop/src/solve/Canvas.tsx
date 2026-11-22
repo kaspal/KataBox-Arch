@@ -32,6 +32,7 @@ import { assignSlots } from "@/solve/geometry/slots";
 import { cycle, nearestInDirection, type Direction, type Placed } from "@/solve/keyboardWiring";
 import { registerCanvasAdd, type AddRequest } from "@/solve/bridge";
 import { ComponentCard, type CardFlowNode } from "@/solve/nodes/ComponentCard";
+import { PacketLayer } from "@/solve/run/PacketLayer";
 import { NoteNode, type NoteFlowNode } from "@/solve/nodes/NoteNode";
 import { ZoneNode, type ZoneFlowNode } from "@/solve/nodes/ZoneNode";
 import { defaultProps, flavourName, kindName, kindSpec } from "@/solve/registry";
@@ -508,6 +509,7 @@ function CanvasInner() {
         maxZoom={2.5}
       >
         <Background variant={BackgroundVariant.Dots} gap={16} size={1.3} color="var(--canvas-dot)" bgColor="var(--canvas)" />
+        <PacketLayer />
         <MiniMap
           pannable
           zoomable

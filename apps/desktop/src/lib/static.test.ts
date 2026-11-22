@@ -220,6 +220,10 @@ describe.each([
       expect(contrast(t.ring, t[bg]), `ring on ${bg}`).toBeGreaterThanOrEqual(3);
     }
     expect(contrast(t["edge-line"], t.canvas), "edge-line on canvas").toBeGreaterThanOrEqual(3);
+    for (let i = 1; i <= 6; i++) {
+      expect(contrast(t[`req-${i}`], t.canvas), `req-${i} on canvas`).toBeGreaterThanOrEqual(3);
+      expect(contrast(t[`req-${i}`], t.card), `req-${i} on cards`).toBeGreaterThanOrEqual(3);
+    }
     expect(contrast(t["zone-line"], t.canvas), "zone-line on canvas").toBeGreaterThanOrEqual(3);
   });
 

@@ -104,5 +104,10 @@ export const useRun = create<RunState>()((set, get) => {
   };
 });
 
+/** Hand a frame to the listeners without a run behind it (the dev perf page). */
+export function emitFrame(f: Frame) {
+  frameListeners.forEach((l) => l(f));
+}
+
 /** Is a run on (starting, playing or paused)? */
 export const isActive = (s: RunStatus) => s === "starting" || s === "playing" || s === "paused";

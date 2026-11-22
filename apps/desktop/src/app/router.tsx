@@ -27,6 +27,16 @@ const routeTree = rootRoute.addChildren([
   createRoute({ getParentRoute: () => rootRoute, path: "/samples", component: Samples }),
   createRoute({ getParentRoute: () => rootRoute, path: "/progress", component: Progress }),
   createRoute({ getParentRoute: () => rootRoute, path: "/settings", component: Settings }),
+  // Development builds only: the packet layer's frame-rate check (plan M1.4).
+  ...(import.meta.env.DEV
+    ? [
+        createRoute({
+          getParentRoute: () => rootRoute,
+          path: "/dev/perf",
+          component: lazyRouteComponent(() => import("@/pages/DevPerf"), "DevPerf"),
+        }),
+      ]
+    : []),
 ]);
 
 export function createAppRouter(history: RouterHistory = createHashHistory()) {

@@ -61,6 +61,8 @@ struct Req {
     start: u64,
     /// Forward network latency of the hop chain: the response pays it again on the way back.
     net: u64,
+    /// The node the request last left (for the packet layer's hit and drop marks).
+    from: u32,
     phase: Phase,
     seg: u16,
     step: u16,
@@ -202,6 +204,10 @@ pub struct Packet {
     pub travel_us: u64,
     /// Part of the asynchronous life of a message (publish, consume, after the answer).
     pub is_async: bool,
+    /// An event at `to` rather than a hop (travel 0): a cache hit, or a request dropped
+    /// (full queue, card down).
+    pub hit: bool,
+    pub drop: bool,
 }
 
 /// A card's state at a point in a run, for live frames.
@@ -536,6 +542,7 @@ impl Engine {
             call_aside: false,
             fill_cache: NONE,
             hit_end: false,
+            from: NONE,
             resp_sent: false,
             dead: false,
             done: false,
@@ -617,6 +624,7 @@ impl Engine {
 
     fn send(&mut self, r: u32, from: u32, to: u32, proto: Protocol, hop: bool) {
         let lat = hop_latency_us(&self.c, from, to, proto);
+        self.reqs[r as usize].from = from;
         if let Some(trace) = &mut self.trace {
             let q = &self.reqs[r as usize];
             trace.push(Packet {
@@ -626,12 +634,33 @@ impl Engine {
                 start_us: self.now,
                 travel_us: lat,
                 is_async: q.resp_sent || matches!(proto, Protocol::Publish | Protocol::Consume),
+                hit: false,
+                drop: false,
             });
         }
         if hop {
             self.reqs[r as usize].net += lat;
         }
         self.push_req(self.now + lat, Ev::Arrive { r, node: to }, r);
+    }
+
+    /// Record a hit or a drop at `at` for the packet layer (no effect on the run).
+    fn mark(&mut self, r: u32, from: u32, at: u32, hit: bool) {
+        if let Some(trace) = &mut self.trace
+            && from != NONE
+        {
+            let q = &self.reqs[r as usize];
+            trace.push(Packet {
+                from,
+                to: at,
+                ty: q.ty,
+                start_us: self.now,
+                travel_us: 0,
+                is_async: q.resp_sent,
+                hit,
+                drop: !hit,
+            });
+        }
     }
 
     fn hop_from(&mut self, r: u32, from: u32) {
@@ -684,6 +713,8 @@ impl Engine {
             if reserved {
                 self.set_busy(node, 0, -1);
             }
+            let from = self.reqs[r as usize].from;
+            self.mark(r, from, node, false);
             self.fail(r);
             return;
         }
@@ -710,6 +741,8 @@ impl Engine {
             let rt = &mut self.nodes[node as usize];
             rt.drops += w;
             rt.sec_drops += w;
+            let from = self.reqs[r as usize].from;
+            self.mark(r, from, node, false);
             self.fail(r);
         }
     }
@@ -915,6 +948,8 @@ impl Engine {
                 self.reads += self.c.weight;
                 if self.cache_hit(node, ty, key) {
                     self.reqs[r as usize].hit_end = true;
+                    let caller = self.reqs[r as usize].caller;
+                    self.mark(r, caller, node, true);
                 } else {
                     self.reqs[r as usize].fill_cache = node;
                 }
@@ -1007,6 +1042,8 @@ impl Engine {
             let w = self.c.weight;
             self.nodes[b as usize].drops += w;
             self.nodes[b as usize].sec_drops += w;
+            let from = self.reqs[r as usize].from;
+            self.mark(r, from, b, false);
             self.fail(r);
             return;
         }

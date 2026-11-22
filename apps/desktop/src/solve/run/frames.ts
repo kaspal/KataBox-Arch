@@ -1,7 +1,7 @@
 // Decodes the binary frames of a live run (`KAF1`, little-endian). The layout is defined
 // once, in crates/ka-app/src/live.rs; `frames.test.ts` decodes a frame Rust wrote.
 
-export const HEADER_BYTES = 40;
+export const HEADER_BYTES = 44;
 export const NODE_BYTES = 6;
 export const PACKET_BYTES = 7;
 
@@ -10,6 +10,11 @@ const FLAG_FINISHED = 2;
 export const NODE_DOWN = 1;
 export const NODE_OVERLOADED = 2;
 export const PACKET_ASYNC = 8;
+/** An event at the edge's far end (travel 0): a cache hit, or a dropped request. */
+export const PACKET_HIT = 16;
+export const PACKET_DROP = 32;
+/** The packet travels its edge from the target to the source. */
+export const PACKET_REVERSE = 64;
 
 export type Frame = {
   frame: number;
@@ -30,8 +35,10 @@ export type Frame = {
   util: Uint8Array;
   queue: Uint16Array;
   nodeFlags: Uint8Array;
-  /** Packets: edge index, request type (bits 0–2) | PACKET_ASYNC, start (ms into the window), travel (0.1 ms). */
+  /** Packets: edge index, request type (bits 0–2) | PACKET_ASYNC | PACKET_HIT | PACKET_DROP, start (ms into the window), travel (0.1 ms). */
   packetCount: number;
+  /** Hops and events in the window before thinning (to scale per-edge rates). */
+  packetTotal: number;
   packetEdge: Uint16Array;
   packetType: Uint8Array;
   packetStart: Uint16Array;
@@ -87,6 +94,7 @@ export function decodeFrame(buf: ArrayBuffer): Frame {
     queue,
     nodeFlags,
     packetCount,
+    packetTotal: v.getUint32(40, true),
     packetEdge,
     packetType,
     packetStart,
