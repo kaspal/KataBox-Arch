@@ -214,10 +214,6 @@
       "title": "The Component Guide arrives in M3",
       "body": "An entry and a concept card for every component: what it does, when to use it, and its numbers."
     },
-    "samples": {
-      "title": "Animated samples arrive in M3",
-      "body": "Five guided designs that show traffic flowing, breaking and recovering."
-    },
     "progress": {
       "title": "Nothing to show yet",
       "body": "Solved problems, best scores and your streak will appear here once Problems arrive."
@@ -543,5 +539,35 @@
     "best": "Your cheapest accepted design: {{cost}} a month at {{p95}} ms p95 ({{n}} accepted).",
     "referenceAt": "The reference: {{cost}} a month at {{p95}} ms p95.",
     "empty": "Your accepted submissions will appear here, next to the reference."
+  },
+  "player": {
+    "stepOf": "step {{n}} of {{total}}",
+    "stepTitle": "Step {{n}} · {{title}}",
+    "previous": "Previous",
+    "nextTo": "Next: {{title}}",
+    "end": "The end",
+    "replay": "Replay step",
+    "try": "Try it yourself",
+    "steps": "Steps",
+    "goTo": "Step {{n}}: {{title}}",
+    "before": "Before: {{v}}",
+    "target": "target {{v}}",
+    "ms": "{{v}} ms",
+    "rps": "{{v}} req/s",
+    "metric": {
+      "p95_ms": "p95 latency",
+      "error_rate": "Error rate",
+      "throughput_rps": "Throughput",
+      "cost_month": "Cost per month"
+    }
+  },
+  "samples": {
+    "steps_one": "{{count}} step",
+    "steps_other": "{{count}} steps",
+    "tour": "The first-run tour",
+    "unavailable": "Samples are unavailable",
+    "none": "No samples yet",
+    "noneBody": "The app was built without its samples.",
+    "copyName": "{{title}} (my copy)"
   }
 }

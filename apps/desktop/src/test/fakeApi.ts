@@ -3,6 +3,7 @@
 import { vi } from "vitest";
 import type { AppError, Design, JsonValue, OpenedDesign, ProblemBrief, RecentEntry, Registry, RunControl, SubmissionSummary, SubmitResult } from "@/bindings";
 import { FAKE_BRIEF, FAKE_REFERENCE, fakeJudgement } from "@/test/fakeProblems";
+import { FAKE_SAMPLE, FAKE_SAMPLE_SUMMARY } from "@/test/fakeSamples";
 import type { Api, RunOptions } from "@/lib/api";
 import fixture from "@/test/fixtures/registry.json";
 
@@ -161,6 +162,11 @@ export function createFakeApi(opts: FakeOptions = {}) {
       return { submission_id: submissionsCount, judgement, first_solve: first, best_score: problemState.best_score ?? 0 };
     }),
     submissions: vi.fn(async () => [...submitted]),
+    listSamples: vi.fn(async () => [structuredClone(FAKE_SAMPLE_SUMMARY)]),
+    sample: vi.fn(async (id: string) => {
+      if (id !== FAKE_SAMPLE.def.id) throw err("not_found");
+      return structuredClone(FAKE_SAMPLE);
+    }),
     progress: vi.fn(async () => ({
       easy: { total: 1, attempted: problemState.status === "attempted" ? 1 : 0, solved: problemState.status === "solved" ? 1 : 0 },
       medium: { total: 0, attempted: 0, solved: 0 },

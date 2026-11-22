@@ -1,0 +1,374 @@
+//! Sample folders: `content/samples/<id>/` with `sample.toml` and the `.kbarch` snapshots its
+//! steps name. Structural checks here; `check_callouts` (part of `validate --run`) simulates
+//! every step with a callout and checks the numbers the content states.
+
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
+
+use ka_app::sandbox::{SandboxPreset, sandbox_scenario};
+use ka_core::story::{CalloutMetric, SampleDef, StepRun};
+use ka_core::{Design, Registry};
+use ka_sim::{RunResult, SimOptions};
+
+use crate::problems::ProblemDir;
+use crate::{Issue, TODO_MARKER, issue};
+
+#[derive(Debug, Clone)]
+pub struct SampleDir {
+    /// `samples/<id>` (relative to the content root).
+    pub dir: String,
+    pub def: SampleDef,
+    /// Every `.kbarch` in the folder, by file name.
+    pub snapshots: BTreeMap<String, Design>,
+    pub toml: String,
+}
+
+pub fn load_samples(root: &Path, registry: &Registry) -> Result<Vec<SampleDir>, Vec<Issue>> {
+    let base = root.join("samples");
+    if !base.exists() {
+        return Ok(Vec::new());
+    }
+    let mut dirs: Vec<_> = std::fs::read_dir(&base)
+        .map_err(|e| vec![issue("samples", e.to_string())])?
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().is_dir())
+        .map(|e| e.file_name().to_string_lossy().into_owned())
+        .collect();
+    dirs.sort();
+    let mut out = Vec::new();
+    let mut issues = Vec::new();
+    for name in dirs {
+        match load_one(&base.join(&name), &format!("samples/{name}"), registry) {
+            Ok(s) => out.push(s),
+            Err(mut e) => issues.append(&mut e),
+        }
+    }
+    if issues.is_empty() {
+        Ok(out)
+    } else {
+        Err(issues)
+    }
+}
+
+fn load_one(dir: &Path, rel: &str, registry: &Registry) -> Result<SampleDir, Vec<Issue>> {
+    let toml = std::fs::read_to_string(dir.join("sample.toml")).map_err(|e| {
+        vec![issue(
+            format!("{rel}/sample.toml"),
+            format!("missing or unreadable: {e}"),
+        )]
+    })?;
+    let def: SampleDef = toml::from_str(&toml)
+        .map_err(|e| vec![issue(format!("{rel}/sample.toml"), e.to_string())])?;
+    let mut snapshots = BTreeMap::new();
+    let mut issues = Vec::new();
+    let mut names: Vec<String> = std::fs::read_dir(dir)
+        .map_err(|e| vec![issue(rel, e.to_string())])?
+        .filter_map(|e| e.ok())
+        .map(|e| e.file_name().to_string_lossy().into_owned())
+        .filter(|n| n.ends_with(".kbarch"))
+        .collect();
+    names.sort();
+    for name in names {
+        let path = format!("{rel}/{name}");
+        match std::fs::read(dir.join(&name)) {
+            Ok(bytes) => match ka_app::kbarch::parse(&bytes, registry) {
+                Ok(d) => {
+                    snapshots.insert(name, d);
+                }
+                Err(e) => issues.push(issue(path, format!("{:?}: {}", e.code, e.message))),
+            },
+            Err(e) => issues.push(issue(path, e.to_string())),
+        }
+    }
+    if !issues.is_empty() {
+        return Err(issues);
+    }
+    Ok(SampleDir {
+        dir: rel.into(),
+        def,
+        snapshots,
+        toml,
+    })
+}
+
+fn preset(name: &str) -> Option<SandboxPreset> {
+    serde_json::from_value(serde_json::Value::String(name.into())).ok()
+}
+
+/// Structural checks: ids, text in both languages, snapshots, focus, runs and callouts.
+pub fn validate_samples(
+    samples: &[SampleDir],
+    problems: &[ProblemDir],
+    registry: &Registry,
+) -> Vec<Issue> {
+    let mut issues = Vec::new();
+    let mut numbers = BTreeSet::new();
+    let tours = samples.iter().filter(|s| s.def.tour).count();
+    if tours > 1 {
+        issues.push(issue(
+            "samples",
+            format!("{tours} samples are marked `tour`; at most one may be"),
+        ));
+    }
+    for s in samples {
+        let d = &s.def;
+        let at = |what: &str| format!("{}/{what}", s.dir);
+        let file = at("sample.toml");
+        if s.dir != format!("samples/{}", d.id) {
+            issues.push(issue(
+                &file,
+                format!("id `{}` doesn't match its folder", d.id),
+            ));
+        }
+        if !numbers.insert(d.number) {
+            issues.push(issue(&file, format!("number {} is used twice", d.number)));
+        }
+        if s.toml.contains(TODO_MARKER) {
+            issues.push(issue(&file, format!("unfinished: contains {TODO_MARKER}")));
+        }
+        for (name, text) in [
+            ("title", &d.title),
+            ("title_es", &d.title_es),
+            ("summary", &d.summary),
+            ("summary_es", &d.summary_es),
+        ] {
+            if text.trim().is_empty() {
+                issues.push(issue(&file, format!("`{name}` is empty")));
+            }
+        }
+        let problem = match &d.problem {
+            Some(p) => match problems.iter().find(|x| &x.def.id == p) {
+                Some(x) => Some(x),
+                None => {
+                    issues.push(issue(&file, format!("problem `{p}` doesn't exist")));
+                    None
+                }
+            },
+            None => None,
+        };
+        if d.steps.is_empty() {
+            issues.push(issue(&file, "a sample needs at least one step"));
+        }
+        let used: BTreeSet<&str> = d.snapshot_files().into_iter().collect();
+        for name in s.snapshots.keys() {
+            if !used.contains(name.as_str()) {
+                issues.push(issue(at(name), "no step uses this snapshot"));
+            }
+        }
+        for (name, design) in &s.snapshots {
+            for i in ka_core::validate(design, registry) {
+                issues.push(issue(at(name), format!("invalid design: {i:?}")));
+            }
+        }
+        for (i, step) in d.steps.iter().enumerate() {
+            let n = i + 1;
+            let here = |m: String| issue(&file, format!("step {n}: {m}"));
+            for (name, text) in [
+                ("title", &step.title),
+                ("title_es", &step.title_es),
+                ("caption", &step.caption),
+                ("caption_es", &step.caption_es),
+            ] {
+                if text.trim().is_empty() {
+                    issues.push(here(format!("`{name}` is empty")));
+                }
+            }
+            let Some(design) = s.snapshots.get(&step.snapshot) else {
+                issues.push(here(format!(
+                    "snapshot `{}` isn't in the folder",
+                    step.snapshot
+                )));
+                continue;
+            };
+            for id in &step.focus {
+                if !design.nodes.iter().any(|x| &x.id == id) {
+                    issues.push(here(format!(
+                        "focus `{id}` isn't a card in {}",
+                        step.snapshot
+                    )));
+                }
+            }
+            if let Some(c) = &step.camera
+                && !(0.3..=2.0).contains(&c.zoom)
+            {
+                issues.push(here(format!("camera zoom {} is outside 0.3–2", c.zoom)));
+            }
+            match &step.run {
+                Some(run) => {
+                    if let Err(m) = check_run(run, problem) {
+                        issues.push(here(m));
+                    }
+                }
+                None if step.callout.is_some() => issues.push(here("a callout needs a run".into())),
+                None => {}
+            }
+            if let Some(c) = &step.callout
+                && c.before.is_some()
+                && i == 0
+            {
+                issues.push(here(
+                    "the first step has no previous design for `before`".into(),
+                ));
+            }
+        }
+    }
+    issues
+}
+
+fn check_run(run: &StepRun, problem: Option<&ProblemDir>) -> Result<(), String> {
+    if !(0.25..=8.0).contains(&run.speed) {
+        return Err(format!("speed {} is outside 0.25–8", run.speed));
+    }
+    if run.start_s < 0.0 {
+        return Err("start_s is negative".into());
+    }
+    match (&run.test, &run.preset) {
+        (Some(t), None) => {
+            let p = problem.ok_or("`run.test` needs the sample's `problem`")?;
+            let test = p
+                .def
+                .tests
+                .iter()
+                .find(|x| &x.id == t)
+                .ok_or(format!("test `{t}` isn't in {}", p.def.id))?;
+            if run.start_s >= test.duration_s {
+                return Err(format!("start_s {} is past the test's end", run.start_s));
+            }
+            Ok(())
+        }
+        (None, Some(name)) => {
+            preset(name).ok_or(format!(
+                "unknown preset `{name}` (normal, spike, kill_node)"
+            ))?;
+            if run.start_s >= ka_app::sandbox::SANDBOX_DURATION_S {
+                return Err(format!("start_s {} is past the run's end", run.start_s));
+            }
+            Ok(())
+        }
+        _ => Err("a run names exactly one of `test` or `preset`".into()),
+    }
+}
+
+/// The `content.db` row: the definition and each snapshot as canonical `.kbarch` JSON.
+pub fn sample_row(s: &SampleDir, registry: &Registry) -> Result<ka_store::SampleRow, String> {
+    let mut snapshots = BTreeMap::new();
+    for (name, d) in &s.snapshots {
+        let bytes = ka_app::kbarch::to_bytes(d, registry).map_err(|e| e.message)?;
+        snapshots.insert(
+            name.clone(),
+            String::from_utf8(bytes).map_err(|e| e.to_string())?,
+        );
+    }
+    Ok(ka_store::SampleRow {
+        id: s.def.id.clone(),
+        number: i64::from(s.def.number),
+        def: serde_json::to_string(&s.def).map_err(|e| e.to_string())?,
+        snapshots,
+    })
+}
+
+/// A step's run, simulated the way the player plays it (same scenario, seed and sampling).
+pub fn simulate_step(
+    design: &Design,
+    run: &StepRun,
+    problem: Option<&ProblemDir>,
+    registry: &Registry,
+) -> Result<RunResult, String> {
+    if let Some(t) = &run.test {
+        let p = problem.ok_or("no problem")?;
+        let test = p.def.tests.iter().find(|x| &x.id == t).ok_or("no test")?;
+        return ka_judge::run_test(&p.def, test, design, registry).map_err(|e| format!("{e:?}"));
+    }
+    let preset = run.preset.as_deref().and_then(preset).ok_or("no preset")?;
+    let scenario = sandbox_scenario(design, registry, preset).map_err(|e| format!("{e:?}"))?;
+    ka_sim::simulate(
+        design,
+        registry,
+        &scenario,
+        ka_app::SANDBOX_SEED,
+        &SimOptions::default(),
+    )
+    .map_err(|e| format!("{e:?}"))
+}
+
+pub fn metric(r: &RunResult, m: CalloutMetric) -> f64 {
+    match m {
+        CalloutMetric::P95Ms => r.latency.p95_ms,
+        CalloutMetric::ErrorRate => r.error_rate,
+        CalloutMetric::ThroughputRps => r.throughput_rps,
+        CalloutMetric::CostMonth => r.cost_month,
+    }
+}
+
+/// How far a stated number may be from the simulator's: 15%, or a small absolute floor.
+fn close(m: CalloutMetric, stated: f64, simulated: f64) -> bool {
+    let floor = match m {
+        CalloutMetric::P95Ms => 2.0,
+        CalloutMetric::ErrorRate => 0.01,
+        CalloutMetric::ThroughputRps => 50.0,
+        CalloutMetric::CostMonth => 10.0,
+    };
+    (stated - simulated).abs() <= (0.15 * simulated.abs()).max(floor)
+}
+
+/// `validate --run` for samples: every callout's numbers match the simulator.
+pub fn check_callouts(
+    samples: &[SampleDir],
+    problems: &[ProblemDir],
+    registry: &Registry,
+    verbose: bool,
+) -> Vec<Issue> {
+    let mut issues = Vec::new();
+    for s in samples {
+        let file = format!("{}/sample.toml", s.dir);
+        let problem = s
+            .def
+            .problem
+            .as_ref()
+            .and_then(|p| problems.iter().find(|x| &x.def.id == p));
+        for (i, step) in s.def.steps.iter().enumerate() {
+            let (Some(c), Some(run)) = (&step.callout, &step.run) else {
+                continue;
+            };
+            let mut check = |snapshot: &str, stated: f64, which: &str| {
+                let design = &s.snapshots[snapshot];
+                match simulate_step(design, run, problem, registry) {
+                    Ok(r) => {
+                        let got = metric(&r, c.metric);
+                        if verbose {
+                            println!(
+                                "{} step {} {which}: {:?} stated {stated}, simulated {got:.4}",
+                                s.def.id,
+                                i + 1,
+                                c.metric
+                            );
+                        }
+                        if !close(c.metric, stated, got) {
+                            issues.push(issue(&file, format!("step {}: `{which}` says {stated} but the simulator gives {got:.4}", i + 1)));
+                        }
+                    }
+                    Err(e) => issues.push(issue(&file, format!("step {}: {e}", i + 1))),
+                }
+            };
+            check(&step.snapshot, c.after, "after");
+            if let Some(b) = c.before {
+                check(&s.def.steps[i - 1].snapshot, b, "before");
+            }
+        }
+    }
+    issues
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn closeness_has_a_relative_band_and_an_absolute_floor() {
+        assert!(close(CalloutMetric::P95Ms, 400.0, 360.0));
+        assert!(!close(CalloutMetric::P95Ms, 400.0, 300.0));
+        assert!(close(CalloutMetric::P95Ms, 3.0, 1.5));
+        assert!(close(CalloutMetric::ErrorRate, 0.0, 0.008));
+        assert!(!close(CalloutMetric::ErrorRate, 0.6, 0.4));
+    }
+}

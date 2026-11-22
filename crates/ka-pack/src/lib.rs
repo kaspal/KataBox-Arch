@@ -5,10 +5,13 @@
 //!   It is fast and needs no simulation, so the desktop build script can run it (review A5).
 //! - `run::run_checks` is `validate --run`: with `ka-judge`, the reference passes every
 //!   test and the naive design fails at least one hidden test.
+//! - `load_samples` / `validate_samples` do the same for `content/samples/<id>/`, and
+//!   `samples::check_callouts` is their part of `validate --run`.
 //! - `build_content` turns validated content into rows, and `write_db` writes the file.
 
 pub mod problems;
 pub mod run;
+pub mod samples;
 pub mod scaffold;
 
 use std::path::Path;
@@ -16,6 +19,7 @@ use std::path::Path;
 use sha2::{Digest, Sha256};
 
 pub use problems::{ProblemDir, load_problems, validate_problems};
+pub use samples::{SampleDir, load_samples, validate_samples};
 
 /// A problem with the content: the file (relative to the content root) and what is wrong.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -85,7 +89,9 @@ pub fn build_content(
     registry: &ka_core::Registry,
 ) -> Result<ka_store::ContentData, Vec<Issue>> {
     let problems = load_problems(root, registry)?;
-    let issues = validate_problems(&problems, registry);
+    let samples = load_samples(root, registry)?;
+    let mut issues = validate_problems(&problems, registry);
+    issues.extend(validate_samples(&samples, &problems, registry));
     if !issues.is_empty() {
         return Err(issues);
     }
@@ -95,6 +101,11 @@ pub fn build_content(
     for p in &problems {
         rows.push(p.row(registry).map_err(|m| vec![issue(p.dir.clone(), m)])?);
     }
+    let mut sample_rows = Vec::new();
+    for s in &samples {
+        sample_rows
+            .push(samples::sample_row(s, registry).map_err(|m| vec![issue(s.dir.clone(), m)])?);
+    }
     Ok(ka_store::ContentData {
         meta: vec![
             ("content_hash".into(), hash),
@@ -102,6 +113,7 @@ pub fn build_content(
             ("app_version".into(), env!("CARGO_PKG_VERSION").into()),
         ],
         problems: rows,
+        samples: sample_rows,
     })
 }
 

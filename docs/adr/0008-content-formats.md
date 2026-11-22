@@ -22,6 +22,18 @@ are written by people, reviewed in pull requests, shipped inside the app, and re
   - the statement, the hints (`## 1`, `## 2` and `## 3`) and the editorial, in EN and ES;
   - `reference.kbarch` and `naive.kbarch`.
 - **Chaos selectors** are written flat: `{ kill = { kind = "sql", role = "primary", at = 30 } }`.
+- **Samples (M3.2):** `content/samples/<id>/` holds `sample.toml` (`ka_core::story::SampleDef`) and the `.kbarch`
+  snapshots its steps name.
+  - The sample has a title and summary in EN and ES, a gallery `number`, an optional `problem` (whose tests the
+    steps may play) and `tour = true` on the first-run tour (at most one).
+  - Each `[[step]]` has a snapshot, a title and caption in EN and ES, `focus` (card ids in the spotlight), an
+    optional `camera = { x, y, zoom }` (a point centred in the view), an optional `run` (`test` or `preset`, with
+    `start_s` and `speed`), and an optional `callout` (`metric`, `before`, `after`, `target`).
+  - **Callout numbers are written in the content**, so building stays free of simulations (review A5).
+    `validate --run` simulates each such step the way the player plays it (same scenario, seed and sampling): `after`
+    on the step's design, `before` on the previous step's. Each must be within 15% of the simulator, or within a
+    small absolute floor.
+  - The shared step type serves the concept cards too (M3.5).
 
 ### Validation (`ka-pack validate`)
 - **Structural checks**, fast and needing no simulation:
@@ -34,8 +46,13 @@ are written by people, reviewed in pull requests, shipped inside the app, and re
   - the reference and naive designs pass design validation, and every request type has a path through both;
   - `requires` kinds are in the reference;
   - no `TODO(ka-pack)` markers.
+- **Samples:** the id matches the folder; numbers are unique; at most one tour; text in both languages; every
+  snapshot exists, is used, and passes design validation; focus ids are cards of the step's snapshot; a run names
+  exactly one of a test of the sample's problem or a known preset, with a speed of 0.25–8 and a start inside the run;
+  a callout needs a run, and the first step has no `before`.
 - **`--run`** (from M2.2) also judges: the reference is Accepted on every test, and the naive design fails at least
-  one hidden test.
+  one hidden test. It also checks every sample callout against the simulator.
+- **`--kind samples`** checks only the samples; with no `--kind` (and no `--problems`), everything is checked.
 
 ### Shipping: `content.db`
 - **Schema 1**, in `ka-store::content`:

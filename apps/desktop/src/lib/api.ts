@@ -11,6 +11,8 @@ import {
   type ChaosEvent,
   type ProblemBrief,
   type ProblemSummary,
+  type Sample,
+  type SampleSummary,
   type ProblemTest,
   type Progress,
   type SubmissionSummary,
@@ -101,6 +103,10 @@ export const api = {
     call(commands.submitDesign(id, design, localDay)),
   submissions: (id: string): Promise<SubmissionSummary[]> => call(commands.submissions(id)),
   progress: (today: string): Promise<Progress> => call(commands.progress(today)),
+  /** The sample gallery, in order, each with its first step's design. */
+  listSamples: (): Promise<SampleSummary[]> => call(commands.listSamples()),
+  /** One sample for the player: steps and design snapshots. */
+  sample: (id: string): Promise<Sample> => call(commands.sample(id)),
 
   setWindowTitle: (title: string): Promise<null> => call(commands.setWindowTitle(title)),
   setDirty: (dirty: boolean): Promise<null> => call(commands.setDirty(dirty)),

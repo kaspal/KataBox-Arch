@@ -2,21 +2,24 @@
 //!
 //! ```text
 //! ka-pack new <id>                       scaffold content/problems/<id>/ (with TODO markers)
-//! ka-pack validate [--run] [--problems a,b] [--kind problems] [--content DIR]
+//! ka-pack validate [--run] [--problems a,b] [--kind problems|samples] [--content DIR]
 //! ka-pack build --out FILE [--content DIR]
 //! ```
 //!
 //! `--run` judges each reference (Accepted on every test) and naive design (fails a hidden
-//! test) with `ka-judge`.
+//! test) with `ka-judge`, and simulates every sample step with a callout to check its numbers.
 
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use ka_pack::{Issue, build_content, load_problems, validate_problems, write_db};
+use ka_pack::{
+    Issue, build_content, load_problems, load_samples, validate_problems, validate_samples,
+    write_db,
+};
 
 const USAGE: &str = "usage:
   ka-pack new <id>
-  ka-pack validate [--run [--verbose]] [--problems a,b] [--kind problems] [--content DIR]
+  ka-pack validate [--run [--verbose]] [--problems a,b] [--kind problems|samples] [--content DIR]
   ka-pack build --out FILE [--content DIR]";
 
 struct Args {
@@ -101,15 +104,55 @@ fn main() -> ExitCode {
             }
         }
         "validate" => {
-            if let Some(k) = &args.kind
-                && k != "problems"
+            let kind = args.kind.as_deref();
+            if let Some(k) = kind
+                && !["problems", "samples"].contains(&k)
             {
-                eprintln!("--kind {k}: only `problems` exists so far (the others arrive in M3)");
+                eprintln!("--kind {k}: one of problems, samples");
                 return ExitCode::FAILURE;
             }
             let mut problems = match load_problems(&args.content, &registry) {
                 Ok(p) => p,
                 Err(issues) => return report(&issues),
+            };
+            // Samples read the full problem list (their runs name problem tests).
+            let check_samples = |problems: &[ka_pack::ProblemDir]| -> Result<usize, ExitCode> {
+                let samples = load_samples(&args.content, &registry).map_err(|i| report(&i))?;
+                let mut issues = validate_samples(&samples, problems, &registry);
+                if issues.is_empty() && args.run {
+                    issues = ka_pack::samples::check_callouts(
+                        &samples,
+                        problems,
+                        &registry,
+                        args.verbose,
+                    );
+                }
+                if issues.is_empty() {
+                    Ok(samples.len())
+                } else {
+                    Err(report(&issues))
+                }
+            };
+            if kind == Some("samples") {
+                return match check_samples(&problems) {
+                    Ok(n) => {
+                        println!(
+                            "{n} sample(s) valid{}",
+                            if args.run { ", callouts checked" } else { "" }
+                        );
+                        ExitCode::SUCCESS
+                    }
+                    Err(code) => code,
+                };
+            }
+            // Everything (no --kind, no --problems): the samples too.
+            let samples = if kind.is_none() && args.problems.is_none() {
+                match check_samples(&problems) {
+                    Ok(n) => Some(n),
+                    Err(code) => return code,
+                }
+            } else {
+                None
             };
             if let Some(only) = &args.problems {
                 problems.retain(|p| only.contains(&p.def.id));
@@ -133,6 +176,12 @@ fn main() -> ExitCode {
                 problems.len(),
                 if args.run { ", judged" } else { "" }
             );
+            if let Some(n) = samples {
+                println!(
+                    "{n} sample(s) valid{}",
+                    if args.run { ", callouts checked" } else { "" }
+                );
+            }
             ExitCode::SUCCESS
         }
         "build" => {
@@ -146,7 +195,12 @@ fn main() -> ExitCode {
             };
             match write_db(out, &data) {
                 Ok(()) => {
-                    println!("wrote {} ({} problems)", out.display(), data.problems.len());
+                    println!(
+                        "wrote {} ({} problems, {} samples)",
+                        out.display(),
+                        data.problems.len(),
+                        data.samples.len()
+                    );
                     ExitCode::SUCCESS
                 }
                 Err(e) => {

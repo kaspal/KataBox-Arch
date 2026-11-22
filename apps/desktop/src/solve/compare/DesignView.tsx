@@ -2,7 +2,7 @@
 // and later the player's snapshots. It draws with the editor's card, zone, note and edge
 // renderers, but nothing can be moved, wired or selected. The viewport is controlled by the
 // caller, so two views can share one (linked zoom and pan).
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -60,6 +60,8 @@ export function DesignView({
   onViewportChange,
   label,
   interactive = true,
+  focus,
+  children,
   testId,
 }: {
   design: Design;
@@ -70,9 +72,14 @@ export function DesignView({
   label: string;
   /** False: no pan or zoom (a ghost under another view). */
   interactive?: boolean;
+  /** Cards in the spotlight; everything else dims. Empty or absent: nothing dims. */
+  focus?: string[];
+  /** Drawn inside the flow (the player's packet layer). */
+  children?: ReactNode;
   testId?: string;
 }) {
   const { t } = useTranslation();
+  const lit = useMemo(() => (focus && focus.length > 0 ? new Set(focus) : null), [focus]);
   const nodes = useMemo<FlowNode[]>(() => {
     const zones: ZoneFlowNode[] = design.groups.map((g) => ({
       id: g.id,
@@ -83,7 +90,7 @@ export function DesignView({
       height: g.size.h,
       measured: { width: g.size.w, height: g.size.h },
       style: { width: g.size.w, height: g.size.h },
-      className: "kb-zone",
+      className: lit ? "kb-zone kb-dim" : "kb-zone",
       zIndex: g.kind === "region" ? -2 : -1,
       ariaLabel: `${t(`canvas.zone.${g.kind}`)} ${g.label}`.trim(),
     }));
@@ -96,6 +103,7 @@ export function DesignView({
       height: n.size.h,
       measured: { width: n.size.w, height: n.size.h },
       style: { width: n.size.w, height: n.size.h },
+      className: lit ? "kb-dim" : undefined,
       ariaLabel: t("canvas.noteAria", { text: n.text.slice(0, 60) }),
     }));
     const cards: CardFlowNode[] = design.nodes.map((n) => ({
@@ -104,10 +112,11 @@ export function DesignView({
       position: n.position,
       data: { node: n, spec: kindSpec(registry, n.kind) },
       measured: { width: CARD_W, height: CARD_H },
+      className: lit && !lit.has(n.id) ? "kb-dim" : undefined,
       ariaLabel: `${n.label.trim() || flavourName(t, n.flavour)}, ${kindName(t, n.kind)}`,
     }));
     return [...zones, ...notes, ...cards];
-  }, [design, registry, t]);
+  }, [design, registry, t, lit]);
 
   const edges = useMemo<CurvedFlowEdge[]>(() => {
     const rects = new Map(design.nodes.map((n) => [n.id, { x: n.position.x, y: n.position.y, w: CARD_W, h: CARD_H }]));
@@ -118,8 +127,9 @@ export function DesignView({
       target: e.to,
       type: "curved",
       data: { protocol: e.protocol, slots: slots.get(e.id) },
+      className: lit && !(lit.has(e.from) && lit.has(e.to)) ? "kb-dim" : undefined,
     }));
-  }, [design]);
+  }, [design, lit]);
 
   return (
     <div className="kb-canvas kb-readonly relative h-full w-full" role="group" aria-label={label} data-testid={testId}>
@@ -143,7 +153,9 @@ export function DesignView({
           minZoom={0.3}
           maxZoom={2}
           proOptions={{ hideAttribution: true }}
-        />
+        >
+          {children}
+        </ReactFlow>
       </ReactFlowProvider>
     </div>
   );

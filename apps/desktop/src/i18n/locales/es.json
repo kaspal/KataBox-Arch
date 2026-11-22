@@ -214,10 +214,6 @@
       "title": "La Guía de componentes llega en M3",
       "body": "Una entrada y una tarjeta de concepto para cada componente: qué hace, cuándo usarlo y sus números."
     },
-    "samples": {
-      "title": "Los ejemplos animados llegan en M3",
-      "body": "Cinco diseños guiados que muestran el tráfico fluyendo, rompiéndose y recuperándose."
-    },
     "progress": {
       "title": "Todavía no hay nada que mostrar",
       "body": "Los problemas resueltos, las mejores puntuaciones y tu racha aparecerán aquí cuando lleguen los problemas."
@@ -543,5 +539,35 @@
     "best": "Tu diseño aceptado más barato: {{cost}} al mes con {{p95}} ms de p95 ({{n}} aceptados).",
     "referenceAt": "La referencia: {{cost}} al mes con {{p95}} ms de p95.",
     "empty": "Aquí aparecerán tus envíos aceptados, junto a la referencia."
+  },
+  "player": {
+    "stepOf": "paso {{n}} de {{total}}",
+    "stepTitle": "Paso {{n}} · {{title}}",
+    "previous": "Anterior",
+    "nextTo": "Siguiente: {{title}}",
+    "end": "Fin",
+    "replay": "Repetir el paso",
+    "try": "Pruébalo tú",
+    "steps": "Pasos",
+    "goTo": "Paso {{n}}: {{title}}",
+    "before": "Antes: {{v}}",
+    "target": "objetivo {{v}}",
+    "ms": "{{v}} ms",
+    "rps": "{{v}} pet./s",
+    "metric": {
+      "p95_ms": "Latencia p95",
+      "error_rate": "Tasa de errores",
+      "throughput_rps": "Rendimiento",
+      "cost_month": "Coste al mes"
+    }
+  },
+  "samples": {
+    "steps_one": "{{count}} paso",
+    "steps_other": "{{count}} pasos",
+    "tour": "El recorrido de bienvenida",
+    "unavailable": "Los ejemplos no están disponibles",
+    "none": "Aún no hay ejemplos",
+    "noneBody": "La aplicación se compiló sin sus ejemplos.",
+    "copyName": "{{title}} (mi copia)"
   }
 }

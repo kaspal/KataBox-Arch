@@ -56,6 +56,7 @@ CREATE TABLE patterns (
 );
 CREATE TABLE samples (
   id        TEXT PRIMARY KEY,
+  number    INTEGER NOT NULL,
   def       TEXT NOT NULL,
   snapshots TEXT NOT NULL
 );
@@ -103,11 +104,22 @@ pub struct ProblemRow {
     pub ref_p95_ms: f64,
 }
 
+/// One sample (a walkthrough story). `def` is the `SampleDef` as JSON; `snapshots` maps each
+/// snapshot's file name to its `.kbarch` JSON.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SampleRow {
+    pub id: String,
+    pub number: i64,
+    pub def: String,
+    pub snapshots: std::collections::BTreeMap<String, String>,
+}
+
 /// Everything `ka-pack build` writes.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct ContentData {
     pub meta: Vec<(String, String)>,
     pub problems: Vec<ProblemRow>,
+    pub samples: Vec<SampleRow>,
 }
 
 /// Write a fresh `content.db` at `path` (replacing any file there).
@@ -161,6 +173,15 @@ pub async fn write_content(path: &Path, data: &ContentData) -> Result<()> {
         .bind(p.ref_p95_ms)
         .execute(&mut *tx)
         .await?;
+    }
+    for s in &data.samples {
+        sqlx::query("INSERT INTO samples (id, number, def, snapshots) VALUES (?, ?, ?, ?)")
+            .bind(&s.id)
+            .bind(s.number)
+            .bind(&s.def)
+            .bind(serde_json::to_string(&s.snapshots)?)
+            .execute(&mut *tx)
+            .await?;
     }
     sqlx::raw_sql(&format!("PRAGMA user_version = {CONTENT_SCHEMA}"))
         .execute(&mut *tx)
@@ -266,9 +287,36 @@ impl ContentDb {
         row.as_ref().map(problem_row).transpose()
     }
 
+    /// Every sample, in gallery order.
+    pub async fn samples(&self) -> Result<Vec<SampleRow>> {
+        let rows =
+            sqlx::query("SELECT id, number, def, snapshots FROM samples ORDER BY number, id")
+                .fetch_all(&self.pool)
+                .await?;
+        rows.iter().map(sample_row).collect()
+    }
+
+    pub async fn sample(&self, id: &str) -> Result<Option<SampleRow>> {
+        let row = sqlx::query("SELECT id, number, def, snapshots FROM samples WHERE id = ?")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
+        row.as_ref().map(sample_row).transpose()
+    }
+
     pub async fn close(&self) {
         self.pool.close().await;
     }
+}
+
+fn sample_row(r: &sqlx::sqlite::SqliteRow) -> Result<SampleRow> {
+    let snapshots: String = r.try_get("snapshots")?;
+    Ok(SampleRow {
+        id: r.try_get("id")?,
+        number: r.try_get("number")?,
+        def: r.try_get("def")?,
+        snapshots: serde_json::from_str(&snapshots)?,
+    })
 }
 
 #[cfg(test)]
@@ -301,12 +349,22 @@ mod tests {
         }
     }
 
+    fn sample(id: &str, number: i64) -> SampleRow {
+        SampleRow {
+            id: id.into(),
+            number,
+            def: format!(r#"{{"id":"{id}"}}"#),
+            snapshots: [("one.kbarch".to_string(), "{}".to_string())].into(),
+        }
+    }
+
     #[tokio::test]
     async fn content_round_trips_in_catalogue_order() {
         let path = temp_dir("content").join("content.db");
         let data = ContentData {
             meta: vec![("hash".into(), "abc".into())],
             problems: vec![problem("b", 2), problem("a", 1)],
+            samples: vec![sample("s2", 2), sample("s1", 1)],
         };
         write_content(&path, &data).await.unwrap();
         // Rewriting replaces the file.
@@ -320,6 +378,13 @@ mod tests {
         );
         assert_eq!(db.problem("b").await.unwrap(), Some(problem("b", 2)));
         assert_eq!(db.problem("zzz").await.unwrap(), None);
+        let samples = db.samples().await.unwrap();
+        assert_eq!(
+            samples.iter().map(|s| s.id.as_str()).collect::<Vec<_>>(),
+            ["s1", "s2"]
+        );
+        assert_eq!(db.sample("s2").await.unwrap(), Some(sample("s2", 2)));
+        assert_eq!(db.sample("nope").await.unwrap(), None);
         db.close().await;
     }
 

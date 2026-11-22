@@ -12,6 +12,7 @@ pub mod problem;
 pub mod registry;
 pub mod rng;
 pub mod scenario;
+pub mod story;
 pub mod validate;
 pub mod wiring;
 

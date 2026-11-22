@@ -213,6 +213,28 @@ async progress(today: string) : Promise<Result<Progress, AppError>> {
 }
 },
 /**
+ * The sample gallery, in order (each with its first step's design for the preview).
+ */
+async listSamples() : Promise<Result<SampleSummary[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_samples") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * One sample for the walkthrough player: its steps and design snapshots.
+ */
+async sample(id: string) : Promise<Result<Sample, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("sample", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * The window title (the webview has no `setTitle` permission).
  */
 async setWindowTitle(title: string) : Promise<Result<null, AppError>> {
@@ -385,6 +407,27 @@ export type CalibrationStatus =
  * A conservative ballpark; its source still has to be confirmed.
  */
 "needed"
+/**
+ * "p95 latency: ~~400 ms~~ 18 ms". `before` is this run on the previous step's design;
+ * `after` is this step's. `validate --run` checks both against the simulator.
+ */
+export type Callout = { metric: CalloutMetric; before?: number | null; after: number; 
+/**
+ * The target to show under the number (the problem's p95, say).
+ */
+target?: number | null }
+/**
+ * The number a callout shows. Each is measured over the whole run, like a test result.
+ */
+export type CalloutMetric = "p95_ms" | 
+/**
+ * 0–1.
+ */
+"error_rate" | "throughput_rps" | "cost_month"
+/**
+ * Where the camera looks: a point in flow coordinates, centred in the view, and a zoom.
+ */
+export type Camera = { x: number; y: number; zoom: number }
 /**
  * The five library categories, each with its colour token (`--cat-<id>`).
  */
@@ -811,6 +854,34 @@ completion: Percentiles | null; lost: number; dead_lettered: number; stale_reads
  */
 series: SecondResult[] }
 /**
+ * One sample for the player: its steps and every snapshot they name.
+ */
+export type Sample = { def: SampleDef; snapshots: Partial<{ [key in string]: Design }> }
+/**
+ * `content/samples/<id>/sample.toml`.
+ */
+export type SampleDef = { id: string; 
+/**
+ * Gallery order.
+ */
+number: number; title: string; title_es: string; summary: string; summary_es: string; 
+/**
+ * The problem whose tests the steps play (`run.test`), if any.
+ */
+problem?: string | null; 
+/**
+ * The first-run tour (offered once from Home).
+ */
+tour?: boolean; 
+/**
+ * `[[step]]` tables in the TOML.
+ */
+steps: StoryStep[] }
+/**
+ * A gallery card: the text, and the first step's design and traffic for the preview.
+ */
+export type SampleSummary = { id: string; number: number; title: string; title_es: string; summary: string; summary_es: string; tour: boolean; steps: number; problem: string | null; preview: Design; preview_run: StepRun | null }
+/**
  * The traffic presets of the Sandbox's Run menu.
  */
 export type SandboxPreset = 
@@ -892,6 +963,32 @@ start_s: number;
  * A `Channel` from `@tauri-apps/api/core`, serialized as its id.
  */
 on_frame: string }
+/**
+ * The traffic a step plays: a test of the story's problem, or a Sandbox preset
+ * (`normal`, `spike`, `kill_node`) driven by the design's client cards.
+ */
+export type StepRun = { test?: string | null; preset?: string | null; 
+/**
+ * Where the run starts, in simulated seconds (just before the interesting moment).
+ */
+start_s?: number; 
+/**
+ * Playback speed (0.25–8).
+ */
+speed?: number }
+export type StoryStep = { 
+/**
+ * A `.kbarch` file in the story's folder.
+ */
+snapshot: string; title: string; title_es: string; caption: string; caption_es: string; 
+/**
+ * Node ids in the spotlight; the rest dims. Empty: nothing dims.
+ */
+focus?: string[]; 
+/**
+ * None: fit the design (or the focused cards).
+ */
+camera?: Camera | null; run?: StepRun | null; callout?: Callout | null }
 export type SubmissionSummary = { id: number; problem_id: string; created_at: number; verdict: string; score: number; correctness: number; cost_score: number; latency_score: number; cost_usd: number; p95_ms: number }
 export type SubmitResult = { submission_id: number; judgement: Judgement; 
 /**

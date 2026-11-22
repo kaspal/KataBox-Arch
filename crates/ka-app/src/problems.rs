@@ -527,6 +527,7 @@ error_rate = 0.001
             &ka_store::ContentData {
                 meta: vec![],
                 problems: vec![row],
+                samples: vec![],
             },
         )
         .await

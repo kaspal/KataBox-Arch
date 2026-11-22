@@ -53,6 +53,12 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
       overlaid, the reference drawn faintly behind yours;
     - **a cost vs speed chart** places every accepted submission against the reference.
   - **A failed submission's results** offer the next hint.
+- **Samples:**
+  - **A gallery** of animated walkthroughs, starting with "Hello, Traffic", the first-run tour.
+  - **The player** pans the camera to each step and dims what isn't in focus. Each step has a caption, plays live
+    traffic, and calls out the number that changed.
+  - Step with Previous and Next, the step dots or the arrow keys, and Replay step plays a step again.
+  - **Try it yourself** copies the step's design into the Sandbox.
   - **Set 1:** 15 problems, from URL Shortener to Online Judge, each with a statement, hints and an editorial in
     English and Spanish.
 

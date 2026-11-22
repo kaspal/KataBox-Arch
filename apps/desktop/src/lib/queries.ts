@@ -11,6 +11,8 @@ export const queryKeys = {
   brief: (id: string) => ["problem-brief", id] as const,
   progress: ["progress"] as const,
   submissions: (id: string) => ["submissions", id] as const,
+  samples: ["samples"] as const,
+  sample: (id: string) => ["sample", id] as const,
 };
 
 export function useAppInfo() {
@@ -32,6 +34,14 @@ export function useProblemBrief(id: string) {
 
 export function useSubmissions(id: string) {
   return useQuery({ queryKey: queryKeys.submissions(id), queryFn: () => api.submissions(id) });
+}
+
+export function useSamples() {
+  return useQuery({ queryKey: queryKeys.samples, queryFn: api.listSamples, staleTime: Infinity });
+}
+
+export function useSample(id: string) {
+  return useQuery({ queryKey: queryKeys.sample(id), queryFn: () => api.sample(id), staleTime: Infinity });
 }
 
 export function useProgress() {

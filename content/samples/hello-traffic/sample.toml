@@ -1,0 +1,43 @@
+id = "hello-traffic"
+number = 1
+title = "Hello, Traffic"
+title_es = "Hola, tráfico"
+summary = "One server meets a crowd, then gets help. A first tour of the canvas, live runs and metrics."
+summary_es = "Un servidor se encuentra con una multitud y luego recibe ayuda. Un primer recorrido por el lienzo, las ejecuciones en vivo y las métricas."
+tour = true
+
+[[step]]
+snapshot = "one-server.kbarch"
+title = "Requests flow"
+title_es = "Las peticiones fluyen"
+caption = "Visitors send 5,000 requests a second to one web server. Each dot is a request travelling along a connection, and the card shows how busy the server is. At this rate it copes: p95 latency is about 15 ms."
+caption_es = "Los visitantes envían 5000 peticiones por segundo a un único servidor web. Cada punto es una petición que recorre una conexión, y la tarjeta muestra lo ocupado que está el servidor. A este ritmo aguanta: la latencia p95 ronda los 15 ms."
+run = { preset = "normal", start_s = 0 }
+callout = { metric = "p95_ms", after = 14.7 }
+
+[[step]]
+snapshot = "one-server.kbarch"
+title = "A crowd arrives"
+title_es = "Llega una multitud"
+caption = "At 20 seconds the traffic jumps to four times as much, for 15 seconds. Every thread is busy, the queue fills, and requests that can't wait are dropped: the red crosses. Over the whole run, about a quarter of all requests fail."
+caption_es = "A los 20 segundos el tráfico se multiplica por cuatro durante 15 segundos. Todos los hilos están ocupados, la cola se llena y las peticiones que no caben se descartan: las cruces rojas. En toda la ejecución falla aproximadamente una de cada cuatro peticiones."
+focus = ["app"]
+run = { preset = "spike", start_s = 16 }
+callout = { metric = "error_rate", after = 0.266 }
+
+[[step]]
+snapshot = "two-servers.kbarch"
+title = "Share the load"
+title_es = "Reparte la carga"
+caption = "A load balancer in front of two servers splits the same crowd between them. Each server carries half of the spike, the queues stay short, and no request is dropped."
+caption_es = "Un balanceador de carga delante de dos servidores reparte la misma multitud entre ambos. Cada servidor lleva la mitad del pico, las colas se quedan cortas y no se descarta ninguna petición."
+focus = ["lb", "app", "app2"]
+run = { preset = "spike", start_s = 16 }
+callout = { metric = "error_rate", before = 0.266, after = 0 }
+
+[[step]]
+snapshot = "two-servers.kbarch"
+title = "Your turn"
+title_es = "Tu turno"
+caption = "That is the whole loop: drag components from the Library, wire them, press Run and watch the numbers. Problems add targets and hidden tests, and Submit grades your design. Press Try it yourself to edit this one in the Sandbox."
+caption_es = "Ese es todo el ciclo: arrastra componentes desde la Biblioteca, conéctalos, pulsa Ejecutar y mira los números. Los problemas añaden objetivos y pruebas ocultas, y Enviar califica tu diseño. Pulsa Pruébalo tú para editar este diseño en el Sandbox."

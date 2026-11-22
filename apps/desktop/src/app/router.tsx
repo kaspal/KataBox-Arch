@@ -10,7 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { Shell } from "@/app/Shell";
 import { Home } from "@/pages/Home";
-import { Guide, Progress, Samples } from "@/pages/Placeholders";
+import { Guide, Progress } from "@/pages/Placeholders";
 import { ProblemsPage } from "@/pages/Problems";
 import { Settings } from "@/pages/Settings";
 
@@ -30,7 +30,16 @@ const routeTree = rootRoute.addChildren([
     component: lazyRouteComponent(() => import("@/solve/SandboxPage"), "SandboxPage"),
   }),
   createRoute({ getParentRoute: () => rootRoute, path: "/guide", component: Guide }),
-  createRoute({ getParentRoute: () => rootRoute, path: "/samples", component: Samples }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/samples",
+    component: lazyRouteComponent(() => import("@/tour/SamplesPage"), "SamplesPage"),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/samples/$id",
+    component: lazyRouteComponent(() => import("@/tour/SamplePage"), "SamplePage"),
+  }),
   createRoute({ getParentRoute: () => rootRoute, path: "/progress", component: Progress }),
   createRoute({ getParentRoute: () => rootRoute, path: "/settings", component: Settings }),
   // Development builds only: the packet layer's frame-rate check (plan M1.4).

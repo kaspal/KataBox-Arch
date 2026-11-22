@@ -151,6 +151,15 @@
 .kb-readonly .react-flow__handle {
   display: none;
 }
+/* The player's spotlight: what isn't in focus fades back. */
+.kb-readonly .kb-dim {
+  opacity: 0.28;
+  transition: opacity 300ms var(--ease-out);
+}
+.kb-readonly .react-flow__node,
+.kb-readonly .react-flow__edge {
+  transition: opacity 300ms var(--ease-out);
+}
 .kb-canvas .react-flow__minimap {
   background: var(--card);
   border: 1px solid var(--border);

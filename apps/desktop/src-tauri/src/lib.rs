@@ -17,6 +17,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use ka_app::live::FrameSink;
 use ka_app::problems::{ProblemBrief, ProblemSummary, Progress, SubmitResult};
+use ka_app::samples::{Sample, SampleSummary};
 use ka_app::{
     App, AppError, AppErrorCode, AppInfo, AppPaths, OpenedDesign, ProblemTest, RecentEntry,
     RunControl, RunInfo, RunRequest, SandboxPreset,
@@ -252,6 +253,20 @@ async fn list_problems(state: State<'_, AppState>) -> Res<Vec<ProblemSummary>> {
     state.app()?.list_problems().await
 }
 
+/// The sample gallery, in order (each with its first step's design for the preview).
+#[tauri::command]
+#[specta::specta]
+async fn list_samples(state: State<'_, AppState>) -> Res<Vec<SampleSummary>> {
+    state.app()?.list_samples().await
+}
+
+/// One sample for the walkthrough player: its steps and design snapshots.
+#[tauri::command]
+#[specta::specta]
+async fn sample(state: State<'_, AppState>, id: String) -> Res<Sample> {
+    state.app()?.sample(&id).await
+}
+
 /// A problem's brief: hidden tests by name only, hints up to the unlocked tier.
 #[tauri::command]
 #[specta::specta]
@@ -381,6 +396,8 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         submit_design,
         submissions,
         progress,
+        list_samples,
+        sample,
         set_window_title,
         set_dirty,
         confirm_close,
