@@ -38,6 +38,12 @@ are written by people, reviewed in pull requests, shipped inside the app, and re
     as JSON).
   - **A callout metric for queues:** `lost` counts async messages that failed every retry with no dead-letter
     queue.
+- **Decision guides and glossary (M3.7):**
+  - **Flows:** `content/decide/<id>.toml` (`ka_core::decide::DecideFlow`) has questions whose answers lead to
+    another question or end at a component kind. The validator refuses loops, unreachable questions and answers
+    with neither (or both) ends.
+  - **The glossary:** `content/glossary.toml` holds `[[term]]` tables. Every English term must appear somewhere
+    else in the content, so the list stays the app's real vocabulary.
 - **Patterns (M3.6):** `content/patterns/<id>/` holds `pattern.toml` (`ka_core::pattern::PatternEntry`, every
   text with an `_es` twin), `pattern.md` / `pattern.es.md` ("How it works"), and `template.kbarch`.
   - `in_simulator` says plainly how much of the pattern the simulator runs.

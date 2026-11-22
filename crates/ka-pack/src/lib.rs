@@ -9,6 +9,7 @@
 //!   `samples::check_callouts` is their part of `validate --run`.
 //! - `build_content` turns validated content into rows, and `write_db` writes the file.
 
+pub mod decide;
 pub mod guide;
 pub mod patterns;
 pub mod problems;
@@ -96,11 +97,15 @@ pub fn build_content(
     let guide = load_guide(root)?;
     let concepts = load_concepts(root, registry)?;
     let patterns = patterns::load_patterns(root, registry)?;
+    let flows = decide::load_decide(root)?;
+    let glossary = decide::load_glossary(root)?;
     let mut issues = validate_problems(&problems, registry);
     issues.extend(validate_samples(&samples, &problems, registry));
     issues.extend(validate_guide(&guide, &problems, registry));
     issues.extend(validate_concepts(&concepts, &problems, registry));
     issues.extend(patterns::validate_patterns(&patterns, &problems, registry));
+    issues.extend(decide::validate_decide(&flows));
+    issues.extend(decide::validate_glossary(&glossary, &decide::corpus(root)));
     if !issues.is_empty() {
         return Err(issues);
     }
@@ -123,6 +128,26 @@ pub fn build_content(
         ],
         problems: rows,
         samples: sample_rows,
+        decide: flows
+            .iter()
+            .map(|f| {
+                Ok(ka_store::JsonRow {
+                    id: f.flow.id.clone(),
+                    json: serde_json::to_string(&f.flow)
+                        .map_err(|e| vec![issue(&f.path, e.to_string())])?,
+                })
+            })
+            .collect::<Result<_, Vec<Issue>>>()?,
+        glossary: glossary
+            .iter()
+            .map(|t| {
+                Ok(ka_store::JsonRow {
+                    id: t.id.clone(),
+                    json: serde_json::to_string(t)
+                        .map_err(|e| vec![issue("glossary.toml", e.to_string())])?,
+                })
+            })
+            .collect::<Result<_, Vec<Issue>>>()?,
         patterns: patterns
             .iter()
             .map(|p| patterns::pattern_row(p, registry))

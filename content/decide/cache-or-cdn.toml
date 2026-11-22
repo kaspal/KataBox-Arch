@@ -1,0 +1,44 @@
+id = "cache-or-cdn"
+number = 3
+title = "Cache or CDN?"
+title_es = "¿Caché o CDN?"
+intro = "Both keep copies of what is read again and again. A CDN sits at the edge, near users, and serves whole responses. A cache sits next to your app servers and holds the data they read."
+intro_es = "Las dos guardan copias de lo que se lee una y otra vez. Una CDN está en el borde, cerca de los usuarios, y sirve respuestas completas. Una caché está junto a tus servidores de aplicaciones y guarda los datos que leen."
+start = "what"
+
+[[question]]
+id = "what"
+text = "What is read again and again?"
+text_es = "¿Qué se lee una y otra vez?"
+options = [
+  { label = "Files: images, video, scripts, styles", label_es = "Ficheros: imágenes, vídeo, scripts, estilos", next = "where", why = "Static files are what a CDN is built for. Where the users are decides how much it helps.", why_es = "Los ficheros estáticos son para lo que está hecha una CDN. Dónde están los usuarios decide cuánto ayuda." },
+  { label = "API responses", label_es = "Respuestas de una API", next = "personal", why = "Whether a response can be shared decides where it can be kept.", why_es = "Si una respuesta se puede compartir decide dónde se puede guardar." },
+  { label = "Records the app reads from a database", label_es = "Registros que la aplicación lee de una base de datos", next = "fresh", why = "Data the app reads is kept next to the app, not at the edge.", why_es = "Los datos que lee la aplicación se guardan junto a ella, no en el borde." },
+]
+
+[[question]]
+id = "where"
+text = "Where are the users?"
+text_es = "¿Dónde están los usuarios?"
+options = [
+  { label = "Spread over many places, or arriving in spikes", label_es = "Repartidos por muchos sitios, o llegando en picos", result = "cdn", why = "A CDN answers near each user and absorbs read spikes, so the origin sees only the misses.", why_es = "Una CDN responde cerca de cada usuario y absorbe los picos de lectura, así que el origen solo ve los fallos." },
+  { label = "Few, and close to the servers", label_es = "Pocos, y cerca de los servidores", result = "cdn", why = "A CDN still takes file reads off your servers, but it matters less. It is priced per request, so check that it pays for itself.", why_es = "Una CDN sigue quitando lecturas de ficheros a tus servidores, pero importa menos. Se cobra por petición, así que comprueba que compensa." },
+]
+
+[[question]]
+id = "personal"
+text = "Is the response the same for everyone who asks?"
+text_es = "¿Es la respuesta la misma para todos los que la piden?"
+options = [
+  { label = "Yes, the same for every user for a while", label_es = "Sí, la misma para todos durante un tiempo", result = "cdn", why = "A shared response can be cached at the edge with a TTL. Decide how a change replaces the old copies.", why_es = "Una respuesta compartida se puede cachear en el borde con un TTL. Decide cómo un cambio sustituye las copias antiguas." },
+  { label = "No, it depends on who asks", label_es = "No, depende de quién la pida", next = "fresh", why = "A personal response cannot be shared at the edge. Cache the data behind it instead.", why_es = "Una respuesta personal no se puede compartir en el borde. Cachea los datos que hay detrás." },
+]
+
+[[question]]
+id = "fresh"
+text = "Can a read be a few seconds old?"
+text_es = "¿Puede una lectura tener unos segundos de antigüedad?"
+options = [
+  { label = "Yes, slightly stale data is fine", label_es = "Sí, unos datos algo obsoletos no importan", result = "cache", why = "A cache in front of the database serves the hot keys from memory. Set a TTL that matches how stale a read may be.", why_es = "Una caché delante de la base de datos sirve las claves calientes desde memoria. Pon un TTL acorde con lo obsoleta que puede ser una lectura." },
+  { label = "No, every read must see the latest write", label_es = "No, cada lectura debe ver la última escritura", result = "cache", why = "Only with care: update or delete the cached entry on every write. If you cannot, skip the cache and read the database.", why_es = "Solo con cuidado: actualiza o borra la entrada cacheada en cada escritura. Si no puedes, prescinde de la caché y lee de la base de datos." },
+]

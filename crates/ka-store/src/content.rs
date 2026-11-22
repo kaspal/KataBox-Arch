@@ -124,6 +124,13 @@ pub struct GuideRow {
     pub md_es: String,
 }
 
+/// A decision guide (`id`) or a glossary term (`id`) as JSON.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct JsonRow {
+    pub id: String,
+    pub json: String,
+}
+
 /// A pattern: the entry as JSON, the prose, and the template as `.kbarch` JSON.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PatternRow {
@@ -150,6 +157,8 @@ pub struct ContentData {
     pub guide: Vec<GuideRow>,
     pub concepts: Vec<ConceptRow>,
     pub patterns: Vec<PatternRow>,
+    pub decide: Vec<JsonRow>,
+    pub glossary: Vec<JsonRow>,
 }
 
 /// Write a fresh `content.db` at `path` (replacing any file there).
@@ -210,6 +219,20 @@ pub async fn write_content(path: &Path, data: &ContentData) -> Result<()> {
             .bind(s.number)
             .bind(&s.def)
             .bind(serde_json::to_string(&s.snapshots)?)
+            .execute(&mut *tx)
+            .await?;
+    }
+    for d in &data.decide {
+        sqlx::query("INSERT INTO decide (id, def) VALUES (?, ?)")
+            .bind(&d.id)
+            .bind(&d.json)
+            .execute(&mut *tx)
+            .await?;
+    }
+    for g in &data.glossary {
+        sqlx::query("INSERT INTO glossary (id, entry) VALUES (?, ?)")
+            .bind(&g.id)
+            .bind(&g.json)
             .execute(&mut *tx)
             .await?;
     }
@@ -362,6 +385,36 @@ impl ContentDb {
         row.as_ref().map(sample_row).transpose()
     }
 
+    /// Every decision guide (JSON), by id.
+    pub async fn decide(&self) -> Result<Vec<JsonRow>> {
+        let rows = sqlx::query("SELECT id, def FROM decide ORDER BY id")
+            .fetch_all(&self.pool)
+            .await?;
+        rows.iter()
+            .map(|r| {
+                Ok(JsonRow {
+                    id: r.try_get("id")?,
+                    json: r.try_get("def")?,
+                })
+            })
+            .collect()
+    }
+
+    /// Every glossary term (JSON), by id.
+    pub async fn glossary(&self) -> Result<Vec<JsonRow>> {
+        let rows = sqlx::query("SELECT id, entry FROM glossary ORDER BY id")
+            .fetch_all(&self.pool)
+            .await?;
+        rows.iter()
+            .map(|r| {
+                Ok(JsonRow {
+                    id: r.try_get("id")?,
+                    json: r.try_get("entry")?,
+                })
+            })
+            .collect()
+    }
+
     /// Every pattern (the caller orders them by the entry's number).
     pub async fn patterns(&self) -> Result<Vec<PatternRow>> {
         let rows =
@@ -495,6 +548,14 @@ mod tests {
                 kind: "cache".into(),
                 def: "{}".into(),
             }],
+            decide: vec![JsonRow {
+                id: "sql-or-nosql".into(),
+                json: "{}".into(),
+            }],
+            glossary: vec![JsonRow {
+                id: "p95".into(),
+                json: "{\"t\":1}".into(),
+            }],
             patterns: vec![PatternRow {
                 id: "cache-aside".into(),
                 entry: "{}".into(),
@@ -532,6 +593,8 @@ mod tests {
         assert_eq!(db.concept("cache").await.unwrap().unwrap().def, "{}");
         assert_eq!(db.concept("lb").await.unwrap(), None);
         assert_eq!(db.patterns().await.unwrap()[0].md_es, "Cómo");
+        assert_eq!(db.decide().await.unwrap()[0].id, "sql-or-nosql");
+        assert_eq!(db.glossary().await.unwrap()[0].json, "{\"t\":1}");
         db.close().await;
     }
 

@@ -118,6 +118,12 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
             </CommandItem>
           ))}
         </CommandGroup>
+        <CommandGroup heading={t("glossary.title")}>
+          <CommandItem value={`page ${t("glossary.title")}`} onSelect={() => run(() => void navigate({ to: "/glossary" }))}>
+            <BookOpen aria-hidden />
+            {t("glossary.title")}
+          </CommandItem>
+        </CommandGroup>
         <CommandGroup heading={t("palette.patterns")}>
           {(patterns.data ?? []).map((p) => {
             const title = i18n.language.startsWith("es") ? p.title_es : p.title;

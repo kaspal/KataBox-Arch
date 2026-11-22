@@ -47,6 +47,14 @@ export function useGuidePage(kind: ComponentKind) {
   return useQuery({ queryKey: queryKeys.guidePage(kind), queryFn: () => api.guidePage(kind) });
 }
 
+export function useDecideFlows() {
+  return useQuery({ queryKey: ["decide"], queryFn: api.decideFlows, staleTime: Infinity });
+}
+
+export function useGlossary() {
+  return useQuery({ queryKey: ["glossary"], queryFn: api.glossary, staleTime: Infinity });
+}
+
 export function usePatterns() {
   return useQuery({ queryKey: ["patterns"], queryFn: api.listPatterns });
 }

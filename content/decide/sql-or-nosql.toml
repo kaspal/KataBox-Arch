@@ -1,0 +1,45 @@
+id = "sql-or-nosql"
+number = 1
+title = "SQL or NoSQL?"
+title_es = "¿SQL o NoSQL?"
+intro = "Start from how the data is read and written, not from what is fashionable. Most designs begin with one relational database and change only when a clear limit appears."
+intro_es = "Parte de cómo se leen y escriben los datos, no de lo que está de moda. La mayoría de los diseños empiezan con una base de datos relacional y solo cambian cuando aparece un límite claro."
+start = "find"
+
+[[question]]
+id = "find"
+text = "How will people look the data up?"
+text_es = "¿Cómo se van a buscar los datos?"
+options = [
+  { label = "By words or phrases inside the text", label_es = "Por palabras o frases dentro del texto", result = "search", why = "Free-text search needs an index built for words, with ranking. Keep the records in a database and feed a copy to the search index.", why_es = "La búsqueda de texto libre necesita un índice pensado para palabras, con relevancia. Guarda los registros en una base de datos y pasa una copia al índice de búsqueda." },
+  { label = "With joins and filters that are not all known yet", label_es = "Con joins y filtros que aún no se conocen todos", result = "sql", why = "A relational database answers new questions over the same tables. A NoSQL store needs its tables shaped around the queries up front.", why_es = "Una base de datos relacional responde preguntas nuevas sobre las mismas tablas. Un almacén NoSQL necesita las tablas diseñadas en función de las consultas desde el principio." },
+  { label = "Almost always by one known key", label_es = "Casi siempre por una clave conocida", next = "together", why = "Access by key suits both kinds, so the next questions decide.", why_es = "El acceso por clave encaja con los dos tipos, así que deciden las siguientes preguntas." },
+]
+
+[[question]]
+id = "together"
+text = "Must several records change together, or not at all?"
+text_es = "¿Deben cambiar varios registros a la vez, o ninguno?"
+options = [
+  { label = "Yes, for example money moving between two accounts", label_es = "Sí, por ejemplo dinero que pasa de una cuenta a otra", result = "sql", why = "Transactions across records are what a relational database does best. NoSQL stores limit them or leave them out.", why_es = "Las transacciones entre registros son lo que mejor hace una base de datos relacional. Los almacenes NoSQL las limitan o no las tienen." },
+  { label = "No, each record stands on its own", label_es = "No, cada registro va por su cuenta", next = "load", why = "Without transactions across records, the load decides.", why_es = "Sin transacciones entre registros, lo que decide es la carga." },
+]
+
+[[question]]
+id = "load"
+text = "What will push the database hardest?"
+text_es = "¿Qué va a exigir más a la base de datos?"
+options = [
+  { label = "Writes: heavy, growing, more than one server can take", label_es = "Las escrituras: muchas, crecientes, más de las que aguanta un servidor", result = "nosql", why = "A NoSQL store spreads writes over many partitions by key. Pick a partition key that spreads the load evenly.", why_es = "Un almacén NoSQL reparte las escrituras entre muchas particiones por clave. Elige una clave de partición que reparta la carga de forma uniforme." },
+  { label = "Reads of the same popular keys", label_es = "Las lecturas de las mismas claves populares", next = "fresh", why = "Repeated reads of a hot set can often be served without a new database.", why_es = "Las lecturas repetidas de un conjunto caliente a menudo se pueden servir sin una base de datos nueva." },
+  { label = "Neither: the load is modest", label_es = "Ninguna: la carga es moderada", result = "sql", why = "One relational database handles it comfortably and keeps every query open to you. Change only when a limit shows up.", why_es = "Una base de datos relacional lo aguanta con holgura y te deja hacer cualquier consulta. Cambia solo cuando aparezca un límite." },
+]
+
+[[question]]
+id = "fresh"
+text = "Can a read be a few seconds old?"
+text_es = "¿Puede una lectura tener unos segundos de antigüedad?"
+options = [
+  { label = "Yes, slightly stale data is fine", label_es = "Sí, unos datos algo obsoletos no importan", result = "cache", why = "Keep the database you have and put a cache in front of it. The hot keys are served from memory and the database sees only the misses.", why_es = "Mantén la base de datos que tienes y pon una caché delante. Las claves calientes se sirven desde memoria y la base de datos solo ve los fallos." },
+  { label = "No, every read must see the latest write", label_es = "No, cada lectura debe ver la última escritura", result = "sql", why = "Read from the primary of a relational database, and size it for the reads. A cache or replicas could return old values.", why_es = "Lee de la principal de una base de datos relacional y dimensiónala para las lecturas. Una caché o unas réplicas podrían devolver valores antiguos." },
+]

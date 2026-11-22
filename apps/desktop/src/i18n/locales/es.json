@@ -644,5 +644,18 @@
     "template": "La plantilla",
     "templateHint": "Insertar en el Sandbox añade estas tarjetas al diseño que editas, en el centro de la vista; un deshacer las quita.",
     "builtFrom": "Hecho con"
+  },
+  "decide": {
+    "title": "¿Cuál necesito?",
+    "answers": "Tus respuestas",
+    "result": "Usa",
+    "restart": "Empezar de nuevo",
+    "notFound": "No existe esa guía",
+    "notFoundBody": "Esta guía de decisión no existe."
+  },
+  "glossary": {
+    "title": "Glosario",
+    "search": "Buscar en el glosario",
+    "see": "Ver {{name}}."
   }
 }

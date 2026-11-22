@@ -14,6 +14,8 @@ import {
   type ComponentKind,
   type GuidePage,
   type GuideSummary,
+  type DecideFlow,
+  type GlossaryTerm,
   type PatternPage,
   type PatternSummary,
   type Sample,
@@ -112,6 +114,9 @@ export const api = {
   listGuide: (): Promise<GuideSummary[]> => call(commands.listGuide()),
   guidePage: (kind: ComponentKind): Promise<GuidePage> => call(commands.guidePage(kind)),
   setGuideRead: (kind: ComponentKind, read: boolean): Promise<null> => call(commands.setGuideRead(kind, read)),
+  /** The "Which one do I need?" decision guides, in order. */
+  decideFlows: (): Promise<DecideFlow[]> => call(commands.decideFlows()),
+  glossary: (): Promise<GlossaryTerm[]> => call(commands.glossary()),
   /** The pattern library, in order, each with its template. */
   listPatterns: (): Promise<PatternSummary[]> => call(commands.listPatterns()),
   pattern: (id: string): Promise<PatternPage> => call(commands.pattern(id)),

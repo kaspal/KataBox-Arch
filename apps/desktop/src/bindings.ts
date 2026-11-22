@@ -235,6 +235,28 @@ async sample(id: string) : Promise<Result<Sample, AppError>> {
 }
 },
 /**
+ * The "Which one do I need?" decision guides, in order.
+ */
+async decideFlows() : Promise<Result<DecideFlow[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("decide_flows") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * The glossary.
+ */
+async glossary() : Promise<Result<GlossaryTerm[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("glossary") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * The pattern library, in order (each with its template for the preview).
  */
 async listPatterns() : Promise<Result<PatternSummary[], AppError>> {
@@ -576,6 +598,24 @@ export type ComponentKind = "client" | "dns" | "cdn" | "waf" | "lb" | "gateway" 
  * (ADR 0006); the judge compares designs with each other, never with a real bill.
  */
 export type Cost = { per_instance_month: number; per_gb_month: number; per_million: number }
+export type DecideFlow = { id: string; number: number; title: string; title_es: string; intro: string; intro_es: string; 
+/**
+ * The first question's id.
+ */
+start: string; 
+/**
+ * `[[question]]` tables in the TOML.
+ */
+questions: DecideQuestion[] }
+/**
+ * One answer: it leads to another question, or ends at a component kind.
+ */
+export type DecideOption = { label: string; label_es: string; next?: string | null; result?: ComponentKind | null; 
+/**
+ * Why this answer leads there (shown with a result).
+ */
+why: string; why_es: string }
+export type DecideQuestion = { id: string; text: string; text_es: string; options: DecideOption[] }
 export type Design = { schema_version: number; id: string; name: string; 
 /**
  * The problem this design solves; `None` in the Sandbox.
@@ -629,6 +669,11 @@ cost: Cost;
  */
 sim: SimDefaults | null }
 export type FlavoursCompared = { flavours: Flavour[]; rows: CompareRow[] }
+export type GlossaryTerm = { id: string; term: string; term_es: string; definition: string; definition_es: string; 
+/**
+ * A Guide entry that explains it further.
+ */
+see?: ComponentKind | null }
 /**
  * A Region or AZ frame. Membership is by `Node::group_id` / `Group::parent_id`.
  */

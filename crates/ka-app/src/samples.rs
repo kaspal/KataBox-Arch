@@ -177,6 +177,8 @@ run = { preset = "normal" }
                 guide: vec![],
                 concepts: vec![],
                 patterns: vec![],
+                decide: vec![],
+                glossary: vec![],
             },
         )
         .await

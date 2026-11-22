@@ -1,0 +1,333 @@
+# The glossary: short definitions of terms the rest of the content uses.
+# Every English `term` must appear somewhere else under content/ (the validator checks it).
+
+[[term]]
+id = "p95"
+term = "p95"
+term_es = "p95"
+definition = "The 95th percentile latency: 95 in every 100 requests are at least this fast, and the slowest 5 are slower. Targets use it because an average hides the slow tail."
+definition_es = "La latencia del percentil 95: 95 de cada 100 peticiones son al menos así de rápidas, y las 5 más lentas tardan más. Los objetivos la usan porque la media oculta la cola lenta."
+see = "metrics"
+
+[[term]]
+id = "latency"
+term = "Latency"
+term_es = "Latencia"
+definition = "How long one request takes, from the moment it is sent until the answer arrives. It includes the time spent waiting in queues, not only the work."
+definition_es = "Lo que tarda una petición, desde que se envía hasta que llega la respuesta. Incluye el tiempo de espera en colas, no solo el trabajo."
+
+[[term]]
+id = "throughput"
+term = "Throughput"
+term_es = "Rendimiento"
+definition = "How much work a system finishes per unit of time, such as requests per second. Pushing throughput close to capacity makes latency climb."
+definition_es = "Cuánto trabajo termina un sistema por unidad de tiempo, como peticiones por segundo. Acercar el rendimiento a la capacidad hace subir la latencia."
+see = "app"
+
+[[term]]
+id = "availability"
+term = "Availability"
+term_es = "Disponibilidad"
+definition = "The share of requests, or of time, in which the system answers correctly. It is usually written as a number of nines."
+definition_es = "La fracción de peticiones, o de tiempo, en la que el sistema responde bien. Se suele expresar como un número de nueves."
+
+[[term]]
+id = "slo"
+term = "SLO"
+term_es = "SLO"
+definition = "A service level objective: a target the system must meet, such as a p95 latency or an availability. Each problem grades your design against its SLOs."
+definition_es = "Un objetivo de nivel de servicio (service level objective): una meta que el sistema debe cumplir, como una latencia p95 o una disponibilidad. Cada problema evalúa tu diseño frente a sus SLO."
+
+[[term]]
+id = "idempotent"
+term = "Idempotent"
+term_es = "Idempotente"
+definition = "An operation is idempotent when doing it twice has the same effect as doing it once. Consumers must be idempotent wherever a message can arrive more than once."
+definition_es = "Una operación es idempotente cuando hacerla dos veces tiene el mismo efecto que hacerla una. Los consumidores deben ser idempotentes siempre que un mensaje pueda llegar más de una vez."
+see = "queue"
+
+[[term]]
+id = "at-least-once"
+term = "At least once"
+term_es = "Al menos una vez"
+definition = "A delivery promise: no message is lost, but some may arrive twice after a retry. It is the usual promise of queues and streams."
+definition_es = "Una garantía de entrega: no se pierde ningún mensaje, pero alguno puede llegar dos veces tras un reintento. Es la garantía habitual de colas y streams."
+see = "queue"
+
+[[term]]
+id = "backpressure"
+term = "Backpressure"
+term_es = "Contrapresión"
+definition = "A slow stage pushes back on the stage before it, by refusing or delaying new work, instead of piling up work it cannot finish."
+definition_es = "Una etapa lenta frena a la anterior, rechazando o retrasando trabajo nuevo, en lugar de acumular trabajo que no puede terminar."
+
+[[term]]
+id = "backlog"
+term = "Backlog"
+term_es = "Cola pendiente"
+definition = "Work that has arrived but is not done yet, such as messages waiting in a queue. On a stream, how far the readers are behind is often called consumer lag."
+definition_es = "Trabajo que ha llegado pero aún no se ha hecho, como los mensajes que esperan en una cola. En un stream, lo retrasados que van los lectores se suele llamar consumer lag."
+see = "queue"
+
+[[term]]
+id = "load-levelling"
+term = "Load levelling"
+term_es = "Nivelación de carga"
+definition = "Putting a queue between a bursty source and the workers, so the workers take the work at a steady pace and a burst becomes a backlog instead of errors."
+definition_es = "Poner una cola entre una fuente con ráfagas y los workers, para que estos tomen el trabajo a un ritmo constante y una ráfaga se convierta en cola pendiente en lugar de errores."
+see = "queue"
+
+[[term]]
+id = "backoff"
+term = "Backoff"
+term_es = "Espera entre reintentos (backoff)"
+definition = "Waiting longer before each new retry, often doubling the wait. It gives a failing dependency time to recover instead of hitting it again at once."
+definition_es = "Esperar más antes de cada nuevo reintento, a menudo el doble. Da tiempo a una dependencia que falla para recuperarse en lugar de volver a golpearla al momento."
+see = "queue"
+
+[[term]]
+id = "dead-letter-queue"
+term = "Dead-letter queue"
+term_es = "Cola de mensajes fallidos"
+definition = "A side queue for messages that failed every retry. They wait there to be inspected or replayed instead of being lost or blocking the main queue."
+definition_es = "Una cola aparte para los mensajes que fallaron todos los reintentos. Esperan ahí a que alguien los revise o los reprocese, en lugar de perderse o bloquear la cola principal."
+see = "dlq"
+
+[[term]]
+id = "visibility-timeout"
+term = "Visibility timeout"
+term_es = "Tiempo de invisibilidad"
+definition = "While a consumer works on a message, the queue hides it from the others. If the consumer has not confirmed it when this time runs out, the message comes back for another try."
+definition_es = "Mientras un consumidor trabaja en un mensaje, la cola lo oculta a los demás. Si el consumidor no lo ha confirmado cuando se agota este tiempo, el mensaje vuelve para otro intento."
+see = "queue"
+
+[[term]]
+id = "partition"
+term = "Partition"
+term_es = "Partición"
+definition = "One slice of a data store or stream. A key always lands on the same partition, so order and load are decided per partition."
+definition_es = "Una parte de un almacén de datos o de un stream. Una clave cae siempre en la misma partición, así que el orden y la carga se deciden por partición."
+see = "stream"
+
+[[term]]
+id = "hot-partition"
+term = "Hot partition"
+term_es = "Partición caliente"
+definition = "A partition that gets far more traffic than the others, often because of one busy key. It becomes the bottleneck while the rest sit idle."
+definition_es = "Una partición que recibe mucho más tráfico que las demás, a menudo por una clave muy activa. Se convierte en el cuello de botella mientras el resto está ocioso."
+see = "nosql"
+
+[[term]]
+id = "hot-key"
+term = "Hot key"
+term_es = "Clave caliente"
+definition = "A single key that gets a large share of the reads or writes, such as a celebrity's profile. More partitions do not help, because the key always lands on the same one."
+definition_es = "Una sola clave que se lleva gran parte de las lecturas o escrituras, como el perfil de un famoso. Más particiones no ayudan, porque la clave cae siempre en la misma."
+see = "nosql"
+
+[[term]]
+id = "sharding"
+term = "Sharding"
+term_es = "Sharding"
+definition = "Splitting data by key across several databases, each owning a slice. It spreads writes, but queries that span shards get harder."
+definition_es = "Repartir los datos por clave entre varias bases de datos, cada una dueña de una parte (particionado). Reparte las escrituras, pero las consultas que cruzan particiones se complican."
+see = "sql"
+
+[[term]]
+id = "read-replica"
+term = "Read replica"
+term_es = "Réplica de lectura"
+definition = "A copy of a database that follows the primary and serves reads. It takes read load off the primary and can take over if the primary dies."
+definition_es = "Una copia de una base de datos que sigue a la principal y sirve lecturas. Quita carga de lectura a la principal y puede sustituirla si cae."
+see = "sql"
+
+[[term]]
+id = "replication-lag"
+term = "Replication lag"
+term_es = "Retraso de replicación"
+definition = "The delay between a write on the primary and its arrival on a replica. A read from a replica during that delay returns the old value."
+definition_es = "El retraso entre una escritura en la principal y su llegada a una réplica. Una lectura de la réplica durante ese retraso devuelve el valor antiguo."
+see = "sql"
+
+[[term]]
+id = "eventual-consistency"
+term = "Eventual consistency"
+term_es = "Consistencia eventual"
+definition = "Copies of the data agree in the end, but a read right after a write may still see the old value for a short while."
+definition_es = "Las copias de los datos acaban coincidiendo, pero una lectura justo después de una escritura puede ver aún el valor antiguo durante un rato."
+see = "nosql"
+
+[[term]]
+id = "stale-read"
+term = "Stale read"
+term_es = "Lectura obsoleta"
+definition = "A read that returns a value older than the latest write, from a cache, a CDN or a replica that has not caught up yet."
+definition_es = "Una lectura que devuelve un valor más antiguo que la última escritura, desde una caché, una CDN o una réplica que aún no se ha puesto al día."
+see = "cache"
+
+[[term]]
+id = "failover"
+term = "Failover"
+term_es = "Failover"
+definition = "Moving the work to a standby when the active server dies, such as promoting a replica to primary. Requests can fail until it completes."
+definition_es = "Pasar el trabajo a un servidor de reserva cuando el activo cae (conmutación por error), por ejemplo ascender una réplica a principal. Las peticiones pueden fallar hasta que termina."
+see = "sql"
+
+[[term]]
+id = "single-point-of-failure"
+term = "Single point of failure"
+term_es = "Punto único de fallo"
+definition = "One part whose failure takes the whole system down with it. Adding a second copy, with a way to switch to it, removes it."
+definition_es = "Una pieza cuyo fallo tumba todo el sistema con ella. Se elimina añadiendo una segunda copia y una forma de pasar a ella."
+see = "lb"
+
+[[term]]
+id = "health-check"
+term = "Health check"
+term_es = "Comprobación de salud"
+definition = "A regular probe that asks each server whether it is alive and ready. Servers that fail it are taken out of rotation until they pass again."
+definition_es = "Una sonda periódica que pregunta a cada servidor si está vivo y listo. Los que no la pasan salen de la rotación hasta que vuelven a pasarla."
+see = "lb"
+
+[[term]]
+id = "circuit-breaker"
+term = "Circuit breaker"
+term_es = "Circuit breaker"
+definition = "A switch around calls to a dependency. After enough failures it stops calling and fails fast for a while, then lets a few calls through to test recovery."
+definition_es = "Un interruptor alrededor de las llamadas a una dependencia. Tras suficientes fallos deja de llamar y falla rápido durante un rato, y luego deja pasar unas pocas llamadas para probar si se ha recuperado."
+
+[[term]]
+id = "autoscaling"
+term = "Autoscaling"
+term_es = "Autoescalado"
+definition = "Adding or removing instances as the load changes, between a minimum and a maximum. New instances take a while to arrive, so a sudden spike still hurts."
+definition_es = "Añadir o quitar instancias según cambia la carga, entre un mínimo y un máximo. Las instancias nuevas tardan en llegar, así que un pico repentino sigue haciendo daño."
+see = "autoscale"
+
+[[term]]
+id = "cold-start"
+term = "Cold start"
+term_es = "Arranque en frío"
+definition = "The extra wait while a new instance boots before it can serve its first request. Serverless functions pay it when concurrency climbs."
+definition_es = "La espera extra mientras arranca una instancia nueva antes de atender su primera petición. Las funciones serverless la pagan cuando sube la concurrencia."
+see = "serverless"
+
+[[term]]
+id = "fan-out"
+term = "Fan-out"
+term_es = "Fan-out"
+definition = "One event turning into many copies or tasks, such as a post delivered to every follower's feed. The load multiplies by the number of targets."
+definition_es = "Un evento que se convierte en muchas copias o tareas (difusión), como una publicación que llega al feed de cada seguidor. La carga se multiplica por el número de destinos."
+see = "pubsub"
+
+[[term]]
+id = "hit-rate"
+term = "Hit rate"
+term_es = "Tasa de aciertos"
+definition = "The share of reads a cache or CDN answers from its own copy. Every miss goes on to the database or the origin."
+definition_es = "La fracción de lecturas que una caché o una CDN responde con su propia copia. Cada fallo sigue hacia la base de datos o el origen."
+see = "cache"
+
+[[term]]
+id = "ttl"
+term = "TTL"
+term_es = "TTL"
+definition = "Time to live: how long a cached copy is kept before it expires. A longer TTL gives more hits and older data."
+definition_es = "Tiempo de vida (time to live): cuánto se guarda una copia cacheada antes de caducar. Un TTL más largo da más aciertos y datos más antiguos."
+see = "cache"
+
+[[term]]
+id = "cache-stampede"
+term = "Cache stampede"
+term_es = "Estampida de caché"
+definition = "A popular entry expires and many requests miss at the same moment, so they all hit the database together."
+definition_es = "Una entrada popular caduca y muchas peticiones fallan a la vez, así que todas van juntas a la base de datos."
+see = "cache"
+
+[[term]]
+id = "cache-aside"
+term = "Cache-aside"
+term_es = "Cache-aside"
+definition = "The app reads the cache first; on a miss it reads the database and stores the answer in the cache for the next read."
+definition_es = "La aplicación lee primero la caché; si falla, lee la base de datos y guarda la respuesta en la caché para la siguiente lectura."
+see = "cache"
+
+[[term]]
+id = "write-through"
+term = "Write through"
+term_es = "Escritura a través de la caché (write-through)"
+definition = "Every write updates the cache as well as the database, so the cache does not serve the old value after a change."
+definition_es = "Cada escritura actualiza la caché además de la base de datos, para que la caché no sirva el valor antiguo tras un cambio."
+see = "cache"
+
+[[term]]
+id = "origin"
+term = "Origin"
+term_es = "Origen"
+definition = "The servers or storage that hold the real content behind a CDN. The CDN fetches from the origin on a miss."
+definition_es = "Los servidores o el almacenamiento con el contenido real detrás de una CDN. La CDN pide al origen cuando falla."
+see = "cdn"
+
+[[term]]
+id = "signed-url"
+term = "Signed URL"
+term_es = "URL firmada"
+definition = "A link that grants access to one stored file for a limited time. Clients use it to upload or download straight from object storage, without passing the bytes through your app."
+definition_es = "Un enlace que da acceso a un fichero guardado durante un tiempo limitado. Los clientes lo usan para subir o descargar directamente del almacenamiento de objetos, sin pasar los bytes por tu aplicación."
+see = "object"
+
+[[term]]
+id = "rate-limit"
+term = "Rate limit"
+term_es = "Límite de tasa"
+definition = "A cap on how many requests one caller may send in a period. Requests above it are refused early, so one caller cannot starve the rest."
+definition_es = "Un tope a cuántas peticiones puede enviar un cliente en un periodo. Las que lo superan se rechazan pronto, para que un cliente no deje sin servicio al resto."
+see = "ratelimit"
+
+[[term]]
+id = "token-bucket"
+term = "Token bucket"
+term_es = "Cubeta de tokens"
+definition = "A rate limit where each key has a bucket that refills with tokens at a steady rate. Each request spends one token, and the bucket size sets how big a burst may be."
+definition_es = "Un límite de tasa en el que cada clave tiene una cubeta que se rellena de tokens a un ritmo constante. Cada petición gasta un token, y el tamaño de la cubeta marca lo grande que puede ser una ráfaga."
+see = "ratelimit"
+
+[[term]]
+id = "shedding"
+term = "Shedding"
+term_es = "Descarte de carga"
+definition = "Refusing some requests on purpose when there is more load than capacity, so the rest are still served on time."
+definition_es = "Rechazar a propósito algunas peticiones cuando hay más carga que capacidad, para que el resto se siga atendiendo a tiempo."
+see = "ratelimit"
+
+[[term]]
+id = "change-data-capture"
+term = "Change data capture"
+term_es = "Captura de cambios (change data capture)"
+definition = "Reading a database's own change log and turning each change into an event for other systems, without changing the app's writes."
+definition_es = "Leer el registro de cambios de la propia base de datos y convertir cada cambio en un evento para otros sistemas, sin tocar las escrituras de la aplicación."
+see = "stream"
+
+[[term]]
+id = "outbox"
+term = "Outbox"
+term_es = "Outbox"
+definition = "Writing an event to a table in the same transaction as the data change, then having a relay publish it. The data and the event can no longer disagree."
+definition_es = "Escribir un evento en una tabla dentro de la misma transacción que el cambio de datos, y que luego un proceso aparte lo publique. Así los datos y el evento ya no pueden discrepar."
+see = "sql"
+
+[[term]]
+id = "saga"
+term = "Saga"
+term_es = "Saga"
+definition = "A long operation split into steps across services, each with an undo step. If one step fails, the earlier ones are undone in reverse order."
+definition_es = "Una operación larga dividida en pasos entre servicios, cada uno con un paso para deshacerlo. Si un paso falla, los anteriores se deshacen en orden inverso."
+see = "micro"
+
+[[term]]
+id = "cqrs"
+term = "CQRS"
+term_es = "CQRS"
+definition = "Command query responsibility segregation: writes go to one model and reads come from a separate model built for them. The read side lags a little behind."
+definition_es = "Separación de responsabilidades entre comandos y consultas: las escrituras van a un modelo y las lecturas salen de otro modelo pensado para ellas. El lado de lectura va un poco por detrás."
+see = "stream"

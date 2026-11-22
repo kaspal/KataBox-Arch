@@ -280,6 +280,20 @@ async fn set_guide_read(
     state.app()?.set_guide_read(kind, read).await
 }
 
+/// The "Which one do I need?" decision guides, in order.
+#[tauri::command]
+#[specta::specta]
+async fn decide_flows(state: State<'_, AppState>) -> Res<Vec<ka_core::decide::DecideFlow>> {
+    state.app()?.decide_flows().await
+}
+
+/// The glossary.
+#[tauri::command]
+#[specta::specta]
+async fn glossary(state: State<'_, AppState>) -> Res<Vec<ka_core::decide::GlossaryTerm>> {
+    state.app()?.glossary().await
+}
+
 /// The pattern library, in order (each with its template for the preview).
 #[tauri::command]
 #[specta::specta]
@@ -453,6 +467,8 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         progress,
         list_samples,
         sample,
+        decide_flows,
+        glossary,
         list_patterns,
         pattern,
         set_pattern_read,

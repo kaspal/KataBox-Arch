@@ -531,6 +531,8 @@ error_rate = 0.001
                 guide: vec![],
                 concepts: vec![],
                 patterns: vec![],
+                decide: vec![],
+                glossary: vec![],
             },
         )
         .await

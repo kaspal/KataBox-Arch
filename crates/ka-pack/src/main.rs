@@ -152,8 +152,21 @@ fn main() -> ExitCode {
                 issues.extend(ka_pack::patterns::validate_patterns(
                     &patterns, problems, &registry,
                 ));
-                if issues.is_empty() && !patterns.is_empty() {
-                    println!("{} pattern(s) valid", patterns.len());
+                let flows = ka_pack::decide::load_decide(&args.content).map_err(|i| report(&i))?;
+                let glossary =
+                    ka_pack::decide::load_glossary(&args.content).map_err(|i| report(&i))?;
+                issues.extend(ka_pack::decide::validate_decide(&flows));
+                issues.extend(ka_pack::decide::validate_glossary(
+                    &glossary,
+                    &ka_pack::decide::corpus(&args.content),
+                ));
+                if issues.is_empty() {
+                    println!(
+                        "{} pattern(s), {} decision guide(s), {} glossary term(s) valid",
+                        patterns.len(),
+                        flows.len(),
+                        glossary.len()
+                    );
                 }
                 if !issues.is_empty() {
                     return Err(report(&issues));

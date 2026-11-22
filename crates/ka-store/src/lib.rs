@@ -13,7 +13,7 @@ pub mod progress;
 pub mod user;
 
 pub use content::{
-    CONTENT_SCHEMA, ConceptRow, ContentData, ContentDb, GuideRow, PatternRow, ProblemRow,
+    CONTENT_SCHEMA, ConceptRow, ContentData, ContentDb, GuideRow, JsonRow, PatternRow, ProblemRow,
     SampleRow, write_content,
 };
 pub use progress::{NewSubmission, ProblemStatus, Submission, SubmissionSummary, day_number};

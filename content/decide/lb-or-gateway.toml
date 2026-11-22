@@ -1,0 +1,44 @@
+id = "lb-or-gateway"
+number = 4
+title = "Load balancer or API gateway?"
+title_es = "¿Balanceador de carga o API Gateway?"
+intro = "Both stand in front of your servers and pass requests on. A load balancer spreads traffic over copies of the same thing. An API gateway is one front door for many APIs, with checks on every call."
+intro_es = "Los dos están delante de tus servidores y pasan las peticiones. Un balanceador de carga reparte el tráfico entre copias de lo mismo. Un API Gateway es una sola puerta para muchas API, con comprobaciones en cada llamada."
+start = "behind"
+
+[[question]]
+id = "behind"
+text = "What sits behind the front door?"
+text_es = "¿Qué hay detrás de la puerta de entrada?"
+options = [
+  { label = "Copies of the same app server", label_es = "Copias del mismo servidor de aplicaciones", next = "checks", why = "Spreading the load is the first need. The next question asks whether anything else is.", why_es = "Repartir la carga es la primera necesidad. La siguiente pregunta es si hace falta algo más." },
+  { label = "Several different services behind one API", label_es = "Varios servicios distintos detrás de una API", next = "callers", why = "Routing to different services is gateway work, but only if the callers need it.", why_es = "Enrutar a servicios distintos es trabajo de un gateway, pero solo si quien llama lo necesita." },
+]
+
+[[question]]
+id = "checks"
+text = "Does every request need checks before it reaches the app?"
+text_es = "¿Necesita cada petición comprobaciones antes de llegar a la aplicación?"
+options = [
+  { label = "No, only spread the load and skip dead servers", label_es = "No, solo repartir la carga y esquivar los servidores caídos", result = "lb", why = "A load balancer does that, adds very little time, and lets you add servers without changing the clients.", why_es = "Un balanceador de carga hace eso, añade muy poco tiempo y te deja añadir servidores sin cambiar los clientes." },
+  { label = "Only a cap on how fast each caller may send", label_es = "Solo un tope a lo rápido que puede enviar cada cliente", result = "ratelimit", why = "A rate limiter in front stops one caller from starving the rest. Keep a load balancer behind it for the servers.", why_es = "Un limitador de tasa delante impide que un cliente deje sin servicio al resto. Mantén un balanceador detrás para los servidores." },
+  { label = "Yes: authentication, quotas, versioning", label_es = "Sí: autenticación, cuotas, versiones", result = "gateway", why = "A gateway keeps these shared concerns in one place, so the app does not repeat them.", why_es = "Un gateway reúne estas funciones comunes en un solo sitio, para que la aplicación no las repita." },
+]
+
+[[question]]
+id = "callers"
+text = "Who calls these services?"
+text_es = "¿Quién llama a estos servicios?"
+options = [
+  { label = "Clients outside, such as apps or other developers", label_es = "Clientes de fuera, como aplicaciones u otros desarrolladores", next = "budget", why = "Outside callers usually need one stable API with keys, but the latency budget matters too.", why_es = "Quien llama desde fuera suele necesitar una API estable con claves, pero el margen de latencia también importa." },
+  { label = "Only your own services, inside the system", label_es = "Solo tus propios servicios, dentro del sistema", result = "lb", why = "Internal traffic from service to service rarely needs a gateway. A load balancer in front of each service is enough.", why_es = "El tráfico interno entre servicios rara vez necesita un gateway. Basta con un balanceador delante de cada servicio." },
+]
+
+[[question]]
+id = "budget"
+text = "Is the latency budget very tight?"
+text_es = "¿Es el margen de latencia muy justo?"
+options = [
+  { label = "No, a few extra milliseconds are fine", label_es = "No, unos milisegundos más no importan", result = "gateway", why = "A gateway gives outside clients one stable API while the services behind it change. Size it so that it does not become the bottleneck.", why_es = "Un gateway da a los clientes de fuera una API estable mientras cambian los servicios de detrás. Dimensiónalo para que no sea el cuello de botella." },
+  { label = "Yes, every millisecond counts", label_es = "Sí, cada milisegundo cuenta", result = "lb", why = "A load balancer adds far less time than a gateway. Do the checks in the services instead.", why_es = "Un balanceador añade mucho menos tiempo que un gateway. Haz las comprobaciones en los propios servicios." },
+]

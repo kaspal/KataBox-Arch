@@ -2,6 +2,7 @@
 //! (which paths the UI may touch, which settings it may write, what a valid design is)
 //! lives here and in `ka-core`, with tests.
 
+pub mod decide;
 pub mod error;
 pub mod guide;
 pub mod kbarch;

@@ -1,5 +1,5 @@
 // Two Guide entries for UI tests (the shapes Rust sends: ka-app guide.rs).
-import type { Design, GuideEntry, PatternEntry } from "@/bindings";
+import type { DecideFlow, Design, GlossaryTerm, GuideEntry, PatternEntry } from "@/bindings";
 
 export const FAKE_CACHE: GuideEntry = {
   kind: "cache",
@@ -49,6 +49,41 @@ export const FAKE_LB: GuideEntry = {
 };
 
 export const FAKE_GUIDE = [FAKE_LB, FAKE_CACHE];
+
+export const FAKE_FLOW: DecideFlow = {
+  id: "sql-or-nosql",
+  number: 1,
+  title: "SQL or NoSQL?",
+  title_es: "¿SQL o NoSQL?",
+  intro: "Two questions decide it.",
+  intro_es: "Dos preguntas lo deciden.",
+  start: "joins",
+  questions: [
+    {
+      id: "joins",
+      text: "Do you need joins across your data?",
+      text_es: "¿Necesitas joins entre tus datos?",
+      options: [
+        { label: "Yes", label_es: "Sí", result: "sql", why: "Joins are what relational databases do best.", why_es: "Los joins son lo que mejor hacen." },
+        { label: "No", label_es: "No", next: "scale", why: "w", why_es: "w" },
+      ],
+    },
+    {
+      id: "scale",
+      text: "Must it grow past one machine?",
+      text_es: "¿Debe crecer más allá de una máquina?",
+      options: [
+        { label: "Yes", label_es: "Sí", result: "nosql", why: "Partitioning by key scales out.", why_es: "Particionar por clave escala." },
+        { label: "No", label_es: "No", result: "sql", why: "One database is simpler.", why_es: "Una base de datos es más simple." },
+      ],
+    },
+  ],
+};
+
+export const FAKE_TERMS: GlossaryTerm[] = [
+  { id: "ttl", term: "TTL", term_es: "TTL", definition: "How long a cached copy lives.", definition_es: "Cuánto vive una copia en caché.", see: "cache" },
+  { id: "failover", term: "Failover", term_es: "Failover", definition: "A replica takes over from a dead primary.", definition_es: "Una réplica sustituye a una principal caída.", see: null },
+];
 
 export const FAKE_PATTERN: PatternEntry = {
   id: "cache-aside",

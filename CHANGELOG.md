@@ -62,6 +62,9 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
     Queue, CDN) play inline in their entries, with live traffic and checked numbers.
   - **Open entries from anywhere:** the library's info button shows a quick look, the Inspector's "Learn more"
     opens the entry at "In the simulator", and Ctrl+K finds every entry.
+- **"Which one do I need?"** Four short decision guides (SQL or NoSQL, queue/stream/pub-sub, cache or CDN, load
+  balancer or API gateway) that end at the right Guide entry, with the reason.
+- **A glossary** of 42 terms the app uses, searchable, each linked to its Guide entry where there is one.
 - **The pattern library:** 10 patterns (cache-aside, read replicas, fan-out, transactional outbox, saga, CQRS,
   sharding, circuit breaker, backpressure, rate limiting). Each page covers the problem it solves, how it works, when
   to use it, gains and costs, and how much of it the simulator shows. **Insert into the Sandbox** adds the pattern's

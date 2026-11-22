@@ -9,7 +9,7 @@ import { EmptyState, Page } from "@/components/Page";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { describeError } from "@/lib/errors";
-import { useGuide, useRegistry } from "@/lib/queries";
+import { useDecideFlows, useGuide, useRegistry } from "@/lib/queries";
 import { GlyphTile } from "@/solve/icons";
 import { categoryName, kindName, kindSpec } from "@/solve/registry";
 
@@ -49,6 +49,7 @@ export function GuideIndex() {
   const guide = useGuide();
   const registry = useRegistry();
   const [q, setQ] = useState("");
+  const flows = useDecideFlows();
   const es = i18n.language.startsWith("es");
 
   if (guide.error) {
@@ -79,6 +80,9 @@ export function GuideIndex() {
         <div className="flex items-center gap-4">
         <Link to="/patterns" className="text-sm font-semibold whitespace-nowrap text-primary underline underline-offset-4">
           {t("patterns.title")}
+        </Link>
+        <Link to="/glossary" className="text-sm font-semibold whitespace-nowrap text-primary underline underline-offset-4">
+          {t("glossary.title")}
         </Link>
         <label className="relative block w-72">
           <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -112,6 +116,22 @@ export function GuideIndex() {
                 </li>
               );
             })}
+          </ul>
+        </section>
+      )}
+      {!needle && (flows.data ?? []).length > 0 && (
+        <section aria-labelledby="decide-h" className="space-y-2" data-testid="decide-list">
+          <h2 id="decide-h" className="font-display text-xl">
+            {t("decide.title")}
+          </h2>
+          <ul className="flex flex-wrap gap-2">
+            {(flows.data ?? []).map((f) => (
+              <li key={f.id}>
+                <Link to="/decide/$id" params={{ id: f.id }} className="block rounded-full border bg-card px-4 py-1.5 text-sm font-medium hover:border-primary">
+                  {es ? f.title_es : f.title}
+                </Link>
+              </li>
+            ))}
           </ul>
         </section>
       )}

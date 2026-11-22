@@ -644,5 +644,18 @@
     "template": "The template",
     "templateHint": "Insert into the Sandbox adds these cards to the design you are editing, in the middle of the view; one undo removes them.",
     "builtFrom": "Built from"
+  },
+  "decide": {
+    "title": "Which one do I need?",
+    "answers": "Your answers",
+    "result": "Reach for",
+    "restart": "Start again",
+    "notFound": "No such guide",
+    "notFoundBody": "This decision guide doesn't exist."
+  },
+  "glossary": {
+    "title": "Glossary",
+    "search": "Search the glossary",
+    "see": "See {{name}}."
   }
 }
