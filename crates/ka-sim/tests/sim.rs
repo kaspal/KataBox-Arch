@@ -94,6 +94,52 @@ fn snapshots_resume_identically() {
     );
 }
 
+#[test]
+fn tracing_and_chunked_advance_never_change_a_run() {
+    // Live runs advance in frame-sized steps and record packets: the result is the same
+    // as one uninterrupted run.
+    let (d, s) = golden_b(6_000.0);
+    let c = std::sync::Arc::new(compile(&d, &registry(), &s, &SimOptions::default()).unwrap());
+    let mut plain = ka_sim::Engine::new(c.clone(), 5);
+    plain.run();
+    let mut live = ka_sim::Engine::new(c, 5);
+    live.set_trace(true);
+    let mut packets = 0;
+    let mut t = 0;
+    while !live.finished() {
+        t += 33_333;
+        live.advance_to(t);
+        packets += live.take_packets().len();
+        let snap = live.snapshot();
+        assert_eq!(snap.t_us, live.now_us());
+    }
+    assert!(packets > 100_000, "{packets} packets");
+    assert_eq!(
+        serde_json::to_string(&plain.result()).unwrap(),
+        serde_json::to_string(&live.result()).unwrap()
+    );
+}
+
+#[test]
+fn snapshots_report_load_and_the_last_second() {
+    let (d, s) = golden_b(6_000.0);
+    let c = std::sync::Arc::new(compile(&d, &registry(), &s, &SimOptions::default()).unwrap());
+    let mut e = ka_sim::Engine::new(c, 1);
+    e.advance_to(10_500_000);
+    let snap = e.snapshot();
+    let last = snap.last_second.expect("ten seconds are done");
+    assert_eq!(last.t, 9);
+    assert!(
+        (5_000.0..7_000.0).contains(&last.requests),
+        "{}",
+        last.requests
+    );
+    let app = &snap.nodes[2];
+    let util = app.busy_us / (app.servers * 10_500_000.0);
+    assert!((0.05..0.5).contains(&util), "{util}");
+    assert!(snap.cost_month > 0.0);
+}
+
 // --- Behaviour ----------------------------------------------------------------------------
 
 #[test]

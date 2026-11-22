@@ -32,6 +32,8 @@ pub enum AppErrorCode {
     PathNotAllowed,
     /// Anything else, including the app failing to start.
     Internal,
+    /// A request can't get through the design (no path from a client to a service).
+    NoPath,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, thiserror::Error)]

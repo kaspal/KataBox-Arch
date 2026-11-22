@@ -11,6 +11,12 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
   minimum and maximum instances, target utilisation, scale-out delay) edited in the Inspector.
 - Edges that share a side of a card spread out along it instead of meeting at one point.
 - SQL databases have a **Failover time** property.
+- **Live runs in the Sandbox:**
+  - **Run** plays the design against normal traffic or a ×4 spike, generated from the clients' request rates.
+  - The **Metrics** tab shows live p95 latency, throughput, error rate and cost per month, plus the busiest
+    components.
+  - Pause, resume, stop and speed (0.25× to 8×).
+  - Editing the design during a run restarts it with the change.
 
 ### Changed
 - Design files are format version 2. Version 1 files still open: an Autoscaling card becomes a
@@ -25,5 +31,6 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
   - The Inspector tags these figures as "ballpark" or "cited", in place of the old "placeholders" note.
 
 ### Fixed
+- Saving a design failed after the format moved to version 2 (the editor still wrote version 1).
 - A layout loop that re-measured the canvas every frame whenever zones or notes were on screen.
 - React Flow's "parent container needs a width and a height" warning when opening the Sandbox.

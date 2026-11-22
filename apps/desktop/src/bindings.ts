@@ -110,6 +110,30 @@ async validateDesign(design: Design) : Promise<Result<DesignIssue[], AppError>> 
     else return { status: "error", error: e  as any };
 }
 },
+async startRun(request: StartRun) : Promise<Result<RunInfo, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("start_run", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async controlRun(runId: number, control: RunControl) : Promise<Result<null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("control_run", { runId, control }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async runResult(runId: number) : Promise<Result<RunResult | null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("run_result", { runId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 /**
  * The window title (the webview has no `setTitle` permission).
  */
@@ -208,7 +232,11 @@ export type AppErrorCode =
 /**
  * Anything else, including the app failing to start.
  */
-"internal"
+"internal" | 
+/**
+ * A request can't get through the design (no path from a client to a service).
+ */
+"no_path"
 export type AppInfo = { version: string; dev_data: boolean }
 /**
  * Where a calibrated default comes from (ADR 0005).
@@ -399,6 +427,15 @@ props: Partial<{ [key in string]: PropValue }>;
  * The innermost zone holding the card, if any.
  */
 group_id: string | null }
+export type NodeResult = { id: string; kind: ComponentKind; 
+/**
+ * Busy time over capacity, 0..=1, over the whole run.
+ */
+utilisation: number; max_queue: number; drops: number; served: number; cost_month: number; 
+/**
+ * Per second: utilisation, queue length (max in the second), drops.
+ */
+util_series: number[]; queue_series: number[]; drop_series: number[] }
 /**
  * A sticky note (hand-written font on the canvas).
  */
@@ -407,6 +444,7 @@ export type Note = { id: string; text: string; position: Point; size: Size }
  * A design read from disk, with the path it came from.
  */
 export type OpenedDesign = { path: string; design: Design }
+export type Percentiles = { p50_ms: number; p95_ms: number; p99_ms: number }
 /**
  * How a kind is placed on the canvas.
  */
@@ -458,9 +496,75 @@ export type RecentEntry = { path: string; name: string; opened_at: number; exist
  */
 export type Registry = { categories: Category[]; kinds: KindSpec[]; meta: MetaSpec[]; wiring: WiringTable; limits: Limits }
 /**
+ * A control sent to the live run.
+ */
+export type RunControl = "pause" | "resume" | 
+/**
+ * Jump to this simulated second (playback pauses there).
+ */
+{ seek: number } | 
+/**
+ * 0.25, 0.5, 1, 2, 4 or 8.
+ */
+{ speed: number } | "stop"
+/**
+ * What the UI needs to read a run's frames: node and edge indices map to these ids.
+ */
+export type RunInfo = { run_id: number; duration_s: number; 
+/**
+ * The share of requests simulated (1 = all).
+ */
+sample_factor: number; 
+/**
+ * Card ids by frame node index.
+ */
+nodes: string[]; 
+/**
+ * Connection ids by frame edge index.
+ */
+edges: string[]; 
+/**
+ * Request type ids by frame type index.
+ */
+request_types: string[] }
+export type RunResult = { seed: number; duration_s: number; 
+/**
+ * The share of requests simulated (1 = all).
+ */
+sample_factor: number; requests: number; ok: number; errors: number; 
+/**
+ * Abusive requests a rate limiter turned away (success, not errors).
+ */
+shed: number; error_rate: number; availability: number; throughput_rps: number; 
+/**
+ * The latency each request type is measured by (response or completion), merged.
+ */
+latency: Percentiles; response: Percentiles; 
+/**
+ * For request types with async work.
+ */
+completion: Percentiles | null; lost: number; dead_lettered: number; stale_reads: number; stale_rate: number; cost_month: number; per_type: TypeResult[]; nodes: NodeResult[]; 
+/**
+ * One entry per simulated second.
+ */
+series: SecondResult[] }
+/**
+ * The traffic presets of the Sandbox's Run menu. (Killing a node arrives with chaos, M1.5.)
+ */
+export type SandboxPreset = 
+/**
+ * Steady traffic at the clients' rate.
+ */
+"normal" | 
+/**
+ * ×4 traffic from 20 s to 35 s.
+ */
+"spike"
+/**
  * An autoscaling group's policy: the Autoscaling kind's flavour and props (v2).
  */
 export type Scaling = { flavour: Flavour; props: Partial<{ [key in string]: PropValue }> }
+export type SecondResult = { t: number; requests: number; ok: number; errors: number; p95_ms: number }
 /**
  * How a flavour behaves as a server where it has no prop for it (ADR 0005, ADR 0006).
  */
@@ -487,6 +591,16 @@ queue_per_server: number;
  */
 failover_s: number }
 export type Size = { w: number; h: number }
+/**
+ * Start a live Sandbox run. Frames (binary, `KAF1`) stream to the channel the UI created;
+ * they arrive in JavaScript as ArrayBuffers.
+ */
+export type StartRun = { design: Design; preset: SandboxPreset; speed: number; 
+/**
+ * A `Channel` from `@tauri-apps/api/core`, serialized as its id.
+ */
+on_frame: string }
+export type TypeResult = { id: string; requests: number; errors: number; latency: Percentiles; response: Percentiles; completion: Percentiles | null }
 /**
  * The unit shown after a prop's value (`units.<unit>` in the UI).
  */

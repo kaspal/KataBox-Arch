@@ -53,7 +53,8 @@
     "invalid_design": "El diseño incumple una regla (conexiones, ids o valores), así que no se guardó.",
     "setting_not_allowed": "Ese ajuste no se puede cambiar desde aquí.",
     "path_not_allowed": "Usa Guardar como o Abrir para elegir antes un archivo.",
-    "internal": "Algo salió mal dentro de la app."
+    "internal": "Algo salió mal dentro de la app.",
+    "no_path": "Ninguna solicitud puede atravesar este diseño. Conecta un cliente a un servicio."
   },
   "files": {
     "unsaved": {
@@ -151,7 +152,6 @@
   "inspector": {
     "title": "Inspeccionar",
     "metrics": "Métricas",
-    "metricsLater": "Las métricas llegan con la simulación (M1)",
     "label": "Etiqueta",
     "flavour": "Variante",
     "props": "Propiedades",
@@ -376,5 +376,32 @@
     "percent": "%",
     "rps": "pet/s",
     "gb": "GB"
+  },
+  "run": {
+    "controls": "Controles de ejecución",
+    "preset": "Tráfico",
+    "presets": {
+      "normal": "Tráfico normal",
+      "spike": "Pico ×4"
+    },
+    "runAgain": "Ejecutar de nuevo",
+    "starting": "Iniciando…",
+    "pause": "Pausar",
+    "resume": "Continuar",
+    "stop": "Detener la ejecución",
+    "speed": "Velocidad",
+    "clock": "{{t}} s de {{total}} s"
+  },
+  "metrics": {
+    "empty": "Ejecuta el diseño para ver métricas en vivo.",
+    "p95": "Latencia p95",
+    "throughput": "Rendimiento",
+    "errorRate": "Tasa de errores",
+    "cost": "Coste",
+    "perMonth": "/mes",
+    "lastSecond": "Latencia, rendimiento y errores cubren el último segundo simulado; el coste es mensual con el tráfico visto hasta ahora.",
+    "busiest": "Componentes más ocupados",
+    "down": "caído",
+    "sampled": "Se simula el {{pct}} % de las solicitudes; los recuentos se escalan de vuelta."
   }
 }

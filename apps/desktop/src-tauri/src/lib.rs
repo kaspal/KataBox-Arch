@@ -15,10 +15,15 @@ mod window_state;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use ka_app::{App, AppError, AppErrorCode, AppInfo, AppPaths, OpenedDesign, RecentEntry};
+use ka_app::live::FrameSink;
+use ka_app::{
+    App, AppError, AppErrorCode, AppInfo, AppPaths, OpenedDesign, RecentEntry, RunControl, RunInfo,
+    SandboxPreset,
+};
 use ka_core::{Design, DesignIssue, Registry};
 use serde_json::Value;
-use tauri::{Emitter, Manager, State, WebviewWindow, WindowEvent};
+use tauri::ipc::{Channel, InvokeResponseBody, JavaScriptChannelId};
+use tauri::{Emitter, Manager, State, Webview, WebviewWindow, WindowEvent};
 
 type Res<T> = Result<T, AppError>;
 
@@ -157,6 +162,54 @@ async fn pick_file(app: tauri::AppHandle, save_as: Option<String>) -> Res<Option
         .transpose()
 }
 
+// --- Live runs ------------------------------------------------------------------------
+
+/// Start a live Sandbox run. Frames (binary, `KAF1`) stream to the channel the UI created;
+/// they arrive in JavaScript as ArrayBuffers.
+#[derive(serde::Deserialize, specta::Type)]
+struct StartRun {
+    design: Design,
+    preset: SandboxPreset,
+    speed: f64,
+    /// A `Channel` from `@tauri-apps/api/core`, serialized as its id.
+    #[specta(type = String)]
+    on_frame: JavaScriptChannelId,
+}
+
+/// Sends frames over a Tauri channel as raw bytes (never JSON per packet).
+struct ChannelSink(Channel<InvokeResponseBody>);
+
+impl FrameSink for ChannelSink {
+    fn send(&mut self, frame: Vec<u8>) -> bool {
+        self.0.send(InvokeResponseBody::Raw(frame)).is_ok()
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn start_run(
+    webview: Webview,
+    state: State<'_, AppState>,
+    request: StartRun,
+) -> Res<RunInfo> {
+    let sink = ChannelSink(request.on_frame.channel_on(webview));
+    state
+        .app()?
+        .start_run(&request.design, request.preset, request.speed, sink)
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn control_run(state: State<'_, AppState>, run_id: u32, control: RunControl) -> Res<()> {
+    state.app()?.control_run(run_id, control)
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn run_result(state: State<'_, AppState>, run_id: u32) -> Res<Option<ka_sim::RunResult>> {
+    state.app()?.run_result(run_id)
+}
+
 // --- Window ---------------------------------------------------------------------------
 
 /// The window title (the webview has no `setTitle` permission).
@@ -218,6 +271,9 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         save_design,
         save_design_as,
         validate_design,
+        start_run,
+        control_run,
+        run_result,
         set_window_title,
         set_dirty,
         confirm_close,
@@ -256,12 +312,26 @@ fn export_bindings_from(builder: &tauri_specta::Builder<tauri::Wry>) {
 pub fn export_registry_fixture() {
     let registry = ka_core::registry();
     let matrix = registry.wiring.matrix();
-    let fixture = serde_json::json!({ "registry": registry, "matrix": matrix });
+    let fixture = serde_json::json!({
+        "registry": registry,
+        "matrix": matrix,
+        "schema_version": ka_core::SCHEMA_VERSION,
+    });
     let mut text = serde_json::to_string_pretty(&fixture).expect("serialize the registry fixture");
     text.push('\n');
     let path = std::path::Path::new(REGISTRY_FIXTURE);
     std::fs::create_dir_all(path.parent().expect("fixtures folder")).expect("create fixtures/");
     std::fs::write(path, text).expect("write the registry fixture");
+}
+
+const FRAME_FIXTURE: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../src/test/fixtures/frame.kaf"
+);
+
+/// Write a live-run frame Rust encoded, for the UI decoder's test only.
+pub fn export_frame_fixture() {
+    std::fs::write(FRAME_FIXTURE, ka_app::live::fixture_frame()).expect("write the frame fixture");
 }
 
 /// Debug builds keep their data in `<identifier>-dev` folders, so development and testing
@@ -295,6 +365,7 @@ pub fn run_app() {
     {
         export_bindings_from(&builder);
         export_registry_fixture();
+        export_frame_fixture();
     }
 
     let app = tauri::Builder::default()

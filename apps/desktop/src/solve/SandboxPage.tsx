@@ -1,12 +1,12 @@
 // The Sandbox (matches the Solve mockup, without a brief): library | canvas | inspector,
-// with the file and edit actions on top. Run / Submit / AI review arrive in M1 / M2 / M4.
+// with the file and edit actions on top, and the live Run controls. Submit / AI review arrive
+// in M2 / M4.
 import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
   FilePlus2,
   FolderOpen,
   Grid3x3,
-  Play,
   Redo2,
   Save,
   SaveAll,
@@ -15,6 +15,7 @@ import {
   Undo2,
 } from "lucide-react";
 import { useStore } from "zustand";
+import { useReportError } from "@/app/dialogs";
 import type { Registry } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
@@ -27,7 +28,9 @@ import { Canvas } from "@/solve/Canvas";
 import { displayName, useFileActions } from "@/solve/files";
 import { InspectorPanel } from "@/solve/InspectorPanel";
 import { LibraryPanel } from "@/solve/LibraryPanel";
-import { redo, undo, useDirty, useEditor } from "@/solve/store";
+import { RunControls } from "@/solve/run/RunControls";
+import { isActive, simKey, useRun } from "@/solve/run/runStore";
+import { redo, toDesign, undo, useDirty, useEditor } from "@/solve/store";
 
 function IconAction({
   label,
@@ -57,7 +60,7 @@ function IconAction({
   );
 }
 
-function Later({ label, tip, icon: Icon, primary }: { label: string; tip: string; icon: typeof Play; primary?: boolean }) {
+function Later({ label, tip, icon: Icon, primary }: { label: string; tip: string; icon: typeof Send; primary?: boolean }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -127,7 +130,7 @@ function Toolbar() {
         </Tooltip>
       </div>
       <div className="flex items-center gap-2">
-        <Later label={t("sandbox.run")} tip={t("sandbox.later", { milestone: "M1" })} icon={Play} />
+        <RunControls />
         <Later label={t("sandbox.aiReview")} tip={t("sandbox.later", { milestone: "M4" })} icon={Sparkles} />
         <Later label={t("sandbox.submit")} tip={t("sandbox.later", { milestone: "M2" })} icon={Send} primary />
       </div>
@@ -135,11 +138,47 @@ function Toolbar() {
   );
 }
 
+/**
+ * Editing the design during a run starts a fresh run of the edited design, with the same
+ * seed and traffic (plan ★13); the old metrics stay until the new run's first frame.
+ * Opening another design stops the run, and so does leaving the Sandbox.
+ */
+function useRunFollowsEdits() {
+  const report = useReportError();
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const unsub = useEditor.subscribe((s, prev) => {
+      if (s.doc === prev.doc) return;
+      const run = useRun.getState();
+      if (!isActive(run.status)) return;
+      if (s.doc.id !== prev.doc.id) {
+        run.stop();
+        return;
+      }
+      if (simKey(toDesign(s)) === run.startedKey) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const r = useRun.getState();
+        if (!isActive(r.status)) return;
+        const design = toDesign(useEditor.getState());
+        if (simKey(design) === r.startedKey) return;
+        r.start(design).catch(report);
+      }, 300);
+    });
+    return () => {
+      clearTimeout(timer);
+      unsub();
+      useRun.getState().stop();
+    };
+  }, [report]);
+}
+
 const isTyping = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName));
 
 function Workspace({ registry }: { registry: Registry }) {
   const { t } = useTranslation();
+  useRunFollowsEdits();
   const [layout, setLayout] = useSetting<SandboxLayout>("sandbox.layout", {}, parseLayout, { mirror: true });
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const saveLayout = useCallback(

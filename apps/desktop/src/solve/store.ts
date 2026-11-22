@@ -25,7 +25,8 @@ import type {
 } from "@/bindings";
 import { defaultProps, kindSpec } from "@/solve/registry";
 
-export const SCHEMA_VERSION = 1;
+/** The `.kbarch` format version (ADR 0003); a test keeps it equal to Rust's. */
+export const SCHEMA_VERSION = 2;
 
 /** The card size the canvas draws (also used before React Flow has measured a card). */
 export const CARD_W = 208;

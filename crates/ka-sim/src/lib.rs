@@ -19,7 +19,7 @@ pub mod route;
 use std::sync::Arc;
 
 pub use compile::{Compiled, SAMPLE_CAP_RPS, SimError, SimOptions, compile};
-pub use engine::Engine;
+pub use engine::{Engine, NodeSnap, Packet, Snapshot};
 pub use result::{NodeResult, Percentiles, RunResult, SecondResult, TypeResult};
 
 use ka_core::scenario::Scenario;

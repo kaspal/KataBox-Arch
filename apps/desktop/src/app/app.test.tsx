@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import type { Design } from "@/bindings";
@@ -5,6 +7,7 @@ import { setFakeApi, useFakeApi } from "@/test/mockApi";
 import { renderApp } from "@/test/renderApp";
 import { unnamed } from "@/test/a11y";
 import { useEditor } from "@/solve/store";
+import { useRun } from "@/solve/run/runStore";
 
 vi.mock("@/lib/api", async () => (await import("@/test/mockApi")).apiModule);
 const fake = useFakeApi();
@@ -52,10 +55,10 @@ describe("pages", () => {
   it("later features are disabled with a milestone hint", async () => {
     renderApp("/sandbox");
     await screen.findByTestId("library");
-    expect(screen.getByRole("button", { name: /^Run/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /^Submit/ })).toBeDisabled();
-    expect(screen.getByLabelText("Run: Arrives in M1")).toBeInTheDocument();
     expect(screen.getByLabelText("AI review: Arrives in M4")).toBeInTheDocument();
+    // Run arrived in M1.
+    expect(screen.getByRole("button", { name: "Run" })).toBeEnabled();
   });
 });
 
@@ -242,5 +245,61 @@ describe("settings", () => {
     expect(document.documentElement).toHaveClass("hc");
     expect(fake().api.setSetting).toHaveBeenCalledWith("ui_lang", "es");
     expect(fake().api.setSetting).toHaveBeenCalledWith("ui.contrast", "high");
+  });
+});
+
+describe("live runs", () => {
+  // A frame Rust encoded (see solve/run/frames.test.ts).
+  const frame = () => {
+    const b = readFileSync(resolve(__dirname, "../test/fixtures/frame.kaf"));
+    return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength);
+  };
+
+  it("Run starts the design, the Metrics tab shows the live tiles, Pause pauses", async () => {
+    act(() => useEditor.getState().load(design, null));
+    const { user } = renderApp("/sandbox");
+    await user.click(await screen.findByRole("button", { name: "Run" }));
+    await waitFor(() => expect(fake().api.startRun).toHaveBeenCalledTimes(1));
+    const [sent, preset, speed] = vi.mocked(fake().api.startRun).mock.calls[0];
+    expect(sent.nodes.map((n) => n.id)).toEqual(["c1", "a1"]);
+    expect(sent.schema_version).toBe(2);
+    expect([preset, speed]).toEqual(["normal", 1]);
+    expect(screen.getByRole("tab", { name: "Metrics" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("Run the design to see live metrics.")).toBeInTheDocument();
+    act(() => fake().pushFrame(frame()));
+    expect(await screen.findByTestId("metric-rps")).toHaveTextContent(/req\/s/);
+    expect(screen.getByTestId("metric-p95")).toHaveTextContent(/ms$/);
+    expect(screen.getByTestId("run-clock")).toHaveTextContent("3.0 s of 60 s");
+    await user.click(screen.getByRole("button", { name: "Pause" }));
+    expect(fake().runControls).toEqual(["pause"]);
+    expect(screen.getByRole("button", { name: "Resume" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Stop the run" }));
+    expect(fake().runControls).toEqual(["pause", "stop"]);
+    expect(useRun.getState().status).toBe("idle");
+  });
+
+  it("editing what the simulator reads restarts the run; moving a card doesn't", async () => {
+    act(() => useEditor.getState().load(design, null));
+    const { user } = renderApp("/sandbox");
+    await user.click(await screen.findByRole("button", { name: "Run" }));
+    await waitFor(() => expect(fake().runs).toBe(1));
+    act(() => fake().pushFrame(frame()));
+    act(() => useEditor.getState().moveItems([{ id: "a1", position: { x: 400, y: 40 } }]));
+    act(() => useEditor.getState().setProp("a1", "instances", 4));
+    // The old metrics stay on screen while the edited design restarts.
+    await waitFor(() => expect(fake().runs).toBe(2), { timeout: 2000 });
+    expect(screen.getByTestId("metric-rps")).toBeInTheDocument();
+    const restarted = vi.mocked(fake().api.startRun).mock.calls[1][0];
+    expect(restarted.nodes[1].props.instances).toBe(4);
+    act(() => useRun.getState().stop());
+  });
+
+  it("a design with no path reports why instead of running", async () => {
+    setFakeApi({ runError: "no_path" });
+    act(() => useEditor.getState().load(design, null));
+    const { user } = renderApp("/sandbox");
+    await user.click(await screen.findByRole("button", { name: "Run" }));
+    expect(await screen.findByText(/No request can get through this design/)).toBeInTheDocument();
+    expect(useRun.getState().status).toBe("idle");
   });
 });

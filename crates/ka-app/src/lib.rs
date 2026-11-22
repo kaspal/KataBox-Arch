@@ -4,6 +4,9 @@
 
 pub mod error;
 pub mod kbarch;
+pub mod live;
+mod runs;
+pub mod sandbox;
 pub mod settings;
 pub mod window;
 
@@ -17,6 +20,8 @@ use serde::Serialize;
 use serde_json::Value;
 
 pub use error::{AppError, AppErrorCode};
+pub use runs::{RunControl, RunInfo};
+pub use sandbox::SandboxPreset;
 
 pub type Result<T, E = AppError> = std::result::Result<T, E>;
 
@@ -60,6 +65,9 @@ pub struct App {
     /// Paths the user picked in a dialog (or saved to) this session: the UI may save to
     /// these without a dialog. Opening by path is limited to the recent-files list.
     session_paths: Mutex<HashSet<String>>,
+    /// The live run, if one is playing (one at a time), and the id of the next.
+    live: Mutex<Option<(u32, live::LiveRun)>>,
+    next_run: std::sync::atomic::AtomicU32,
 }
 
 fn path_string(path: &Path) -> String {
@@ -77,6 +85,8 @@ impl App {
                 dev_data: paths.dev_data,
             },
             session_paths: Mutex::new(HashSet::new()),
+            live: Mutex::new(None),
+            next_run: std::sync::atomic::AtomicU32::new(1),
         })
     }
 

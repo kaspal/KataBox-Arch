@@ -10,6 +10,7 @@ import es from "@/i18n/locales/es.json";
 import { resources } from "@/i18n";
 import { describeError } from "@/lib/errors";
 import fixture from "@/test/fixtures/registry.json";
+import { SCHEMA_VERSION } from "@/solve/store";
 
 function keys(obj: object, prefix = ""): string[] {
   return Object.entries(obj).flatMap(([k, v]) =>
@@ -47,6 +48,7 @@ describe("i18n resources", () => {
       setting_not_allowed: true,
       path_not_allowed: true,
       internal: true,
+      no_path: true,
     } satisfies Record<AppErrorCode, true>;
     expect(Object.keys(codes).filter((c) => !has(en, `errors.${c}`))).toEqual([]);
   });
@@ -97,6 +99,14 @@ describe("source rules", () => {
   const appCode = files(src).filter(
     (f) => /\.(ts|tsx)$/.test(f) && !/\.test\.tsx?$/.test(f) && !f.includes(`${path.sep}test${path.sep}`),
   );
+
+  it("the editor writes the .kbarch version Rust reads and writes", () => {
+    expect(SCHEMA_VERSION).toBe(fixture.schema_version);
+  });
+
+  it("app code never imports test fixtures (the registry comes from Rust)", () => {
+    expect(appCode.filter((f) => readFileSync(f, "utf8").includes("test/fixtures"))).toEqual([]);
+  });
 
   it("app code never imports the registry fixture (the registry comes from Rust)", () => {
     expect(appCode.filter((f) => readFileSync(f, "utf8").includes("fixtures/registry"))).toEqual([]);

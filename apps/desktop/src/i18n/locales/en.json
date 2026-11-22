@@ -53,7 +53,8 @@
     "invalid_design": "The design breaks a rule (wiring, ids or values), so it was not saved.",
     "setting_not_allowed": "That setting can't be changed from here.",
     "path_not_allowed": "Use Save As or Open to choose a file first.",
-    "internal": "Something went wrong inside the app."
+    "internal": "Something went wrong inside the app.",
+    "no_path": "No request can get through this design. Connect a client to a service."
   },
   "files": {
     "unsaved": {
@@ -151,7 +152,6 @@
   "inspector": {
     "title": "Inspect",
     "metrics": "Metrics",
-    "metricsLater": "Metrics arrive with the simulation (M1)",
     "label": "Label",
     "flavour": "Flavour",
     "props": "Properties",
@@ -376,5 +376,32 @@
     "percent": "%",
     "rps": "req/s",
     "gb": "GB"
+  },
+  "run": {
+    "controls": "Run controls",
+    "preset": "Traffic",
+    "presets": {
+      "normal": "Normal traffic",
+      "spike": "Spike ×4"
+    },
+    "runAgain": "Run again",
+    "starting": "Starting…",
+    "pause": "Pause",
+    "resume": "Resume",
+    "stop": "Stop the run",
+    "speed": "Speed",
+    "clock": "{{t}} s of {{total}} s"
+  },
+  "metrics": {
+    "empty": "Run the design to see live metrics.",
+    "p95": "p95 latency",
+    "throughput": "Throughput",
+    "errorRate": "Error rate",
+    "cost": "Cost",
+    "perMonth": "/month",
+    "lastSecond": "Latency, throughput and errors cover the last simulated second; cost is per month at the traffic so far.",
+    "busiest": "Busiest components",
+    "down": "down",
+    "sampled": "Simulating {{pct}}% of requests; counts are scaled back up."
   }
 }

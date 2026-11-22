@@ -1,0 +1,228 @@
+//! Live runs behind the commands: one run at a time, controlled by id.
+
+use std::sync::Arc;
+use std::sync::atomic::Ordering;
+
+use ka_core::Design;
+use ka_sim::{RunResult, SimError, SimOptions, compile};
+use serde::{Deserialize, Serialize};
+
+use crate::live::{Control, FrameSink, LiveCore, LiveRun};
+use crate::sandbox::{SandboxPreset, sandbox_scenario};
+use crate::{App, AppError, AppErrorCode, Result};
+
+/// What the UI needs to read a run's frames: node and edge indices map to these ids.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+pub struct RunInfo {
+    pub run_id: u32,
+    pub duration_s: f64,
+    /// The share of requests simulated (1 = all).
+    pub sample_factor: f64,
+    /// Card ids by frame node index.
+    pub nodes: Vec<String>,
+    /// Connection ids by frame edge index.
+    pub edges: Vec<String>,
+    /// Request type ids by frame type index.
+    pub request_types: Vec<String>,
+}
+
+/// A control sent to the live run.
+#[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(rename_all = "snake_case")]
+pub enum RunControl {
+    Pause,
+    Resume,
+    /// Jump to this simulated second (playback pauses there).
+    Seek(f64),
+    /// 0.25, 0.5, 1, 2, 4 or 8.
+    Speed(f64),
+    Stop,
+}
+
+fn sim_error(e: SimError) -> AppError {
+    match e {
+        SimError::NoPath { .. } => AppError::new(AppErrorCode::NoPath, e.to_string()),
+        SimError::BadScenario(_) => AppError::new(AppErrorCode::Internal, e.to_string()),
+    }
+}
+
+/// Sandbox runs use one fixed seed, so the same design always plays the same way and an
+/// edited design restarts comparably (plan ★13).
+pub const SANDBOX_SEED: u64 = 1;
+
+impl App {
+    /// Start a live Sandbox run of `design`, replacing any run in progress.
+    pub fn start_run(
+        &self,
+        design: &Design,
+        preset: SandboxPreset,
+        speed: f64,
+        sink: impl FrameSink,
+    ) -> Result<RunInfo> {
+        let issues = self.validate(design);
+        if let Some(first) = issues.first() {
+            return Err(AppError::new(
+                AppErrorCode::InvalidDesign,
+                format!("{first:?}"),
+            ));
+        }
+        let scenario = sandbox_scenario(design, &self.registry, preset).map_err(sim_error)?;
+        let compiled = Arc::new(
+            compile(design, &self.registry, &scenario, &SimOptions::default())
+                .map_err(sim_error)?,
+        );
+        let info = RunInfo {
+            run_id: self.next_run.fetch_add(1, Ordering::Relaxed),
+            duration_s: scenario.duration_s,
+            sample_factor: compiled.sample,
+            nodes: compiled.nodes.iter().map(|n| n.id.clone()).collect(),
+            edges: design.edges.iter().map(|e| e.id.clone()).collect(),
+            request_types: compiled.types.iter().map(|t| t.def.id.clone()).collect(),
+        };
+        // Stop the old run first (its thread joins on drop), outside the lock.
+        let old = self.live_slot().take();
+        drop(old);
+        let run = LiveRun::start(LiveCore::new(compiled, design, SANDBOX_SEED), sink, speed);
+        *self.live_slot() = Some((info.run_id, run));
+        Ok(info)
+    }
+
+    pub fn control_run(&self, run_id: u32, control: RunControl) -> Result<()> {
+        let mut slot = self.live_slot();
+        if !matches!(slot.as_ref(), Some((id, _)) if *id == run_id) {
+            return Err(AppError::new(
+                AppErrorCode::NotFound,
+                format!("run {run_id}"),
+            ));
+        }
+        let c = match control {
+            RunControl::Pause => Control::Pause,
+            RunControl::Resume => Control::Resume,
+            RunControl::Seek(t) if t.is_finite() => Control::Seek(t),
+            RunControl::Speed(s) if s.is_finite() && s > 0.0 => Control::Speed(s),
+            RunControl::Stop => {
+                let old = slot.take();
+                drop(slot);
+                drop(old);
+                return Ok(());
+            }
+            other => {
+                return Err(AppError::new(
+                    AppErrorCode::InvalidInput,
+                    format!("{other:?}"),
+                ));
+            }
+        };
+        if let Some((_, run)) = slot.as_ref() {
+            run.control(c);
+        }
+        Ok(())
+    }
+
+    /// The finished run's full result (None while it is still playing).
+    pub fn run_result(&self, run_id: u32) -> Result<Option<RunResult>> {
+        match self.live_slot().as_ref() {
+            Some((id, run)) if *id == run_id => Ok(run.result()),
+            _ => Err(AppError::new(
+                AppErrorCode::NotFound,
+                format!("run {run_id}"),
+            )),
+        }
+    }
+
+    fn live_slot(&self) -> std::sync::MutexGuard<'_, Option<(u32, LiveRun)>> {
+        self.live.lock().unwrap_or_else(|e| e.into_inner())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::mpsc::{Sender, channel};
+    use std::time::Duration;
+
+    use super::*;
+    use crate::AppPaths;
+    use crate::testutil::temp_dir;
+
+    struct Collect(Sender<Vec<u8>>);
+    impl FrameSink for Collect {
+        fn send(&mut self, frame: Vec<u8>) -> bool {
+            self.0.send(frame).is_ok()
+        }
+    }
+
+    async fn app() -> App {
+        App::open(AppPaths {
+            user_db: temp_dir("runs").join("user.db"),
+            dev_data: true,
+        })
+        .await
+        .unwrap()
+    }
+
+    #[tokio::test]
+    async fn a_run_starts_streams_and_stops_by_id() {
+        let app = app().await;
+        let design = crate::kbarch::tests::sample();
+        let (tx, rx) = channel();
+        let info = app
+            .start_run(&design, SandboxPreset::Normal, 8.0, Collect(tx))
+            .unwrap();
+        assert_eq!(info.nodes.len(), design.nodes.len());
+        assert_eq!(info.edges.len(), design.edges.len());
+        assert_eq!(info.request_types, vec!["read", "write"]);
+        let f = rx.recv_timeout(Duration::from_secs(5)).expect("a frame");
+        assert_eq!(&f[0..4], b"KAF1");
+        assert_eq!(
+            app.control_run(info.run_id + 1, RunControl::Pause)
+                .unwrap_err()
+                .code,
+            AppErrorCode::NotFound
+        );
+        app.control_run(info.run_id, RunControl::Speed(2.0))
+            .unwrap();
+        assert!(app.run_result(info.run_id).unwrap().is_none());
+        app.control_run(info.run_id, RunControl::Stop).unwrap();
+        assert_eq!(
+            app.run_result(info.run_id).unwrap_err().code,
+            AppErrorCode::NotFound
+        );
+    }
+
+    #[tokio::test]
+    async fn a_new_run_replaces_the_old_one() {
+        let app = app().await;
+        let design = crate::kbarch::tests::sample();
+        let (tx1, rx1) = channel();
+        let first = app
+            .start_run(&design, SandboxPreset::Normal, 1.0, Collect(tx1))
+            .unwrap();
+        let (tx2, _rx2) = channel();
+        let second = app
+            .start_run(&design, SandboxPreset::Spike, 1.0, Collect(tx2))
+            .unwrap();
+        assert_ne!(first.run_id, second.run_id);
+        // The first run's thread has stopped: its channel drains, then closes.
+        while rx1.recv_timeout(Duration::from_secs(5)).is_ok() {}
+        assert_eq!(
+            app.control_run(first.run_id, RunControl::Pause)
+                .unwrap_err()
+                .code,
+            AppErrorCode::NotFound
+        );
+    }
+
+    #[tokio::test]
+    async fn a_design_without_a_path_is_refused_with_no_path() {
+        let app = app().await;
+        let mut design = crate::kbarch::tests::sample();
+        design.edges.clear();
+        let (tx, _rx) = channel();
+        let err = app
+            .start_run(&design, SandboxPreset::Normal, 1.0, Collect(tx))
+            .unwrap_err();
+        assert_eq!(err.code, AppErrorCode::NoPath);
+    }
+}

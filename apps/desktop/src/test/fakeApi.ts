@@ -1,7 +1,7 @@
 // An in-memory backend with the same shape as `api`, for UI tests. The registry is the
 // fixture Rust exports (`src/test/fixtures/registry.json`), so tests see the real data.
 import { vi } from "vitest";
-import type { AppError, Design, JsonValue, OpenedDesign, RecentEntry, Registry } from "@/bindings";
+import type { AppError, Design, JsonValue, OpenedDesign, RecentEntry, Registry, RunControl, SandboxPreset } from "@/bindings";
 import type { Api } from "@/lib/api";
 import fixture from "@/test/fixtures/registry.json";
 
@@ -21,6 +21,8 @@ export type FakeOptions = {
   /** What the Save As dialog picks (null = cancelled). */
   savePick?: string | null;
   devData?: boolean;
+  /** Make startRun fail with this error code. */
+  runError?: AppError["code"];
 };
 
 export function createFakeApi(opts: FakeOptions = {}) {
@@ -31,6 +33,9 @@ export function createFakeApi(opts: FakeOptions = {}) {
   let dirty = false;
   let title = "";
   let closeListener: (() => void) | null = null;
+  let runs = 0;
+  let frameSink: ((f: ArrayBuffer) => void) | null = null;
+  let runControls: RunControl[] = [];
 
   const touch = (path: string, name: string) => {
     recent = [{ path, name, opened_at: 1_700_000_000_000 + recent.length, exists: true }, ...recent.filter((r) => r.path !== path)];
@@ -79,6 +84,25 @@ export function createFakeApi(opts: FakeOptions = {}) {
       return path;
     }),
     validateDesign: vi.fn(async () => []),
+    startRun: vi.fn(async (design: Design, _preset: SandboxPreset, _speed: number, onFrame: (f: ArrayBuffer) => void) => {
+      if (opts.runError) throw err(opts.runError);
+      runs += 1;
+      frameSink = onFrame;
+      runControls = [];
+      return {
+        run_id: runs,
+        duration_s: 60,
+        sample_factor: 1,
+        nodes: design.nodes.map((n) => n.id),
+        edges: design.edges.map((e) => e.id),
+        request_types: ["read", "write"],
+      };
+    }),
+    controlRun: vi.fn(async (_id: number, control: RunControl) => {
+      runControls.push(control);
+      return null;
+    }),
+    runResult: vi.fn(async () => null),
     setWindowTitle: vi.fn(async (t: string) => {
       title = t;
       return null;
@@ -105,6 +129,14 @@ export function createFakeApi(opts: FakeOptions = {}) {
     },
     get dirty() {
       return dirty;
+    },
+    /** Push a frame to the live run's channel, as Rust would. */
+    pushFrame: (frame: ArrayBuffer) => frameSink?.(frame),
+    get runs() {
+      return runs;
+    },
+    get runControls() {
+      return runControls;
     },
     /** Simulate the user closing the window (Rust held it back). */
     requestClose: () => closeListener?.(),

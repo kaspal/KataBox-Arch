@@ -5,5 +5,8 @@
 fn main() {
     katabox_arch_lib::export_bindings();
     katabox_arch_lib::export_registry_fixture();
-    println!("wrote apps/desktop/src/bindings.ts and src/test/fixtures/registry.json");
+    katabox_arch_lib::export_frame_fixture();
+    println!(
+        "wrote apps/desktop/src/bindings.ts, src/test/fixtures/registry.json and src/test/fixtures/frame.kaf"
+    );
 }

@@ -187,6 +187,44 @@ pub struct Engine {
     reads: f64,
     /// Max traffic multiplier per source (for thinning).
     max_mult: Vec<f64>,
+    /// Forward hops recorded for the packet layer (live runs only; never read back).
+    trace: Option<Vec<Packet>>,
+}
+
+/// One forward hop of a simulated request, for the live packet layer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Packet {
+    pub from: u32,
+    pub to: u32,
+    /// The request type's index in the scenario.
+    pub ty: u16,
+    pub start_us: u64,
+    pub travel_us: u64,
+    /// Part of the asynchronous life of a message (publish, consume, after the answer).
+    pub is_async: bool,
+}
+
+/// A card's state at a point in a run, for live frames.
+#[derive(Debug, Clone, PartialEq)]
+pub struct NodeSnap {
+    /// Busy server-microseconds since the start (simulated servers).
+    pub busy_us: f64,
+    /// Simulated servers in total (lanes × servers per lane).
+    pub servers: f64,
+    /// Requests waiting, weighted back to real traffic.
+    pub queue: f64,
+    pub down: bool,
+}
+
+/// The run's state at the current time, for live frames.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Snapshot {
+    pub t_us: u64,
+    pub nodes: Vec<NodeSnap>,
+    /// The last completed second, if any.
+    pub last_second: Option<SecondResult>,
+    /// Monthly cost at the traffic seen so far.
+    pub cost_month: f64,
 }
 
 impl Engine {
@@ -283,6 +321,7 @@ impl Engine {
             stale_reads: 0.0,
             reads: 0.0,
             max_mult,
+            trace: None,
             nodes,
             c,
         };
@@ -317,6 +356,72 @@ impl Engine {
             self.handle(s.ev);
         }
         self.now = self.now.max(t.min(self.c.duration_us + DRAIN_US));
+    }
+
+    /// Record forward hops for the packet layer (live runs). Tracing never changes the run.
+    pub fn set_trace(&mut self, on: bool) {
+        self.trace = on.then(Vec::new);
+    }
+
+    /// The hops recorded since the last call.
+    pub fn take_packets(&mut self) -> Vec<Packet> {
+        self.trace.as_mut().map(std::mem::take).unwrap_or_default()
+    }
+
+    pub fn duration_us(&self) -> u64 {
+        self.c.duration_us
+    }
+
+    pub fn compiled(&self) -> &Arc<Compiled> {
+        &self.c
+    }
+
+    /// The state of every card now, and the last completed second.
+    pub fn snapshot(&self) -> Snapshot {
+        let c = &self.c;
+        let now = self.now;
+        let elapsed_s = (now as f64 / 1e6).max(1e-6);
+        let mut cost_month = 0.0;
+        let nodes = c
+            .nodes
+            .iter()
+            .zip(&self.nodes)
+            .map(|(n, rt)| {
+                let mut busy_us = 0.0;
+                let mut queue = 0usize;
+                for l in &rt.lanes {
+                    busy_us += l.busy_integral
+                        + f64::from(l.busy) * now.saturating_sub(l.busy_since) as f64;
+                    queue += l.queue.len();
+                }
+                cost_month += n.cost.per_instance_month * n.spec.instances.max(1.0)
+                    + n.cost.per_gb_month * n.spec.memory_gb
+                    + n.cost.per_million * (rt.served / elapsed_s) * MONTH_S / 1e6;
+                NodeSnap {
+                    busy_us,
+                    servers: f64::from(n.lane_servers) * f64::from(n.spec.lanes),
+                    queue: queue as f64 * c.weight,
+                    down: rt.down,
+                }
+            })
+            .collect();
+        let done = (now / 1_000_000) as usize;
+        let last_second = done
+            .checked_sub(1)
+            .and_then(|i| self.seconds.get(i).map(|s| (i, s)))
+            .map(|(i, s)| SecondResult {
+                t: i as u32,
+                requests: s.requests,
+                ok: s.ok,
+                errors: s.errors,
+                p95_ms: s.measured.quantile_ms(0.95),
+            });
+        Snapshot {
+            t_us: now,
+            nodes,
+            last_second,
+            cost_month: round2(cost_month),
+        }
     }
 
     pub fn run(&mut self) {
@@ -512,6 +617,17 @@ impl Engine {
 
     fn send(&mut self, r: u32, from: u32, to: u32, proto: Protocol, hop: bool) {
         let lat = hop_latency_us(&self.c, from, to, proto);
+        if let Some(trace) = &mut self.trace {
+            let q = &self.reqs[r as usize];
+            trace.push(Packet {
+                from,
+                to,
+                ty: q.ty,
+                start_us: self.now,
+                travel_us: lat,
+                is_async: q.resp_sent || matches!(proto, Protocol::Publish | Protocol::Consume),
+            });
+        }
         if hop {
             self.reqs[r as usize].net += lat;
         }

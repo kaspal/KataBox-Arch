@@ -22,6 +22,7 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 ka-app = { workspace = true, features = ["specta"] }
 ka-core = { workspace = true, features = ["specta"] }
+ka-sim = { workspace = true, features = ["specta"] }
 ka-store = { workspace = true, features = ["specta"] }
 serde.workspace = true
 serde_json.workspace = true

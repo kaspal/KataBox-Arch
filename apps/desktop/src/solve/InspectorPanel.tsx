@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GlyphTile } from "@/solve/icons";
 import { choiceName, flavourName, kindName, kindSpec, propName, unitName } from "@/solve/registry";
+import { MetricsPanel } from "@/solve/run/MetricsPanel";
+import { useRun } from "@/solve/run/runStore";
 import { useEditor } from "@/solve/store";
 import { checkWire, makeWiring } from "@/solve/wiring";
 
@@ -375,6 +377,19 @@ export function InspectorPanel({ registry }: { registry: Registry }) {
   const { t } = useTranslation();
   const doc = useEditor((s) => s.doc);
   const selection = useEditor((s) => s.selection);
+  const [tab, setTab] = useState<"inspect" | "metrics">("inspect");
+  // A run that starts from idle brings its metrics forward; selecting a card brings the
+  // inspector back.
+  useEffect(
+    () =>
+      useRun.subscribe((s, prev) => {
+        if (s.status === "starting" && (prev.status === "idle" || prev.status === "finished")) setTab("metrics");
+      }),
+    [],
+  );
+  useEffect(() => {
+    if (selection.length > 0) setTab("inspect");
+  }, [selection]);
   let body: React.ReactNode;
   if (selection.length > 1) {
     body = (
@@ -403,15 +418,21 @@ export function InspectorPanel({ registry }: { registry: Registry }) {
   } else {
     body = <DesignSummary registry={registry} />;
   }
+  const tabClass = (on: boolean) =>
+    `-mb-px border-b-2 pb-2 ${on ? "border-primary font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`;
   return (
     <aside aria-label={t("inspector.title")} className="flex h-full min-h-0 flex-col bg-background" data-testid="inspector">
-      <div className="flex gap-4 border-b px-4 pt-3 text-sm" role="presentation">
-        <span className="border-b-2 border-primary pb-2 font-medium">{t("inspector.title")}</span>
-        <span className="pb-2 text-muted-foreground" title={t("inspector.metricsLater")}>
+      <div className="flex gap-4 border-b px-4 pt-3 text-sm" role="tablist">
+        <button type="button" role="tab" id="tab-inspect" aria-selected={tab === "inspect"} aria-controls="tabpanel-side" className={tabClass(tab === "inspect")} onClick={() => setTab("inspect")}>
+          {t("inspector.title")}
+        </button>
+        <button type="button" role="tab" id="tab-metrics" aria-selected={tab === "metrics"} aria-controls="tabpanel-side" className={tabClass(tab === "metrics")} onClick={() => setTab("metrics")}>
           {t("inspector.metrics")}
-        </span>
+        </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">{body}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-4" role="tabpanel" id="tabpanel-side" aria-labelledby={tab === "inspect" ? "tab-inspect" : "tab-metrics"}>
+        {tab === "inspect" ? body : <MetricsPanel />}
+      </div>
     </aside>
   );
 }
