@@ -250,6 +250,27 @@ impl App {
         self.saved(&path, design).await
     }
 
+    /// Export a design as a Mermaid diagram to a path the user picked in the Save dialog
+    /// (M6.6). `names` are the kind, protocol and group names in the user's language.
+    pub fn export_mermaid(
+        &self,
+        path: PathBuf,
+        design: &Design,
+        names: &ka_core::mermaid::Names,
+    ) -> Result<String> {
+        let path = if path
+            .extension()
+            .is_some_and(|e| e.eq_ignore_ascii_case("mmd"))
+        {
+            path
+        } else {
+            path.with_extension("mmd")
+        };
+        std::fs::write(&path, ka_core::mermaid::to_mermaid(design, names))
+            .map_err(|e| AppError::new(AppErrorCode::Io, e.to_string()))?;
+        Ok(path_string(&path))
+    }
+
     /// Save to a path opened or saved earlier this session (plain Save).
     pub async fn save_known(&self, path: &str, design: &Design) -> Result<String> {
         if !self.remembered(path) {

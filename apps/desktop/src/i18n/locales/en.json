@@ -806,5 +806,11 @@
     "uninstallNamed": "Uninstall {{name}}",
     "uninstallConfirm": "Uninstall {{name}}? Its problems leave the catalogue; your submissions stay in your history.",
     "recommend": "Recommend problems from packs on Home"
+  },
+  "export": {
+    "menu": "Export",
+    "copyMermaid": "Copy as Mermaid",
+    "saveMermaid": "Save as Mermaid…",
+    "copied": "Mermaid diagram copied."
   }
 }

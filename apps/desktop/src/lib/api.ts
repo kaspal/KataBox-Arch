@@ -145,6 +145,10 @@ export const api = {
   answerQuiz: (questionId: string, choice: number, today: string): Promise<QuizResult> => call(commands.answerQuiz(questionId, choice, today)),
   /** Today's review questions (at most 10), in review order. */
   reviewsDue: (today: string): Promise<QuizItem[]> => call(commands.reviewsDue(today)),
+  // Mermaid export (M6.6): names are kind, protocol and group names in the user's language.
+  mermaidText: (design: Design, names: Record<string, string>): Promise<string> => commands.mermaidText(design, names),
+  saveMermaid: (design: Design, names: Record<string, string>, suggestedName: string): Promise<string | null> =>
+    call(commands.saveMermaid(design, names, suggestedName)),
   // Problem packs (M6.4): Rust opens the file dialog; null when cancelled.
   previewPack: (): Promise<PackPreview | null> => call(commands.previewPack()),
   applyPack: (token: number): Promise<PackInfo> => call(commands.applyPack(token)),

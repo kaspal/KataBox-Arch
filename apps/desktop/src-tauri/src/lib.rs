@@ -147,6 +147,46 @@ async fn validate_design(state: State<'_, AppState>, design: Design) -> Res<Vec<
     Ok(state.app()?.validate(&design))
 }
 
+// --- Mermaid export (M6.6) ---------------------------------------------------------------
+
+/// A design as Mermaid text (for Copy). `names`: kind, protocol and group names in the
+/// user's language.
+#[tauri::command]
+#[specta::specta]
+fn mermaid_text(design: Design, names: std::collections::BTreeMap<String, String>) -> String {
+    ka_core::mermaid::to_mermaid(&design, &names)
+}
+
+/// Show the Save dialog and write the design as a `.mmd` file. `None` when cancelled.
+#[tauri::command]
+#[specta::specta]
+async fn save_mermaid(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    design: Design,
+    names: std::collections::BTreeMap<String, String>,
+    suggested_name: String,
+) -> Res<Option<String>> {
+    let svc = state.app()?;
+    use tauri_plugin_dialog::DialogExt;
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .add_filter("Mermaid", &["mmd"])
+            .set_file_name(suggested_name)
+            .blocking_save_file()
+    })
+    .await
+    .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    let Some(path) = picked else {
+        return Ok(None);
+    };
+    let path = path
+        .into_path()
+        .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    Ok(Some(svc.export_mermaid(path, &design, &names)?))
+}
+
 // --- Problem packs (M6.4) ---------------------------------------------------------------
 
 /// Show the Open dialog for a `.kbpack`, then open and check it (nothing is installed
@@ -637,6 +677,8 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         set_window_title,
         set_dirty,
         confirm_close,
+        mermaid_text,
+        save_mermaid,
         preview_pack,
         apply_pack,
         cancel_pack,

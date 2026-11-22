@@ -312,6 +312,8 @@ export function createFakeApi(opts: FakeOptions = {}) {
       return null;
     }),
     confirmClose: vi.fn(async () => null),
+    mermaidText: vi.fn(async () => "flowchart LR\n"),
+    saveMermaid: vi.fn(async (_d: Design, _n: Record<string, string>, name: string) => `C:/exports/${name}`),
     previewPack: vi.fn(async () => {
       if (opts.pack === "refused") throw err("pack_refused", "problems/demo/statement.md: a <script> tag is not allowed in pack text");
       return opts.pack === "ok" ? structuredClone(FAKE_PACK_PREVIEW) : null;

@@ -12,6 +12,7 @@ pub mod detmath;
 pub mod estimate;
 pub mod flaw;
 pub mod guide;
+pub mod mermaid;
 pub mod numbers;
 pub mod paths;
 pub mod pattern;

@@ -477,6 +477,24 @@ async confirmClose() : Promise<Result<null, AppError>> {
 }
 },
 /**
+ * A design as Mermaid text (for Copy). `names`: kind, protocol and group names in the
+ * user's language.
+ */
+async mermaidText(design: Design, names: Partial<{ [key in string]: string }>) : Promise<string> {
+    return await TAURI_INVOKE("mermaid_text", { design, names });
+},
+/**
+ * Show the Save dialog and write the design as a `.mmd` file. `None` when cancelled.
+ */
+async saveMermaid(design: Design, names: Partial<{ [key in string]: string }>, suggestedName: string) : Promise<Result<string | null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("save_mermaid", { design, names, suggestedName }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Show the Open dialog for a `.kbpack`, then open and check it (nothing is installed
  * yet). `None` when cancelled.
  */

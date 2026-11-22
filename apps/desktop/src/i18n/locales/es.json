@@ -806,5 +806,11 @@
     "uninstallNamed": "Desinstalar {{name}}",
     "uninstallConfirm": "¿Desinstalar {{name}}? Sus problemas salen del catálogo; tus envíos se quedan en tu historial.",
     "recommend": "Recomendar en Inicio problemas de los paquetes"
+  },
+  "export": {
+    "menu": "Exportar",
+    "copyMermaid": "Copiar como Mermaid",
+    "saveMermaid": "Guardar como Mermaid…",
+    "copied": "Diagrama Mermaid copiado."
   }
 }
