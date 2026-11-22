@@ -279,6 +279,13 @@ async fn set_guide_read(
     state.app()?.set_guide_read(kind, read).await
 }
 
+/// A component kind's concept card (null until it has one).
+#[tauri::command]
+#[specta::specta]
+async fn concept(state: State<'_, AppState>, kind: ka_core::ComponentKind) -> Res<Option<Sample>> {
+    state.app()?.concept(kind).await
+}
+
 /// The sample gallery, in order (each with its first step's design for the preview).
 #[tauri::command]
 #[specta::specta]
@@ -425,6 +432,7 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         list_samples,
         sample,
         list_guide,
+        concept,
         guide_page,
         set_guide_read,
         set_window_title,

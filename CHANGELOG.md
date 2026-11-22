@@ -58,6 +58,8 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
     to skip it, how the simulator models it (every number read from the simulator itself), the products compared,
     common pitfalls, trade-offs, practice problems, related components, an interview tip and vendor sources.
   - **The index** groups entries by category, with search, a "Start here" path and read marks.
+  - **Concept cards** for the six "Start here" components (Load Balancer, App Server, Cache, SQL Database,
+    Queue, CDN) play inline in their entries, with live traffic and checked numbers.
   - **Open entries from anywhere:** the library's info button shows a quick look, the Inspector's "Learn more"
     opens the entry at "In the simulator", and Ctrl+K finds every entry.
 - **Samples:**

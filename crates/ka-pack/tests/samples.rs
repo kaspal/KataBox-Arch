@@ -107,3 +107,24 @@ fn structural_mistakes_are_reported() {
     assert!(issues.iter().any(|i| i.message.contains("marked `tour`")));
     assert!(issues.iter().any(|i| i.message.contains("used twice")));
 }
+
+#[test]
+fn the_shipped_concept_cards_are_valid_and_named_after_kinds() {
+    let r = registry();
+    let problems = load_problems(&content(), &r).unwrap();
+    let concepts = ka_pack::load_concepts(&content(), &r).unwrap();
+    // The six "Start here" kinds first (the rest are deferred, plan order item 1).
+    let ids: Vec<&str> = concepts.iter().map(|c| c.def.id.as_str()).collect();
+    for k in ["lb", "app", "cache", "sql", "queue", "cdn"] {
+        assert!(ids.contains(&k), "no concept card for {k}");
+    }
+    assert_eq!(ka_pack::validate_concepts(&concepts, &problems, &r), vec![]);
+    let mut bad = concepts[0].clone();
+    bad.def.id = "not-a-kind".into();
+    let issues = ka_pack::validate_concepts(&[bad], &problems, &r);
+    assert!(
+        issues
+            .iter()
+            .any(|i| i.message.contains("isn't a component kind"))
+    );
+}

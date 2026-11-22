@@ -86,6 +86,8 @@ function Callout({ step }: { step: StoryStep }) {
         return t("player.rps", { v: n({ maximumFractionDigits: 0 }) });
       case "cost_month":
         return n({ style: "currency", currency: "USD", maximumFractionDigits: 0 });
+      case "lost":
+        return n({ maximumFractionDigits: 0 });
     }
   };
   return (

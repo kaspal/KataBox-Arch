@@ -24,12 +24,25 @@ pub struct SampleDir {
 }
 
 pub fn load_samples(root: &Path, registry: &Registry) -> Result<Vec<SampleDir>, Vec<Issue>> {
-    let base = root.join("samples");
+    load_stories(root, "samples", registry)
+}
+
+/// Concept cards (M3.5): `content/concepts/<kind>/` in the sample format, one per kind.
+pub fn load_concepts(root: &Path, registry: &Registry) -> Result<Vec<SampleDir>, Vec<Issue>> {
+    load_stories(root, "concepts", registry)
+}
+
+fn load_stories(
+    root: &Path,
+    folder: &str,
+    registry: &Registry,
+) -> Result<Vec<SampleDir>, Vec<Issue>> {
+    let base = root.join(folder);
     if !base.exists() {
         return Ok(Vec::new());
     }
     let mut dirs: Vec<_> = std::fs::read_dir(&base)
-        .map_err(|e| vec![issue("samples", e.to_string())])?
+        .map_err(|e| vec![issue(folder, e.to_string())])?
         .filter_map(|e| e.ok())
         .filter(|e| e.path().is_dir())
         .map(|e| e.file_name().to_string_lossy().into_owned())
@@ -38,7 +51,7 @@ pub fn load_samples(root: &Path, registry: &Registry) -> Result<Vec<SampleDir>, 
     let mut out = Vec::new();
     let mut issues = Vec::new();
     for name in dirs {
-        match load_one(&base.join(&name), &format!("samples/{name}"), registry) {
+        match load_one(&base.join(&name), &format!("{folder}/{name}"), registry) {
             Ok(s) => out.push(s),
             Err(mut e) => issues.append(&mut e),
         }
@@ -114,7 +127,7 @@ pub fn validate_samples(
         let d = &s.def;
         let at = |what: &str| format!("{}/{what}", s.dir);
         let file = at("sample.toml");
-        if s.dir != format!("samples/{}", d.id) {
+        if s.dir.rsplit('/').next() != Some(d.id.as_str()) {
             issues.push(issue(
                 &file,
                 format!("id `{}` doesn't match its folder", d.id),
@@ -249,6 +262,42 @@ fn check_run(run: &StepRun, problem: Option<&ProblemDir>) -> Result<(), String> 
     }
 }
 
+/// Concept cards: the sample checks, plus each card is named after a component kind and none
+/// is a tour.
+pub fn validate_concepts(
+    concepts: &[SampleDir],
+    problems: &[ProblemDir],
+    registry: &Registry,
+) -> Vec<Issue> {
+    let mut issues = validate_samples(concepts, problems, registry);
+    for c in concepts {
+        let file = format!("{}/sample.toml", c.dir);
+        if !registry
+            .kinds
+            .iter()
+            .any(|k| crate::guide::kind_id(k.kind) == c.def.id)
+        {
+            issues.push(issue(
+                &file,
+                format!("`{}` isn't a component kind", c.def.id),
+            ));
+        }
+        if c.def.tour {
+            issues.push(issue(&file, "a concept card can't be the tour"));
+        }
+    }
+    issues
+}
+
+/// A concept card's `content.db` row: the sample row (definition and snapshots) as JSON.
+pub fn concept_row(c: &SampleDir, registry: &Registry) -> Result<ka_store::ConceptRow, String> {
+    let row = sample_row(c, registry)?;
+    Ok(ka_store::ConceptRow {
+        kind: row.id.clone(),
+        def: serde_json::to_string(&row).map_err(|e| e.to_string())?,
+    })
+}
+
 /// The `content.db` row: the definition and each snapshot as canonical `.kbarch` JSON.
 pub fn sample_row(s: &SampleDir, registry: &Registry) -> Result<ka_store::SampleRow, String> {
     let mut snapshots = BTreeMap::new();
@@ -297,6 +346,7 @@ pub fn metric(r: &RunResult, m: CalloutMetric) -> f64 {
         CalloutMetric::ErrorRate => r.error_rate,
         CalloutMetric::ThroughputRps => r.throughput_rps,
         CalloutMetric::CostMonth => r.cost_month,
+        CalloutMetric::Lost => r.lost,
     }
 }
 
@@ -307,6 +357,7 @@ fn close(m: CalloutMetric, stated: f64, simulated: f64) -> bool {
         CalloutMetric::ErrorRate => 0.01,
         CalloutMetric::ThroughputRps => 50.0,
         CalloutMetric::CostMonth => 10.0,
+        CalloutMetric::Lost => 20.0,
     };
     (stated - simulated).abs() <= (0.15 * simulated.abs()).max(floor)
 }

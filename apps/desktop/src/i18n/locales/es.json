@@ -565,7 +565,8 @@
       "p95_ms": "Latencia p95",
       "error_rate": "Tasa de errores",
       "throughput_rps": "Rendimiento",
-      "cost_month": "Coste al mes"
+      "cost_month": "Coste al mes",
+      "lost": "Mensajes perdidos"
     }
   },
   "samples": {
@@ -626,6 +627,9 @@
       "per_instance_month": "{{v}} al mes",
       "per_gb_month": "{{v}} por GB al mes",
       "per_million": "{{v}} por millón"
-    }
+    },
+    "conceptCard": "Tarjeta de concepto",
+    "playConcept_one": "Ver la tarjeta de concepto ({{count}} paso)",
+    "playConcept_other": "Ver la tarjeta de concepto ({{count}} pasos)"
   }
 }

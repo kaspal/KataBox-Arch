@@ -21,7 +21,7 @@ use sha2::{Digest, Sha256};
 
 pub use guide::{GuideDir, load_guide, validate_guide};
 pub use problems::{ProblemDir, load_problems, validate_problems};
-pub use samples::{SampleDir, load_samples, validate_samples};
+pub use samples::{SampleDir, load_concepts, load_samples, validate_concepts, validate_samples};
 
 /// A problem with the content: the file (relative to the content root) and what is wrong.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -93,9 +93,11 @@ pub fn build_content(
     let problems = load_problems(root, registry)?;
     let samples = load_samples(root, registry)?;
     let guide = load_guide(root)?;
+    let concepts = load_concepts(root, registry)?;
     let mut issues = validate_problems(&problems, registry);
     issues.extend(validate_samples(&samples, &problems, registry));
     issues.extend(validate_guide(&guide, &problems, registry));
+    issues.extend(validate_concepts(&concepts, &problems, registry));
     if !issues.is_empty() {
         return Err(issues);
     }
@@ -118,6 +120,11 @@ pub fn build_content(
         ],
         problems: rows,
         samples: sample_rows,
+        concepts: concepts
+            .iter()
+            .map(|c| samples::concept_row(c, registry))
+            .collect::<Result<_, _>>()
+            .map_err(|m| vec![issue("concepts", m)])?,
         guide: guide
             .iter()
             .map(guide::guide_row)

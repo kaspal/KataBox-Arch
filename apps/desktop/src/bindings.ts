@@ -246,6 +246,17 @@ async listGuide() : Promise<Result<GuideSummary[], AppError>> {
 }
 },
 /**
+ * A component kind's concept card (null until it has one).
+ */
+async concept(kind: ComponentKind) : Promise<Result<Sample | null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("concept", { kind }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * One Guide entry.
  */
 async guidePage(kind: ComponentKind) : Promise<Result<GuidePage, AppError>> {
@@ -456,7 +467,11 @@ export type CalloutMetric = "p95_ms" |
 /**
  * 0–1.
  */
-"error_rate" | "throughput_rps" | "cost_month"
+"error_rate" | "throughput_rps" | "cost_month" | 
+/**
+ * Async messages that failed every retry with no dead-letter queue (weighted count).
+ */
+"lost"
 /**
  * Where the camera looks: a point in flow coordinates, centred in the view, and a zoom.
  */

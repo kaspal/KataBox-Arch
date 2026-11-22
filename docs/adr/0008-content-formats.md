@@ -33,7 +33,11 @@ are written by people, reviewed in pull requests, shipped inside the app, and re
     `validate --run` simulates each such step the way the player plays it (same scenario, seed and sampling): `after`
     on the step's design, `before` on the previous step's. Each must be within 15% of the simulator, or within a
     small absolute floor.
-  - The shared step type serves the concept cards too (M3.5).
+  - **Concept cards (M3.5)** use the same format in `content/concepts/<kind>/`: the id is a component kind, none
+    is a tour, and callouts are checked the same way. `content.db` stores each as a `concepts` row (the sample row
+    as JSON).
+  - **A callout metric for queues:** `lost` counts async messages that failed every retry with no dead-letter
+    queue.
 - **Component Guide (M3.4):** `content/guide/<kind>/` holds `entry.toml` (`ka_core::guide::GuideEntry`), plus
   `entry.md` and `entry.es.md` ("What it does").
   - **The fields:**

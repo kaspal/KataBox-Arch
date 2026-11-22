@@ -47,6 +47,10 @@ export function useGuidePage(kind: ComponentKind) {
   return useQuery({ queryKey: queryKeys.guidePage(kind), queryFn: () => api.guidePage(kind) });
 }
 
+export function useConcept(kind: ComponentKind) {
+  return useQuery({ queryKey: ["concept", kind], queryFn: () => api.concept(kind), staleTime: Infinity });
+}
+
 export function useSamples() {
   return useQuery({ queryKey: queryKeys.samples, queryFn: api.listSamples, staleTime: Infinity });
 }

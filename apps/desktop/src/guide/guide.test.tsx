@@ -59,6 +59,24 @@ describe("the Component Guide", () => {
     expect(await screen.findByTestId("guide-progress")).toHaveTextContent("1 of 2 read");
   });
 
+  it("an entry with a concept card plays it inline", async () => {
+    const { user } = renderApp("/guide/cache");
+    const card = await screen.findByTestId("concept-card");
+    await user.click(within(card).getByRole("button", { name: "Play the concept card (1 step)" }));
+    const player = await screen.findByTestId("concept-player");
+    expect(within(player).getByTestId("step-counter")).toHaveTextContent("step 1 of 1");
+    await waitFor(() => expect(fake().runs).toBe(1));
+    await user.click(within(player).getByRole("button", { name: "Close" }));
+    expect(screen.queryByTestId("concept-player")).toBeNull();
+    expect(screen.getByTestId("concept-card")).toBeInTheDocument();
+  });
+
+  it("an entry without a concept card shows none", async () => {
+    renderApp("/guide/lb");
+    await screen.findByTestId("guide-entry");
+    expect(screen.queryByTestId("concept-card")).toBeNull();
+  });
+
   it("an unknown kind says the Guide is unavailable", async () => {
     renderApp("/guide/dns");
     expect(await screen.findByText("The Guide is unavailable")).toBeInTheDocument();

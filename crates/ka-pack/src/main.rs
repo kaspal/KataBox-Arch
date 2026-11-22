@@ -115,17 +115,26 @@ fn main() -> ExitCode {
                 Ok(p) => p,
                 Err(issues) => return report(&issues),
             };
-            // Samples read the full problem list (their runs name problem tests).
+            // Samples and concept cards (the same story format) read the full problem list
+            // (their runs name problem tests).
             let check_samples = |problems: &[ka_pack::ProblemDir]| -> Result<usize, ExitCode> {
                 let samples = load_samples(&args.content, &registry).map_err(|i| report(&i))?;
+                let concepts =
+                    ka_pack::load_concepts(&args.content, &registry).map_err(|i| report(&i))?;
                 let mut issues = validate_samples(&samples, problems, &registry);
+                issues.extend(ka_pack::validate_concepts(&concepts, problems, &registry));
                 if issues.is_empty() && args.run {
-                    issues = ka_pack::samples::check_callouts(
-                        &samples,
-                        problems,
-                        &registry,
-                        args.verbose,
-                    );
+                    for stories in [&samples, &concepts] {
+                        issues.extend(ka_pack::samples::check_callouts(
+                            stories,
+                            problems,
+                            &registry,
+                            args.verbose,
+                        ));
+                    }
+                }
+                if issues.is_empty() && !concepts.is_empty() {
+                    println!("{} concept card(s) valid", concepts.len());
                 }
                 if issues.is_empty() {
                     Ok(samples.len())

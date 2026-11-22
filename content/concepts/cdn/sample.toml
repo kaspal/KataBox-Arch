@@ -1,0 +1,27 @@
+id = "cdn"
+number = 6
+title = "CDN"
+title_es = "CDN"
+summary = "Copies of your files at the edge, close to the people asking for them."
+summary_es = "Copias de tus ficheros en el borde, cerca de quien los pide."
+problem = "static-site-cdn"
+
+[[step]]
+snapshot = "no-cdn.kbarch"
+title = "Every page from the origin"
+title_es = "Cada página desde el origen"
+caption = "Without a CDN, every page, image and script is served by your own servers, however far away the visitor is."
+caption_es = "Sin CDN, cada página, imagen y script la sirven tus propios servidores, por lejos que esté el visitante."
+focus = ["app"]
+run = { test = "normal" }
+callout = { metric = "p95_ms", after = 16.9 }
+
+[[step]]
+snapshot = "cdn.kbarch"
+title = "Served from the edge"
+title_es = "Servido desde el borde"
+caption = "CloudFront keeps copies of the files at the edge. Most requests end there, and only the misses travel to the origin."
+caption_es = "CloudFront guarda copias de los ficheros en el borde. La mayoría de las peticiones terminan ahí, y solo los fallos viajan al origen."
+focus = ["cdn"]
+run = { test = "normal" }
+callout = { metric = "p95_ms", before = 16.9, after = 7.1 }

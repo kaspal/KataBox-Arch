@@ -110,6 +110,8 @@ export const api = {
   listGuide: (): Promise<GuideSummary[]> => call(commands.listGuide()),
   guidePage: (kind: ComponentKind): Promise<GuidePage> => call(commands.guidePage(kind)),
   setGuideRead: (kind: ComponentKind, read: boolean): Promise<null> => call(commands.setGuideRead(kind, read)),
+  /** A kind's concept card (null until it has one). */
+  concept: (kind: ComponentKind): Promise<Sample | null> => call(commands.concept(kind)),
   /** The sample gallery, in order, each with its first step's design. */
   listSamples: (): Promise<SampleSummary[]> => call(commands.listSamples()),
   /** One sample for the player: steps and design snapshots. */

@@ -565,7 +565,8 @@
       "p95_ms": "p95 latency",
       "error_rate": "Error rate",
       "throughput_rps": "Throughput",
-      "cost_month": "Cost per month"
+      "cost_month": "Cost per month",
+      "lost": "Messages lost"
     }
   },
   "samples": {
@@ -626,6 +627,9 @@
       "per_instance_month": "{{v}} a month",
       "per_gb_month": "{{v}} per GB a month",
       "per_million": "{{v}} per million"
-    }
+    },
+    "conceptCard": "Concept card",
+    "playConcept_one": "Play the concept card ({{count}} step)",
+    "playConcept_other": "Play the concept card ({{count}} steps)"
   }
 }

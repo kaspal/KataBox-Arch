@@ -172,6 +172,9 @@ export function createFakeApi(opts: FakeOptions = {}) {
       if (!entry) throw err("not_found");
       return { entry: structuredClone(entry), md_en: "A cache keeps **hot** data in memory.", md_es: "Una caché guarda datos **calientes** en memoria.", read: read.has(kind) };
     }),
+    concept: vi.fn(async (kind: string) =>
+      kind === "cache" ? { ...structuredClone(FAKE_SAMPLE), def: { ...structuredClone(FAKE_SAMPLE.def), id: "cache", problem: null, steps: FAKE_SAMPLE.def.steps.slice(0, 1) } } : null,
+    ),
     setGuideRead: vi.fn(async (kind: string, r: boolean) => {
       if (r) read.add(kind);
       else read.delete(kind);

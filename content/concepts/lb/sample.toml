@@ -1,0 +1,36 @@
+id = "lb"
+number = 1
+title = "Load Balancer"
+title_es = "Balanceador de carga"
+summary = "One door in front of several servers."
+summary_es = "Una puerta delante de varios servidores."
+
+[[step]]
+snapshot = "one-server.kbarch"
+title = "One server, one crowd"
+title_es = "Un servidor, una multitud"
+caption = "5,000 requests a second go straight to one server. When traffic quadruples, its queue fills and requests are dropped."
+caption_es = "5000 peticiones por segundo van directas a un servidor. Cuando el tráfico se cuadruplica, su cola se llena y se descartan peticiones."
+focus = ["app"]
+run = { preset = "spike", start_s = 16 }
+callout = { metric = "error_rate", after = 0.266 }
+
+[[step]]
+snapshot = "balanced.kbarch"
+title = "Spread the load"
+title_es = "Reparte la carga"
+caption = "The load balancer sends each request to one of two servers. Each carries half of the spike, and nothing is dropped."
+caption_es = "El balanceador manda cada petición a uno de dos servidores. Cada uno lleva la mitad del pico y no se descarta nada."
+focus = ["lb", "app", "app2"]
+run = { preset = "spike", start_s = 16 }
+callout = { metric = "error_rate", before = 0.266, after = 0 }
+
+[[step]]
+snapshot = "balanced.kbarch"
+title = "Steer around a dead server"
+title_es = "Esquiva un servidor caído"
+caption = "At 20 seconds one server dies. Health checks notice within a few seconds and stop sending it traffic; only the requests sent in between fail."
+caption_es = "A los 20 segundos cae un servidor. Las comprobaciones de salud lo detectan en pocos segundos y dejan de mandarle tráfico; solo fallan las peticiones enviadas entre medias."
+focus = ["lb"]
+run = { preset = "kill_node", start_s = 16 }
+callout = { metric = "error_rate", after = 0.0166 }

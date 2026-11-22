@@ -83,6 +83,19 @@ impl App {
         Ok(out)
     }
 
+    /// The concept card of a component kind (`None`: it has no card yet).
+    pub async fn concept(&self, kind: ka_core::ComponentKind) -> Result<Option<Sample>> {
+        let id = serde_json::to_value(kind)
+            .ok()
+            .and_then(|v| v.as_str().map(str::to_owned))
+            .unwrap_or_default();
+        let Some(row) = self.content()?.concept(&id).await.map_err(AppError::from)? else {
+            return Ok(None);
+        };
+        let row: ka_store::SampleRow = serde_json::from_str(&row.def).map_err(bad_content)?;
+        self.sample_from_row(&row).map(Some)
+    }
+
     pub async fn sample(&self, id: &str) -> Result<Sample> {
         let row = self
             .content()?
@@ -162,6 +175,7 @@ run = { preset = "normal" }
                     snapshots: [("one.kbarch".to_string(), kbarch)].into(),
                 }],
                 guide: vec![],
+                concepts: vec![],
             },
         )
         .await

@@ -124,6 +124,13 @@ pub struct GuideRow {
     pub md_es: String,
 }
 
+/// A concept card: `def` is its `SampleRow` (definition and snapshots) as JSON.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ConceptRow {
+    pub kind: String,
+    pub def: String,
+}
+
 /// Everything `ka-pack build` writes.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct ContentData {
@@ -131,6 +138,7 @@ pub struct ContentData {
     pub problems: Vec<ProblemRow>,
     pub samples: Vec<SampleRow>,
     pub guide: Vec<GuideRow>,
+    pub concepts: Vec<ConceptRow>,
 }
 
 /// Write a fresh `content.db` at `path` (replacing any file there).
@@ -191,6 +199,13 @@ pub async fn write_content(path: &Path, data: &ContentData) -> Result<()> {
             .bind(s.number)
             .bind(&s.def)
             .bind(serde_json::to_string(&s.snapshots)?)
+            .execute(&mut *tx)
+            .await?;
+    }
+    for c in &data.concepts {
+        sqlx::query("INSERT INTO concepts (kind, def) VALUES (?, ?)")
+            .bind(&c.kind)
+            .bind(&c.def)
             .execute(&mut *tx)
             .await?;
     }
@@ -324,6 +339,20 @@ impl ContentDb {
         row.as_ref().map(sample_row).transpose()
     }
 
+    pub async fn concept(&self, kind: &str) -> Result<Option<ConceptRow>> {
+        let row = sqlx::query("SELECT kind, def FROM concepts WHERE kind = ?")
+            .bind(kind)
+            .fetch_optional(&self.pool)
+            .await?;
+        row.map(|r| -> Result<ConceptRow> {
+            Ok(ConceptRow {
+                kind: r.try_get("kind")?,
+                def: r.try_get("def")?,
+            })
+        })
+        .transpose()
+    }
+
     /// Every Guide entry, by kind.
     pub async fn guide(&self) -> Result<Vec<GuideRow>> {
         let rows = sqlx::query("SELECT kind, entry, md_en, md_es FROM guide ORDER BY kind")
@@ -420,6 +449,10 @@ mod tests {
             problems: vec![problem("b", 2), problem("a", 1)],
             samples: vec![sample("s2", 2), sample("s1", 1)],
             guide: vec![guide("lb"), guide("cache")],
+            concepts: vec![ConceptRow {
+                kind: "cache".into(),
+                def: "{}".into(),
+            }],
         };
         write_content(&path, &data).await.unwrap();
         // Rewriting replaces the file.
@@ -447,6 +480,8 @@ mod tests {
         );
         assert_eq!(db.guide_entry("lb").await.unwrap(), Some(guide("lb")));
         assert_eq!(db.guide_entry("nope").await.unwrap(), None);
+        assert_eq!(db.concept("cache").await.unwrap().unwrap().def, "{}");
+        assert_eq!(db.concept("lb").await.unwrap(), None);
         db.close().await;
     }
 

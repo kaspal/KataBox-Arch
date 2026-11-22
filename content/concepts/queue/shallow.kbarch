@@ -1,0 +1,89 @@
+{
+  "schema_version": 2,
+  "id": "concept-queue-shallow",
+  "name": "Distributed Job Scheduler (first try)",
+  "problem_id": "job-scheduler",
+  "nodes": [
+    {
+      "id": "sched",
+      "kind": "scheduler",
+      "flavour": "cron",
+      "label": "Cron",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "interval_s": 1
+      },
+      "group_id": null
+    },
+    {
+      "id": "queue",
+      "kind": "queue",
+      "flavour": "rabbitmq",
+      "label": "Jobs",
+      "position": {
+        "x": 0,
+        "y": 170
+      },
+      "props": {
+        "max_depth": 1000
+      },
+      "group_id": null
+    },
+    {
+      "id": "workers",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Workers",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Results",
+      "position": {
+        "x": 0,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "sched",
+      "to": "queue",
+      "protocol": "publish"
+    },
+    {
+      "id": "e1",
+      "from": "queue",
+      "to": "workers",
+      "protocol": "consume"
+    },
+    {
+      "id": "e2",
+      "from": "workers",
+      "to": "db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

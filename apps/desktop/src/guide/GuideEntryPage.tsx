@@ -2,11 +2,11 @@
 // or skip it, how the simulator models it (numbers read from the registry, one column per
 // flavour), the flavours compared, pitfalls, trade-offs, practice, related kinds, an
 // interview tip and the vendor sources. `?section=sim` scrolls to "In the simulator".
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useParams, useSearch } from "@tanstack/react-router";
-import { BookOpen, Check, Circle, Lightbulb, X } from "lucide-react";
+import { BookOpen, Check, Circle, Lightbulb, PlayCircle, X } from "lucide-react";
 import type { ComponentKind, GuidePage, KindSpec, Registry } from "@/bindings";
 import { useReportError } from "@/app/dialogs";
 import { Markdown } from "@/components/Markdown";
@@ -15,11 +15,13 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 import { describeError } from "@/lib/errors";
-import { queryKeys, useGuidePage, useProblems, useRegistry } from "@/lib/queries";
+import { queryKeys, useConcept, useGuidePage, useProblems, useRegistry } from "@/lib/queries";
 import { DifficultyBadge, useLocalized } from "@/pages/Problems";
 import { GlyphTile } from "@/solve/icons";
 import { categoryName, flavourName, kindName, kindSpec } from "@/solve/registry";
 import { simLabel, simValue } from "@/guide/values";
+import { Player } from "@/tour/Player";
+import { DesignThumb } from "@/tour/SamplesPage";
 
 function Card({ title, id, children, className }: { title: string; id?: string; children: React.ReactNode; className?: string }) {
   return (
@@ -78,6 +80,8 @@ function Entry({ page, registry }: { page: GuidePage; registry: Registry }) {
   const problems = useProblems();
   const { section } = useSearch({ from: "/guide/$kind" });
   const simRef = useRef<HTMLDivElement>(null);
+  const concept = useConcept(page.entry.kind);
+  const [playing, setPlaying] = useState(false);
   const e = page.entry;
   const es = i18n.language.startsWith("es");
   const spec = kindSpec(registry, e.kind);
@@ -135,6 +139,28 @@ function Entry({ page, registry }: { page: GuidePage; registry: Registry }) {
         </div>
       </header>
 
+      {playing && concept.data && (
+        <section className="h-[38rem] overflow-hidden rounded-xl border bg-card" aria-label={t("guide.conceptCard")} data-testid="concept-player">
+          <Player
+            story={{
+              title: L(concept.data.def.title, concept.data.def.title_es),
+              problemId: concept.data.def.problem ?? null,
+              steps: concept.data.def.steps,
+              snapshots: concept.data.snapshots,
+            }}
+            registry={registry}
+            header={
+              <>
+                <h2 className="font-display text-xl font-semibold">{t("guide.conceptCard")}</h2>
+                <Button variant="ghost" size="sm" className="gap-1" onClick={() => setPlaying(false)}>
+                  <X aria-hidden className="size-4" />
+                  {t("common.close")}
+                </Button>
+              </>
+            }
+          />
+        </section>
+      )}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-6">
           <Card title={t("guide.whatItDoes")}>
@@ -226,6 +252,20 @@ function Entry({ page, registry }: { page: GuidePage; registry: Registry }) {
         </div>
 
         <aside className="space-y-6">
+          {concept.data && !playing && (
+            <section className="space-y-3 rounded-xl border bg-card p-5" aria-labelledby="concept-card" data-testid="concept-card">
+              <h2 id="concept-card" className="text-xs font-semibold tracking-wide uppercase">
+                {t("guide.conceptCard")}
+              </h2>
+              {concept.data.snapshots[concept.data.def.steps[0].snapshot] && (
+                <DesignThumb design={concept.data.snapshots[concept.data.def.steps[0].snapshot]!} registry={registry} label={t("guide.conceptCard")} />
+              )}
+              <Button className="w-full gap-2" onClick={() => setPlaying(true)}>
+                <PlayCircle aria-hidden className="size-4" />
+                {t("guide.playConcept", { count: concept.data.def.steps.length })}
+              </Button>
+            </section>
+          )}
           {e.flavours_compared && (
             <Card title={t("guide.flavoursCompared")}>
               <div className="overflow-x-auto">

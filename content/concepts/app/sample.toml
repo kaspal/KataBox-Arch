@@ -1,0 +1,26 @@
+id = "app"
+number = 2
+title = "App Server"
+title_es = "Servidor de aplicaciones"
+summary = "Runs your code; each request holds a thread until everything it called answers."
+summary_es = "Ejecuta tu código; cada petición ocupa un hilo hasta que responde todo lo que llamó."
+
+[[step]]
+snapshot = "fast-db.kbarch"
+title = "Requests in, answers out"
+title_es = "Entran peticiones, salen respuestas"
+caption = "Two App Server instances take 3,000 requests a second and ask PostgreSQL for each one. The database answers fast, so threads free up quickly."
+caption_es = "Dos instancias de App Server reciben 3000 peticiones por segundo y preguntan a PostgreSQL por cada una. La base de datos responde rápido, así que los hilos se liberan enseguida."
+focus = ["app"]
+run = { preset = "normal" }
+callout = { metric = "p95_ms", after = 27.1 }
+
+[[step]]
+snapshot = "slow-db.kbarch"
+title = "A slow dependency"
+title_es = "Una dependencia lenta"
+caption = "Now each query takes 40 ms. Every request keeps its thread while it waits, the threads run out, and requests queue in front of the App Server even though it is barely computing."
+caption_es = "Ahora cada consulta tarda 40 ms. Cada petición conserva su hilo mientras espera, los hilos se agotan y las peticiones hacen cola delante del App Server aunque apenas esté calculando."
+focus = ["app", "db"]
+run = { preset = "normal" }
+callout = { metric = "p95_ms", before = 27.1, after = 671 }

@@ -1,0 +1,89 @@
+{
+  "schema_version": 2,
+  "id": "concept-lb-two",
+  "name": "Load balancer: two servers",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Visitors",
+      "position": {
+        "x": 130,
+        "y": 0
+      },
+      "props": {
+        "rps": 5000
+      },
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "nginx",
+      "label": "",
+      "position": {
+        "x": 130,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Server A",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {
+        "instances": 1
+      },
+      "group_id": null
+    },
+    {
+      "id": "app2",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Server B",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {
+        "instances": 1
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "lb",
+      "to": "app2",
+      "protocol": "http"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

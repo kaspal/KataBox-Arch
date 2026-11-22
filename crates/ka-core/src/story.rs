@@ -50,6 +50,8 @@ pub enum CalloutMetric {
     ErrorRate,
     ThroughputRps,
     CostMonth,
+    /// Async messages that failed every retry with no dead-letter queue (weighted count).
+    Lost,
 }
 
 /// "p95 latency: ~~400 ms~~ 18 ms". `before` is this run on the previous step's design;
