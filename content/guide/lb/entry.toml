@@ -151,3 +151,30 @@ url = "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/"
 flavour = "aws_nlb"
 title = "Network Load Balancer documentation"
 url = "https://docs.aws.amazon.com/elasticloadbalancing/latest/network/"
+
+[[quiz]]
+q = "One of the servers behind a load balancer dies. What happens to requests before the health checks notice?"
+q_es = "Uno de los servidores detrás de un balanceador muere. ¿Qué pasa con las peticiones antes de que lo detecten las comprobaciones de salud?"
+options = ["The balancer reroutes them at once, with no errors", "Those sent to the dead server fail until it is taken out of rotation", "The balancer holds them until the server comes back", "Every server behind the balancer stops taking requests"]
+options_es = ["El balanceador las desvía al momento, sin errores", "Las que se envían al servidor muerto fallan hasta que lo sacan de la rotación", "El balanceador las retiene hasta que vuelve el servidor", "Todos los servidores de detrás dejan de aceptar peticiones"]
+answer = 1
+why = "The balancer only learns a server is dead from failed health checks, so there is a short spell of errors. Spare capacity on the survivors lets them carry the load afterwards."
+why_es = "El balanceador solo sabe que un servidor ha muerto por las comprobaciones de salud fallidas, así que hay un breve periodo de errores. El margen de los supervivientes les permite cargar con el trabajo después."
+
+[[quiz]]
+q = "The balancer uses key hashing on the user id, and one celebrity account gets a flood of requests. What happens?"
+q_es = "El balanceador usa hash por clave sobre el id de usuario, y una cuenta famosa recibe una avalancha de peticiones. ¿Qué pasa?"
+options = ["The load still spreads evenly over all servers", "The balancer switches to round robin by itself", "The server that owns that key overloads while the others sit idle"]
+options_es = ["La carga se sigue repartiendo por igual entre todos los servidores", "El balanceador cambia solo a round robin", "El servidor al que va esa clave se sobrecarga mientras los demás están ociosos"]
+answer = 2
+why = "Hashing pins every request for a key to one server, so a hot key makes a hot server. Use round robin or least connections unless you really need stickiness."
+why_es = "El hash fija todas las peticiones de una clave a un servidor, así que una clave caliente crea un servidor caliente. Usa round robin o menos conexiones salvo que de verdad necesites afinidad."
+
+[[quiz]]
+q = "You run one self-managed balancer in front of ten servers. What is still missing for high availability?"
+q_es = "Tienes un único balanceador gestionado por ti delante de diez servidores. ¿Qué falta todavía para tener alta disponibilidad?"
+options = ["Redundancy for the balancer itself, such as a pair or a managed one that spans zones", "More servers behind it", "A sticky algorithm, so users keep their server", "A shorter proxying time"]
+options_es = ["Redundancia para el propio balanceador, como una pareja o uno gestionado que abarque varias zonas", "Más servidores detrás", "Un algoritmo con afinidad, para que cada usuario conserve su servidor", "Un tiempo de proxy más corto"]
+answer = 0
+why = "A single balancer moves the single point of failure instead of removing it. If it dies, none of the ten servers can be reached."
+why_es = "Un único balanceador mueve el punto único de fallo en lugar de eliminarlo. Si cae, no se puede llegar a ninguno de los diez servidores."

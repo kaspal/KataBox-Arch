@@ -141,3 +141,30 @@ url = "https://developers.cloudflare.com/cache/"
 flavour = "fastly"
 title = "Fastly documentation"
 url = "https://docs.fastly.com/"
+
+[[quiz]]
+q = "Every page depends on the logged-in user's account. How much does a CDN help with those pages?"
+q_es = "Cada página depende de la cuenta del usuario que ha iniciado sesión. ¿Cuánto ayuda una CDN con esas páginas?"
+options = ["A lot: the edge is close to every user", "A lot, as long as the TTL is short", "Little: personal responses must not be cached under a shared key, so they go to the origin", "It halves the origin's load, since every other request hits"]
+options_es = ["Mucho: el borde está cerca de cada usuario", "Mucho, siempre que el TTL sea corto", "Poco: las respuestas personales no deben cachearse con una clave compartida, así que van al origen", "Reduce a la mitad la carga del origen, porque una de cada dos peticiones acierta"]
+answer = 2
+why = "A CDN works for content that is the same for everyone. Caching a personal page under a shared key can show it to someone else, however short the TTL."
+why_es = "Una CDN funciona con contenido igual para todos. Cachear una página personal con una clave compartida puede mostrársela a otra persona, por corto que sea el TTL."
+
+[[quiz]]
+q = "A deploy purges the whole CDN. What happens in the minutes after?"
+q_es = "Un despliegue purga toda la CDN. ¿Qué pasa en los minutos siguientes?"
+options = ["Requests miss until the edge refills, and the origin takes the full load meanwhile", "The edge keeps serving the old copies until their TTL ends", "Users get errors until the edge refills", "Nothing changes for the origin; it only receives the purge request"]
+options_es = ["Las peticiones fallan hasta que el borde se rellena, y mientras tanto el origen carga con todo", "El borde sigue sirviendo las copias antiguas hasta que acaba su TTL", "Los usuarios reciben errores hasta que el borde se rellena", "Nada cambia para el origen; solo recibe la petición de purga"]
+answer = 0
+why = "A purge empties the edge, so every request misses and goes to the origin until the copies are back. Size the origin for that, purge only what changed, or version file names."
+why_es = "Una purga vacía el borde, así que cada petición falla y va al origen hasta que vuelven las copias. Dimensiona el origen para ello, purga solo lo que ha cambiado o pon versión en los nombres de fichero."
+
+[[quiz]]
+q = "The client card is wired both to the CDN and to the load balancer. What does that do to file requests?"
+q_es = "La tarjeta de cliente está conectada a la vez a la CDN y al balanceador. ¿Qué provoca eso en las peticiones de ficheros?"
+options = ["The CDN takes all of them, because it answers faster", "The design gets twice the capacity at no extra cost", "The load balancer caches the files as well", "Part of them skip the edge and land on the origin"]
+options_es = ["La CDN se las lleva todas, porque responde más rápido", "El diseño gana el doble de capacidad sin coste extra", "El balanceador también cachea los ficheros", "Parte de ellas se saltan el borde y llegan al origen"]
+answer = 3
+why = "A client splits its traffic between its wires, so the share sent to the balancer never meets the cache. Wire the client to the CDN alone and let it forward what it cannot cache."
+why_es = "Un cliente reparte su tráfico entre sus cables, así que la parte que va al balanceador nunca pasa por la caché. Conecta el cliente solo a la CDN y deja que reenvíe lo que no puede cachear."

@@ -85,3 +85,30 @@ url = "https://prometheus.io/docs/"
 flavour = "prometheus_grafana"
 title = "Grafana documentation"
 url = "https://grafana.com/docs/grafana/latest/"
+
+[[quiz]]
+q = "Mean latency on the dashboard looks fine, yet some users complain that pages are very slow. What is the likely gap?"
+q_es = "La latencia media del panel parece correcta, pero algunos usuarios se quejan de que las páginas van muy lentas. ¿Cuál es el fallo probable?"
+options = ["The metrics are collected too rarely", "The mean hides a slow tail; record histograms and alert on high percentiles", "Those users are measuring it wrong", "Latency should be tracked in logs instead"]
+options_es = ["Las métricas se recogen con poca frecuencia", "La media esconde una cola lenta; registra histogramas y alerta sobre percentiles altos", "Esos usuarios lo miden mal", "La latencia debería seguirse en los registros"]
+answer = 1
+why = "A small share of very slow requests barely moves the mean. Percentiles such as p99 show what the slowest users actually get."
+why_es = "Una pequeña parte de peticiones muy lentas apenas mueve la media. Percentiles como el p99 muestran lo que reciben de verdad los usuarios más lentos."
+
+[[quiz]]
+q = "You add the user id as a label on a request metric. What happens?"
+q_es = "Añades el id de usuario como etiqueta en una métrica de peticiones. ¿Qué pasa?"
+options = ["Finer dashboards at no extra cost", "The metric moves onto the request path and adds latency", "Nothing: labels are free", "Each user creates a new series, until the metrics store runs out of memory"]
+options_es = ["Paneles más detallados sin coste extra", "La métrica pasa al camino de la petición y añade latencia", "Nada: las etiquetas son gratis", "Cada usuario crea una serie nueva, hasta que el almacén de métricas se queda sin memoria"]
+answer = 3
+why = "Every label value is a separate series. Keep labels to small, fixed sets such as route, status and region, and put per-request detail in logs or traces."
+why_es = "Cada valor de etiqueta es una serie distinta. Limita las etiquetas a conjuntos pequeños y fijos, como ruta, estado y región, y deja el detalle por petición para los registros o las trazas."
+
+[[quiz]]
+q = "Support needs to know exactly what happened to one customer's request yesterday. Where should they look?"
+q_es = "Soporte necesita saber exactamente qué le pasó ayer a la petición de un cliente. ¿Dónde debería mirar?"
+options = ["In logs or traces, since metrics keep only aggregates", "In the latency metric, filtered to yesterday", "In the error-rate alert history", "In the autoscaling metric"]
+options_es = ["En los registros o las trazas, porque las métricas solo guardan agregados", "En la métrica de latencia, filtrada a ayer", "En el historial de alertas de la tasa de errores", "En la métrica del autoescalado"]
+answer = 0
+why = "Metrics store numbers over time, which keeps them cheap but hides the story of any single request. Logs and traces keep that detail."
+why_es = "Las métricas guardan números en el tiempo, lo que las hace baratas pero esconde la historia de cada petición. Los registros y las trazas conservan ese detalle."

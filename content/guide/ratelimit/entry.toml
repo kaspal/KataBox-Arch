@@ -134,3 +134,30 @@ url = "https://www.envoyproxy.io/docs/envoy/latest/"
 flavour = "redis_token_bucket"
 title = "Redis documentation"
 url = "https://redis.io/docs/latest/"
+
+[[quiz]]
+q = "One customer's buggy script floods a shared public API. The limiter keeps one token bucket per API key. What happens?"
+q_es = "El script defectuoso de un cliente inunda una API pública compartida. El limitador tiene una cubeta de tokens por clave de API. ¿Qué pasa?"
+options = ["Every customer is slowed down by the same amount", "Only that key's requests are turned away once its bucket is empty; everyone else is served as usual", "The whole API returns errors until the flood stops", "The extra requests wait in line until new tokens arrive"]
+options_es = ["Todos los clientes se ralentizan por igual", "Solo se rechazan las peticiones de esa clave cuando su cubeta se vacía; los demás se atienden como siempre", "Toda la API devuelve errores hasta que para la avalancha", "Las peticiones sobrantes esperan en fila hasta que llegan tokens nuevos"]
+answer = 1
+why = "Each key drains only its own bucket, so one noisy caller cannot starve the rest. A request with no token is shed at once, not queued."
+why_es = "Cada clave solo vacía su propia cubeta, así que un cliente ruidoso no puede dejar sin servicio al resto. Una petición sin token se descarta al momento, no se encola."
+
+[[quiz]]
+q = "The limit was picked from a real customer's average day. During their busy hour, what does the simulator show?"
+q_es = "El límite se eligió según el día medio de un cliente real. Durante su hora punta, ¿qué muestra el simulador?"
+options = ["Higher latency while requests wait for new tokens", "Nothing bad: everything shed at the limiter counts as a success", "Errors, because shedding a real user's request counts as one", "Only a higher monthly cost"]
+options_es = ["Más latencia mientras las peticiones esperan tokens nuevos", "Nada malo: todo lo que descarta el limitador cuenta como éxito", "Errores, porque descartar una petición de un usuario real cuenta como uno", "Solo un coste mensual más alto"]
+answer = 2
+why = "Only shedding traffic the problem marks as abusive counts as a success. The limit must sit above each real customer's peak, with some burst, but well below a flood."
+why_es = "Solo descartar el tráfico que el problema marca como abusivo cuenta como éxito. El límite debe quedar por encima del pico de cada cliente real, con algo de ráfaga, pero muy por debajo de una avalancha."
+
+[[quiz]]
+q = "What does the burst setting of a token bucket control?"
+q_es = "¿Qué controla el ajuste de ráfaga de una cubeta de tokens?"
+options = ["How many requests a key may send at once after a quiet spell", "The steady rate a key may send over time", "How long a rejected caller must wait before retrying", "How many API keys share one bucket"]
+options_es = ["Cuántas peticiones puede enviar una clave de golpe tras un rato de calma", "El ritmo constante que puede enviar una clave a lo largo del tiempo", "Cuánto debe esperar un cliente rechazado antes de reintentar", "Cuántas claves de API comparten una cubeta"]
+answer = 0
+why = "The burst is the bucket's size. The limit is the refill rate, the steady allowance over time. Each key has its own bucket."
+why_es = "La ráfaga es el tamaño de la cubeta. El límite es el ritmo de recarga, lo permitido de forma constante en el tiempo. Cada clave tiene su propia cubeta."

@@ -113,6 +113,10 @@ pub struct GuideEntry {
     pub interview_tip: String,
     pub interview_tip_es: String,
     pub sources: Vec<Source>,
+    /// Three quick-check questions (M5.5). Never sent to the UI with the entry: the app
+    /// serves them without their answers.
+    #[serde(default)]
+    pub quiz: Vec<crate::quiz::QuizQuestion>,
 }
 
 #[cfg(test)]

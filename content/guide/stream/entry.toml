@@ -142,3 +142,30 @@ url = "https://kafka.apache.org/documentation/"
 flavour = "kinesis"
 title = "Amazon Kinesis Data Streams documentation"
 url = "https://docs.aws.amazon.com/kinesis/"
+
+[[quiz]]
+q = "A stream has 8 partitions and its consumer group has 20 workers, yet the lag keeps growing. What should you change?"
+q_es = "Un stream tiene 8 particiones y su grupo de consumidores tiene 20 workers, pero el retraso sigue creciendo. ¿Qué deberías cambiar?"
+options = ["Add more workers to the group", "Add partitions, since at most one message per partition is with consumers at a time", "Lower the session timeout", "Shorten the retention period"]
+options_es = ["Añadir más workers al grupo", "Añadir particiones, ya que como mucho hay un mensaje por partición con los consumidores a la vez", "Bajar el tiempo de sesión", "Acortar el periodo de retención"]
+answer = 1
+why = "Parallelism is capped by the partition count: here 12 workers sit idle. Only more partitions, with keys spread well over them, let more work happen at once."
+why_es = "El paralelismo está limitado por el número de particiones: aquí 12 workers están ociosos. Solo más particiones, con las claves bien repartidas entre ellas, permiten hacer más trabajo a la vez."
+
+[[quiz]]
+q = "Location updates for each ride must be processed in order. Why use the ride id as the partition key?"
+q_es = "Las actualizaciones de posición de cada viaje deben procesarse en orden. ¿Por qué usar el id del viaje como clave de partición?"
+options = ["It spreads each ride's events evenly over all partitions", "It lets each event be acknowledged and retried on its own", "It sets how long the events are kept", "Events with the same key always land in the same partition, which keeps them in order"]
+options_es = ["Reparte los eventos de cada viaje por igual entre todas las particiones", "Permite confirmar y reintentar cada evento por separado", "Fija cuánto tiempo se guardan los eventos", "Los eventos con la misma clave caen siempre en la misma partición, lo que los mantiene en orden"]
+answer = 3
+why = "A stream only keeps order within a partition, so the key must group the events whose order matters. Pick one with many values, or one busy value makes a hot partition."
+why_es = "Un stream solo mantiene el orden dentro de una partición, así que la clave debe agrupar los eventos cuyo orden importa. Elige una con muchos valores, o un valor muy activo crea una partición caliente."
+
+[[quiz]]
+q = "When is a plain queue a better fit than a stream?"
+q_es = "¿Cuándo encaja mejor una cola sencilla que un stream?"
+options = ["Several independent systems need the same events", "Consumers must be able to replay last week's events", "Independent jobs each need their own retries, and one slow job must not hold up the others", "A high, steady volume of small events such as clicks"]
+options_es = ["Varios sistemas independientes necesitan los mismos eventos", "Los consumidores deben poder volver a leer los eventos de la semana pasada", "Tareas independientes necesitan cada una sus propios reintentos, y una tarea lenta no debe frenar a las demás", "Un volumen alto y constante de eventos pequeños, como clics"]
+answer = 2
+why = "In a stream, consumers read each partition in order, so one slow or failing message holds up those behind it. A queue hands out each job on its own, with its own acknowledgement and retries."
+why_es = "En un stream los consumidores leen cada partición en orden, así que un mensaje lento o fallido frena a los que vienen detrás. Una cola entrega cada tarea por separado, con su propia confirmación y sus reintentos."

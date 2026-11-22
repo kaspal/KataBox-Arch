@@ -52,3 +52,30 @@ practice = []
 
 in_simulator = "Mostly: the database publishes each committed change to the stream on its CDC edge (the relay), so a write that fails publishes nothing. While the stream is down, changes wait in the database log and go out in order when it is back; changes older than the database's CDC buffer are lost. Duplicate delivery to consumers is not modelled."
 in_simulator_es = "Casi todo: la base de datos publica cada cambio confirmado en el stream por su enlace CDC (el reenvío), así que una escritura que falla no publica nada. Mientras el stream está caído, los cambios esperan en el registro de la base de datos y salen en orden cuando vuelve; los cambios más antiguos que el búfer CDC de la base de datos se pierden. La entrega duplicada a los consumidores no se modela."
+
+[[quiz]]
+q = "What failure does the transactional outbox prevent?"
+q_es = "¿Qué fallo evita el outbox transaccional?"
+options = ["A slow broker making every request wait", "A change committed to the database whose event is never published because the service crashed in between", "Two services writing the same row at the same time", "Consumers receiving the same event twice"]
+options_es = ["Que un broker lento haga esperar a cada petición", "Un cambio confirmado en la base de datos cuyo evento nunca se publica porque el servicio cayó entre medias", "Que dos servicios escriban la misma fila a la vez", "Que los consumidores reciban el mismo evento dos veces"]
+answer = 1
+why = "The change and its outbox row are saved in one local transaction, so if the change is committed its event is too, and the relay publishes it later."
+why_es = "El cambio y su fila de outbox se guardan en una sola transacción local, así que si el cambio se confirma, su evento también, y el reenvío lo publica después."
+
+[[quiz]]
+q = "Why must consumers of an outbox relay be idempotent?"
+q_es = "¿Por qué los consumidores de un reenvío de outbox deben ser idempotentes?"
+options = ["The relay sends every event to every consumer twice on purpose", "Events can arrive out of commit order", "Events are sometimes dropped and must be guessed", "The relay can publish an event, crash before marking it sent, and publish it again"]
+options_es = ["El reenvío manda cada evento dos veces a propósito", "Los eventos pueden llegar fuera del orden de confirmación", "A veces los eventos se pierden y hay que adivinarlos", "El reenvío puede publicar un evento, caer antes de marcarlo como enviado y publicarlo otra vez"]
+answer = 3
+why = "Delivery is at least once: a crash between publishing and marking the row means a repeat on restart, so consumers remember the ids they have processed."
+why_es = "La entrega es al menos una vez: una caída entre publicar y marcar la fila provoca una repetición al reiniciar, así que los consumidores recuerdan los ids que ya han procesado."
+
+[[quiz]]
+q = "The broker is down for a few minutes while the database is up. What happens to new changes in an outbox design?"
+q_es = "El broker está caído unos minutos mientras la base de datos funciona. ¿Qué pasa con los cambios nuevos en un diseño con outbox?"
+options = ["They are committed with their outbox rows and published in order once the broker is back", "The writes fail, because the transaction includes the broker", "The changes are saved but their events are lost for good", "The service blocks each request until the broker answers"]
+options_es = ["Se confirman con sus filas de outbox y se publican en orden cuando vuelve el broker", "Las escrituras fallan, porque la transacción incluye al broker", "Los cambios se guardan pero sus eventos se pierden para siempre", "El servicio bloquea cada petición hasta que el broker responde"]
+answer = 0
+why = "The request only touches the database, so it does not wait for the broker; the relay drains the waiting outbox rows in commit order when the broker returns."
+why_es = "La petición solo toca la base de datos, así que no espera al broker; el reenvío vacía las filas de outbox pendientes en orden de confirmación cuando vuelve el broker."

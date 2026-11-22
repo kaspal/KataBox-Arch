@@ -4,7 +4,7 @@ import { vi } from "vitest";
 import type { FlawSummary, PathView, AppError, Design, JsonValue, OpenedDesign, ProblemBrief, RecentEntry, Registry, RunControl, SubmissionSummary, SubmitResult } from "@/bindings";
 import { FAKE_BRIEF, FAKE_REFERENCE, fakeJudgement } from "@/test/fakeProblems";
 import { FAKE_SAMPLE, FAKE_SAMPLE_SUMMARY } from "@/test/fakeSamples";
-import { FAKE_DRILLS, FAKE_FLOW, FAKE_GUIDE, FAKE_NUMBERS, FAKE_PATTERN, FAKE_TEMPLATE, FAKE_TERMS } from "@/test/fakeGuide";
+import { FAKE_DRILLS, FAKE_QUIZ, FAKE_FLOW, FAKE_GUIDE, FAKE_NUMBERS, FAKE_PATTERN, FAKE_TEMPLATE, FAKE_TERMS } from "@/test/fakeGuide";
 import type { Api, RunOptions } from "@/lib/api";
 import fixture from "@/test/fixtures/registry.json";
 
@@ -16,6 +16,8 @@ const err = (code: AppError["code"], message = code): AppError => ({ code, messa
 
 export type FakeOptions = {
   settings?: Record<string, JsonValue>;
+  /** Quiz questions already due for review (ids). */
+  due?: string[];
   /** Files "on disk", by path. */
   files?: Record<string, Design>;
   recent?: RecentEntry[];
@@ -50,6 +52,7 @@ export function createFakeApi(opts: FakeOptions = {}) {
   const submitted: SubmissionSummary[] = [];
   const read = new Set<string>();
   const estimates = new Map<string, { tries: number; done: boolean }>();
+  const due = new Set<string>(opts.due ?? []);
 
   const touch = (path: string, name: string) => {
     recent = [{ path, name, opened_at: 1_700_000_000_000 + recent.length, exists: true }, ...recent.filter((r) => r.path !== path)];
@@ -207,6 +210,22 @@ export function createFakeApi(opts: FakeOptions = {}) {
       { id: "async-systems", number: 2, title: "Async systems", title_es: "Sistemas asíncronos", blurb: "Queues.", blurb_es: "Colas.", items: [{ kind: "guide", target: "queue", title: null, title_es: null, done: false }] },
     ]),
     setConceptPlayed: vi.fn(async () => {}),
+    quiz: vi.fn(async (page: string) =>
+      FAKE_QUIZ.map((q, i) => ({ id: `${page}:${i + 1}`, q: q.q, q_es: q.q_es, options: q.options, options_es: q.options_es })),
+    ),
+    answerQuiz: vi.fn(async (questionId: string, choice: number) => {
+      const q = FAKE_QUIZ[Number(questionId.split(":").pop()) - 1];
+      if (!q) throw err("not_found");
+      const correct = choice === q.answer;
+      if (!correct) due.add(questionId);
+      return { correct, answer: q.answer, why: q.why, why_es: q.why_es, due_on: correct ? null : "2026-11-23" };
+    }),
+    reviewsDue: vi.fn(async () =>
+      [...due].map((id) => {
+        const q = FAKE_QUIZ[Number(id.split(":").pop()) - 1]!;
+        return { id, q: q.q, q_es: q.q_es, options: q.options, options_es: q.options_es };
+      }),
+    ),
     listFlaws: vi.fn(async (): Promise<FlawSummary[]> => [
       { id: "cache-no-ttl", number: 1, title: "A cache that never forgets", title_es: "Una caché que nunca olvida", kinds: ["cache"], solved: false },
       { id: "single-primary", number: 2, title: "One database, no plan B", title_es: "Una base de datos, sin plan B", kinds: ["sql"], solved: true },

@@ -38,8 +38,11 @@ fn bad_content(e: impl std::fmt::Display) -> AppError {
 
 impl App {
     fn pattern_page(&self, row: &ka_store::PatternRow, read: &[String]) -> Result<PatternPage> {
+        let mut entry: PatternEntry = serde_json::from_str(&row.entry).map_err(bad_content)?;
+        // Quiz answers stay in Rust: the questions come through `quiz` without them.
+        entry.quiz.clear();
         Ok(PatternPage {
-            entry: serde_json::from_str(&row.entry).map_err(bad_content)?,
+            entry,
             md_en: row.md_en.clone(),
             md_es: row.md_es.clone(),
             template: crate::kbarch::parse(row.template.as_bytes(), &self.registry)

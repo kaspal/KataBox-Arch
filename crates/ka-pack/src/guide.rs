@@ -126,6 +126,9 @@ pub fn validate_guide(
         let file = format!("{}/entry.toml", g.dir);
         let id = kind_id(e.kind);
         let mut bad = |m: String| issues.push(issue(&file, m));
+        for m in ka_core::quiz::check(&e.quiz) {
+            bad(format!("quiz: {m}"));
+        }
         if g.dir != format!("guide/{id}") {
             bad(format!("kind `{id}` doesn't match its folder"));
         }

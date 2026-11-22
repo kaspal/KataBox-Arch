@@ -154,3 +154,30 @@ url = "https://redis.io/docs/latest/"
 flavour = "memcached"
 title = "Memcached wiki"
 url = "https://github.com/memcached/memcached/wiki"
+
+[[quiz]]
+q = "Every key is about equally likely to be read, and the cache holds only 5% of the data. What hit rate should you expect?"
+q_es = "Todas las claves tienen más o menos la misma probabilidad de leerse, y la caché guarda solo el 5 % de los datos. ¿Qué tasa de aciertos cabe esperar?"
+options = ["High, because a cache always answers from memory", "It depends only on the TTL, not on the traffic", "Low: with no hot keys, a cache has to be nearly as big as the data to help", "High, as long as writes are rare"]
+options_es = ["Alta, porque una caché siempre responde desde memoria", "Depende solo del TTL, no del tráfico", "Baja: sin claves calientes, una caché tiene que ser casi tan grande como los datos para ayudar", "Alta, siempre que haya pocas escrituras"]
+answer = 2
+why = "A cache pays off when a few keys get most of the reads. With uniform traffic, only the share of keys that fits in memory can hit, here about 5%."
+why_es = "Una caché compensa cuando unas pocas claves reciben la mayoría de las lecturas. Con tráfico uniforme solo puede acertar la parte de las claves que cabe en memoria, aquí alrededor del 5 %."
+
+[[quiz]]
+q = "A very popular key expires, and thousands of reads miss and hit the database at the same moment. What eases this?"
+q_es = "Una clave muy popular caduca, y miles de lecturas fallan y llegan a la vez a la base de datos. ¿Qué lo alivia?"
+options = ["Adding memory to the cache", "Coalescing misses for the same key, or staggering the TTLs", "Sending every read straight to the database", "Running the cache on a single thread"]
+options_es = ["Añadir memoria a la caché", "Agrupar los fallos de la misma clave, o escalonar los TTL", "Mandar todas las lecturas directamente a la base de datos", "Ejecutar la caché en un solo hilo"]
+answer = 1
+why = "This is a cache stampede. More memory does not help a key that expired; one fetch per key, or expiries spread over time, spare the database a burst of identical misses."
+why_es = "Es una estampida de caché. Más memoria no ayuda a una clave que ha caducado; una sola carga por clave, o caducidades repartidas en el tiempo, evitan a la base de datos una ráfaga de fallos idénticos."
+
+[[quiz]]
+q = "The cache restarts and comes back empty. What does the database see next?"
+q_es = "La caché se reinicia y vuelve vacía. ¿Qué ve a continuación la base de datos?"
+options = ["The full read load, until the hot keys are cached again", "Only the usual misses, as before the restart", "Only the writes, since reads wait for the cache", "Less traffic, because clients back off during the restart"]
+options_es = ["Toda la carga de lecturas, hasta que las claves calientes vuelven a la caché", "Solo los fallos de siempre, como antes del reinicio", "Solo las escrituras, porque las lecturas esperan a la caché", "Menos tráfico, porque los clientes se retiran durante el reinicio"]
+answer = 0
+why = "A cold cache misses on every read, so the database takes everything until the hot set refills. Size the database for it, add a replica, or warm the hot keys first."
+why_es = "Una caché fría falla en cada lectura, así que la base de datos lo recibe todo hasta que se rellena el conjunto caliente. Dimensiona la base de datos para ello, añade una réplica o precalienta las claves calientes."

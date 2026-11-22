@@ -120,3 +120,30 @@ url = "https://www.elastic.co/docs"
 flavour = "loki"
 title = "Grafana Loki documentation"
 url = "https://grafana.com/docs/loki/latest/"
+
+[[quiz]]
+q = "An alert says the error rate has jumped. What do logs give you that the metric cannot?"
+q_es = "Una alerta dice que la tasa de errores se ha disparado. ¿Qué te dan los registros que la métrica no puede darte?"
+options = ["A cheaper way to count errors per second", "Lower latency for the failing requests", "The full detail of what went wrong in each failing event", "A graph of the error rate over time"]
+options_es = ["Una forma más barata de contar errores por segundo", "Menos latencia para las peticiones que fallan", "El detalle completo de lo que salió mal en cada evento fallido", "Una gráfica de la tasa de errores en el tiempo"]
+answer = 2
+why = "Metrics say that something is wrong; logs say what went wrong. Counts and rates belong in metrics, which are far cheaper."
+why_es = "Las métricas dicen que algo va mal; los registros dicen qué ha ido mal. Los recuentos y las tasas van en métricas, que son mucho más baratas."
+
+[[quiz]]
+q = "Following one failed request through four services means matching log lines by timestamp. What fixes that?"
+q_es = "Seguir una petición fallida a través de cuatro servicios obliga a casar líneas de registro por la hora. ¿Qué lo soluciona?"
+options = ["Logging everything at debug level", "Structured lines that carry a request or trace id", "Keeping the logs for longer", "Writing each service's logs to its own machine"]
+options_es = ["Registrar todo a nivel debug", "Líneas estructuradas que llevan un id de petición o de traza", "Guardar los registros durante más tiempo", "Escribir los registros de cada servicio en su propia máquina"]
+answer = 1
+why = "A shared id on every line ties together the whole story of a request across services. More volume or longer retention does not join the lines."
+why_es = "Un id compartido en cada línea une toda la historia de una petición entre servicios. Más volumen o más retención no unen las líneas."
+
+[[quiz]]
+q = "In the simulator, what does adding a Logs card change?"
+q_es = "En el simulador, ¿qué cambia al añadir una tarjeta de Registros?"
+options = ["Only the monthly cost: logs add no latency and drop no requests", "A little latency on every request that writes a line", "Requests can be dropped when the log store is full", "The error rate goes down, because failures are recorded"]
+options_es = ["Solo el coste mensual: los registros no añaden latencia ni descartan peticiones", "Algo de latencia en cada petición que escribe una línea", "Se pueden descartar peticiones cuando el almacén de registros se llena", "La tasa de errores baja, porque los fallos quedan registrados"]
+answer = 0
+why = "Logs never sit on a request's path, so they cannot slow or drop it. They add their cost, and a problem may require them for a production-ready design."
+why_es = "Los registros nunca están en el camino de una petición, así que no pueden frenarla ni descartarla. Suman su coste, y un problema puede exigirlos para un diseño listo para producción."

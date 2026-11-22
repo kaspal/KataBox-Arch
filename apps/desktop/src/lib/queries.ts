@@ -19,6 +19,8 @@ export const queryKeys = {
   estimateStatuses: ["estimate-statuses"] as const,
   flaws: ["flaws"] as const,
   paths: ["paths"] as const,
+  reviewsDue: ["reviews-due"] as const,
+  quiz: (page: string) => ["quiz", page] as const,
 };
 
 export function useAppInfo() {
@@ -65,6 +67,15 @@ export function useNumbers() {
 /** Every estimation drill (content: never changes while the app runs). */
 export function useDrills() {
   return useQuery({ queryKey: ["drills"], queryFn: () => api.drills(), staleTime: Infinity });
+}
+
+export function useQuiz(page: string) {
+  return useQuery({ queryKey: queryKeys.quiz(page), queryFn: () => api.quiz(page), staleTime: Infinity });
+}
+
+/** Today's due questions (the local date is read when the query runs). */
+export function useReviewsDue() {
+  return useQuery({ queryKey: queryKeys.reviewsDue, queryFn: () => api.reviewsDue(localDay()) });
 }
 
 export function usePaths() {

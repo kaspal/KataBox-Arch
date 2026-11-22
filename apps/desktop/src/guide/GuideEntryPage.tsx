@@ -20,6 +20,7 @@ import { DifficultyBadge, useLocalized } from "@/pages/Problems";
 import { GlyphTile } from "@/solve/icons";
 import { categoryName, flavourName, kindName, kindSpec } from "@/solve/registry";
 import { simLabel, simValue } from "@/guide/values";
+import { QuizBlock } from "@/practice/QuizBlock";
 import { Player } from "@/tour/Player";
 import { DesignThumb } from "@/tour/SamplesPage";
 
@@ -361,6 +362,7 @@ function Entry({ page, registry }: { page: GuidePage; registry: Registry }) {
           </section>
         </aside>
       </div>
+      <QuizBlock page={`guide:${e.kind}`} />
     </div>
   );
 }

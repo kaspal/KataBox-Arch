@@ -56,3 +56,30 @@ practice = [
 
 in_simulator = "Fully: hits, misses, TTL expiry, memory size, cold starts, flushes and stale reads are simulated. Stampede coalescing is not."
 in_simulator_es = "Completamente: se simulan aciertos, fallos, caducidad por TTL, tamaño de memoria, arranques en frío, vaciados y lecturas obsoletas. La agrupación de peticiones ante una estampida no."
+
+[[quiz]]
+q = "With cache-aside, what happens on a cache miss?"
+q_es = "Con cache-aside, ¿qué pasa en un fallo de caché?"
+options = ["The cache fetches the data from the database by itself", "The app reads the database, then stores the answer in the cache", "The request fails until the cache is warmed", "The database pushes the row into the cache"]
+options_es = ["La caché trae los datos de la base de datos por su cuenta", "La aplicación lee la base de datos y luego guarda la respuesta en la caché", "La petición falla hasta que la caché se calienta", "La base de datos empuja la fila a la caché"]
+answer = 1
+why = "In cache-aside the application owns the logic: it checks the cache, reads the database on a miss, and fills the cache with what it read."
+why_es = "En cache-aside la lógica es de la aplicación: mira la caché, lee la base de datos si falla y llena la caché con lo que ha leído."
+
+[[quiz]]
+q = "A user updates a value in the database, but some readers keep seeing the old one. What is the most likely reason?"
+q_es = "Un usuario actualiza un valor en la base de datos, pero algunos lectores siguen viendo el antiguo. ¿Cuál es la causa más probable?"
+options = ["The write was lost because cache-aside writes only to the cache", "The database is serving the old row from its own disk", "Cache-aside always rejects reads during a write", "The cached copy stays until its TTL expires or the app deletes the key"]
+options_es = ["La escritura se perdió porque cache-aside solo escribe en la caché", "La base de datos sirve la fila antigua desde su propio disco", "Cache-aside siempre rechaza las lecturas durante una escritura", "La copia en caché sigue ahí hasta que caduca su TTL o la app borra la clave"]
+answer = 3
+why = "Writes go to the database and leave the cached copy alone, so readers can see stale data until it expires, unless the app deletes the key when it writes."
+why_es = "Las escrituras van a la base de datos y no tocan la copia en caché, así que los lectores pueden ver datos obsoletos hasta que caducan, salvo que la app borre la clave al escribir."
+
+[[quiz]]
+q = "Right after the cache is restarted or flushed, what does the database face?"
+q_es = "Justo después de reiniciar o vaciar la caché, ¿qué le toca a la base de datos?"
+options = ["The full read load, since every read is a miss until the hot keys are back", "Almost nothing, because the cache reloads itself from a snapshot", "Only write traffic, since reads wait for the cache", "Half the usual load, since misses are batched"]
+options_es = ["Toda la carga de lectura, porque cada lectura falla hasta que vuelven las claves calientes", "Casi nada, porque la caché se recarga sola desde una instantánea", "Solo tráfico de escritura, porque las lecturas esperan a la caché", "La mitad de la carga habitual, porque los fallos se agrupan"]
+answer = 0
+why = "The cache only fills with keys someone asked for, so a cold cache sends every read to the database until the hot keys are cached again."
+why_es = "La caché solo se llena con las claves que alguien ha pedido, así que una caché fría manda cada lectura a la base de datos hasta que las claves calientes vuelven a estar en caché."

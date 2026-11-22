@@ -334,6 +334,39 @@ async setConceptPlayed(kind: ComponentKind) : Promise<Result<null, AppError>> {
 }
 },
 /**
+ * A Guide entry's or pattern's quiz (`guide:<kind>` / `pattern:<id>`), without answers.
+ */
+async quiz(page: string) : Promise<Result<QuizItem[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("quiz", { page }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Answer a quiz question; `today` is the user's local date (`YYYY-MM-DD`).
+ */
+async answerQuiz(questionId: string, choice: number, today: string) : Promise<Result<QuizResult, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("answer_quiz", { questionId, choice, today }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * The questions due for review today (at most 10), in review order.
+ */
+async reviewsDue(today: string) : Promise<Result<QuizItem[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("reviews_due", { today }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * The pattern library, in order (each with its template for the preview).
  */
 async listPatterns() : Promise<Result<PatternSummary[], AppError>> {
@@ -825,7 +858,12 @@ formula: string; formula_es: string; flavours_compared?: FlavoursCompared | null
 /**
  * Problem ids where this kind is a key move.
  */
-practice?: string[]; interview_tip: string; interview_tip_es: string; sources: Source[] }
+practice?: string[]; interview_tip: string; interview_tip_es: string; sources: Source[]; 
+/**
+ * Three quick-check questions (M5.5). Never sent to the UI with the entry: the app
+ * serves them without their answers.
+ */
+quiz?: QuizQuestion[] }
 /**
  * A whole entry: the structured fields, the prose in both languages and the read mark.
  */
@@ -1026,7 +1064,11 @@ practice?: string[];
 /**
  * How much of it the simulator shows ("Fully", "Partly: …"): honest about what is modelled.
  */
-in_simulator: string; in_simulator_es: string }
+in_simulator: string; in_simulator_es: string; 
+/**
+ * Three quick-check questions (M5.5), served without their answers.
+ */
+quiz?: QuizQuestion[] }
 export type PatternPage = { entry: PatternEntry; md_en: string; md_es: string; template: Design; read: boolean }
 export type PatternSummary = { id: string; number: number; title: string; title_es: string; one_liner: string; one_liner_es: string; kinds: ComponentKind[]; template: Design; read: boolean }
 export type Percentiles = { p50_ms: number; p95_ms: number; p99_ms: number }
@@ -1105,6 +1147,34 @@ export type PropValue = number | boolean | string
  * sync calls solid, async messages dashed, replication dotted.
  */
 export type Protocol = "http" | "grpc" | "ws" | "query" | "publish" | "consume" | "replicate"
+/**
+ * A question as the UI gets it before answering: no answer, no explanation.
+ */
+export type QuizItem = { 
+/**
+ * `guide:<kind>:<n>` or `pattern:<id>:<n>` (n = 1..=3).
+ */
+id: string; q: string; q_es: string; options: string[]; options_es: string[] }
+/**
+ * One question as written in content.
+ */
+export type QuizQuestion = { q: string; q_es: string; 
+/**
+ * Three or four options; `answer` is the index of the right one.
+ */
+options: string[]; options_es: string[]; answer: number; 
+/**
+ * Why the answer is right (shown after answering).
+ */
+why: string; why_es: string }
+/**
+ * What answering returns.
+ */
+export type QuizResult = { correct: boolean; answer: number; why: string; why_es: string; 
+/**
+ * When the question comes back for review (`YYYY-MM-DD`); None if it won't.
+ */
+due_on: string | null }
 /**
  * A recent file, and whether it is still on disk.
  */

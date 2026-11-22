@@ -53,3 +53,30 @@ practice = [
 
 in_simulator = "Fully: reads spread over healthy members, writes go to the primary, replication lag produces stale reads, and a dead primary fails over to the next replica after its failover time."
 in_simulator_es = "Completamente: las lecturas se reparten entre los miembros sanos, las escrituras van a la principal, el retraso de replicación produce lecturas obsoletas y una principal caída pasa a la siguiente réplica tras su tiempo de failover."
+
+[[quiz]]
+q = "Your database is saturated by writes. Will adding read replicas fix it?"
+q_es = "Tu base de datos está saturada por las escrituras. ¿La arreglará añadir réplicas de lectura?"
+options = ["Yes, each replica takes a share of the writes", "Yes, as long as the replicas are in the same region", "No, because replicas can only be used for backups", "No, every write still goes to the primary"]
+options_es = ["Sí, cada réplica se lleva una parte de las escrituras", "Sí, siempre que las réplicas estén en la misma región", "No, porque las réplicas solo sirven para copias de seguridad", "No, cada escritura sigue yendo a la principal"]
+answer = 3
+why = "Replicas add read capacity only; write capacity does not grow, so a write-bound database needs something like sharding instead."
+why_es = "Las réplicas solo añaden capacidad de lectura; la de escritura no crece, así que una base de datos limitada por escrituras necesita algo como sharding."
+
+[[quiz]]
+q = "A user saves their profile and the next page shows the old version. What is a sensible fix?"
+q_es = "Un usuario guarda su perfil y la página siguiente muestra la versión antigua. ¿Qué arreglo tiene sentido?"
+options = ["Read that user's data from the primary for a short while after they write", "Send all writes to the replicas as well", "Add more replicas so the lag disappears", "Disable replication while the user is active"]
+options_es = ["Leer los datos de ese usuario desde la principal durante un rato después de que escriba", "Enviar también todas las escrituras a las réplicas", "Añadir más réplicas para que desaparezca el retraso", "Desactivar la replicación mientras el usuario está activo"]
+answer = 0
+why = "Replicas are always a little behind, so reading your own write from the primary right after writing avoids the stale view without giving up the replicas."
+why_es = "Las réplicas siempre van un poco por detrás, así que leer tu propia escritura desde la principal justo después evita la vista obsoleta sin renunciar a las réplicas."
+
+[[quiz]]
+q = "When the primary dies and a replica is being promoted, what happens to writes?"
+q_es = "Cuando la principal cae y se está ascendiendo una réplica, ¿qué pasa con las escrituras?"
+options = ["They go to the replicas and are merged later", "They are buffered by the replicas with no loss", "They fail until the promotion finishes", "They keep working as normal, since every replica accepts writes"]
+options_es = ["Van a las réplicas y se fusionan después", "Las réplicas las guardan en un búfer sin perder nada", "Fallan hasta que termina el ascenso", "Siguen funcionando con normalidad, porque cada réplica acepta escrituras"]
+answer = 2
+why = "Only the primary takes writes, so until a replica is promoted they fail; that failover time is part of the availability budget."
+why_es = "Solo la principal recibe escrituras, así que fallan hasta que se asciende una réplica; ese tiempo de failover forma parte del presupuesto de disponibilidad."

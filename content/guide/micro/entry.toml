@@ -115,3 +115,30 @@ fix_es = "Pon tiempos de espera, limita cuántas llamadas pueden esperar a una d
 flavour = "generic"
 title = "Microservice architecture patterns"
 url = "https://microservices.io/"
+
+[[quiz]]
+q = "Which situation argues for a single App Server tier rather than microservices?"
+q_es = "¿Qué situación aconseja una única capa de App Server en lugar de microservicios?"
+options = ["Several teams need to ship their parts on their own schedules", "One feature has far more load than the rest", "One small team owns the product, and the boundaries change every week", "One part needs its own runtime"]
+options_es = ["Varios equipos necesitan publicar sus partes a su propio ritmo", "Una funcionalidad tiene mucha más carga que el resto", "Un equipo pequeño lleva todo el producto, y los límites cambian cada semana", "Una parte necesita su propio entorno de ejecución"]
+answer = 2
+why = "Microservices pay off through independence between teams and parts. With one small team and moving boundaries you would pay the network hops and operational load for none of that."
+why_es = "Los microservicios compensan por la independencia entre equipos y partes. Con un equipo pequeño y límites que se mueven pagarías los saltos de red y la carga operativa sin obtener nada de eso."
+
+[[quiz]]
+q = "Five services share one database and must always be released together. What do you have?"
+q_es = "Cinco servicios comparten una base de datos y siempre hay que publicarlos juntos. ¿Qué tienes?"
+options = ["A distributed monolith: the cost of network hops with none of the independence", "A healthy microservice design, since each has its own code", "Stronger consistency than separate databases could give, at no extra cost"]
+options_es = ["Un monolito distribuido: el coste de los saltos de red sin nada de la independencia", "Un diseño de microservicios sano, porque cada uno tiene su propio código", "Más consistencia de la que darían bases de datos separadas, sin coste extra"]
+answer = 0
+why = "Independence comes from each service owning its data and releasing on its own. Give each service its own data, reached only through its API or events."
+why_es = "La independencia viene de que cada servicio sea dueño de sus datos y se publique por su cuenta. Dale a cada servicio sus propios datos, accesibles solo a través de su API o de sus eventos."
+
+[[quiz]]
+q = "Service A calls B, which calls C, and C slows down. What happens to A and B?"
+q_es = "El servicio A llama a B, que llama a C, y C se vuelve lento. ¿Qué les pasa a A y a B?"
+options = ["Nothing: each service scales on its own", "Their requests hold slots while waiting, so they run out too and the slowness spreads upstream", "They drop the calls to C automatically", "B speeds up to make up for C"]
+options_es = ["Nada: cada servicio escala por su cuenta", "Sus peticiones ocupan huecos mientras esperan, así que también se quedan sin ellos y la lentitud se propaga hacia arriba", "Descartan automáticamente las llamadas a C", "B acelera para compensar a C"]
+answer = 1
+why = "A request keeps its slot until its calls answer, so a slow dependency fills its callers too. Timeouts, limits on waiting calls and failing fast stop the spread."
+why_es = "Una petición conserva su hueco hasta que responden sus llamadas, así que una dependencia lenta llena también a quienes la llaman. Los timeouts, los límites de llamadas en espera y fallar rápido frenan la propagación."

@@ -130,3 +130,30 @@ url = "https://docs.konghq.com/gateway/latest/"
 flavour = "aws_api_gateway"
 title = "Amazon API Gateway documentation"
 url = "https://docs.aws.amazon.com/apigateway/"
+
+[[quiz]]
+q = "During a spike, requests queue at the API gateway while the services behind it sit mostly idle. What is the likely cause?"
+q_es = "Durante un pico, las peticiones se encolan en el API gateway mientras los servicios de detrás están casi ociosos. ¿Cuál es la causa probable?"
+options = ["The services need more instances", "The gateway queues on purpose to protect the services", "The gateway is too small: it has its own capacity and must be sized for the peak like any tier", "DNS is slowing the requests down before the gateway"]
+options_es = ["Los servicios necesitan más instancias", "El gateway encola a propósito para proteger a los servicios", "El gateway es demasiado pequeño: tiene su propia capacidad y hay que dimensionarlo para el pico como cualquier capa", "El DNS frena las peticiones antes del gateway"]
+answer = 2
+why = "Every request passes through the gateway, which handles instances times concurrency at once. When that is too small it becomes the bottleneck for everything behind it."
+why_es = "Cada petición pasa por el gateway, que atiende instancias por concurrencia a la vez. Si eso se queda corto, se convierte en el cuello de botella de todo lo que tiene detrás."
+
+[[quiz]]
+q = "A new rule says orders over a certain amount need a manager's approval. Where should it live?"
+q_es = "Una regla nueva dice que los pedidos por encima de cierto importe necesitan la aprobación de un responsable. ¿Dónde debería vivir?"
+options = ["In a gateway plugin, so every API applies it", "In the order service, keeping the gateway to cross-cutting concerns", "In the gateway's routing table"]
+options_es = ["En un plugin del gateway, para que todas las API la apliquen", "En el servicio de pedidos, dejando al gateway las tareas transversales", "En la tabla de rutas del gateway"]
+answer = 1
+why = "Product rules hidden in the gateway are hard to test, and each change risks every API at once. The gateway should do authentication, routing, quotas and logging."
+why_es = "Las reglas de producto escondidas en el gateway son difíciles de probar, y cada cambio pone en riesgo todas las API a la vez. El gateway debe ocuparse de autenticación, enrutado, cuotas y registros."
+
+[[quiz]]
+q = "In which situation does an API gateway add the least value?"
+q_es = "¿En qué situación aporta menos un API gateway?"
+options = ["Many services sit behind one public API", "Outside developers need API keys and plans", "Every call needs the same authentication and logging", "One app serves everything, and a load balancer already spreads the load"]
+options_es = ["Muchos servicios están detrás de una única API pública", "Desarrolladores externos necesitan claves de API y planes", "Cada llamada necesita la misma autenticación y el mismo registro", "Una sola aplicación lo sirve todo, y un balanceador ya reparte la carga"]
+answer = 3
+why = "With a single app there is nothing to route between and no shared concerns to pull out, so the gateway only adds a hop, processing time and cost."
+why_es = "Con una sola aplicación no hay nada entre lo que enrutar ni tareas comunes que sacar, así que el gateway solo añade un salto, tiempo de proceso y coste."

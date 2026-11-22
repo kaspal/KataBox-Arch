@@ -51,3 +51,30 @@ practice = []
 
 in_simulator = "Not simulated: the engine has no breakers, so a slow dependency still holds the caller's slots until the call answers or the client times out. The template shows where one goes."
 in_simulator_es = "No se simula: el motor no tiene circuit breakers, así que una dependencia lenta sigue ocupando las plazas de quien llama hasta que la llamada responde o el cliente agota su tiempo. La plantilla muestra dónde iría uno."
+
+[[quiz]]
+q = "What does a circuit breaker do while it is open?"
+q_es = "¿Qué hace un circuit breaker mientras está abierto?"
+options = ["Retries every call against the dependency until it succeeds", "Queues the calls and sends them once the dependency recovers", "Fails calls at once or returns a fallback, without calling the dependency", "Sends the calls to another instance of the caller"]
+options_es = ["Reintenta cada llamada a la dependencia hasta que funcione", "Encola las llamadas y las envía cuando la dependencia se recupera", "Falla las llamadas al momento o devuelve una respuesta de reserva, sin llamar a la dependencia", "Envía las llamadas a otra instancia de quien llama"]
+answer = 2
+why = "Once failures pass the threshold the breaker opens and short-circuits calls, so the caller's threads are freed and the struggling dependency gets room to recover."
+why_es = "Cuando los fallos superan el umbral el breaker se abre y corta las llamadas, así que los hilos de quien llama quedan libres y la dependencia en apuros tiene margen para recuperarse."
+
+[[quiz]]
+q = "What is the half-open state for?"
+q_es = "¿Para qué sirve el estado semiabierto?"
+options = ["Letting half of all traffic through for good", "Letting a few trial calls through to see whether the dependency has recovered", "Logging failures without counting them toward the threshold", "Letting writes through while blocking reads"]
+options_es = ["Dejar pasar la mitad del tráfico para siempre", "Dejar pasar unas pocas llamadas de prueba para ver si la dependencia se ha recuperado", "Registrar los fallos sin contarlos para el umbral", "Dejar pasar las escrituras y bloquear las lecturas"]
+answer = 1
+why = "After a cool-down the breaker probes with a few calls: if they succeed it closes, and if they fail it opens again and waits once more."
+why_es = "Tras un tiempo de espera el breaker prueba con unas pocas llamadas: si funcionan se cierra, y si fallan vuelve a abrirse y espera otra vez."
+
+[[quiz]]
+q = "Why does a breaker still help when there is no useful fallback?"
+q_es = "¿Por qué un breaker sigue ayudando aunque no haya una respuesta de reserva útil?"
+options = ["It repairs the failing dependency automatically", "It guarantees that every request eventually succeeds", "It lowers the latency of the dependency itself", "A fast error frees the caller's threads for the requests that can succeed"]
+options_es = ["Repara automáticamente la dependencia que falla", "Garantiza que toda petición acabe funcionando", "Reduce la latencia de la propia dependencia", "Un error rápido libera los hilos de quien llama para las peticiones que sí pueden funcionar"]
+answer = 3
+why = "Without a breaker, calls to a dead dependency hold threads until they time out and the failure cascades upward; failing fast keeps the caller responsive."
+why_es = "Sin breaker, las llamadas a una dependencia caída retienen hilos hasta el timeout y el fallo se propaga hacia arriba; fallar rápido mantiene a quien llama respondiendo."

@@ -52,3 +52,30 @@ practice = []
 
 in_simulator = "Not simulated: the calls are simulated like any other requests, but the engine has no compensations and no saga state; the template shows where the orchestrator and its log go."
 in_simulator_es = "No se simula: las llamadas se simulan como cualquier otra petición, pero el motor no tiene compensaciones ni estado de saga; la plantilla muestra dónde van el orquestador y su registro."
+
+[[quiz]]
+q = "In a saga, the charge-the-card step succeeded but booking the courier fails. What happens?"
+q_es = "En una saga, el paso de cobrar la tarjeta ha ido bien pero reservar el mensajero falla. ¿Qué ocurre?"
+options = ["A distributed transaction rolls back every service at once", "Compensating actions run for the steps already done, in reverse order", "The card charge is left in place and the order is marked complete", "The saga waits, holding locks in every service, until the courier answers"]
+options_es = ["Una transacción distribuida deshace todos los servicios a la vez", "Se ejecutan acciones de compensación para los pasos ya hechos, en orden inverso", "El cobro se queda como está y el pedido se marca como completo", "La saga espera, con bloqueos en todos los servicios, hasta que responde el mensajero"]
+answer = 1
+why = "Each step commits locally, so there is nothing to roll back; the saga undoes earlier steps with new actions, such as refunding the card and releasing the stock."
+why_es = "Cada paso se confirma localmente, así que no hay nada que deshacer con un rollback; la saga revierte los pasos anteriores con acciones nuevas, como devolver el cobro y liberar el stock."
+
+[[quiz]]
+q = "Why is a compensation not the same as a rollback?"
+q_es = "¿Por qué una compensación no es lo mismo que un rollback?"
+options = ["It is a new action, and others may already have seen the half-finished state", "It is faster, because it skips the database", "It only works if every service shares one database", "It removes all trace that the step ever happened"]
+options_es = ["Es una acción nueva, y otros pueden haber visto ya el estado a medio terminar", "Es más rápida, porque se salta la base de datos", "Solo funciona si todos los servicios comparten una base de datos", "Borra todo rastro de que el paso ocurrió"]
+answer = 0
+why = "Earlier steps really committed: the customer may see the charge before the refund, so the in-between state must be acceptable by design."
+why_es = "Los pasos anteriores se confirmaron de verdad: el cliente puede ver el cobro antes de la devolución, así que el estado intermedio tiene que ser aceptable por diseño."
+
+[[quiz]]
+q = "What is the trade-off between an orchestrated and a choreographed saga?"
+q_es = "¿Cuál es el compromiso entre una saga orquestada y una coreografiada?"
+options = ["Orchestration needs no compensations; choreography does", "Choreography holds locks across services; orchestration does not", "Choreography has no central coordinator, but the flow is harder to follow", "Orchestration only works with a single shared database"]
+options_es = ["La orquestación no necesita compensaciones; la coreografía sí", "La coreografía mantiene bloqueos entre servicios; la orquestación no", "La coreografía no tiene coordinador central, pero el flujo es más difícil de seguir", "La orquestación solo funciona con una única base de datos compartida"]
+answer = 2
+why = "An orchestrator drives the steps and records progress so it can resume after a crash; in choreography each service reacts to the previous event, with no coordinator but a flow spread across services."
+why_es = "Un orquestador dirige los pasos y registra el progreso para poder seguir tras una caída; en la coreografía cada servicio reacciona al evento anterior, sin coordinador pero con el flujo repartido entre servicios."

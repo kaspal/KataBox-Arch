@@ -78,3 +78,30 @@ fix_es = "Guarda todos los errores y las peticiones lentas, y muestrea solo las 
 flavour = "jaeger"
 title = "Jaeger documentation"
 url = "https://www.jaegertracing.io/docs/"
+
+[[quiz]]
+q = "Metrics show that the p99 latency is high for a request that crosses six services. What does tracing add?"
+q_es = "Las métricas muestran que la latencia p99 es alta en una petición que atraviesa seis servicios. ¿Qué aporta el trazado?"
+options = ["A lower p99, because it skips slow calls", "A timeline of single requests across the services, showing which call took the time", "A count of requests per service per second", "Automatic retries of the slow calls"]
+options_es = ["Una p99 más baja, porque se salta las llamadas lentas", "Una línea de tiempo de peticiones concretas a través de los servicios, que muestra qué llamada se llevó el tiempo", "Un recuento de peticiones por servicio y por segundo", "Reintentos automáticos de las llamadas lentas"]
+answer = 1
+why = "Metrics tell you that the tail is slow; a trace joins each service's spans into one timeline and shows where the time went, such as a slow call three hops down. Tracing observes; it doesn't change latency."
+why_es = "Las métricas te dicen que la cola es lenta; una traza une los spans de cada servicio en una sola línea de tiempo y muestra en qué se fue el tiempo, como una llamada lenta tres saltos más abajo. El trazado observa; no cambia la latencia."
+
+[[quiz]]
+q = "In the simulator, what does adding a Tracing card do to the requests in a design?"
+q_es = "En el simulador, ¿qué les hace a las peticiones de un diseño añadir una tarjeta de trazado?"
+options = ["It adds a little time to every request it records", "It drops requests when its backend is full", "Nothing: it is never on a request's path and only adds its monthly cost", "It makes the design cost more the higher the sample rate"]
+options_es = ["Añade algo de tiempo a cada petición que registra", "Descarta peticiones cuando su backend está lleno", "Nada: nunca está en la ruta de una petición y solo suma su coste mensual", "Hace que el diseño cueste más cuanto mayor sea la tasa de muestreo"]
+answer = 2
+why = "Tracing sits off the request path, so it adds no latency and drops nothing. Its price is fixed per month; the sample rate is a design note. A problem may still require it for a production-ready design."
+why_es = "El trazado está fuera de la ruta de las peticiones, así que no añade latencia ni descarta nada. Su precio es fijo al mes; la tasa de muestreo es una nota de diseño. Aun así, un problema puede exigirlo para un diseño listo para producción."
+
+[[quiz]]
+q = "Traces stop at a queue: everything after it shows up as separate, unrelated requests. What is the likely cause?"
+q_es = "Las trazas se cortan en una cola: todo lo que viene después aparece como peticiones distintas y sin relación. ¿Cuál es la causa probable?"
+options = ["The trace context is not carried in the message headers across the queue", "The sample rate is too low", "Tracing can never follow a request through a queue", "The tracing backend ran out of space"]
+options_es = ["El contexto de traza no viaja en las cabeceras de los mensajes a través de la cola", "La tasa de muestreo es demasiado baja", "El trazado nunca puede seguir una petición a través de una cola", "El backend de trazas se quedó sin espacio"]
+answer = 0
+why = "Every hop must pass the trace context along, including through messages. Instrument every service the same way and put the context in message headers. A low sample rate loses whole traces, not their second half."
+why_es = "Cada salto debe pasar el contexto de traza, también a través de los mensajes. Instrumenta todos los servicios igual y pon el contexto en las cabeceras de los mensajes. Una tasa de muestreo baja pierde trazas enteras, no su segunda mitad."

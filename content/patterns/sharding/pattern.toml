@@ -54,3 +54,30 @@ practice = [
 
 in_simulator = "Fully: SQL shards and NoSQL partitions each get their own servers and queue, a key always lands on the same one, and skewed keys make hot shards."
 in_simulator_es = "Completamente: los shards de SQL y las particiones de NoSQL tienen cada uno sus propios servidores y su cola, una clave siempre cae en el mismo, y las claves sesgadas crean shards calientes."
+
+[[quiz]]
+q = "Sharding a messaging app by the date a message was sent. What goes wrong?"
+q_es = "Se hace sharding de una app de mensajería por la fecha de envío del mensaje. ¿Qué sale mal?"
+options = ["Nothing: dates spread load evenly by definition", "Every query must ask all the shards", "Messages from the same day end up on different shards", "All of today's writes land on one hot shard while the others sit idle"]
+options_es = ["Nada: las fechas reparten la carga de forma uniforme por definición", "Cada consulta tiene que preguntar a todos los shards", "Los mensajes del mismo día acaban en shards distintos", "Todas las escrituras de hoy caen en un shard caliente mientras los demás están ociosos"]
+answer = 3
+why = "The shard key decides everything: a key like today's date sends all current traffic to a single shard, which saturates while the rest do nothing."
+why_es = "La clave de shard lo decide todo: una clave como la fecha de hoy manda todo el tráfico actual a un solo shard, que se satura mientras los demás no hacen nada."
+
+[[quiz]]
+q = "When does sharding help where read replicas do not?"
+q_es = "¿Cuándo ayuda el sharding donde las réplicas de lectura no?"
+options = ["When reads must never be stale", "When writes or total data outgrow one primary", "When most queries need to join data across all users", "When the dataset is small but heavily read"]
+options_es = ["Cuando las lecturas nunca pueden estar obsoletas", "Cuando las escrituras o el volumen de datos superan a una principal", "Cuando la mayoría de las consultas cruzan datos de todos los usuarios", "Cuando el conjunto de datos es pequeño pero muy leído"]
+answer = 1
+why = "Each shard owns its own slice with its own servers, so write capacity and storage grow with each shard; replicas only add read capacity."
+why_es = "Cada shard es dueño de su parte con sus propios servidores, así que la capacidad de escritura y el almacenamiento crecen con cada shard; las réplicas solo añaden capacidad de lectura."
+
+[[quiz]]
+q = "What becomes harder once the data is sharded by user id?"
+q_es = "¿Qué se vuelve más difícil una vez que los datos están repartidos en shards por id de usuario?"
+options = ["Queries and transactions that span many users, which must ask every shard and merge", "Reading one user's own data", "Writing a new record for a single user", "Backing up each shard on its own"]
+options_es = ["Las consultas y transacciones que abarcan muchos usuarios, que deben preguntar a cada shard y combinar", "Leer los datos de un solo usuario", "Escribir un registro nuevo para un solo usuario", "Hacer copia de seguridad de cada shard por separado"]
+answer = 0
+why = "Work for one key goes to one shard, but anything across keys must fan out to every shard and merge the answers, and cross-shard transactions are slow or impossible."
+why_es = "El trabajo de una clave va a un solo shard, pero lo que cruza claves debe preguntar a todos los shards y combinar las respuestas, y las transacciones entre shards son lentas o imposibles."

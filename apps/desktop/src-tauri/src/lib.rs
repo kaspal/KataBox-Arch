@@ -354,6 +354,35 @@ async fn set_concept_played(state: State<'_, AppState>, kind: ka_core::Component
     state.app()?.set_concept_played(kind).await
 }
 
+/// A Guide entry's or pattern's quiz (`guide:<kind>` / `pattern:<id>`), without answers.
+#[tauri::command]
+#[specta::specta]
+async fn quiz(state: State<'_, AppState>, page: String) -> Res<Vec<ka_core::quiz::QuizItem>> {
+    state.app()?.quiz(&page).await
+}
+
+/// Answer a quiz question; `today` is the user's local date (`YYYY-MM-DD`).
+#[tauri::command]
+#[specta::specta]
+async fn answer_quiz(
+    state: State<'_, AppState>,
+    question_id: String,
+    choice: u32,
+    today: String,
+) -> Res<ka_core::quiz::QuizResult> {
+    state.app()?.answer_quiz(&question_id, choice, &today).await
+}
+
+/// The questions due for review today (at most 10), in review order.
+#[tauri::command]
+#[specta::specta]
+async fn reviews_due(
+    state: State<'_, AppState>,
+    today: String,
+) -> Res<Vec<ka_core::quiz::QuizItem>> {
+    state.app()?.reviews_due(&today, 10).await
+}
+
 /// The pattern library, in order (each with its template for the preview).
 #[tauri::command]
 #[specta::specta]
@@ -536,6 +565,9 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         list_flaws,
         learning_paths,
         set_concept_played,
+        quiz,
+        answer_quiz,
+        reviews_due,
         list_patterns,
         pattern,
         set_pattern_read,

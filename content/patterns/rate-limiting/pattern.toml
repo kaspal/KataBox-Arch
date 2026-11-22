@@ -55,3 +55,30 @@ practice = [
 
 in_simulator = "Fully: a token bucket per API key with the card's limit and burst; shedding abusive traffic counts as success, and shedding legitimate traffic counts as an error."
 in_simulator_es = "Completamente: un token bucket por clave de API con el límite y la ráfaga de la tarjeta; descartar tráfico abusivo cuenta como éxito, y descartar tráfico legítimo cuenta como error."
+
+[[quiz]]
+q = "In a token bucket, what do the refill rate and the bucket size control?"
+q_es = "En un token bucket, ¿qué controlan la tasa de recarga y el tamaño del cubo?"
+options = ["The refill rate sets the burst size; the bucket size sets the long-run limit", "Both set how many callers may connect at once", "The refill rate sets the long-run limit; the bucket size sets how big a burst is allowed", "The refill rate sets the retry delay; the bucket size sets the timeout"]
+options_es = ["La tasa de recarga fija el tamaño de la ráfaga; el tamaño del cubo fija el límite a largo plazo", "Las dos fijan cuántos clientes pueden conectarse a la vez", "La tasa de recarga fija el límite a largo plazo; el tamaño del cubo fija cuánta ráfaga se permite", "La tasa de recarga fija el tiempo entre reintentos; el tamaño del cubo fija el timeout"]
+answer = 2
+why = "Tokens refill at a steady rate up to the bucket's maximum, so the rate caps sustained traffic while a full bucket lets a short burst through."
+why_es = "Los tokens se recargan a ritmo constante hasta el máximo del cubo, así que la tasa limita el tráfico sostenido y un cubo lleno deja pasar una ráfaga corta."
+
+[[quiz]]
+q = "Why should the limiter refuse excess requests before any real work is done?"
+q_es = "¿Por qué el limitador debe rechazar el exceso antes de hacer ningún trabajo real?"
+options = ["Refusing early is what makes the limit cheap and protects the backend", "So the request can be retried on another backend", "Because rejected requests are automatically queued for later", "To make sure abusive callers are charged for the work"]
+options_es = ["Rechazar pronto es lo que hace barato el límite y protege al backend", "Para que la petición pueda reintentarse en otro backend", "Porque las peticiones rechazadas se encolan solas para más tarde", "Para asegurarse de cobrar el trabajo a los clientes abusivos"]
+answer = 0
+why = "If the excess is cut off at the front, abusive traffic costs almost nothing and the backend only sees the load it was sized for."
+why_es = "Si el exceso se corta en la entrada, el tráfico abusivo casi no cuesta nada y el backend solo ve la carga para la que está dimensionado."
+
+[[quiz]]
+q = "How does rate limiting differ from backpressure?"
+q_es = "¿En qué se diferencia la limitación de tasa del backpressure?"
+options = ["Rate limiting only works inside a single process", "Rate limiting caps each caller's share up front; backpressure reacts when a stage falls behind", "They are the same thing under two names", "Backpressure refuses requests per API key; rate limiting bounds queue depth"]
+options_es = ["La limitación de tasa solo funciona dentro de un único proceso", "La limitación de tasa pone un tope a la parte de cada cliente de antemano; el backpressure reacciona cuando una etapa se queda atrás", "Son lo mismo con dos nombres", "El backpressure rechaza peticiones por clave de API; la limitación de tasa acota la profundidad de las colas"]
+answer = 1
+why = "A rate limiter enforces a fair quota per caller whether or not the system is struggling; backpressure pushes back on whoever is upstream when a stage is full."
+why_es = "Un limitador impone una cuota justa por cliente esté o no el sistema en apuros; el backpressure frena a quien esté antes cuando una etapa se llena."

@@ -142,3 +142,30 @@ url = "https://docs.aws.amazon.com/lambda/"
 flavour = "cloud_run"
 title = "Cloud Run documentation"
 url = "https://cloud.google.com/run/docs"
+
+[[quiz]]
+q = "A service gets high, steady traffic all day long. Why might always-on servers beat serverless here?"
+q_es = "Un servicio recibe tráfico alto y constante todo el día. ¿Por qué aquí los servidores siempre encendidos podrían ganar a serverless?"
+options = ["Serverless cannot scale to that much traffic", "At high, steady load, paying per request costs more than servers that stay busy", "Always-on servers have no concurrency limit at all", "Serverless functions cannot call a database"]
+options_es = ["Serverless no puede escalar a tanto tráfico", "Con carga alta y constante, pagar por petición cuesta más que unos servidores que siempre están ocupados", "Los servidores siempre encendidos no tienen ningún límite de concurrencia", "Las funciones serverless no pueden llamar a una base de datos"]
+answer = 1
+why = "Serverless shines when traffic is spiky or low, since idle time costs nothing. When servers would be busy all day anyway, the per-request price becomes the expensive option."
+why_es = "Serverless brilla cuando el tráfico va a picos o es bajo, porque el tiempo ocioso no cuesta nada. Cuando los servidores estarían ocupados todo el día de todos modos, el precio por petición pasa a ser la opción cara."
+
+[[quiz]]
+q = "In the simulator, which request pays the cold start on a Serverless card?"
+q_es = "En el simulador, ¿qué petición paga el arranque en frío en una tarjeta Serverless?"
+options = ["Every request", "Only the very first request of the run", "Any request after a quiet spell, when instances have gone cold", "A request that pushes concurrency above the highest level reached so far"]
+options_es = ["Todas las peticiones", "Solo la primera petición de la ejecución", "Cualquier petición tras un rato de calma, cuando las instancias se han enfriado", "Una petición que lleva la concurrencia por encima del máximo alcanzado hasta entonces"]
+answer = 3
+why = "Cold starts happen when a new instance is needed, which the simulator models as concurrency reaching a new high for the run. After that, warm instances stay warm, so the tail spikes when a burst goes past anything seen before."
+why_es = "Los arranques en frío ocurren cuando hace falta una instancia nueva, y el simulador lo modela como la concurrencia alcanzando un nuevo máximo en la ejecución. Después, las instancias calientes siguen calientes, así que la latencia de cola se dispara cuando una ráfaga supera todo lo visto antes."
+
+[[quiz]]
+q = "The database behind a serverless function slows down. What happens to the function?"
+q_es = "La base de datos detrás de una función serverless se ralentiza. ¿Qué le pasa a la función?"
+options = ["Invocations stay busy while they wait, pile up to the concurrency limit, and new requests are throttled", "New requests wait in a long queue until slots free up", "The provider lifts the concurrency limit to absorb the delay", "Nothing, since the function's service time doesn't count its calls"]
+options_es = ["Las invocaciones siguen ocupadas mientras esperan, se acumulan hasta el límite de concurrencia y las peticiones nuevas se rechazan", "Las peticiones nuevas esperan en una cola larga hasta que se liberan huecos", "El proveedor levanta el límite de concurrencia para absorber el retraso", "Nada, porque el tiempo de servicio de la función no cuenta sus llamadas"]
+answer = 0
+why = "Each request holds its slot until its own calls answer, so a slow dependency eats the concurrency. Past the limit there is almost no buffer: requests are throttled and fail."
+why_es = "Cada petición ocupa su hueco hasta que responden sus propias llamadas, así que una dependencia lenta se come la concurrencia. Pasado el límite casi no hay búfer: las peticiones se rechazan y fallan."

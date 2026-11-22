@@ -5,6 +5,8 @@ use ka_core::estimate::{Drill, DrillSet, EstimateCheck};
 use ka_core::flaw::{FlawDoc, FlawSummary, flaw_problem_id};
 use ka_core::numbers::NumberFigure;
 use ka_core::paths::{PathDef, PathItem, PathItemKind, PathView, parse_item};
+use ka_core::quiz::{QuizItem, QuizQuestion, QuizResult, question_id, split_question_id};
+use ka_core::review::{Card, Day, Outcome};
 use ka_store::EstimateStatus;
 
 use crate::{App, AppError, AppErrorCode, Result};
@@ -153,6 +155,163 @@ impl App {
             ref_cost: doc.ref_cost,
             ref_p95_ms: doc.ref_p95_ms,
         })
+    }
+
+    /// A page's quiz questions with their answers (stays in Rust). `page` is
+    /// `guide:<kind>` or `pattern:<id>`.
+    async fn quiz_questions(&self, page: &str) -> Result<Vec<QuizQuestion>> {
+        let not_found = || AppError::new(AppErrorCode::NotFound, format!("quiz {page}"));
+        let content = self.content()?;
+        match page.split_once(':') {
+            Some(("guide", kind)) => {
+                let row = content
+                    .guide_entry(kind)
+                    .await
+                    .map_err(AppError::from)?
+                    .ok_or_else(not_found)?;
+                let e: ka_core::guide::GuideEntry =
+                    serde_json::from_str(&row.entry).map_err(bad_content)?;
+                Ok(e.quiz)
+            }
+            Some(("pattern", id)) => {
+                let row = content
+                    .patterns()
+                    .await
+                    .map_err(AppError::from)?
+                    .into_iter()
+                    .find(|r| r.id == id)
+                    .ok_or_else(not_found)?;
+                let e: ka_core::pattern::PatternEntry =
+                    serde_json::from_str(&row.entry).map_err(bad_content)?;
+                Ok(e.quiz)
+            }
+            _ => Err(not_found()),
+        }
+    }
+
+    fn quiz_item(page: &str, n: usize, q: &QuizQuestion) -> QuizItem {
+        QuizItem {
+            id: question_id(page, n),
+            q: q.q.clone(),
+            q_es: q.q_es.clone(),
+            options: q.options.clone(),
+            options_es: q.options_es.clone(),
+        }
+    }
+
+    /// A page's questions, without their answers.
+    pub async fn quiz(&self, page: &str) -> Result<Vec<QuizItem>> {
+        Ok(self
+            .quiz_questions(page)
+            .await?
+            .iter()
+            .enumerate()
+            .map(|(i, q)| Self::quiz_item(page, i + 1, q))
+            .collect())
+    }
+
+    /// Judge an answer (`choice` is the option's index), record it, and move the question
+    /// through the review queue (ADR 0010). `today` is the user's local date. Once all of a
+    /// page's questions have been answered, the page's quiz counts as done (`quiz` read).
+    pub async fn answer_quiz(&self, id: &str, choice: u32, today: &str) -> Result<QuizResult> {
+        let bad = |m: String| AppError::new(AppErrorCode::InvalidInput, m);
+        let day = Day::parse(today).ok_or_else(|| bad(format!("bad local day {today:?}")))?;
+        let (page, n) = split_question_id(id).ok_or_else(|| bad(format!("bad question {id:?}")))?;
+        let questions = self.quiz_questions(page).await?;
+        let q = questions
+            .get(n - 1)
+            .ok_or_else(|| AppError::new(AppErrorCode::NotFound, format!("question {id}")))?;
+        let correct = choice == q.answer;
+        self.user
+            .record_quiz_attempt(id, correct, today)
+            .await
+            .map_err(AppError::from)?;
+        let card = self
+            .user
+            .review_card(id)
+            .await
+            .map_err(AppError::from)?
+            .and_then(|r| {
+                Some(Card {
+                    step: u8::try_from(r.step).ok()?,
+                    lapses: u32::try_from(r.lapses).ok()?,
+                    due: Day::parse(&r.due_on)?,
+                    last: Day::parse(&r.last_on)?,
+                })
+            });
+        let next = match ka_core::review::answer(card.as_ref(), correct, day) {
+            Outcome::None => None,
+            Outcome::Card(c) => Some(c),
+        };
+        let row = next.as_ref().map(|c| ka_store::ReviewCardRow {
+            question_id: id.to_owned(),
+            step: i64::from(c.step),
+            lapses: i64::from(c.lapses),
+            due_on: c.due.iso(),
+            last_on: c.last.iso(),
+        });
+        self.user
+            .put_review_card(id, row.as_ref())
+            .await
+            .map_err(AppError::from)?;
+        let answered = self
+            .user
+            .answered_questions()
+            .await
+            .map_err(AppError::from)?;
+        if (1..=questions.len()).all(|k| answered.contains(&question_id(page, k))) {
+            self.user
+                .set_read("quiz", page, true)
+                .await
+                .map_err(AppError::from)?;
+        }
+        Ok(QuizResult {
+            correct,
+            answer: q.answer,
+            why: q.why.clone(),
+            why_es: q.why_es.clone(),
+            due_on: next.map(|c| c.due.iso()),
+        })
+    }
+
+    /// The questions due for review on `today`, in review order, at most `limit`.
+    pub async fn reviews_due(&self, today: &str, limit: usize) -> Result<Vec<QuizItem>> {
+        let day = Day::parse(today).ok_or_else(|| {
+            AppError::new(
+                AppErrorCode::InvalidInput,
+                format!("bad local day {today:?}"),
+            )
+        })?;
+        let mut due: Vec<(String, Card, ())> = self
+            .user
+            .review_cards()
+            .await
+            .map_err(AppError::from)?
+            .into_iter()
+            .filter_map(|r| {
+                let card = Card {
+                    step: u8::try_from(r.step).ok()?,
+                    lapses: u32::try_from(r.lapses).ok()?,
+                    due: Day::parse(&r.due_on)?,
+                    last: Day::parse(&r.last_on)?,
+                };
+                (card.due <= day).then_some((r.question_id, card, ()))
+            })
+            .collect();
+        ka_core::review::order(&mut due);
+        let mut out = Vec::new();
+        for (id, _, ()) in due.into_iter().take(limit) {
+            let Some((page, n)) = split_question_id(&id) else {
+                continue;
+            };
+            // Content may have changed since the card was made: skip what's gone.
+            if let Ok(qs) = self.quiz_questions(page).await
+                && let Some(q) = qs.get(n - 1)
+            {
+                out.push(Self::quiz_item(page, n, q));
+            }
+        }
+        Ok(out)
     }
 
     /// Record that a concept card was played to its end (a learning-path item).

@@ -118,3 +118,30 @@ url = "https://docs.aws.amazon.com/route53/"
 flavour = "cloudflare_dns"
 title = "Cloudflare DNS documentation"
 url = "https://developers.cloudflare.com/dns/"
+
+[[quiz]]
+q = "A region fails and you point its DNS record at another region. The record had a one-hour TTL. What do users see?"
+q_es = "Una región cae y apuntas su registro DNS a otra región. El registro tenía un TTL de una hora. ¿Qué ven los usuarios?"
+options = ["Everyone moves to the new region within seconds", "Many keep reaching the dead address until their cached answers expire", "The load balancer tells resolvers to refresh at once", "DNS shows them an error page until the change spreads"]
+options_es = ["Todos pasan a la nueva región en segundos", "Muchos siguen llegando a la dirección caída hasta que caducan sus respuestas en caché", "El balanceador avisa a los resolvers para que se actualicen al momento", "El DNS les muestra una página de error hasta que se propaga el cambio"]
+answer = 1
+why = "Resolvers and clients keep an answer until its TTL ends, sometimes longer. DNS failover is only as fast as those caches expire; fast failover inside a region needs a load balancer with health checks."
+why_es = "Los resolvers y los clientes guardan una respuesta hasta que acaba su TTL, a veces más. El failover por DNS solo es tan rápido como caducan esas cachés; para un failover rápido dentro de una región hace falta un balanceador con comprobaciones de salud."
+
+[[quiz]]
+q = "Your design is too slow under load. Should you look at DNS capacity first?"
+q_es = "Tu diseño va demasiado lento bajo carga. ¿Deberías mirar primero la capacidad del DNS?"
+options = ["Yes: every request triggers a fresh lookup", "Yes: lowering the TTL makes every lookup faster", "No: answers are cached and the service is widely spread, so DNS is almost never the bottleneck"]
+options_es = ["Sí: cada petición provoca una consulta nueva", "Sí: bajar el TTL hace más rápida cada consulta", "No: las respuestas se guardan en caché y el servicio está muy repartido, así que el DNS casi nunca es el cuello de botella"]
+answer = 2
+why = "Most requests never trigger a fresh lookup, and managed DNS has practically unlimited capacity. Look for the bottleneck in the tiers that do real work."
+why_es = "La mayoría de las peticiones nunca provocan una consulta nueva, y un DNS gestionado tiene una capacidad prácticamente ilimitada. Busca el cuello de botella en las capas que hacen trabajo de verdad."
+
+[[quiz]]
+q = "In the simulator, you change a DNS card's TTL from 300 to 30 seconds. What changes in the run?"
+q_es = "En el simulador cambias el TTL de una tarjeta DNS de 300 a 30 segundos. ¿Qué cambia en la ejecución?"
+options = ["Nothing: the TTL is a design note that the run does not model", "Requests get faster, because answers are fresher", "The CDN behind it hits more often", "The DNS card starts dropping lookups"]
+options_es = ["Nada: el TTL es una nota de diseño que la ejecución no modela", "Las peticiones van más rápido, porque las respuestas son más recientes", "La CDN de detrás acierta más a menudo", "La tarjeta DNS empieza a descartar consultas"]
+answer = 0
+why = "The simulator treats DNS as a fast hop with a small lookup time and a per-query price. The TTL records your failover thinking but does not affect the numbers."
+why_es = "El simulador trata el DNS como un salto rápido con un pequeño tiempo de consulta y un precio por consulta. El TTL deja constancia de cómo piensas el failover, pero no afecta a las cifras."

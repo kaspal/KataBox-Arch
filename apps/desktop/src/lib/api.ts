@@ -22,6 +22,8 @@ import {
   type EstimateStatus,
   type FlawSummary,
   type PathView,
+  type QuizItem,
+  type QuizResult,
   type PatternPage,
   type PatternSummary,
   type Sample,
@@ -135,6 +137,12 @@ export const api = {
   listFlaws: (): Promise<FlawSummary[]> => call(commands.listFlaws()),
   /** The learning paths, each item with its progress. */
   learningPaths: (): Promise<PathView[]> => call(commands.learningPaths()),
+  /** A page's quiz (`guide:<kind>` / `pattern:<id>`), without answers. */
+  quiz: (page: string): Promise<QuizItem[]> => call(commands.quiz(page)),
+  /** Answer a question (the option's index); `today` is the local date, YYYY-MM-DD. */
+  answerQuiz: (questionId: string, choice: number, today: string): Promise<QuizResult> => call(commands.answerQuiz(questionId, choice, today)),
+  /** Today's review questions (at most 10), in review order. */
+  reviewsDue: (today: string): Promise<QuizItem[]> => call(commands.reviewsDue(today)),
   /** A concept card was played to its end. */
   setConceptPlayed: (kind: ComponentKind): Promise<void> => call(commands.setConceptPlayed(kind)).then(() => undefined),
   /** The pattern library, in order, each with its template. */
