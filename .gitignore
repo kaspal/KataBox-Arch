@@ -1,0 +1,15 @@
+/target
+node_modules/
+dist/
+apps/desktop/src-tauri/gen/
+*.log
+.DS_Store
+.env*
+!.env.example
+__pycache__/
+*.pyc
+*.tsbuildinfo
+
+# Local only: handoff notes between the planning chat and Claude Code, and per-user Claude settings.
+.handoff/
+.claude/settings.local.json
