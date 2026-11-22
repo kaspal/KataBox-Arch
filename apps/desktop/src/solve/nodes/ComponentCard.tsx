@@ -33,6 +33,7 @@ export const ComponentCard = memo(function ComponentCard({ data, selected }: Nod
   const kind = kindName(t, node.kind);
   const title = node.label.trim() || product;
   const health = useTelemetry((s) => (data.still ? undefined : s.byId[node.id]));
+  // The full stat for the tooltip and screen readers; a short form that fits the card (F5).
   const stat = !health
     ? null
     : health.down
@@ -40,6 +41,14 @@ export const ComponentCard = memo(function ComponentCard({ data, selected }: Nod
       : health.queue > 0
         ? t("canvas.statQueued", { util: health.util, queue: health.queue })
         : t("canvas.statBusy", { util: health.util });
+  const statShort = !health
+    ? null
+    : health.down
+      ? t("canvas.statDown")
+      : health.queue > 0
+        ? t("canvas.statShortQueued", { util: health.util, queue: health.queue })
+        : t("canvas.statShortBusy", { util: health.util });
+  const subtitle = node.label.trim() ? `${product} · ${kind}` : kind;
   return (
     <div
       className={cn(
@@ -58,12 +67,13 @@ export const ComponentCard = memo(function ComponentCard({ data, selected }: Nod
       <GlyphTile icon={spec.icon} category={spec.category} className="size-9 [&_svg]:size-5" />
       <div className="min-w-0 flex-1 leading-tight">
         <div className="truncate font-semibold">{title}</div>
-        <div className="truncate text-xs text-muted-foreground">
-          {node.label.trim() ? `${product} · ${kind}` : kind}
+        <div className="line-clamp-2 break-words text-xs text-muted-foreground" title={subtitle}>
+          {subtitle}
         </div>
         {stat ? (
-          <div className="truncate font-mono text-xs text-muted-foreground" data-testid="card-stat">
-            {stat}
+          <div className="truncate font-mono text-xs text-muted-foreground" data-testid="card-stat" title={stat}>
+            <span aria-hidden>{statShort}</span>
+            <span className="sr-only">{stat}</span>
           </div>
         ) : (
           <div className="font-mono text-xs text-muted-foreground" aria-label={t("canvas.statPending")}>

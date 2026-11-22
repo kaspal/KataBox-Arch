@@ -2,7 +2,7 @@
 // follows a card while it is dragged and its anchors switch sides as the card passes its
 // neighbour. The protocol chip sits at the curve's midpoint (t = 0.5). During a live run with
 // reduced motion (no packets), the chip also shows the connection's throughput.
-import { memo } from "react";
+import { memo, useState } from "react";
 import {
   EdgeLabelRenderer,
   useInternalNode,
@@ -36,6 +36,20 @@ const DASH: Record<ReturnType<typeof protocolStyle>, string | undefined> = {
 
 const ARROW = 9;
 
+/** A chip's width in px, from its text (11 px mono, 8 px padding each side). */
+export function chipWidth(text: string): number {
+  return text.length * 6.7 + 16;
+}
+
+/**
+ * Review F5: a connection shorter than its chip plus 8 px on each side hides the chip until
+ * the connection is hovered, focused or selected, so the chip never sits over cards.
+ * `gap` is the straight distance between the curve's ends.
+ */
+export function chipFits(gap: number, text: string): boolean {
+  return gap >= chipWidth(text) + 16;
+}
+
 export const CurvedEdge = memo(function CurvedEdge({ id, source, target, data, selected }: EdgeProps<CurvedFlowEdge>) {
   const { t, i18n } = useTranslation();
   const reduced = useReducedMotion();
@@ -43,6 +57,7 @@ export const CurvedEdge = memo(function CurvedEdge({ id, source, target, data, s
   const a = useInternalNode(source);
   const b = useInternalNode(target);
   const setSelection = useEditor((s) => s.setSelection);
+  const [hover, setHover] = useState(false);
   if (!a || !b || !data) return null;
   const route = routeEdge(nodeRect(a), nodeRect(b), data.slots);
   const mid = bezierPoint(route, 0.5);
@@ -58,10 +73,20 @@ export const CurvedEdge = memo(function CurvedEdge({ id, source, target, data, s
     rate === undefined
       ? null
       : t("canvas.rate", { rate: new Intl.NumberFormat(i18n.language, { notation: "compact", maximumFractionDigits: 1 }).format(rate) });
+  const gap = Math.hypot(route.p3.x - route.p0.x, route.p3.y - route.p0.y);
+  const shown = chipFits(gap, rateText ? `${label} · ${rateText}` : label) || hover || selected;
   return (
     <>
       {/* A wide invisible stroke makes the curve easy to click. */}
-      <path d={toPath(route)} fill="none" stroke="transparent" strokeWidth={14} className="react-flow__edge-interaction" />
+      <path
+        d={toPath(route)}
+        fill="none"
+        stroke="transparent"
+        strokeWidth={14}
+        className="react-flow__edge-interaction"
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+      />
       <path
         d={toPath(route)}
         fill="none"
@@ -86,7 +111,12 @@ export const CurvedEdge = memo(function CurvedEdge({ id, source, target, data, s
           className={cn(
             "nodrag nopan absolute rounded-full border bg-card px-2 py-0.5 font-mono text-[11px] text-muted-foreground shadow-[0_1px_0_var(--desk)]",
             selected ? "border-primary text-foreground" : "border-border",
+            // A short connection keeps its chip out of the way until it's needed (F5).
+            !shown && "opacity-0 focus-visible:opacity-100",
           )}
+          onMouseEnter={() => setHover(true)}
+          onMouseLeave={() => setHover(false)}
+          data-hidden-chip={shown ? undefined : "true"}
           style={{ transform: `translate(-50%, -50%) translate(${mid.x}px, ${mid.y}px)`, pointerEvents: "all" }}
           onClick={() => setSelection([id])}
           aria-label={t("canvas.edgeLabel", { protocol: label })}

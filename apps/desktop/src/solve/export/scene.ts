@@ -4,6 +4,7 @@
 import type { Design, Registry } from "@/bindings";
 import { assignSlots } from "@/solve/geometry/slots";
 import { routeEdge, toPath, bezierPoint, type Rect } from "@/solve/geometry/routeEdge";
+import { chipFits } from "@/solve/edges/CurvedEdge";
 import { GLYPHS } from "@/solve/glyphs";
 import { kindSpec } from "@/solve/registry";
 import { CARD_H, CARD_W } from "@/solve/store";
@@ -107,10 +108,17 @@ export function designSvg(design: Design, registry: Registry, names: SceneNames,
     const mid = bezierPoint(route, 0.5);
     const text = names.protocol(e.protocol);
     const cw = Math.max(36, text.length * 6.6 + 14);
+    // As on the canvas (F5): a chip that doesn't fit between the cards is left out.
+    const fits = chipFits(Math.hypot(route.p3.x - route.p0.x, route.p3.y - route.p0.y), text);
     out.push(
       `<g data-edge="${esc(e.id)}"><path d="${toPath(route)}" fill="none" stroke="${palette.muted}" stroke-width="1.5"${dash}${arrow}/>`,
-      `<rect x="${(mid.x - cw / 2).toFixed(1)}" y="${(mid.y - 10).toFixed(1)}" width="${cw.toFixed(1)}" height="20" rx="10" fill="${palette.chip}" stroke="${palette.border}"/>`,
-      `<text x="${mid.x.toFixed(1)}" y="${(mid.y + 4).toFixed(1)}" font-size="11" text-anchor="middle" fill="${palette.foreground}" font-family="ui-monospace, 'Cascadia Mono', monospace">${esc(text)}</text></g>`,
+      ...(fits
+        ? [
+            `<rect x="${(mid.x - cw / 2).toFixed(1)}" y="${(mid.y - 10).toFixed(1)}" width="${cw.toFixed(1)}" height="20" rx="10" fill="${palette.chip}" stroke="${palette.border}"/>`,
+            `<text x="${mid.x.toFixed(1)}" y="${(mid.y + 4).toFixed(1)}" font-size="11" text-anchor="middle" fill="${palette.foreground}" font-family="ui-monospace, 'Cascadia Mono', monospace">${esc(text)}</text>`,
+          ]
+        : []),
+      `</g>`,
     );
   }
   // Cards: the glyph tile, the title, and "product · kind".

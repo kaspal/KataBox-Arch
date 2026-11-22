@@ -123,7 +123,9 @@
     "rate": "{{rate}}/s",
     "instances_one": "{{count}} instancia",
     "instances_other": "{{count}} instancias",
-    "edgeAria": "{{protocol}} de {{from}} a {{to}}"
+    "edgeAria": "{{protocol}} de {{from}} a {{to}}",
+    "statShortBusy": "{{util}} %",
+    "statShortQueued": "{{util}} % · c{{queue}}"
   },
   "wiring": {
     "reason": {

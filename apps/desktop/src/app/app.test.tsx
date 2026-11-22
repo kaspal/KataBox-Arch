@@ -327,7 +327,9 @@ describe("live runs", () => {
       act(() => fake().pushFrame(frame()));
       // The app (frame node 1 → card a1) is busy; health refreshes within 100 ms.
       const stats = await screen.findAllByTestId("card-stat");
-      expect(stats.map((s) => s.textContent)).toEqual([expect.stringMatching(/^0% busy/), expect.stringMatching(/^\d+% busy/)]);
+      // The full stat is the tooltip and the screen-reader text; the card shows a short form (F5).
+      expect(stats.map((s) => s.getAttribute("title"))).toEqual([expect.stringMatching(/^0% busy/), expect.stringMatching(/^\d+% busy/)]);
+      expect(stats.map((s) => s.querySelector("[aria-hidden]")?.textContent)).toEqual(["0%", expect.stringMatching(/^\d+%($| · q\d+$)/)]);
       // React Flow draws no edges in jsdom: the chip's number comes from here (checked in the real app).
       expect(useTelemetry.getState().edgeRates.e1).toBeGreaterThan(0);
       act(() => useRun.getState().stop());
