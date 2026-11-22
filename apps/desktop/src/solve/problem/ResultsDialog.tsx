@@ -2,11 +2,15 @@
 // and numbers), the bottleneck of a failing test with "Replay at failure", and a placeholder
 // for the AI review (M4). Every verdict colour comes with an icon and words.
 import { useTranslation } from "react-i18next";
-import { AlertTriangle, CheckCircle2, Lock, RotateCcw, Sparkles, Timer, Wallet, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Lightbulb, Lock, RotateCcw, Sparkles, Timer, Wallet, XCircle } from "lucide-react";
 import type { SubmitResult, TestResult, Verdict } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Markdown } from "@/components/Markdown";
 import { cn } from "@/lib/utils";
+import { CompareButton } from "@/solve/compare/CompareButton";
+import { useUnlockHint } from "@/solve/problem/BriefPanel";
+import { useProblemMode } from "@/solve/problem/context";
 import { flavourName, kindName } from "@/solve/registry";
 import { useEditor } from "@/solve/store";
 
@@ -158,6 +162,7 @@ export function ResultsDialog({
                 <TestRow key={x.id} test={x} onReplay={onReplay} />
               ))}
             </ul>
+            <ResultsExtras accepted={j.verdict === "accepted"} />
             <section className="flex items-start gap-3 rounded-md border border-dashed p-3 text-sm text-muted-foreground" data-testid="ai-review">
               <Sparkles aria-hidden className="mt-0.5 size-4 shrink-0" />
               <p>{t("results.aiLater")}</p>
@@ -169,5 +174,43 @@ export function ResultsDialog({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** On the Solve page: the next hint after a failed submission, and Compare once solved. */
+function ResultsExtras({ accepted }: { accepted: boolean }) {
+  const { t, i18n } = useTranslation();
+  const problem = useProblemMode();
+  const { unlock, busy } = useUnlockHint(problem?.id ?? "");
+  if (!problem) return null;
+  const { brief } = problem;
+  const hints = i18n.language.startsWith("es") ? brief.hints_es : brief.hints_en;
+  const last = hints.at(-1);
+  const offerHint = !accepted && (brief.hints_unlocked < 3 || last);
+  if (!offerHint && !(brief.solved && brief.reference)) return null;
+  return (
+    <div className="space-y-3">
+      {offerHint && (
+        <section className="space-y-2 rounded-md border p-3" data-testid="results-hint">
+          <h3 className="flex items-center gap-2 text-sm font-semibold">
+            <Lightbulb aria-hidden className="size-4" />
+            {t("results.stuck")}
+          </h3>
+          {last && (
+            <div className="text-sm">
+              <div className="mb-1 text-xs font-semibold text-muted-foreground">{t("brief.hint", { n: brief.hints_unlocked })}</div>
+              <Markdown>{last}</Markdown>
+            </div>
+          )}
+          {brief.hints_unlocked < 3 && (
+            <Button variant="outline" size="sm" className="gap-2" disabled={busy} onClick={() => void unlock(brief.hints_unlocked + 1)}>
+              <Lightbulb aria-hidden className="size-4" />
+              {t("brief.showHint", { n: brief.hints_unlocked + 1 })}
+            </Button>
+          )}
+        </section>
+      )}
+      {brief.solved && brief.reference && <CompareButton reference={brief.reference} />}
+    </div>
   );
 }

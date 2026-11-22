@@ -1,8 +1,8 @@
 // An in-memory backend with the same shape as `api`, for UI tests. The registry is the
 // fixture Rust exports (`src/test/fixtures/registry.json`), so tests see the real data.
 import { vi } from "vitest";
-import type { AppError, Design, JsonValue, OpenedDesign, ProblemBrief, RecentEntry, Registry, RunControl, SubmitResult } from "@/bindings";
-import { FAKE_BRIEF, fakeJudgement } from "@/test/fakeProblems";
+import type { AppError, Design, JsonValue, OpenedDesign, ProblemBrief, RecentEntry, Registry, RunControl, SubmissionSummary, SubmitResult } from "@/bindings";
+import { FAKE_BRIEF, FAKE_REFERENCE, fakeJudgement } from "@/test/fakeProblems";
 import type { Api, RunOptions } from "@/lib/api";
 import fixture from "@/test/fixtures/registry.json";
 
@@ -45,6 +45,7 @@ export function createFakeApi(opts: FakeOptions = {}) {
   let hints = 0;
   let draft: Design | null = null;
   let submissionsCount = 0;
+  const submitted: SubmissionSummary[] = [];
 
   const touch = (path: string, name: string) => {
     recent = [{ path, name, opened_at: 1_700_000_000_000 + recent.length, exists: true }, ...recent.filter((r) => r.path !== path)];
@@ -127,6 +128,8 @@ export function createFakeApi(opts: FakeOptions = {}) {
         solved: problemState.status === "solved",
         editorial_en: problemState.status === "solved" ? "## Editorial" : null,
         editorial_es: problemState.status === "solved" ? "## Editorial" : null,
+        reference: problemState.status === "solved" ? FAKE_REFERENCE : null,
+        reference_point: problemState.status === "solved" ? { cost_usd: 1600, p95_ms: 24.5 } : null,
         draft,
       };
     }),
@@ -143,9 +146,21 @@ export function createFakeApi(opts: FakeOptions = {}) {
       const solved = judgement.verdict === "accepted";
       const first = solved && problemState.status !== "solved";
       problemState = { status: solved || problemState.status === "solved" ? "solved" : "attempted", best_score: Math.max(problemState.best_score ?? 0, judgement.score.total), best_cost: null };
-      return { submission_id: ++submissionsCount, judgement, first_solve: first, best_score: problemState.best_score ?? 0 };
+      submitted.unshift({
+        id: ++submissionsCount,
+        problem_id: id,
+        created_at: submissionsCount,
+        verdict: judgement.verdict,
+        score: judgement.score.total,
+        correctness: judgement.score.correctness,
+        cost_score: judgement.score.cost,
+        latency_score: judgement.score.latency,
+        cost_usd: judgement.cost_month,
+        p95_ms: judgement.tests[0].p95_ms,
+      });
+      return { submission_id: submissionsCount, judgement, first_solve: first, best_score: problemState.best_score ?? 0 };
     }),
-    submissions: vi.fn(async () => []),
+    submissions: vi.fn(async () => [...submitted]),
     progress: vi.fn(async () => ({
       easy: { total: 1, attempted: problemState.status === "attempted" ? 1 : 0, solved: problemState.status === "solved" ? 1 : 0 },
       medium: { total: 0, attempted: 0, solved: 0 },

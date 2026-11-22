@@ -153,6 +153,7 @@ fn a_valid_problem_loads_validates_and_builds() {
     let row = &data.problems[0];
     assert_eq!(row.difficulty, "easy");
     assert!(row.ref_cost > 0.0);
+    assert!(row.ref_p95_ms > 0.0);
     assert!(
         data.meta
             .iter()

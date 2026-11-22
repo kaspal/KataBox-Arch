@@ -332,7 +332,8 @@ pub fn validate_problems(problems: &[ProblemDir], registry: &Registry) -> Vec<Is
 }
 
 impl ProblemDir {
-    /// The `content.db` row. `ref_cost` is the reference's monthly cost on the first test.
+    /// The `content.db` row. `ref_cost` and `ref_p95_ms` are the reference's monthly cost and
+    /// p95 on the first test.
     pub fn row(&self, registry: &Registry) -> Result<ka_store::ProblemRow, String> {
         let d = &self.def;
         let first = d.tests.first().ok_or("no tests")?;
@@ -364,6 +365,7 @@ impl ProblemDir {
             )
             .map_err(|e| e.to_string())?,
             ref_cost: run.cost_month,
+            ref_p95_ms: run.latency.p95_ms,
         })
     }
 }

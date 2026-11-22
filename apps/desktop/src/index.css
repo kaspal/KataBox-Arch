@@ -141,6 +141,16 @@
 .kb-canvas.connecting .react-flow__handle {
   opacity: 1;
 }
+/* A read-only view (Compare, the player): nothing reacts to the pointer except the pane,
+   so dragging anywhere pans and nothing can be edited or selected. */
+.kb-readonly .react-flow__node,
+.kb-readonly .react-flow__edge,
+.kb-readonly .react-flow__edgelabel-renderer * {
+  pointer-events: none !important;
+}
+.kb-readonly .react-flow__handle {
+  display: none;
+}
 .kb-canvas .react-flow__minimap {
   background: var(--card);
   border: 1px solid var(--border);

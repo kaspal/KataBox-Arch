@@ -38,7 +38,8 @@ CREATE TABLE problems (
   editorial_en TEXT NOT NULL,
   editorial_es TEXT NOT NULL,
   reference    TEXT NOT NULL,
-  ref_cost     REAL NOT NULL
+  ref_cost     REAL NOT NULL,
+  ref_p95_ms   REAL NOT NULL
 );
 CREATE TABLE guide (
   kind  TEXT PRIMARY KEY,
@@ -98,6 +99,8 @@ pub struct ProblemRow {
     pub reference: String,
     /// The reference design's monthly cost on the problem's first test (for the cost score).
     pub ref_cost: f64,
+    /// The reference's p95 on the first test (ms), for the cost vs speed chart.
+    pub ref_p95_ms: f64,
 }
 
 /// Everything `ka-pack build` writes.
@@ -133,8 +136,8 @@ pub async fn write_content(path: &Path, data: &ContentData) -> Result<()> {
         sqlx::query(
             r#"INSERT INTO problems (id, number, "set", difficulty, title_en, title_es, teaches_en,
                teaches_es, tags, nfr, def, statement_en, statement_es, hints_en, hints_es,
-               editorial_en, editorial_es, reference, ref_cost)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
+               editorial_en, editorial_es, reference, ref_cost, ref_p95_ms)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
         )
         .bind(&p.id)
         .bind(p.number)
@@ -155,6 +158,7 @@ pub async fn write_content(path: &Path, data: &ContentData) -> Result<()> {
         .bind(&p.editorial_es)
         .bind(&p.reference)
         .bind(p.ref_cost)
+        .bind(p.ref_p95_ms)
         .execute(&mut *tx)
         .await?;
     }
@@ -175,7 +179,7 @@ pub struct ContentDb {
 
 const PROBLEM_COLUMNS: &str = r#"id, number, "set", difficulty, title_en, title_es, teaches_en,
     teaches_es, tags, nfr, def, statement_en, statement_es, hints_en, hints_es, editorial_en,
-    editorial_es, reference, ref_cost"#;
+    editorial_es, reference, ref_cost, ref_p95_ms"#;
 
 fn problem_row(r: &sqlx::sqlite::SqliteRow) -> Result<ProblemRow> {
     let json_list = |col: &str| -> Result<Vec<String>> {
@@ -202,6 +206,7 @@ fn problem_row(r: &sqlx::sqlite::SqliteRow) -> Result<ProblemRow> {
         editorial_es: r.try_get("editorial_es")?,
         reference: r.try_get("reference")?,
         ref_cost: r.try_get("ref_cost")?,
+        ref_p95_ms: r.try_get("ref_p95_ms")?,
     })
 }
 
@@ -292,6 +297,7 @@ mod tests {
             editorial_es: "Editorial".into(),
             reference: "{}".into(),
             ref_cost: 1234.5,
+            ref_p95_ms: 42.5,
         }
     }
 

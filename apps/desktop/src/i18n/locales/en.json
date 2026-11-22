@@ -494,7 +494,8 @@
     "hints": "Hints",
     "hint": "Hint {{n}}",
     "showHint": "Show hint {{n}}",
-    "editorial": "Editorial"
+    "editorial": "Editorial",
+    "compare": "Compare"
   },
   "results": {
     "title": "Results",
@@ -518,6 +519,29 @@
       "saturated": "{{name}} saturated from {{at}} s.",
       "queue_overflow": "{{name}} overflowed its queue from {{at}} s.",
       "down": "{{name}} was down from {{at}} s."
-    }
+    },
+    "stuck": "Stuck?"
+  },
+  "compare": {
+    "open": "Compare with reference",
+    "title": "Your design and the reference",
+    "mode": "How to compare",
+    "split": "Side by side",
+    "overlay": "Overlay",
+    "splitHint": "Zooming or panning one side moves both.",
+    "overlayHint": "The reference is drawn faintly behind your design, centred on it.",
+    "yours": "Your design",
+    "reference": "Reference design",
+    "yoursSolid": "Your design: solid",
+    "referenceFaint": "Reference: faint"
+  },
+  "chart": {
+    "yours": "Your accepted submissions",
+    "reference": "Reference",
+    "label": "Cost per month against p95 latency, for your accepted submissions and the reference",
+    "axes": "Across: cost per month. Up: p95 latency on the first test (ms). Lower left is better.",
+    "best": "Your cheapest accepted design: {{cost}} a month at {{p95}} ms p95 ({{n}} accepted).",
+    "referenceAt": "The reference: {{cost}} a month at {{p95}} ms p95.",
+    "empty": "Your accepted submissions will appear here, next to the reference."
   }
 }

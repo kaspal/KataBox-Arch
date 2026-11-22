@@ -77,8 +77,17 @@ pub struct ProblemBrief {
     pub editorial_en: Option<String>,
     pub editorial_es: Option<String>,
     pub reference: Option<Design>,
+    /// The reference's monthly cost and first-test p95, once solved (the cost vs speed chart).
+    pub reference_point: Option<ReferencePoint>,
     pub draft: Option<Design>,
     pub runs: i64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+pub struct ReferencePoint {
+    pub cost_usd: f64,
+    pub p95_ms: f64,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -262,6 +271,10 @@ impl App {
             editorial_en: solved.then(|| row.editorial_en.clone()),
             editorial_es: solved.then(|| row.editorial_es.clone()),
             reference,
+            reference_point: solved.then_some(ReferencePoint {
+                cost_usd: row.ref_cost,
+                p95_ms: row.ref_p95_ms,
+            }),
             draft,
             runs: self.user.run_count(id).await.map_err(store)?,
         })
@@ -506,6 +519,7 @@ error_rate = 0.001
             editorial_es: "Editorial".into(),
             reference,
             ref_cost: 500.0,
+            ref_p95_ms: 30.0,
         };
         let content = dir.join("content.db");
         ka_store::write_content(
@@ -539,6 +553,7 @@ error_rate = 0.001
         assert_eq!(brief.hints_unlocked, 0);
         assert!(brief.hints_en.is_empty());
         assert!(brief.reference.is_none() && brief.editorial_en.is_none());
+        assert!(brief.reference_point.is_none());
         // The brief carries no hidden-test definition.
         let json = serde_json::to_string(&brief).unwrap();
         assert!(!json.contains("chaos") && !json.contains("latency"));
@@ -567,6 +582,13 @@ error_rate = 0.001
         let brief = app.problem_brief("demo").await.unwrap();
         assert!(brief.solved);
         assert!(brief.editorial_en.is_some() && brief.reference.is_some());
+        assert_eq!(
+            brief.reference_point,
+            Some(ReferencePoint {
+                cost_usd: 500.0,
+                p95_ms: 30.0
+            })
+        );
         let list = app.list_problems().await.unwrap();
         assert_eq!(list[0].status.as_deref(), Some("solved"));
         assert!(list[0].best_cost.is_some());

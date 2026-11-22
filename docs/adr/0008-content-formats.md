@@ -47,8 +47,9 @@ are written by people, reviewed in pull requests, shipped inside the app, and re
   gitignored. The CSP and capabilities are untouched.
 - **Metadata:** `meta` records the content hash (SHA-256 over every file, in path order), the schema and the app
   version.
-- **`ref_cost`:** each problem's row stores the reference design's monthly cost on the first test, for the cost
-  score (ADR 0007).
+- **`ref_cost` and `ref_p95_ms`:** each problem's row stores the reference design's monthly cost and p95 on the
+  first test. The cost feeds the cost score (ADR 0007); both place the reference on the cost vs speed chart, which
+  the brief sends only once the problem is solved, with the reference design.
 - **Hidden tests stay in Rust.** A problem's full definition (`def`) is read by Rust only: the UI receives hidden
   tests by name, never their traffic or chaos.
 

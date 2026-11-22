@@ -9,8 +9,10 @@ import { useReportError } from "@/app/dialogs";
 import { Markdown } from "@/components/Markdown";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
-import { queryKeys } from "@/lib/queries";
+import { queryKeys, useSubmissions } from "@/lib/queries";
 import { DifficultyBadge, StatusMark, useLocalized } from "@/pages/Problems";
+import { CompareButton } from "@/solve/compare/CompareButton";
+import { CostSpeedChart } from "@/solve/problem/CostSpeedChart";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -30,29 +32,34 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function BriefPanel({ brief }: { brief: ProblemBrief }) {
-  const { t, i18n } = useTranslation();
-  const loc = useLocalized();
+/** Reveal hint `tier` of problem `id` (recorded in Rust), then refresh the brief. */
+export function useUnlockHint(id: string) {
   const report = useReportError();
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
-  const p = brief.summary;
-  const n0 = new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 0 });
-  const pct = new Intl.NumberFormat(i18n.language, { style: "percent", maximumFractionDigits: 2 });
-  const usd = new Intl.NumberFormat(i18n.language, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
-  const hints = loc.es ? brief.hints_es : brief.hints_en;
-
   const unlock = async (tier: number) => {
     setBusy(true);
     try {
-      await api.unlockHint(p.id, tier);
-      await qc.invalidateQueries({ queryKey: queryKeys.brief(p.id) });
+      await api.unlockHint(id, tier);
+      await qc.invalidateQueries({ queryKey: queryKeys.brief(id) });
     } catch (e) {
       report(e);
     } finally {
       setBusy(false);
     }
   };
+  return { unlock, busy };
+}
+
+export function BriefPanel({ brief }: { brief: ProblemBrief }) {
+  const { t, i18n } = useTranslation();
+  const loc = useLocalized();
+  const p = brief.summary;
+  const { unlock, busy } = useUnlockHint(p.id);
+  const n0 = new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 0 });
+  const pct = new Intl.NumberFormat(i18n.language, { style: "percent", maximumFractionDigits: 2 });
+  const usd = new Intl.NumberFormat(i18n.language, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  const hints = loc.es ? brief.hints_es : brief.hints_en;
 
   return (
     <div className="space-y-5" data-testid="brief">
@@ -129,11 +136,24 @@ export function BriefPanel({ brief }: { brief: ProblemBrief }) {
           </Button>
         )}
       </Section>
+      {brief.solved && <SolvedSection brief={brief} />}
       {brief.solved && (loc.es ? brief.editorial_es : brief.editorial_en) && (
         <Section title={t("brief.editorial")}>
           <Markdown>{(loc.es ? brief.editorial_es : brief.editorial_en) ?? ""}</Markdown>
         </Section>
       )}
     </div>
+  );
+}
+
+/** Once solved: compare with the reference, and where your accepted designs sit on cost and speed. */
+function SolvedSection({ brief }: { brief: ProblemBrief }) {
+  const { t } = useTranslation();
+  const subs = useSubmissions(brief.summary.id);
+  return (
+    <Section title={t("brief.compare")}>
+      {brief.reference && <CompareButton reference={brief.reference} />}
+      <CostSpeedChart submissions={subs.data ?? []} reference={brief.reference_point} />
+    </Section>
   );
 }

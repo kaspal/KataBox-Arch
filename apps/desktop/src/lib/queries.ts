@@ -30,6 +30,10 @@ export function useProblemBrief(id: string) {
   return useQuery({ queryKey: queryKeys.brief(id), queryFn: () => api.problemBrief(id) });
 }
 
+export function useSubmissions(id: string) {
+  return useQuery({ queryKey: queryKeys.submissions(id), queryFn: () => api.submissions(id) });
+}
+
 export function useProgress() {
   return useQuery({ queryKey: queryKeys.progress, queryFn: () => api.progress(localDay()) });
 }

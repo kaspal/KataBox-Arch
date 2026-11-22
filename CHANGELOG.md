@@ -48,6 +48,11 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
     before it broke.
   - **Home** shows the problem to continue, the recommended next one, and your streak.
   - **Opening a design file made for a problem** opens it on that problem's page.
+  - **Once a problem is solved:**
+    - **Compare with reference** shows your design and the reference side by side, with linked zoom and pan, or
+      overlaid, the reference drawn faintly behind yours;
+    - **a cost vs speed chart** places every accepted submission against the reference.
+  - **A failed submission's results** offer the next hint.
   - **Set 1:** 15 problems, from URL Shortener to Online Judge, each with a statement, hints and an editorial in
     English and Spanish.
 

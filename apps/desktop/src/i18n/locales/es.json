@@ -494,7 +494,8 @@
     "hints": "Pistas",
     "hint": "Pista {{n}}",
     "showHint": "Mostrar la pista {{n}}",
-    "editorial": "Solución comentada"
+    "editorial": "Solución comentada",
+    "compare": "Comparar"
   },
   "results": {
     "title": "Resultados",
@@ -518,6 +519,29 @@
       "saturated": "{{name}} saturado desde los {{at}} s.",
       "queue_overflow": "{{name}} desbordó su cola desde los {{at}} s.",
       "down": "{{name}} estuvo caído desde los {{at}} s."
-    }
+    },
+    "stuck": "¿Te has atascado?"
+  },
+  "compare": {
+    "open": "Comparar con la referencia",
+    "title": "Tu diseño y la referencia",
+    "mode": "Cómo comparar",
+    "split": "Lado a lado",
+    "overlay": "Superpuestos",
+    "splitHint": "Al hacer zoom o desplazar un lado, el otro lo sigue.",
+    "overlayHint": "La referencia se dibuja tenue detrás de tu diseño, centrada en él.",
+    "yours": "Tu diseño",
+    "reference": "Diseño de referencia",
+    "yoursSolid": "Tu diseño: sólido",
+    "referenceFaint": "Referencia: tenue"
+  },
+  "chart": {
+    "yours": "Tus envíos aceptados",
+    "reference": "Referencia",
+    "label": "Coste mensual frente a la latencia p95, para tus envíos aceptados y la referencia",
+    "axes": "Horizontal: coste al mes. Vertical: latencia p95 en la primera prueba (ms). Mejor abajo a la izquierda.",
+    "best": "Tu diseño aceptado más barato: {{cost}} al mes con {{p95}} ms de p95 ({{n}} aceptados).",
+    "referenceAt": "La referencia: {{cost}} al mes con {{p95}} ms de p95.",
+    "empty": "Aquí aparecerán tus envíos aceptados, junto a la referencia."
   }
 }

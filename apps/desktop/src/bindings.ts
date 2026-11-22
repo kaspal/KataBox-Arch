@@ -689,7 +689,11 @@ export type ProblemBrief = { summary: ProblemSummary; nfr: Nfr; statement_en: st
 /**
  * Unlocked tiers (0–3) and their text.
  */
-hints_unlocked: number; hints_en: string[]; hints_es: string[]; solved: boolean; editorial_en: string | null; editorial_es: string | null; reference: Design | null; draft: Design | null; runs: number }
+hints_unlocked: number; hints_en: string[]; hints_es: string[]; solved: boolean; editorial_en: string | null; editorial_es: string | null; reference: Design | null; 
+/**
+ * The reference's monthly cost and first-test p95, once solved (the cost vs speed chart).
+ */
+reference_point: ReferencePoint | null; draft: Design | null; runs: number }
 export type ProblemSummary = { id: string; number: number; set: number; difficulty: Difficulty; title_en: string; title_es: string; teaches_en: string; teaches_es: string; tags: string[]; 
 /**
  * None until a submission; then "attempted" or "solved".
@@ -738,6 +742,7 @@ export type Protocol = "http" | "grpc" | "ws" | "query" | "publish" | "consume" 
  * A recent file, and whether it is still on disk.
  */
 export type RecentEntry = { path: string; name: string; opened_at: number; exists: boolean }
+export type ReferencePoint = { cost_usd: number; p95_ms: number }
 /**
  * Everything the editor needs to know about components, sent to the UI once.
  */

@@ -135,4 +135,44 @@ describe("solving a problem", () => {
     expect(vi.mocked(fake().api.startRun).mock.calls[0][1].problem).toEqual({ problem_id: "url-shortener", test_id: "normal" });
     act(() => useRun.getState().stop());
   });
+
+  it("a failed submission offers the next hint in the results", async () => {
+    setFakeApi({ verdict: "slo_breach" });
+    const { user } = renderApp("/problems/url-shortener");
+    await screen.findByTestId("brief");
+    await user.click(screen.getByRole("button", { name: "Submit" }));
+    const hint = await within(await screen.findByTestId("results")).findByTestId("results-hint");
+    await user.click(within(hint).getByRole("button", { name: "Show hint 1" }));
+    expect(await within(hint).findByText("Look at the reads.")).toBeInTheDocument();
+    expect(within(hint).getByRole("button", { name: "Show hint 2" })).toBeInTheDocument();
+    expect(within(screen.getByTestId("results")).queryByRole("button", { name: "Compare with reference" })).toBeNull();
+  });
+
+  it("once solved, Compare shows both designs side by side or overlaid, and the chart sums up the points", async () => {
+    const { user } = renderApp("/problems/url-shortener");
+    await screen.findByTestId("brief");
+    await user.click(screen.getByRole("button", { name: "Submit" }));
+    const results = await screen.findByTestId("results");
+    expect(within(results).queryByTestId("results-hint")).toBeNull();
+    await user.click(await within(results).findByRole("button", { name: "Compare with reference" }));
+    const compare = await screen.findByTestId("compare");
+    expect(within(compare).getByRole("heading", { name: "Your design and the reference" })).toBeInTheDocument();
+    const mine = within(compare).getByTestId("compare-mine");
+    const reference = within(compare).getByTestId("compare-reference");
+    expect(within(reference).getAllByTestId("component-card")).toHaveLength(2);
+    expect(reference).toHaveTextContent("Redis");
+    expect(within(mine).queryAllByTestId("component-card")).toHaveLength(useEditor.getState().doc.nodes.length);
+    await user.click(within(compare).getByRole("radio", { name: "Overlay" }));
+    expect(within(compare).getByTestId("compare-ghost")).toBeInTheDocument();
+    expect(within(compare).getByText("Reference: faint")).toBeInTheDocument();
+    expect(unnamed(compare)).toEqual([]);
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByTestId("compare")).not.toBeInTheDocument());
+    await user.keyboard("{Escape}");
+    // The Brief's solved section: Compare again, and where the accepted designs sit.
+    const brief = await screen.findByTestId("brief");
+    expect(await within(brief).findByTestId("chart-best")).toHaveTextContent("Your cheapest accepted design: $1,850 a month at 31.2 ms p95 (1 accepted).");
+    expect(within(brief).getByTestId("chart-reference")).toHaveTextContent("The reference: $1,600 a month at 24.5 ms p95.");
+    expect(within(brief).getByRole("button", { name: "Compare with reference" })).toBeInTheDocument();
+  });
 });

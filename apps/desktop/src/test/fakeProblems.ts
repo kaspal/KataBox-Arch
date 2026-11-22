@@ -1,5 +1,5 @@
 // A one-problem catalogue for UI tests (the shapes Rust sends: ka-app problems.rs).
-import type { Judgement, ProblemBrief, Verdict } from "@/bindings";
+import type { Design, Judgement, ProblemBrief, Verdict } from "@/bindings";
 
 export const FAKE_BRIEF: ProblemBrief = {
   summary: {
@@ -35,8 +35,25 @@ export const FAKE_BRIEF: ProblemBrief = {
   editorial_en: null,
   editorial_es: null,
   reference: null,
+  reference_point: null,
   draft: null,
   runs: 0,
+};
+
+/** The reference design the brief carries once solved. */
+export const FAKE_REFERENCE: Design = {
+  schema_version: 2,
+  id: "url-shortener-reference",
+  name: "URL Shortener (reference)",
+  problem_id: "url-shortener",
+  nodes: [
+    { id: "ref-app", kind: "app", flavour: "go", label: "", position: { x: 0, y: 0 }, props: {}, group_id: null },
+    { id: "ref-cache", kind: "cache", flavour: "redis", label: "", position: { x: 0, y: 160 }, props: {}, group_id: null },
+  ],
+  edges: [{ id: "ref-e1", from: "ref-app", to: "ref-cache", protocol: "query" }],
+  groups: [],
+  notes: [],
+  viewport: { x: 0, y: 0, zoom: 1 },
 };
 
 export function fakeJudgement(problemId: string, verdict: Verdict): Judgement {
