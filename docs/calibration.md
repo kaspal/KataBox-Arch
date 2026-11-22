@@ -130,9 +130,9 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 
 | Id | Value | Unit | Source |
 |---|---|---|---|
-| `serverless.concurrency_limit` | 1000 | in parallel | source: needed (suggested: https://docs.aws.amazon.com/lambda/latest/dg/lambda-concurrency.html); the default per-account concurrency quota of AWS Lambda |
-| `serverless.concurrency_limit@cloud_run` | 8000 | in parallel | source: needed (suggested: https://cloud.google.com/run/docs/about-instance-autoscaling); 100 instances × 80 concurrent requests, the default maximums |
-| `serverless.cold_start_ms` | 250 | ms | source: needed (suggested: https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtime-environment.html); a small Node.js or Python function |
+| `serverless.concurrency_limit` | 1000 | in parallel | https://docs.aws.amazon.com/lambda/latest/dg/lambda-concurrency.html — "By default, Lambda provides your account with a total concurrency limit of 1,000 concurrent executions" per Region (checked 2026-11-22) |
+| `serverless.concurrency_limit@cloud_run` | 8000 | in parallel | https://docs.cloud.google.com/run/docs/about-concurrency — default 80 concurrent requests per instance; https://docs.cloud.google.com/run/quotas — 100 instances per project and region by default; 100 × 80 = 8,000 (from search excerpts of both pages, not opened; checked 2026-11-22) |
+| `serverless.cold_start_ms` | 250 | ms | https://aws.amazon.com/blogs/compute/operating-lambda-performance-optimization-part-1/ — AWS: cold starts vary "from under 100 ms to over 1 second" and occur in under 1% of production invocations; 250 ms is a small Node.js/Python function (an AWS blog, not reference docs) (checked 2026-11-22) |
 | `serverless.cold_start_ms@cloud_run` | 500 | ms | source: needed (suggested: https://cloud.google.com/run/docs/about-instance-autoscaling); a container starts slower than a function runtime |
 | `serverless.service_ms` | 20 | ms | source: needed (suggested: https://docs.aws.amazon.com/lambda/latest/dg/lambda-concurrency.html); a small handler |
 | `serverless.p99_ratio` | 4 | × median | source: needed (suggested: https://docs.aws.amazon.com/lambda/latest/dg/lambda-concurrency.html); tail spread of the service time |
@@ -143,11 +143,11 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 
 | Id | Value | Unit | Source |
 |---|---|---|---|
-| `sql.concurrency` | 100 | in parallel per instance | source: needed (suggested: https://www.postgresql.org/docs/current/runtime-config-connection.html); PostgreSQL `max_connections` defaults to 100 |
-| `sql.concurrency@mysql` | 151 | in parallel per instance | source: needed (suggested: https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_max_connections); MySQL `max_connections` defaults to 151 |
+| `sql.concurrency` | 100 | in parallel per instance | https://www.postgresql.org/docs/current/runtime-config-connection.html — `max_connections`: "The default is typically 100 connections" (checked 2026-11-22) |
+| `sql.concurrency@mysql` | 151 | in parallel per instance | https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_max_connections — Default Value 151 (variable table; corroborated by MySQL bug #99002 and the `max_connections_basic` test) (checked 2026-11-22) |
 | `sql.service_ms` | 5 | ms | source: needed (suggested: https://www.postgresql.org/docs/current/runtime-config-connection.html); an indexed point read or a single-row write on a warm instance |
 | `sql.replication_lag_ms` | 50 | ms | source: needed (suggested: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html); asynchronous streaming replication under moderate write load |
-| `sql.failover_s` | 30 | s | source: needed (suggested: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZSingleStandby.html); managed failover to a standby; vendors quote one to two minutes, shortened to fit 60 s tests |
+| `sql.failover_s` | 30 | s | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/multi-az-db-clusters-concepts-failover.html — RDS Multi-AZ DB clusters: "Failover times are typically under 35 seconds"; single-standby instances take 60–120 s (https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZ.Failover.html). 30 s matches the cluster case (checked 2026-11-22) |
 | `sql.p99_ratio` | 5 | × median | source: needed (suggested: https://www.postgresql.org/docs/current/runtime-config-connection.html); tail spread of the service time |
 | `sql.queue_per_server` | 4 | slots per server | source: needed (suggested: https://www.postgresql.org/docs/current/runtime-config-connection.html); backlog before the card drops requests |
 | `sql.cost.instance` | 350 | $/instance-month | source: needed (suggested: https://aws.amazon.com/rds/postgresql/pricing/); teaching price, shaped like the list price |
@@ -161,7 +161,7 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `nosql.p99_ratio` | 4 | × median | source: needed (suggested: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html); tail spread of the service time |
 | `nosql.queue_per_server` | 4 | slots per server | source: needed (suggested: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html); backlog before the card drops requests |
 | `nosql.failover_s` | 5 | s | source: needed (suggested: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html); replicas already hold the data; the client retries another node |
-| `nosql.servers_per_instance@dynamodb` | 8 | in parallel per partition | source: needed (suggested: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html); 8 in parallel at ~3 ms ≈ 2,700 ops/s, near the documented 3,000 reads/s per partition |
+| `nosql.servers_per_instance@dynamodb` | 8 | in parallel per partition | https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html — "a maximum capacity of 3,000 read units per second and 1,000 write units per second" per partition; a write takes 3 slots here (ADR 0006), and reads are modelled as strongly consistent, which is conservative (checked 2026-11-22) |
 | `nosql.cost.instance` | 120 | $/instance-month | source: needed (suggested: https://aws.amazon.com/dynamodb/pricing/); teaching price, shaped like the list price |
 | `nosql.cost.million` | 0.5 | $/million requests | source: needed (suggested: https://aws.amazon.com/dynamodb/pricing/); teaching price, shaped like the list price |
 
@@ -169,7 +169,7 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 
 | Id | Value | Unit | Source |
 |---|---|---|---|
-| `cache.service_ms` | 0.01 | ms | source: needed (suggested: https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/benchmarks/); one Redis event loop serves about 100,000 simple GET/SET per second |
+| `cache.service_ms` | 0.01 | ms | https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/benchmarks/ — redis-benchmark without pipelining: SET 180,180 req/s (p50 0.143 ms), 72,145 req/s over 100k random keys, one command thread; 0.01 ms ≈ 100k ops/s sits inside that range (checked 2026-11-22) |
 | `cache.servers_per_instance` | 1 | in parallel per instance | source: needed (suggested: https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/benchmarks/); Redis runs commands on one thread |
 | `cache.p99_ratio` | 3 | × median | source: needed (suggested: https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/benchmarks/); tail spread of the service time |
 | `cache.queue_per_server` | 512 | slots per server | source: needed (suggested: https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/benchmarks/); clients pipeline many commands on one connection |
@@ -182,7 +182,7 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | Id | Value | Unit | Source |
 |---|---|---|---|
 | `object.service_ms` | 50 | ms | source: needed (suggested: https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html); time to first byte of a small object |
-| `object.servers_per_instance` | 1000 | in parallel per instance | source: needed (suggested: https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html); ≈ 20,000 GET/s at 50 ms: a few prefixes at the documented 5,500 GET/s each |
+| `object.servers_per_instance` | 1000 | in parallel per instance | https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html — "at least 3,500 PUT/COPY/POST/DELETE or 11,000 GET/HEAD requests per second per partitioned prefix"; 1,000 in parallel at 50 ms ≈ 20,000 GET/s ≈ two prefixes (checked 2026-11-22) |
 | `object.p99_ratio` | 4 | × median | source: needed (suggested: https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html); tail spread of the service time |
 | `object.queue_per_server` | 4 | slots per server | source: needed (suggested: https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html); backlog before the card drops requests |
 | `object.cost.million` | 1 | $/million requests | source: needed (suggested: https://aws.amazon.com/s3/pricing/); a read-heavy blend of GET (~$0.4/M) and PUT (~$5/M) list prices |
@@ -192,7 +192,7 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | Id | Value | Unit | Source |
 |---|---|---|---|
 | `search.service_ms` | 20 | ms | source: needed (suggested: https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-threadpool.html); a simple match query on a warm shard |
-| `search.servers_per_instance` | 13 | in parallel per shard | source: needed (suggested: https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-threadpool.html); the search thread pool on 8 vCPUs: int(3 × 8 / 2) + 1 |
+| `search.servers_per_instance` | 13 | in parallel per shard | https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-threadpool.html — search pool size "int((# of allocated processors * 3) / 2) + 1"; 13 at 8 processors (checked 2026-11-22) |
 | `search.p99_ratio` | 4 | × median | source: needed (suggested: https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-threadpool.html); tail spread of the service time |
 | `search.queue_per_server` | 77 | slots per server | source: needed (suggested: https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-threadpool.html); the search queue of 1,000 spread over 13 threads |
 | `search.failover_s` | 10 | s | source: needed (suggested: https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-threadpool.html); a replica shard is promoted when a node leaves |
@@ -202,7 +202,7 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 
 | Id | Value | Unit | Source |
 |---|---|---|---|
-| `queue.visibility_timeout_s` | 30 | s | source: needed (suggested: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-visibility-timeout.html); the SQS default |
+| `queue.visibility_timeout_s` | 30 | s | https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-visibility-timeout.html — "The default visibility timeout for a queue is 30 seconds" (checked 2026-11-22) |
 | `queue.servers_per_instance` | 10000 | in parallel per instance | source: needed (suggested: https://www.rabbitmq.com/docs/confirms); brokers rarely limit a single design; consumers do |
 | `queue.service_ms` | 2 | ms | source: needed (suggested: https://www.rabbitmq.com/docs/confirms); a RabbitMQ publish with confirms |
 | `queue.p99_ratio` | 3 | × median | source: needed (suggested: https://www.rabbitmq.com/docs/confirms); tail spread of the service time |

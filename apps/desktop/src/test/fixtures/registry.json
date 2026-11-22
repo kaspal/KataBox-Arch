@@ -5247,7 +5247,7 @@
           {
             "calibration": {
               "id": "serverless.concurrency_limit",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 1000,
             "key": "concurrency_limit",
@@ -5262,7 +5262,7 @@
           {
             "calibration": {
               "id": "serverless.cold_start_ms",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 250,
             "key": "cold_start_ms",
@@ -5433,7 +5433,7 @@
           {
             "calibration": {
               "id": "sql.concurrency",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 100,
             "key": "concurrency",
@@ -5478,7 +5478,7 @@
           {
             "calibration": {
               "id": "sql.failover_s",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 30,
             "key": "failover_s",
@@ -5696,7 +5696,7 @@
           {
             "calibration": {
               "id": "cache.service_ms",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 0.01,
             "key": "service_ms",
@@ -5924,7 +5924,7 @@
           {
             "calibration": {
               "id": "queue.visibility_timeout_s",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 30,
             "key": "visibility_timeout_s",

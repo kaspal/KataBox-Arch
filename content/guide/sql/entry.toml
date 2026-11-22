@@ -79,8 +79,8 @@ note_es = "Cuánto va una réplica por detrás de la principal. Una lectura en r
 
 [[sim]]
 prop = "failover_s"
-note = "With a replica wired by Replicate, how long until it is promoted after the primary dies. Writes fail until then."
-note_es = "Con una réplica unida por Replicate, cuánto tarda en ascender cuando cae la principal. Hasta entonces las escrituras fallan."
+note = "With a replica wired by Replicate, how long until it is promoted after the primary dies. Writes fail until then. The default matches a managed cluster with two readable standbys (typically just over half a minute); a single standby takes one to two minutes."
+note_es = "Con una réplica unida por Replicate, cuánto tarda en ascender cuando cae la principal. Hasta entonces las escrituras fallan. El valor por defecto corresponde a un clúster gestionado con dos réplicas legibles (normalmente algo más de medio minuto); con una sola réplica en espera se tarda de uno a dos minutos."
 
 [[sim]]
 sim = "p99_ratio"

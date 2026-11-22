@@ -326,9 +326,21 @@ pub const CALIBRATED_PROPS: [&str; 7] = [
     "visibility_timeout_s",
 ];
 
-/// Calibration row ids whose source has been confirmed. Empty until the sources listed as
-/// `source: needed` in `docs/calibration.md` are checked.
-pub const CITED: [&str; 0] = [];
+/// Calibration row ids whose source has been confirmed (the planning chat checked these on
+/// 2026-11-22; `docs/calibration.md` quotes each source). Every other row is `source: needed`.
+pub const CITED: [&str; 11] = [
+    "sql.concurrency",
+    "sql.concurrency@mysql",
+    "sql.failover_s",
+    "cache.service_ms",
+    "nosql.servers_per_instance@dynamodb",
+    "object.servers_per_instance",
+    "serverless.concurrency_limit",
+    "serverless.concurrency_limit@cloud_run",
+    "serverless.cold_start_ms",
+    "queue.visibility_timeout_s",
+    "search.servers_per_instance",
+];
 
 fn calibration_status(id: &str) -> CalibrationStatus {
     if CITED.contains(&id) {
