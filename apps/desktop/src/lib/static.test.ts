@@ -49,6 +49,7 @@ describe("i18n resources", () => {
       path_not_allowed: true,
       internal: true,
       no_path: true,
+      content_missing: true,
     } satisfies Record<AppErrorCode, true>;
     expect(Object.keys(codes).filter((c) => !has(en, `errors.${c}`))).toEqual([]);
   });

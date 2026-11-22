@@ -34,6 +34,8 @@ pub enum AppErrorCode {
     Internal,
     /// A request can't get through the design (no path from a client to a service).
     NoPath,
+    /// The bundled problem catalogue (content.db) is missing or unreadable.
+    ContentMissing,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, thiserror::Error)]

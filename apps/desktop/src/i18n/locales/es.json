@@ -55,7 +55,8 @@
     "setting_not_allowed": "Ese ajuste no se puede cambiar desde aquí.",
     "path_not_allowed": "Usa Guardar como o Abrir para elegir antes un archivo.",
     "internal": "Algo salió mal dentro de la app.",
-    "no_path": "Ninguna solicitud puede atravesar este diseño. Conecta un cliente a un servicio."
+    "no_path": "Ninguna solicitud puede atravesar este diseño. Conecta un cliente a un servicio.",
+    "content_missing": "Falta el catálogo de problemas en esta instalación. Vuelve a instalar la app."
   },
   "files": {
     "unsaved": {

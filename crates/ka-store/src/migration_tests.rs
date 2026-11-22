@@ -27,6 +27,23 @@ fn seeds(version: i64) -> Vec<String> {
                  ('/home/me/designs/feed.kbarch', 'News feed 🎯', 1700000002000)"
                 .into(),
         ],
+        2 => vec![
+            "INSERT INTO submissions (problem_id, created_at, design, verdict, score, correctness,
+                 cost_score, latency_score, cost_usd, p95_ms, results) VALUES
+                 ('url-shortener', 1700000003000, '{\"nodes\":[]}', 'slo_breach', 52, 52, 0, 0,
+                  1850.5, 96.25, '{\"tests\":[{\"id\":\"viral\"}]}'),
+                 ('url-shortener', 1700000004000, '{\"nodes\":[1]}', 'accepted', 91, 70, 14, 7,
+                  1320.0, 41.5, '{\"tests\":[]}')"
+                .into(),
+            "INSERT INTO problem_status VALUES
+                 ('url-shortener', 'solved', 91, 2, 1700000004000, 1700000004000),
+                 ('pastebin', 'attempted', 30, NULL, NULL, 1700000005000)"
+                .into(),
+            "INSERT INTO problem_drafts VALUES ('pastebin', '{\"nodes\":[\"ñ\"]}', 1700000006000)".into(),
+            "INSERT INTO hint_unlocks VALUES ('pastebin', 1, 1700000007000), ('pastebin', 2, 1700000008000)".into(),
+            "INSERT INTO runs VALUES ('pastebin', 1700000009000), ('pastebin', 1700000010000)".into(),
+            "INSERT INTO activity_days VALUES ('2026-11-20'), ('2026-11-21')".into(),
+        ],
         _ => vec![],
     }
 }

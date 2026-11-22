@@ -222,6 +222,7 @@ mod tests {
         App::open(AppPaths {
             user_db: temp_dir("runs").join("user.db"),
             dev_data: true,
+            content_db: None,
         })
         .await
         .unwrap()

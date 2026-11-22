@@ -377,9 +377,15 @@ fn open_app(handle: &tauri::AppHandle) -> Res<App> {
         .path()
         .app_data_dir()
         .map_err(|e| AppError::new(AppErrorCode::Internal, format!("app data folder: {e}")))?;
+    // content.db is a bundled resource (built from content/ by build.rs).
+    let content_db = handle
+        .path()
+        .resolve("content.db", tauri::path::BaseDirectory::Resource)
+        .ok();
     let paths = AppPaths {
         user_db: data_folder(dir).join("user.db"),
         dev_data: cfg!(debug_assertions),
+        content_db,
     };
     tauri::async_runtime::block_on(App::open(paths))
 }

@@ -248,7 +248,11 @@ export type AppErrorCode =
 /**
  * A request can't get through the design (no path from a client to a service).
  */
-"no_path"
+"no_path" | 
+/**
+ * The bundled problem catalogue (content.db) is missing or unreadable.
+ */
+"content_missing"
 export type AppInfo = { version: string; dev_data: boolean }
 export type BreakingPoint = { 
 /**
@@ -523,7 +527,11 @@ utilisation: number; max_queue: number; drops: number; served: number; cost_mont
 /**
  * Per second: utilisation, queue length (max in the second), drops.
  */
-util_series: number[]; queue_series: number[]; drop_series: number[] }
+util_series: number[]; queue_series: number[]; drop_series: number[]; 
+/**
+ * Seconds (indices) in which the card was down (chaos); omitted when never down.
+ */
+down_seconds: number[] }
 /**
  * A sticky note (hand-written font on the canvas).
  */

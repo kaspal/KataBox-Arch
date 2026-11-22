@@ -31,6 +31,9 @@ pub struct AppPaths {
     pub user_db: PathBuf,
     /// True in debug builds: the UI shows a DEV DATA badge.
     pub dev_data: bool,
+    /// The bundled problem catalogue (`content.db`, read-only). None or missing: the app
+    /// runs without problems.
+    pub content_db: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -65,6 +68,8 @@ pub struct App {
     /// Paths the user picked in a dialog (or saved to) this session: the UI may save to
     /// these without a dialog. Opening by path is limited to the recent-files list.
     session_paths: Mutex<HashSet<String>>,
+    /// The problem catalogue, if it was found and opened.
+    content: Option<ka_store::ContentDb>,
     /// The live run, if one is playing (one at a time), and the id of the next.
     live: Mutex<Option<(u32, live::LiveRun)>>,
     next_run: std::sync::atomic::AtomicU32,
@@ -77,8 +82,13 @@ fn path_string(path: &Path) -> String {
 impl App {
     pub async fn open(paths: AppPaths) -> Result<App> {
         let user = UserDb::open(&paths.user_db).await?;
+        let content = match &paths.content_db {
+            Some(p) if p.exists() => Some(ka_store::ContentDb::open(p).await?),
+            _ => None,
+        };
         Ok(App {
             user,
+            content,
             registry: registry(),
             info: AppInfo {
                 version: env!("CARGO_PKG_VERSION").into(),
@@ -98,8 +108,18 @@ impl App {
         &self.registry
     }
 
+    /// The problem catalogue, or a `content_missing` error.
+    pub fn content(&self) -> Result<&ka_store::ContentDb> {
+        self.content
+            .as_ref()
+            .ok_or_else(|| AppError::new(AppErrorCode::ContentMissing, "content.db was not found"))
+    }
+
     pub async fn close(&self) {
         self.user.close().await;
+        if let Some(c) = &self.content {
+            c.close().await;
+        }
     }
 
     // --- Settings -------------------------------------------------------------------
@@ -265,6 +285,7 @@ mod tests {
         let app = App::open(AppPaths {
             user_db: dir.join("user.db"),
             dev_data: true,
+            content_db: None,
         })
         .await
         .unwrap();

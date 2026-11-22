@@ -55,7 +55,8 @@
     "setting_not_allowed": "That setting can't be changed from here.",
     "path_not_allowed": "Use Save As or Open to choose a file first.",
     "internal": "Something went wrong inside the app.",
-    "no_path": "No request can get through this design. Connect a client to a service."
+    "no_path": "No request can get through this design. Connect a client to a service.",
+    "content_missing": "The problem catalogue is missing from this installation. Reinstall the app."
   },
   "files": {
     "unsaved": {

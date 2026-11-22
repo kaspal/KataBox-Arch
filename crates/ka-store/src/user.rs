@@ -27,10 +27,16 @@ pub(crate) struct Migration {
     pub sql: &'static str,
 }
 
-pub(crate) const MIGRATIONS: &[Migration] = &[Migration {
-    version: 1,
-    sql: include_str!("../migrations/0001_init.sql"),
-}];
+pub(crate) const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 1,
+        sql: include_str!("../migrations/0001_init.sql"),
+    },
+    Migration {
+        version: 2,
+        sql: include_str!("../migrations/0002_progress.sql"),
+    },
+];
 
 /// A recently opened or saved `.kbarch` file.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -295,7 +301,16 @@ pub(crate) mod tests {
     use super::*;
     use crate::testutil::temp_dir;
 
-    const TABLES: &[&str] = &["settings", "recent_files"];
+    const TABLES: &[&str] = &[
+        "settings",
+        "recent_files",
+        "submissions",
+        "problem_status",
+        "problem_drafts",
+        "hint_unlocks",
+        "runs",
+        "activity_days",
+    ];
 
     fn backups(dir: &Path) -> Vec<PathBuf> {
         std::fs::read_dir(dir)

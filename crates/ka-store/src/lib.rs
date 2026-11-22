@@ -9,9 +9,11 @@
 pub mod content;
 #[cfg(test)]
 mod migration_tests;
+pub mod progress;
 pub mod user;
 
 pub use content::{CONTENT_SCHEMA, ContentData, ContentDb, ProblemRow, write_content};
+pub use progress::{NewSubmission, ProblemStatus, Submission, SubmissionSummary, day_number};
 pub use user::{BACKUPS_KEPT, RECENT_KEPT, RecentFile, UserDb};
 
 #[derive(Debug, thiserror::Error)]
