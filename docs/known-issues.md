@@ -12,8 +12,12 @@ it matters.
   ([pack-authoring.md](pack-authoring.md)).
 - **docker-compose import** is planned (it needs a YAML parser the build doesn't include yet).
 - **The Progress page** is a placeholder; progress shows on Home, the Problems list, the Guide and pattern counts and the drill pages.
-- **Concept cards** exist for 18 of the 25 component kinds.
 - **Linux builds** are configured but not yet built or tested (they need a Linux host).
+
+## Guide: known gaps
+- **Concept cards** exist for 18 of the 25 component kinds. Microservice, Client, DNS, WAF, Metrics, Logs and Tracing
+  have none: in the simulator these kinds are a hop, a traffic source or a design note, so a card would only repeat
+  the Guide text. Their Guide entries are complete.
 
 ## Simplified on purpose
 - **Packets per partition:** a stream hands out one message per partition at a time across the whole stream, so a

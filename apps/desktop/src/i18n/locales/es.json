@@ -472,7 +472,7 @@
     "p95Trend": "Latencia p95 por segundo",
     "stale": "Lecturas obsoletas",
     "availability": "Disponibilidad",
-    "retried": "Intentos reintentados"
+    "retried": "Reintentos"
   },
   "breaking": {
     "title": "Punto de ruptura",

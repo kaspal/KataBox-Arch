@@ -472,7 +472,7 @@
     "p95Trend": "p95 latency per second",
     "stale": "Stale reads",
     "availability": "Availability",
-    "retried": "Retried attempts"
+    "retried": "Retries"
   },
   "breaking": {
     "title": "Breaking point",
