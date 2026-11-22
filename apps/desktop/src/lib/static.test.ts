@@ -248,3 +248,15 @@ describe.each([
     });
   }
 });
+
+describe("reduced motion (M7.2)", () => {
+  it("stops CSS animations and transitions for the setting and for the system preference", () => {
+    const css = readFileSync(path.resolve(__dirname, "../index.css"), "utf8");
+    const rule = /animation-duration: 0\.01ms !important;[\s\S]*?transition-duration: 0\.01ms !important;/g;
+    const reduceClass = css.indexOf(".reduce-motion *,");
+    const media = css.indexOf("@media (prefers-reduced-motion: reduce) {\n  *,");
+    expect(reduceClass).toBeGreaterThan(-1);
+    expect(media).toBeGreaterThan(-1);
+    expect(css.match(rule)?.length).toBeGreaterThanOrEqual(2);
+  });
+});

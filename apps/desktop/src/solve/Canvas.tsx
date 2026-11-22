@@ -35,6 +35,7 @@ import { ComponentCard, type CardFlowNode } from "@/solve/nodes/ComponentCard";
 import { PacketLayer } from "@/solve/run/PacketLayer";
 import { NoteNode, type NoteFlowNode } from "@/solve/nodes/NoteNode";
 import { ZoneNode, type ZoneFlowNode } from "@/solve/nodes/ZoneNode";
+import { reducedMotion } from "@/lib/motion";
 import { defaultProps, flavourName, kindName, kindSpec } from "@/solve/registry";
 import { CARD_H, CARD_W, NOTE_SIZE, ZONE_SIZE, useEditor } from "@/solve/store";
 import { checkWire, makeWiring } from "@/solve/wiring";
@@ -628,7 +629,7 @@ function ZoomControls() {
             size="icon"
             className={btn}
             aria-label={t("canvas.fit")}
-            onClick={() => void rf.fitView({ padding: 0.2, duration: 200, minZoom: FIT_MIN_ZOOM })}
+            onClick={() => void rf.fitView({ padding: 0.2, duration: reducedMotion() ? 0 : 200, minZoom: FIT_MIN_ZOOM })}
           >
             <Maximize aria-hidden className="size-4" />
           </Button>
