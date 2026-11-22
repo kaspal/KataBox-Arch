@@ -201,6 +201,13 @@ Los diseños se guardan como archivos `.kbarch`. Las acciones de archivo están 
 - El nombre del archivo aparece junto al nombre del diseño; un punto indica cambios sin guardar.
 - Si cierras la ventana o abres otro diseño con cambios sin guardar, la app pregunta **¿Guardar los cambios?** con **Guardar**, **No guardar** y **Cancelar**.
 
+**Importar docker-compose…** (barra de herramientas o paleta de comandos) convierte un `docker-compose.yml` en un diseño nuevo sin guardar:
+
+- Los servicios se convierten en tarjetas según su imagen: PostgreSQL, MySQL/MariaDB, Redis/Valkey, Memcached, NGINX, HAProxy, Kafka/Redpanda, RabbitMQ, Elasticsearch, OpenSearch, MongoDB y Cassandra/Scylla. Cualquier otra cosa se convierte en un App Server, y el resumen dice cuáles se han supuesto.
+- `deploy.replicas` fija las instancias de la tarjeta (como mucho 64; un número mayor se recorta y se indica).
+- `depends_on` y `links` se convierten en conexiones, con un protocolo que permitan las reglas de conexión. Una dependencia que las reglas no permiten, o una hacia un servicio que no está en el archivo, se lista en vez de dibujarse.
+- Se rechazan los archivos de más de 1 MB, con más de 200 servicios o con YAML hecho para crecer sin límite (demasiados alias o niveles).
+
 El menú **Exportar** de la barra de herramientas convierte el diseño en:
 
 - **Copiar como Mermaid** y **Guardar como Mermaid…**: un diagrama Mermaid que puedes pegar en documentos Markdown.

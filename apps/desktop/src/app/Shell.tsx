@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CommandPalette } from "@/app/CommandPalette";
 import { Notice, UnsavedDialog, askUnsaved } from "@/app/dialogs";
+import { ComposeSummary } from "@/solve/ComposeSummary";
 import { NAV, SETTINGS_NAV, type NavItem } from "@/app/nav";
 import { api } from "@/lib/api";
 import { useAppInfo } from "@/lib/queries";
@@ -162,6 +163,7 @@ export function Shell() {
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
       <UnsavedDialog />
       <Notice />
+      <ComposeSummary />
     </div>
   );
 }

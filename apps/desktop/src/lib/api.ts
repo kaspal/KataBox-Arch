@@ -35,6 +35,7 @@ import {
   type Design,
   type DesignIssue,
   type JsonValue,
+  type ComposeImport,
   type OpenedDesign,
   type RecentEntry,
   type Registry,
@@ -85,6 +86,7 @@ export const api = {
   forgetRecent: (path: string): Promise<null> => call(commands.forgetRecent(path)),
   openDesignDialog: (): Promise<OpenedDesign | null> => call(commands.openDesignDialog()),
   openRecent: (path: string): Promise<OpenedDesign> => call(commands.openRecent(path)),
+  importComposeDialog: (): Promise<ComposeImport | null> => call(commands.importComposeDialog()),
   saveDesign: (path: string, design: Design): Promise<string> => call(commands.saveDesign(path, design)),
   saveDesignAs: (design: Design, suggestedName: string): Promise<string | null> =>
     call(commands.saveDesignAs(design, suggestedName)),

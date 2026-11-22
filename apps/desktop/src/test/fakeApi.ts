@@ -1,7 +1,7 @@
 // An in-memory backend with the same shape as `api`, for UI tests. The registry is the
 // fixture Rust exports (`src/test/fixtures/registry.json`), so tests see the real data.
 import { vi } from "vitest";
-import type { FlawSummary, PackInfo, PackPreview, PathView, AppError, Design, JsonValue, OpenedDesign, ProblemBrief, RecentEntry, Registry, RunControl, SubmissionSummary, SubmitResult } from "@/bindings";
+import type { FlawSummary, PackInfo, PackPreview, PathView, AppError, ComposeImport, Design, JsonValue, OpenedDesign, ProblemBrief, RecentEntry, Registry, RunControl, SubmissionSummary, SubmitResult } from "@/bindings";
 import { FAKE_BRIEF, FAKE_REFERENCE, fakeJudgement } from "@/test/fakeProblems";
 import { FAKE_SAMPLE, FAKE_SAMPLE_SUMMARY } from "@/test/fakeSamples";
 import { FAKE_DRILLS, FAKE_QUIZ, FAKE_FLOW, FAKE_GUIDE, FAKE_NUMBERS, FAKE_PATTERN, FAKE_TEMPLATE, FAKE_TERMS } from "@/test/fakeGuide";
@@ -23,6 +23,8 @@ export type FakeOptions = {
   recent?: RecentEntry[];
   /** What the Open dialog picks (null = cancelled). */
   openPick?: string | null;
+  /** What the docker-compose import returns (null = cancelled). */
+  composeImport?: ComposeImport | null;
   /** What the Save As dialog picks (null = cancelled). */
   savePick?: string | null;
   devData?: boolean;
@@ -98,6 +100,7 @@ export function createFakeApi(opts: FakeOptions = {}) {
       return null;
     }),
     openDesignDialog: vi.fn(async () => (opts.openPick ? opened(opts.openPick) : null)),
+    importComposeDialog: vi.fn(async () => opts.composeImport ?? null),
     openRecent: vi.fn(async (path: string) => {
       if (!recent.some((r) => r.path === path)) throw err("path_not_allowed");
       return opened(path);

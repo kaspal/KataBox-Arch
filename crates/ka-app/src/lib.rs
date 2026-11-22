@@ -2,6 +2,7 @@
 //! (which paths the UI may touch, which settings it may write, what a valid design is)
 //! lives here and in `ka-core`, with tests.
 
+pub mod compose;
 pub mod decide;
 pub mod error;
 pub mod guide;
@@ -295,6 +296,25 @@ impl App {
         };
         std::fs::write(&path, bytes).map_err(|e| AppError::new(AppErrorCode::Io, e.to_string()))?;
         Ok(path_string(&path))
+    }
+
+    /// Import a docker-compose file the user picked in the Open dialog (M7b.1) as a new,
+    /// unsaved design named after the file.
+    pub fn import_compose(&self, path: &std::path::Path) -> Result<compose::ComposeImport> {
+        use std::io::Read;
+        let file = std::fs::File::open(path)?;
+        let mut bytes = Vec::new();
+        file.take(compose::MAX_BYTES as u64 + 1)
+            .read_to_end(&mut bytes)?;
+        let text = String::from_utf8(bytes).map_err(|_| {
+            AppError::new(AppErrorCode::ComposeInvalid, "the file isn't UTF-8 text")
+        })?;
+        let text = text.strip_prefix('\u{feff}').unwrap_or(&text);
+        let name = path
+            .file_stem()
+            .map(|s| s.to_string_lossy().into_owned())
+            .unwrap_or_else(|| "docker-compose".into());
+        compose::import(text, &name, &self.registry)
     }
 
     /// Export a design as a Mermaid diagram to a path the user picked in the Save dialog

@@ -69,6 +69,8 @@ export type EditorState = {
 
 type Actions = {
   load: (design: Design, path: string | null) => void;
+  /** A design that came from elsewhere (a docker-compose import): open, never saved. */
+  loadUnsaved: (design: Design) => void;
   newDesign: (name: string) => void;
   markSaved: (path: string) => void;
   rename: (name: string) => void;
@@ -218,6 +220,12 @@ export const useEditor = create<EditorStore>()(
         load: (design, path) => {
           const doc = fromDesign(design);
           set({ doc, viewport: design.viewport, path, savedJson: docJson(doc), selection: [] });
+          clearHistory();
+        },
+        loadUnsaved: (design) => {
+          const doc = fromDesign(design);
+          // Nothing on disk matches it yet, so it counts as unsaved changes.
+          set({ doc, viewport: design.viewport, path: null, savedJson: "", selection: [] });
           clearHistory();
         },
         newDesign: (name) => {

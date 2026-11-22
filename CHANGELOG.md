@@ -14,6 +14,9 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
   (files, text and a judged run of every design) before it installs; a badge and a source filter on Problems;
   uninstall in Settings keeps your history. `ka-pack pack` builds packs.
 - **Export:** copy or save a design as a Mermaid diagram; save it as an SVG or PNG image.
+- **docker-compose import:** a `docker-compose.yml` becomes a new design, with services mapped by image,
+  `depends_on`/`links` as connections the wiring rules allow, and a summary of what was guessed, clamped or left out.
+  Oversized and alias-bomb files are refused.
 - **Related in KataBox** on Guide entries, patterns and problems.
 - **Results and briefs show p99 limits** where a test has one.
 - **Accessibility:** cards and connections have full names, the side panel's tabs follow the ARIA pattern, and run

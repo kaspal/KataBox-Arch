@@ -41,6 +41,18 @@ pub enum AppErrorCode {
     /// A pack can't replace the installed one: an older version, or the same version with
     /// different contents.
     PackVersion,
+    /// A docker-compose file is larger than the import cap.
+    ComposeTooLarge,
+    /// A docker-compose file has too many parts, aliases or levels (the caps against
+    /// alias bombs).
+    ComposeTooComplex,
+    /// A docker-compose file has more services than the import cap.
+    ComposeTooManyServices,
+    /// A docker-compose file uses YAML the import doesn't read (keys that are anchors,
+    /// aliases or structures).
+    ComposeUnsupported,
+    /// A docker-compose file isn't valid YAML or has no services.
+    ComposeInvalid,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, thiserror::Error)]

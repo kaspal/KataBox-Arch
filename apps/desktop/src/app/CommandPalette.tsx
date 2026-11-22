@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { BookOpen, Bug, Calculator, CalendarCheck, FilePlus2, Route as RouteIcon, Ruler, FileText, FolderOpen, Gauge, Languages, Monitor, Moon, Save, SaveAll, Sun } from "lucide-react";
+import { BookOpen, Bug, Calculator, CalendarCheck, FileInput, FilePlus2, Route as RouteIcon, Ruler, FileText, FolderOpen, Gauge, Languages, Monitor, Moon, Save, SaveAll, Sun } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -103,6 +103,10 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
           <CommandItem value={`file ${t("files.open")}`} onSelect={() => run(() => void files.open())}>
             <FolderOpen aria-hidden />
             {t("files.open")}
+          </CommandItem>
+          <CommandItem value={`file ${t("compose.import")}`} onSelect={() => run(() => void files.importCompose())}>
+            <FileInput aria-hidden />
+            {t("compose.import")}
           </CommandItem>
           <CommandItem value={`file ${t("files.save")}`} onSelect={() => run(() => void files.save())}>
             <Save aria-hidden />

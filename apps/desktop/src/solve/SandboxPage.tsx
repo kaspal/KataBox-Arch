@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  FileInput,
   FilePlus2,
   FolderOpen,
   Grid3x3,
@@ -123,6 +124,9 @@ function Toolbar() {
         </IconAction>
         <IconAction label={t("files.open")} shortcut="Ctrl+O" onClick={() => void files.open()}>
           <FolderOpen aria-hidden className="size-4" />
+        </IconAction>
+        <IconAction label={t("compose.import")} onClick={() => void files.importCompose()}>
+          <FileInput aria-hidden className="size-4" />
         </IconAction>
         <IconAction label={t("files.save")} shortcut="Ctrl+S" onClick={() => void files.save()}>
           <Save aria-hidden className="size-4" />

@@ -201,6 +201,13 @@ Designs are saved as `.kbarch` files. The file actions are in the toolbar, in th
 - The file name sits next to the design name; a dot marks unsaved changes.
 - If you close the window or open another design with unsaved changes, the app asks **Save your changes?** with **Save**, **Don't save** and **Cancel**.
 
+**Import docker-compose…** (toolbar or command palette) turns a `docker-compose.yml` into a new, unsaved design:
+
+- Services become cards by their image: PostgreSQL, MySQL/MariaDB, Redis/Valkey, Memcached, NGINX, HAProxy, Kafka/Redpanda, RabbitMQ, Elasticsearch, OpenSearch, MongoDB and Cassandra/Scylla. Anything else becomes an App Server, and the summary says which ones were guessed.
+- `deploy.replicas` sets the card's instances (at most 64; a larger number is clamped and listed).
+- `depends_on` and `links` become connections, with a protocol the wiring rules allow. A dependency the rules don't allow, or one on a service that isn't in the file, is listed instead of drawn.
+- Files over 1 MB, with more than 200 services, or with YAML built to blow up (too many aliases or levels) are refused.
+
 The **Export** menu in the toolbar turns the design into:
 
 - **Copy as Mermaid** and **Save as Mermaid…**: a Mermaid diagram you can paste into Markdown documents.

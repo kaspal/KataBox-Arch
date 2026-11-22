@@ -488,6 +488,18 @@ async kataboxLinks(target: string) : Promise<Result<KataboxLink[], AppError>> {
 }
 },
 /**
+ * Show the Open dialog for a docker-compose file and import it as a new, unsaved design
+ * (capped at 1 MiB, so it's read here). `None` when cancelled.
+ */
+async importComposeDialog() : Promise<Result<ComposeImport | null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("import_compose_dialog") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * A design as Mermaid text (for Copy). `names`: kind, protocol and group names in the
  * user's language.
  */
@@ -649,7 +661,29 @@ export type AppErrorCode =
  * A pack can't replace the installed one: an older version, or the same version with
  * different contents.
  */
-"pack_version"
+"pack_version" | 
+/**
+ * A docker-compose file is larger than the import cap.
+ */
+"compose_too_large" | 
+/**
+ * A docker-compose file has too many parts, aliases or levels (the caps against
+ * alias bombs).
+ */
+"compose_too_complex" | 
+/**
+ * A docker-compose file has more services than the import cap.
+ */
+"compose_too_many_services" | 
+/**
+ * A docker-compose file uses YAML the import doesn't read (keys that are anchors,
+ * aliases or structures).
+ */
+"compose_unsupported" | 
+/**
+ * A docker-compose file isn't valid YAML or has no services.
+ */
+"compose_invalid"
 export type AppInfo = { version: string; dev_data: boolean }
 export type Bottleneck = { node: string; kind: ComponentKind; from_s: number; utilisation: number; reason: BottleneckReason }
 /**
@@ -824,6 +858,26 @@ cells: string[]; cells_es: string[] }
  * The 25 component kinds. Ids match the icon ids (`icons.json`).
  */
 export type ComponentKind = "client" | "dns" | "cdn" | "waf" | "lb" | "gateway" | "ratelimit" | "app" | "micro" | "worker" | "serverless" | "autoscale" | "sql" | "nosql" | "cache" | "object" | "search" | "queue" | "stream" | "pubsub" | "dlq" | "scheduler" | "metrics" | "logs" | "tracing"
+/**
+ * What the import did, for the summary dialog.
+ */
+export type ComposeImport = { design: Design; 
+/**
+ * Services mapped by their image, with the card they became.
+ */
+mapped: MappedService[]; 
+/**
+ * Services with no known image: drawn as App Servers.
+ */
+guessed: MappedService[]; 
+/**
+ * Services whose `deploy.replicas` was above the card's range and was clamped.
+ */
+clamped: string[]; 
+/**
+ * Dependencies that weren't drawn, and why.
+ */
+skipped_edges: SkippedEdge[] }
 /**
  * A flavour's monthly price (ADR 0006): per instance (or per card), per shard or partition,
  * per GB of cache memory, and per million requests through it, reads and writes apart.
@@ -1098,6 +1152,7 @@ max_label: number;
  * Characters, for a note's text.
  */
 max_note: number }
+export type MappedService = { service: string; image: string | null; kind: ComponentKind; flavour: Flavour }
 /**
  * Canvas items that are not components.
  */
@@ -1557,6 +1612,16 @@ export type SimRow = (
  */
 note: string; note_es: string }
 export type Size = { w: number; h: number }
+export type SkipReason = 
+/**
+ * The dependency names no service in the file.
+ */
+{ type: "unknown_service" } | 
+/**
+ * The wiring table doesn't allow these two kinds to connect.
+ */
+{ type: "not_allowed"; wiring: WiringReason }
+export type SkippedEdge = { from: string; to: string; reason: SkipReason }
 /**
  * A vendor page a flavour's figures were (or should be) checked against.
  */

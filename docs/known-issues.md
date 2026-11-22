@@ -10,7 +10,6 @@ it matters.
 - **Animated exports (GIF, WebM)** and the **printable Guide (PDF)** are planned; images (SVG, PNG) and Mermaid work.
 - **The in-app problem editor** is planned; authors use `ka-pack new`, `try`, `validate` and `pack`
   ([pack-authoring.md](pack-authoring.md)).
-- **docker-compose import** is planned (it needs a YAML parser the build doesn't include yet).
 - **The Progress page** is a placeholder; progress shows on Home, the Problems list, the Guide and pattern counts and the drill pages.
 - **Linux builds** are configured but not yet built or tested (they need a Linux host).
 
@@ -20,6 +19,9 @@ it matters.
   the Guide text. Their Guide entries are complete.
 
 ## Simplified on purpose
+- **docker-compose import** reads `services`, `image`, `deploy.replicas`, `depends_on`, `links` and merge keys
+  (`<<`); networks, volumes, ports, environment and profiles are ignored. Only the first YAML document is read, and
+  keys that are anchors, aliases or structures are refused.
 - **Packets per partition:** a stream hands out one message per partition at a time across the whole stream, so a
   single hot key can't overload one partition.
 - **Batching** isn't simulated: counters and log shippers handle each message separately.

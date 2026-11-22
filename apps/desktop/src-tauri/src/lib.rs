@@ -157,6 +157,35 @@ async fn katabox_links(
     state.app()?.katabox_links(&target).await
 }
 
+// --- docker-compose import (M7b.1) -------------------------------------------------------
+
+/// Show the Open dialog for a docker-compose file and import it as a new, unsaved design
+/// (capped at 1 MiB, so it's read here). `None` when cancelled.
+#[tauri::command]
+#[specta::specta]
+async fn import_compose_dialog(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Res<Option<ka_app::compose::ComposeImport>> {
+    let svc = state.app()?;
+    use tauri_plugin_dialog::DialogExt;
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .add_filter("docker-compose", &["yml", "yaml"])
+            .blocking_pick_file()
+    })
+    .await
+    .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    let Some(path) = picked else {
+        return Ok(None);
+    };
+    let path = path
+        .into_path()
+        .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    svc.import_compose(&path).map(Some)
+}
+
 // --- Mermaid export (M6.6) ---------------------------------------------------------------
 
 /// A design as Mermaid text (for Copy). `names`: kind, protocol and group names in the
@@ -728,6 +757,7 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         set_dirty,
         confirm_close,
         katabox_links,
+        import_compose_dialog,
         mermaid_text,
         save_export,
         save_mermaid,

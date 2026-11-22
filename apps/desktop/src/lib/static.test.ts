@@ -52,6 +52,11 @@ describe("i18n resources", () => {
       content_missing: true,
       pack_refused: true,
       pack_version: true,
+      compose_too_large: true,
+      compose_too_complex: true,
+      compose_too_many_services: true,
+      compose_unsupported: true,
+      compose_invalid: true,
     } satisfies Record<AppErrorCode, true>;
     expect(Object.keys(codes).filter((c) => !has(en, `errors.${c}`))).toEqual([]);
   });

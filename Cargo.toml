@@ -27,6 +27,9 @@ sha2 = "0.10"
 # default features pick its pure-Rust backend for zip's deflate.
 zip = { version = "=9.5.1", default-features = false, features = ["deflate-flate2"] }
 flate2 = "=1.1.11"
+# docker-compose import (M7b.1; approved in the M5–M7 review, Q2): a pure-Rust YAML parser driven
+# event by event, so aliases and depth are capped before anything is built.
+yaml-rust2 = { version = "=0.13.0", default-features = false }
 ka-judge = { path = "crates/ka-judge" }
 ka-pack = { path = "crates/ka-pack" }
 sqlx = { version = "0.8", default-features = false, features = ["sqlite", "runtime-tokio"] }

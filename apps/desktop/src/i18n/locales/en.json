@@ -63,7 +63,12 @@
     "no_path": "No request can get through this design. Connect a client to a service.",
     "content_missing": "The problem catalogue is missing from this installation. Reinstall the app.",
     "pack_refused": "This pack failed its safety and content checks, so nothing was installed.",
-    "pack_version": "This pack can't replace the installed one: it is older, or the same version with different contents."
+    "pack_version": "This pack can't replace the installed one: it is older, or the same version with different contents.",
+    "compose_too_large": "This docker-compose file is larger than 1 MB, so it wasn't imported.",
+    "compose_too_complex": "This docker-compose file is too complex to import (too many parts, aliases or levels).",
+    "compose_too_many_services": "This docker-compose file has more than 200 services, so it wasn't imported.",
+    "compose_unsupported": "This docker-compose file uses YAML the import doesn't read, such as anchors or aliases as keys.",
+    "compose_invalid": "This isn't a docker-compose file the import can read: the YAML is invalid or it has no services."
   },
   "files": {
     "unsaved": {
@@ -858,5 +863,22 @@
       "completion": "p99 completion",
       "mixed": "p99 (answers and completions)"
     }
+  },
+  "compose": {
+    "import": "Import docker-compose…",
+    "title": "Imported from docker-compose",
+    "summary": "{{cards}} cards and {{edges}} connections. Check the guesses below, then save the design.",
+    "mapped_one": "{{count}} service recognised by its image",
+    "mapped_other": "{{count}} services recognised by their images",
+    "guessed_one": "{{count}} service drawn as an App Server",
+    "guessed_other": "{{count}} services drawn as App Servers",
+    "guessedHint": "Their images aren't ones the import knows, so they became App Servers. Change the kind in the Inspector if one is something else.",
+    "noImage": "built from source",
+    "clamped_one": "{{count}} service had more replicas than a card allows (64)",
+    "clamped_other": "{{count}} services had more replicas than a card allows (64)",
+    "skipped_one": "{{count}} dependency not drawn",
+    "skipped_other": "{{count}} dependencies not drawn",
+    "unknownService": "No service with that name is in the file.",
+    "done": "Done"
   }
 }

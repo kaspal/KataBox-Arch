@@ -63,7 +63,12 @@
     "no_path": "Ninguna solicitud puede atravesar este diseño. Conecta un cliente a un servicio.",
     "content_missing": "Falta el catálogo de problemas en esta instalación. Vuelve a instalar la app.",
     "pack_refused": "Este paquete no ha superado las comprobaciones de seguridad y contenido, así que no se ha instalado nada.",
-    "pack_version": "Este paquete no puede sustituir al instalado: es más antiguo, o es la misma versión con otro contenido."
+    "pack_version": "Este paquete no puede sustituir al instalado: es más antiguo, o es la misma versión con otro contenido.",
+    "compose_too_large": "Este archivo docker-compose ocupa más de 1 MB, así que no se ha importado.",
+    "compose_too_complex": "Este archivo docker-compose es demasiado complejo para importarlo (demasiadas partes, alias o niveles).",
+    "compose_too_many_services": "Este archivo docker-compose tiene más de 200 servicios, así que no se ha importado.",
+    "compose_unsupported": "Este archivo docker-compose usa YAML que la importación no lee, como anclas o alias en las claves.",
+    "compose_invalid": "Este no es un archivo docker-compose que la importación pueda leer: el YAML no es válido o no tiene servicios."
   },
   "files": {
     "unsaved": {
@@ -858,5 +863,22 @@
       "completion": "Finalización p99",
       "mixed": "p99 (respuestas y finalizaciones)"
     }
+  },
+  "compose": {
+    "import": "Importar docker-compose…",
+    "title": "Importado desde docker-compose",
+    "summary": "{{cards}} tarjetas y {{edges}} conexiones. Revisa las suposiciones de abajo y guarda el diseño.",
+    "mapped_one": "{{count}} servicio reconocido por su imagen",
+    "mapped_other": "{{count}} servicios reconocidos por sus imágenes",
+    "guessed_one": "{{count}} servicio dibujado como App Server",
+    "guessed_other": "{{count}} servicios dibujados como App Servers",
+    "guessedHint": "La importación no conoce sus imágenes, así que se convirtieron en App Servers. Cambia el tipo en el Inspector si alguno es otra cosa.",
+    "noImage": "construido desde el código",
+    "clamped_one": "{{count}} servicio tenía más réplicas de las que admite una tarjeta (64)",
+    "clamped_other": "{{count}} servicios tenían más réplicas de las que admite una tarjeta (64)",
+    "skipped_one": "{{count}} dependencia no dibujada",
+    "skipped_other": "{{count}} dependencias no dibujadas",
+    "unknownService": "En el archivo no hay ningún servicio con ese nombre.",
+    "done": "Hecho"
   }
 }
