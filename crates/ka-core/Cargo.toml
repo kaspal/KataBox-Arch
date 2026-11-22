@@ -1,0 +1,20 @@
+[package]
+name = "ka-core"
+description = "KataBox Arch domain types: designs, the component registry, wiring rules and validation (no I/O)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+specta = { workspace = true, optional = true }
+
+[features]
+# TypeScript bindings for the desktop app (tauri-specta).
+specta = ["dep:specta"]
+
+[lints]
+workspace = true
