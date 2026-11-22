@@ -18,7 +18,7 @@ pub enum SimValue {
     /// A prop key of the kind (its default per flavour, overrides applied).
     Prop(String),
     /// A `SimDefaults` field: `servers_per_instance`, `service_ms`, `p99_ratio`,
-    /// `queue_per_server`, `failover_s`.
+    /// `queue_per_server`, `failover_s`, `write_slots`.
     Sim(String),
     /// A `Cost` field: `per_instance_month`, `per_gb_month`, `per_million`.
     Cost(String),

@@ -58,7 +58,7 @@ export const FAKE_REFERENCE: Design = {
 
 export function fakeJudgement(problemId: string, verdict: Verdict): Judgement {
   const pass = verdict === "accepted";
-  const limits = { p95_ms: 80, error_rate: 0.001, availability: 0.999, stale_rate: null, lost: null };
+  const limits = { p95_ms: 80, p99_ms: null, error_rate: 0.001, availability: 0.999, stale_rate: null, lost: null };
   return {
     problem_id: problemId,
     verdict,
@@ -71,6 +71,7 @@ export function fakeJudgement(problemId: string, verdict: Verdict): Judgement {
         hidden: false,
         verdict: "accepted",
         p95_ms: 31.2,
+        p99_ms: 48.5,
         error_rate: 0,
         availability: 1,
         stale_rate: 0,
@@ -89,6 +90,7 @@ export function fakeJudgement(problemId: string, verdict: Verdict): Judgement {
         hidden: true,
         verdict: pass ? "accepted" : verdict,
         p95_ms: pass ? 54 : 412,
+        p99_ms: pass ? 80 : 900,
         error_rate: pass ? 0 : 0.034,
         availability: pass ? 1 : 0.966,
         stale_rate: 0,

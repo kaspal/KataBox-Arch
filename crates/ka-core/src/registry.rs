@@ -316,7 +316,7 @@ pub enum CalibrationStatus {
 }
 
 /// Props whose defaults are calibrated figures rather than design choices.
-pub const CALIBRATED_PROPS: [&str; 7] = [
+pub const CALIBRATED_PROPS: [&str; 8] = [
     "service_ms",
     "concurrency",
     "concurrency_limit",
@@ -324,11 +324,12 @@ pub const CALIBRATED_PROPS: [&str; 7] = [
     "replication_lag_ms",
     "failover_s",
     "visibility_timeout_s",
+    "session_timeout_s",
 ];
 
 /// Calibration row ids whose source has been confirmed (the planning chat checked these on
 /// 2026-11-22; `docs/calibration.md` quotes each source). Every other row is `source: needed`.
-pub const CITED: [&str; 11] = [
+pub const CITED: [&str; 13] = [
     "sql.concurrency",
     "sql.concurrency@mysql",
     "sql.failover_s",
@@ -340,6 +341,8 @@ pub const CITED: [&str; 11] = [
     "serverless.cold_start_ms",
     "queue.visibility_timeout_s",
     "search.servers_per_instance",
+    "stream.session_timeout_s",
+    "nosql.write_slots@dynamodb",
 ];
 
 fn calibration_status(id: &str) -> CalibrationStatus {
@@ -365,6 +368,9 @@ pub struct SimDefaults {
     pub queue_per_server: f64,
     /// Seconds before a replica takes over from a dead primary (data kinds).
     pub failover_s: f64,
+    /// Service slots a write occupies, relative to a read (data kinds; 1 = the same).
+    /// DynamoDB partitions take a third as many writes as reads per second (ADR 0006).
+    pub write_slots: f64,
 }
 
 impl PropSpec {
@@ -429,6 +435,7 @@ fn kind_sim(kind: ComponentKind) -> Option<SimDefaults> {
             p99_ratio,
             queue_per_server,
             failover_s: 0.0,
+            write_slots: 1.0,
         })
     };
     let mut s = match kind {
@@ -471,8 +478,11 @@ fn kind_sim(kind: ComponentKind) -> Option<SimDefaults> {
 fn flavour_sim(flavour: Flavour, s: &mut SimDefaults) {
     use Flavour as F;
     match flavour {
-        // DynamoDB: about 3,000 reads/s per partition at ~3 ms.
-        F::Dynamodb => s.servers_per_instance = 8.0,
+        // DynamoDB: about 3,000 reads/s per partition at ~3 ms, and a third as many writes.
+        F::Dynamodb => {
+            s.servers_per_instance = 8.0;
+            s.write_slots = 3.0;
+        }
         // Memcached: 4 worker threads by default.
         F::Memcached => s.servers_per_instance = 4.0,
         F::Sqs => s.service_ms = 10.0,
@@ -760,7 +770,7 @@ pub fn registry() -> Registry {
                 int("instances", 1.0, 16.0, 1.0, Unit::Count),
                 choice(
                     "algorithm",
-                    &["round_robin", "least_conn", "ip_hash"],
+                    &["round_robin", "least_conn", "key_hash"],
                     "round_robin",
                 ),
                 service_ms(0.5),
@@ -851,6 +861,8 @@ pub fn registry() -> Registry {
                 service_ms(5.0),
                 float("replication_lag_ms", 0.0, 10_000.0, 1.0, 50.0, Unit::Ms),
                 int("failover_s", 1.0, 600.0, 30.0, Unit::S),
+                choice("read_from", &["any", "primary"], "any"),
+                int("cdc_buffer_s", 0.0, 3600.0, 300.0, Unit::S),
             ],
         ),
         kind(
@@ -861,6 +873,7 @@ pub fn registry() -> Registry {
                 int("replication_factor", 1.0, 5.0, 3.0, Unit::Count),
                 choice("consistency", &["eventual", "strong"], "eventual"),
                 service_ms(3.0),
+                int("cdc_buffer_s", 0.0, 3600.0, 300.0, Unit::S),
             ],
         ),
         kind(
@@ -904,6 +917,7 @@ pub fn registry() -> Registry {
             vec![fl(F::Kafka), fl(F::Kinesis)],
             vec![
                 int("partitions", 1.0, 1024.0, 6.0, Unit::Count),
+                int("session_timeout_s", 1.0, 1800.0, 45.0, Unit::S),
                 int("retention_h", 1.0, 8760.0, 168.0, Unit::H),
             ],
         ),
@@ -1013,6 +1027,9 @@ pub fn calibration_rows(registry: &Registry) -> Vec<CalibrationRow> {
                 v.push(("queue_per_server", s.queue_per_server));
                 if s.failover_s > 0.0 && k.prop("failover_s").is_none() {
                     v.push(("failover_s", s.failover_s));
+                }
+                if k.kind == ComponentKind::Nosql {
+                    v.push(("write_slots", s.write_slots));
                 }
                 v
             };

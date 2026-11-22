@@ -19,12 +19,13 @@ use ka_core::{ComponentKind, Registry};
 use crate::problems::ProblemDir;
 use crate::{Issue, TODO_MARKER, issue};
 
-pub const SIM_FIELDS: [&str; 5] = [
+pub const SIM_FIELDS: [&str; 6] = [
     "servers_per_instance",
     "service_ms",
     "p99_ratio",
     "queue_per_server",
     "failover_s",
+    "write_slots",
 ];
 pub const COST_FIELDS: [&str; 3] = ["per_instance_month", "per_gb_month", "per_million"];
 /// Props the simulator doesn't read (design notes only): an "In the simulator" row may not

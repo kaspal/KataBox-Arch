@@ -19,6 +19,7 @@ pub fn sim_defaults(registry: &Registry, node: &Node) -> SimDefaults {
             p99_ratio: 1.0,
             queue_per_server: 1.0,
             failover_s: 0.0,
+            write_slots: 1.0,
         })
 }
 
@@ -44,16 +45,29 @@ pub struct NodeSpec {
     /// Brokers.
     pub max_depth: f64,
     pub max_retries: u32,
+    /// Queues: a message whose worker died comes back after this (its lease).
     pub visibility_timeout_s: f64,
+    /// Streams: a dead consumer's partitions are reassigned after this.
+    pub session_timeout_s: f64,
     pub partitions: f64,
     /// Rate limiters, per API key.
     pub limit_rps: f64,
     pub burst: f64,
-    /// Load balancers: "round_robin" | "least_conn" | "ip_hash".
+    /// Load balancers: "round_robin" | "least_conn" | "key_hash" (sticky by request key).
     pub algorithm: String,
     /// Data clusters.
     pub replication_lag_ms: f64,
     pub failover_s: f64,
+    /// Reads go to the primary only (read-your-writes), not spread over replicas.
+    pub read_from_primary: bool,
+    /// Change data capture: how long committed changes wait in the database log for a
+    /// stream that is down before they count as lost.
+    pub cdc_buffer_s: f64,
+    /// Service slots a write occupies (DynamoDB: 3).
+    pub write_slots: f64,
+    /// Lanes (shards, partitions) over the kind's default count: the per-instance price
+    /// scales with it (cost per shard, ADR 0006).
+    pub cost_lanes: f64,
 }
 
 /// The value of `key` for `node`: the card's prop, else its flavour override, else the
@@ -96,12 +110,24 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         _ => instances * n("concurrency").unwrap_or(d.servers_per_instance),
     }
     .max(1.0);
-    let lanes = match node.kind {
-        K::Nosql => n("partitions").unwrap_or(1.0),
-        K::Sql | K::Search => n("shards").unwrap_or(1.0),
-        _ => 1.0,
-    }
-    .max(1.0) as u32;
+    let lane_key = match node.kind {
+        K::Nosql => Some("partitions"),
+        K::Sql | K::Search => Some("shards"),
+        _ => None,
+    };
+    let lanes = lane_key.and_then(n).unwrap_or(1.0).max(1.0) as u32;
+    // The flavour's default lane count (the card's own value left out): a card at its
+    // default costs what one instance costs; more shards cost more, fewer cost less.
+    let default_lanes = lane_key
+        .and_then(|k| {
+            let bare = Node {
+                props: Default::default(),
+                ..node.clone()
+            };
+            num(registry, &bare, k)
+        })
+        .unwrap_or(1.0)
+        .max(1.0);
     let role = Role::of(node.kind);
     NodeSpec {
         role,
@@ -122,11 +148,21 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         max_depth: n("max_depth").unwrap_or(100_000.0),
         max_retries: n("max_retries").unwrap_or(3.0) as u32,
         visibility_timeout_s: n("visibility_timeout_s").unwrap_or(30.0),
+        session_timeout_s: n("session_timeout_s").unwrap_or(45.0),
         partitions: n("partitions").unwrap_or(f64::INFINITY),
         limit_rps: n("limit_rps").unwrap_or(f64::INFINITY),
         burst: n("burst").unwrap_or(1.0),
-        algorithm: text(registry, node, "algorithm").unwrap_or_else(|| "round_robin".into()),
+        algorithm: match text(registry, node, "algorithm").as_deref() {
+            // `ip_hash` is the name files before `.kbarch` v3 used.
+            Some("key_hash" | "ip_hash") => "key_hash".into(),
+            Some(a) => a.to_owned(),
+            None => "round_robin".into(),
+        },
         replication_lag_ms: n("replication_lag_ms").unwrap_or(0.0),
         failover_s: n("failover_s").unwrap_or(d.failover_s),
+        read_from_primary: text(registry, node, "read_from").as_deref() == Some("primary"),
+        cdc_buffer_s: n("cdc_buffer_s").unwrap_or(300.0),
+        write_slots: d.write_slots.max(1.0),
+        cost_lanes: f64::from(lanes) / default_lanes,
     }
 }

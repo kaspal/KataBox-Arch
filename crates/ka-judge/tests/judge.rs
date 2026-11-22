@@ -186,6 +186,7 @@ fn result(verdict: Verdict, p95: f64, target: f64) -> TestResult {
         hidden: false,
         verdict,
         p95_ms: p95,
+        p99_ms: p95 * 2.0,
         error_rate: 0.0,
         availability: 1.0,
         stale_rate: 0.0,
@@ -255,5 +256,28 @@ fn judging_is_deterministic() {
     assert_ne!(
         a.tests[0].seed, a.tests[1].seed,
         "each test has its own seed"
+    );
+}
+
+#[test]
+fn a_p99_limit_is_judged_once_there_are_enough_samples() {
+    let d = design(4.0, 64.0);
+    let loose = problem(|s| s.replace("error_rate = 0.001", "error_rate = 0.001\np99_ms = 500"));
+    assert_eq!(
+        judge(&loose, &d, &registry(), 1.0).verdict,
+        Verdict::Accepted
+    );
+    let tight = problem(|s| s.replace("error_rate = 0.001", "error_rate = 0.001\np99_ms = 1"));
+    let j = judge(&tight, &d, &registry(), 1.0);
+    assert_eq!(j.verdict, Verdict::SloBreach, "{:?}", j.tests);
+    assert!(j.tests[0].p99_ms > j.tests[0].p95_ms);
+    // Too few completions to measure a p99 (20/s for 15 s = 300 < 1,000): not judged.
+    let few = problem(|s| {
+        s.replace("error_rate = 0.001", "error_rate = 0.001\np99_ms = 1")
+            .replace("peak_rps = 2000", "peak_rps = 20")
+    });
+    assert_eq!(
+        judge(&few, &d, &registry(), 1.0).tests[0].verdict,
+        Verdict::Accepted
     );
 }

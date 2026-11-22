@@ -63,6 +63,11 @@ note = "The most messages that can be with consumers at once. Workers beyond thi
 note_es = "El máximo de mensajes que pueden estar a la vez con los consumidores. Los workers por encima de esta cifra se quedan ociosos."
 
 [[sim]]
+prop = "session_timeout_s"
+note = "How long the group waits for a consumer that stopped answering. Its messages, and the partition slots they hold, come back to the others after this."
+note_es = "Cuánto espera el grupo a un consumidor que dejó de responder. Sus mensajes, y las plazas de partición que ocupan, vuelven a los demás pasado este tiempo."
+
+[[sim]]
 sim = "service_ms"
 note = "How long the broker takes to store a publish before it acknowledges it. A Kinesis put is slower than a Kafka produce."
 note_es = "Lo que tarda el broker en guardar una publicación antes de confirmarla. Un put de Kinesis es más lento que un produce de Kafka."

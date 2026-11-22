@@ -194,6 +194,7 @@ fn an_external_outage_fails_calls_to_it() {
         for_s: Some(5.0),
         down: true,
         add_ms: 0.0,
+        rate: None,
     });
     let r = run(&d, &s);
     // Each call to the dead provider holds an app thread for the 1 s connect timeout: the

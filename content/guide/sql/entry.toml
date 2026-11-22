@@ -89,8 +89,18 @@ note_es = "Cuánto más lentas son las consultas más lentas que la mediana. Las
 
 [[sim]]
 cost = "per_instance_month"
-note = "Priced per card: each replica is another card and adds the same price."
-note_es = "Se cobra por tarjeta: cada réplica es otra tarjeta y suma el mismo precio."
+note = "Priced per card and per shard: each replica is another card and adds the same price, and each shard beyond the first adds it again."
+note_es = "Se cobra por tarjeta y por shard: cada réplica es otra tarjeta y suma el mismo precio, y cada shard más allá del primero lo vuelve a sumar."
+
+[[sim]]
+prop = "read_from"
+note = "Where reads go: spread over the primary and its replicas, or to the primary only. The primary always has the latest write (read-your-writes), but takes every read."
+note_es = "Adónde van las lecturas: repartidas entre la principal y sus réplicas, o solo a la principal. La principal siempre tiene la última escritura (leer lo que escribes), pero se lleva todas las lecturas."
+
+[[sim]]
+prop = "cdc_buffer_s"
+note = "With a CDC edge to a stream, how long committed changes wait in the database log while the stream is down. Older changes are lost."
+note_es = "Con un enlace CDC a un stream, cuánto esperan los cambios confirmados en el registro de la base de datos mientras el stream está caído. Los más antiguos se pierden."
 
 [flavours_compared]
 flavours = ["postgresql", "mysql"]

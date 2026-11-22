@@ -68,6 +68,11 @@ note = "How many times a failed message is tried again, each wait twice the last
 note_es = "Cuántas veces se vuelve a intentar un mensaje fallido, cada espera el doble que la anterior. Luego va a una DLQ conectada, o se pierde."
 
 [[sim]]
+prop = "visibility_timeout_s"
+note = "A worker's lease on a message. If the worker dies holding it, the message comes back after this long and counts as another try."
+note_es = "La reserva de un worker sobre un mensaje. Si el worker cae con él, el mensaje vuelve pasado este tiempo y cuenta como otro intento."
+
+[[sim]]
 sim = "service_ms"
 note = "How long the broker takes to store a publish before it acknowledges it. SQS answers over HTTPS, so it is slower."
 note_es = "Lo que tarda el broker en guardar una publicación antes de confirmarla. SQS responde por HTTPS, así que es más lento."

@@ -50,5 +50,5 @@ kinds = [
 ]
 practice = []
 
-in_simulator = "Partly: the database write, the stream and its consumers are simulated, but a database never publishes onward in the engine, so the relay from the outbox table is drawn, not run. Crashes between a write and a publish are not modelled."
-in_simulator_es = "En parte: se simulan la escritura en la base de datos, el stream y sus consumidores, pero en el motor una base de datos nunca publica hacia delante, así que el reenvío desde la tabla outbox se dibuja pero no se ejecuta. Las caídas entre una escritura y una publicación no se modelan."
+in_simulator = "Mostly: the database publishes each committed change to the stream on its CDC edge (the relay), so a write that fails publishes nothing. While the stream is down, changes wait in the database log and go out in order when it is back; changes older than the database's CDC buffer are lost. Duplicate delivery to consumers is not modelled."
+in_simulator_es = "Casi todo: la base de datos publica cada cambio confirmado en el stream por su enlace CDC (el reenvío), así que una escritura que falla no publica nada. Mientras el stream está caído, los cambios esperan en el registro de la base de datos y salen en orden cuando vuelve; los cambios más antiguos que el búfer CDC de la base de datos se pierden. La entrega duplicada a los consumidores no se modela."

@@ -360,6 +360,9 @@
       "shards": "Shards",
       "replication_lag_ms": "Replication lag",
       "failover_s": "Failover time",
+      "read_from": "Read from",
+      "cdc_buffer_s": "CDC buffer",
+      "session_timeout_s": "Session timeout",
       "partitions": "Partitions",
       "replication_factor": "Replication factor",
       "consistency": "Consistency",
@@ -378,7 +381,9 @@
     "choice": {
       "round_robin": "Round robin",
       "least_conn": "Least connections",
-      "ip_hash": "IP hash",
+      "key_hash": "Key hash (sticky)",
+      "any": "Primary and replicas",
+      "primary": "Primary only",
       "eventual": "Eventual",
       "strong": "Strong",
       "lru": "LRU",
@@ -618,7 +623,8 @@
       "service_ms": "Service time",
       "p99_ratio": "Slow tail (p99 ÷ median)",
       "queue_per_server": "Queue slots per worker",
-      "failover_s": "Failover time"
+      "failover_s": "Failover time",
+      "write_slots": "Slots per write"
     },
     "costField": {
       "per_instance_month": "Price per instance",

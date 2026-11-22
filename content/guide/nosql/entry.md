@@ -3,3 +3,5 @@ A **NoSQL store** gives up some of what a relational database offers, such as jo
 The partition key is the main design decision. A good key has many values that are used about equally, so the load spreads evenly. A bad one sends most of the traffic to a few keys, and their partition saturates while the others sit idle. You also design tables around the queries you will run, because the store won't join them for you later.
 
 In the simulator each partition is an independent lane with a fixed number of requests in parallel, and a key always lands on the same lane, so skewed traffic makes a hot partition. Service time grows with the item size. The **replication factor** and **consistency** settings are design notes the simulator does not model; to run real replicas, add more cards and join them with Replicate edges.
+
+On DynamoDB a partition serves up to 3,000 reads but only 1,000 writes a second, so in the simulator a write occupies three read slots. Every read counts as strongly consistent, one read unit each; on the real service an eventually consistent read costs half that, so the simulator is on the cautious side.

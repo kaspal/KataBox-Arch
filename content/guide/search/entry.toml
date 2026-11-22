@@ -82,8 +82,8 @@ note_es = "Con una tarjeta réplica unida por Replicate, cuánto tarda en sustit
 
 [[sim]]
 cost = "per_instance_month"
-note = "A fixed monthly price per card. Each replica card adds the same price."
-note_es = "Un precio mensual fijo por tarjeta. Cada tarjeta réplica suma el mismo precio."
+note = "Priced per shard: a card at the default shard count costs this; more shards cost more, fewer cost less. Each replica card adds its own price."
+note_es = "Se cobra por shard: una tarjeta con el número de shards por defecto cuesta esto; más shards cuestan más y menos, menos. Cada tarjeta réplica suma su propio precio."
 
 [flavours_compared]
 flavours = ["elasticsearch", "opensearch"]

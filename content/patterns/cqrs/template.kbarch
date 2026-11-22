@@ -86,7 +86,7 @@
     },
     {
       "id": "e1",
-      "from": "write-api",
+      "from": "write-db",
       "to": "events",
       "protocol": "publish"
     },

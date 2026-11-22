@@ -52,5 +52,5 @@ kinds = [
 ]
 practice = []
 
-in_simulator = "Partly: both sides, the stream and the projector workers are simulated with their own load and latency, but the delay before a write reaches the read model is not counted as a stale read."
-in_simulator_es = "En parte: los dos lados, el stream y los workers proyectores se simulan con su propia carga y latencia, pero el retraso hasta que una escritura llega al modelo de lectura no cuenta como lectura obsoleta."
+in_simulator = "Mostly: both sides, the stream and the projector workers are simulated with their own load and latency, and the write database publishes each committed change to the stream (change data capture), so the projector's lag shows up as completion time. That delay is not counted as a stale read."
+in_simulator_es = "Casi todo: los dos lados, el stream y los workers proyectores se simulan con su propia carga y latencia, y la base de datos de escritura publica cada cambio confirmado en el stream (change data capture), así que el retraso del proyector se ve como tiempo de finalización. Ese retraso no cuenta como lectura obsoleta."

@@ -360,6 +360,9 @@
       "shards": "Shards",
       "replication_lag_ms": "Retraso de replicación",
       "failover_s": "Tiempo de failover",
+      "read_from": "Leer de",
+      "cdc_buffer_s": "Búfer de CDC",
+      "session_timeout_s": "Tiempo de sesión",
       "partitions": "Particiones",
       "replication_factor": "Factor de replicación",
       "consistency": "Consistencia",
@@ -368,7 +371,7 @@
       "persistence": "Persistencia",
       "replicas": "Réplicas",
       "max_depth": "Profundidad máxima",
-      "visibility_timeout_s": "Tiempo de visibilidad",
+      "visibility_timeout_s": "Tiempo de espera de visibilidad",
       "max_retries": "Reintentos máximos",
       "retention_h": "Retención",
       "retention_days": "Retención",
@@ -378,7 +381,9 @@
     "choice": {
       "round_robin": "Round robin",
       "least_conn": "Menos conexiones",
-      "ip_hash": "Hash de IP",
+      "key_hash": "Hash de clave (sticky)",
+      "any": "Principal y réplicas",
+      "primary": "Solo la principal",
       "eventual": "Eventual",
       "strong": "Fuerte",
       "lru": "LRU",
@@ -618,7 +623,8 @@
       "service_ms": "Tiempo de servicio",
       "p99_ratio": "Cola lenta (p99 ÷ mediana)",
       "queue_per_server": "Huecos de cola por trabajador",
-      "failover_s": "Tiempo de failover"
+      "failover_s": "Tiempo de failover",
+      "write_slots": "Plazas por escritura"
     },
     "costField": {
       "per_instance_month": "Precio por instancia",

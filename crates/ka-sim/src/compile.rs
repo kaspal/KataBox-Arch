@@ -647,6 +647,42 @@ fn plan_type(
                     .broker
                     .as_ref()
                     .expect("segments after the first have a broker");
+                if bstep.cdc {
+                    // The database written by the last call publishes (change data capture):
+                    // keep the write targets with a member that feeds a usable stream.
+                    let streams_of = |m: u32| -> Vec<u32> {
+                        nodes[m as usize]
+                            .out
+                            .iter()
+                            .filter(|(b, p)| {
+                                *p == Protocol::Publish && bstep.accepts(nodes[*b as usize].kind)
+                            })
+                            .map(|(b, _)| *b)
+                            .filter(|b| !consumers[s + 1][*b as usize].is_empty())
+                            .collect()
+                    };
+                    let members = |t: &Target| -> Vec<u32> {
+                        match t {
+                            Target::Cluster(cl) => clusters[*cl as usize].members.clone(),
+                            Target::Node(n) => vec![*n],
+                            Target::External(_) => Vec::new(),
+                        }
+                    };
+                    let Some(last) = per_step.last_mut() else {
+                        continue;
+                    };
+                    last.retain(|t| members(t).into_iter().any(|m| !streams_of(m).is_empty()));
+                    if last.is_empty() {
+                        continue;
+                    }
+                    for t in last.iter() {
+                        for m in members(t) {
+                            brokers[s + 1][m as usize] = streams_of(m);
+                        }
+                    }
+                    calls[s][caller as usize] = Some(per_step);
+                    continue;
+                }
                 let found: Vec<u32> = nodes[caller as usize]
                     .out
                     .iter()

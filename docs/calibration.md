@@ -162,6 +162,8 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `nosql.queue_per_server` | 4 | slots per server | source: needed (suggested: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html); backlog before the card drops requests |
 | `nosql.failover_s` | 5 | s | source: needed (suggested: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html); replicas already hold the data; the client retries another node |
 | `nosql.servers_per_instance@dynamodb` | 8 | in parallel per partition | https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html — "a maximum capacity of 3,000 read units per second and 1,000 write units per second" per partition; a write takes 3 slots here (ADR 0006), and reads are modelled as strongly consistent, which is conservative (checked 2026-11-22) |
+| `nosql.write_slots` | 1 | slots per write | source: needed (suggested: https://cassandra.apache.org/doc/latest/cassandra/architecture/storage-engine.html); a write costs a store about what a read does unless the flavour says otherwise |
+| `nosql.write_slots@dynamodb` | 3 | slots per write | https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html — a partition delivers "3,000 read units per second and 1,000 write units per second", so a write takes 3 read slots (checked 2026-11-22) |
 | `nosql.cost.instance` | 120 | $/instance-month | source: needed (suggested: https://aws.amazon.com/dynamodb/pricing/); teaching price, shaped like the list price |
 | `nosql.cost.million` | 0.5 | $/million requests | source: needed (suggested: https://aws.amazon.com/dynamodb/pricing/); teaching price, shaped like the list price |
 
@@ -215,6 +217,7 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 
 | Id | Value | Unit | Source |
 |---|---|---|---|
+| `stream.session_timeout_s` | 45 | s | https://kafka.apache.org/documentation/#consumerconfigs_session.timeout.ms — the consumer's `session.timeout.ms` defaults to 45000 since Kafka 3.0 (KIP-735); a dead consumer's partitions are reassigned after it (checked 2026-11-22, planning chat) |
 | `stream.servers_per_instance` | 10000 | in parallel per instance | source: needed (suggested: https://kafka.apache.org/documentation/#producerconfigs); partitions, not the broker, limit consumers |
 | `stream.service_ms` | 3 | ms | source: needed (suggested: https://kafka.apache.org/documentation/#producerconfigs); a Kafka produce with `acks=all` |
 | `stream.p99_ratio` | 3 | × median | source: needed (suggested: https://kafka.apache.org/documentation/#producerconfigs); tail spread of the service time |

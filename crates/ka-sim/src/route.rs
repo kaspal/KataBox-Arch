@@ -10,9 +10,18 @@
 //! "datastore:write"       the data cluster's primary
 //! "datastore:object"      a data store of that kind
 //! "broker"                publish; the consumer after it becomes the caller
+//! "cdc"                   change data capture: the database written by the step before
+//!                         publishes the change to the stream on its CDC edge, and the
+//!                         consumer after it becomes the caller
 //! "external:email"        a provider outside the design
 //! "compute|datastore"     either role satisfies the step
 //! ```
+//!
+//! **CDC.** A `cdc` step must follow a `datastore:write` call to SQL or NoSQL. The caller's
+//! answer leaves at the commit (the request's latency ends there); the change is published
+//! by the database, not the caller, so it counts only toward completion. A stream that is
+//! down delays changes (they wait in the database log, up to the store's `cdc_buffer_s`)
+//! rather than losing them, and changes to one key keep their order.
 //!
 //! **The caller rule.** Steps before the first caller step (`compute`, `worker`, or an
 //! alternation that includes one) are hops. From the first caller step on, the steps are
@@ -98,6 +107,8 @@ impl Alt {
 pub struct Step {
     pub alts: Vec<Alt>,
     pub optional: bool,
+    /// The `cdc` step: a stream fed by the database written just before.
+    pub cdc: bool,
 }
 
 impl Step {
@@ -161,6 +172,22 @@ pub fn parse_step(s: &str) -> Result<Step, RouteError> {
         Some(b) => (b, true),
         None => (s, false),
     };
+    if body == "cdc" {
+        if optional {
+            return Err(RouteError("a cdc step can't be optional".into()));
+        }
+        return Ok(Step {
+            alts: vec![Alt {
+                role: Role::Broker,
+                write: false,
+                ws: false,
+                kinds: vec![ComponentKind::Stream],
+                external: None,
+            }],
+            optional: false,
+            cdc: true,
+        });
+    }
     let mut alts = Vec::new();
     for alt in body.split('|') {
         let mut parts = alt.split(':');
@@ -195,7 +222,11 @@ pub fn parse_step(s: &str) -> Result<Step, RouteError> {
         }
         alts.push(a);
     }
-    Ok(Step { alts, optional })
+    Ok(Step {
+        alts,
+        optional,
+        cdc: false,
+    })
 }
 
 /// Parse a route by the caller rule. `scheduler`: the route starts at a scheduler card,
@@ -234,6 +265,26 @@ pub fn parse_route(steps: &[String], scheduler: bool) -> Result<Route, RouteErro
         let s = &parsed[i];
         if s.has_role(Role::Edge) {
             return Err(RouteError("edge steps come before the entry".into()));
+        }
+        if s.cdc {
+            let wrote = segments
+                .last()
+                .and_then(|g| g.calls.last())
+                .is_some_and(|c| {
+                    c.writes()
+                        && c.alts.iter().all(|a| {
+                            a.role == Role::Datastore
+                                && (a.kinds.is_empty()
+                                    || a.kinds.iter().all(|k| {
+                                        matches!(k, ComponentKind::Sql | ComponentKind::Nosql)
+                                    }))
+                        })
+                });
+            if !wrote {
+                return Err(RouteError(
+                    "a cdc step must follow a datastore:write call (SQL or NoSQL)".into(),
+                ));
+            }
         }
         if s.has_role(Role::Broker) {
             let consumer = parsed

@@ -568,9 +568,14 @@ export type ChaosEvent =
  */
 { latency: { target: Selector; add_ms: number; at: number; for?: number | null } } | 
 /**
- * The zone (Region or AZ label or id) is cut off from the rest.
+ * The zone (Region or AZ label or id) is lost: every card in it goes down.
  */
 { partition: { zone: string; at: number; for?: number | null } } | 
+/**
+ * A network split: the zone (Region or AZ label or id) keeps running, but nothing
+ * crosses its border (calls, hops, publishes, replication) until it heals.
+ */
+{ split: { zone: string; at: number; for?: number | null } } | 
 /**
  * Traffic multiplied by `x`.
  */
@@ -580,9 +585,10 @@ export type ChaosEvent =
  */
 { flush: { target: Selector; at: number } } | 
 /**
- * An external provider goes down, or slows by `add_ms`.
+ * An external provider goes down, slows by `add_ms`, or cuts its rate limit to `rate`
+ * calls per second.
  */
-{ external: { name: string; at: number; for?: number | null; down?: boolean; add_ms?: number } }
+{ external: { name: string; at: number; for?: number | null; down?: boolean; add_ms?: number; rate?: number | null } }
 export type CompareRow = { label: string; label_es: string; 
 /**
  * One cell per compared flavour, in `flavours_compared.flavours` order.
@@ -858,7 +864,12 @@ export type OpenedDesign = { path: string; design: Design }
 /**
  * What a passing run needs. Unset limits aren't checked.
  */
-export type PassCriteria = { p95_ms?: number | null; error_rate?: number | null; availability?: number | null; stale_rate?: number | null; 
+export type PassCriteria = { p95_ms?: number | null; 
+/**
+ * Judged only on tests with at least `P99_MIN_SAMPLES` completed requests of the
+ * measured types (review A4); `ka-pack` refuses a problem whose tests have fewer.
+ */
+p99_ms?: number | null; error_rate?: number | null; availability?: number | null; stale_rate?: number | null; 
 /**
  * Messages that may be lost (usually 0).
  */
@@ -1121,7 +1132,12 @@ queue_per_server: number;
 /**
  * Seconds before a replica takes over from a dead primary (data kinds).
  */
-failover_s: number }
+failover_s: number; 
+/**
+ * Service slots a write occupies, relative to a read (data kinds; 1 = the same).
+ * DynamoDB partitions take a third as many writes as reads per second (ADR 0006).
+ */
+write_slots: number }
 export type SimRow = (
 /**
  * A prop key of the kind (its default per flavour, overrides applied).
@@ -1129,7 +1145,7 @@ export type SimRow = (
 { prop: string } | 
 /**
  * A `SimDefaults` field: `servers_per_instance`, `service_ms`, `p99_ratio`,
- * `queue_per_server`, `failover_s`.
+ * `queue_per_server`, `failover_s`, `write_slots`.
  */
 { sim: string } | 
 /**
@@ -1208,7 +1224,7 @@ export type TestBrief = { id: string; name: string; name_es: string; hidden: boo
  * The result of one test. Hidden tests carry the same numbers, but never their traffic or
  * chaos: the definition stays in Rust.
  */
-export type TestResult = { id: string; name: string; name_es: string; hidden: boolean; verdict: Verdict; p95_ms: number; error_rate: number; availability: number; stale_rate: number; lost: number; throughput_rps: number; cost_month: number; 
+export type TestResult = { id: string; name: string; name_es: string; hidden: boolean; verdict: Verdict; p95_ms: number; p99_ms: number; error_rate: number; availability: number; stale_rate: number; lost: number; throughput_rps: number; cost_month: number; 
 /**
  * The limits this test was held to.
  */

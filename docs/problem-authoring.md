@@ -31,7 +31,10 @@ A request type has:
   - roles: `edge`, `compute`, `worker`, `cache`, `datastore`, `broker` and `external:<name>`;
   - `?` makes a step optional, and `cache?` is cache-aside;
   - `:write` goes to a cluster's primary;
-  - `a|b` accepts either.
+  - `a|b` accepts either;
+  - `cdc` (right after a `datastore:write` to SQL or NoSQL): the database publishes the committed change to the
+    stream on its CDC edge, and the consumer after it becomes the caller. The request's latency ends at the commit,
+    so measure the CDC chain with `measure = "completion"` (for example "the search index is fresh within 30 s").
 - optionally:
   - `key_space` and `key_skew = { zipf = 1.1 }`;
   - `cacheable` (for CDNs);
@@ -46,8 +49,13 @@ A request type has:
   `steps`, `hourly`), `chaos`, `type_multipliers`, `key_skew_override`, `cold_caches`, and optional `pass`
   overrides.
 - **Chaos:**
-  - `kill`, `latency`, `partition`, `traffic`, `flush` and `external`;
+  - `kill`, `latency`, `partition` (the zone is lost), `split` (the zone keeps running but nothing crosses its
+    border), `traffic`, `flush` and `external` (`down`, `add_ms`, or `rate` to cut the provider's rate limit);
   - target selectors are written flat: `{ kill = { kind = "sql", role = "primary", at = 30 } }`.
+  - A worker crash no longer fails its message at once: it comes back after the queue's visibility timeout or the
+    stream's session timeout. Make crash tests long enough for that (kill time + timeout + drain).
+- **Pass limits:** `p95_ms`, `p99_ms`, `error_rate`, `availability`, `stale_rate`, `lost`. A `p99_ms` limit needs at
+  least 1,000 completed requests in the test, or `ka-pack validate --run` refuses the problem.
 - **Hidden tests** show their name only, until the problem is solved.
 - **Sampling:** tests sample traffic above 5,000 simulated requests per second (ADR 0006). Run the accuracy check
   (`cargo test -p ka-pack --release --test accuracy -- --ignored --nocapture`); if a design's verdict differs between

@@ -62,8 +62,8 @@ note_es = "Más instancias, más conexiones a la vez. Un balanceador rara vez es
 
 [[sim]]
 prop = "algorithm"
-note = "Round robin takes turns. Least connections picks the server with the fewest busy and queued requests. IP hash pins each request key to one server, so a hot key makes a hot server (the model hashes the key, as it has no client addresses)."
-note_es = "Round robin va por turnos. Menos conexiones elige el servidor con menos peticiones en curso y en cola. IP hash fija cada clave de petición a un servidor, así que una clave caliente crea un servidor caliente (el modelo usa la clave, porque no tiene direcciones de cliente)."
+note = "Round robin takes turns. Least connections picks the server with the fewest busy and queued requests. Key hash (sticky) pins each request key, such as a user or session, to one server, so a hot key makes a hot server."
+note_es = "Round robin va por turnos. Menos conexiones elige el servidor con menos peticiones en curso y en cola. Hash de clave (sticky) fija cada clave de petición, como un usuario o una sesión, a un servidor, así que una clave caliente crea un servidor caliente."
 
 [[sim]]
 prop = "service_ms"

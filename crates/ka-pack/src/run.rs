@@ -38,6 +38,25 @@ pub fn check_problem(p: &ProblemDir, registry: &Registry) -> (Vec<Issue>, Judgem
             format!("must be Accepted on every test: {}", summary(&reference)),
         ));
     }
+    // A p99 limit needs enough completions to be measured (review A4).
+    for t in &p.def.tests {
+        if p.def.pass_for(t).p99_ms.is_none() {
+            continue;
+        }
+        if let Ok(r) = ka_judge::run_test(&p.def, t, &p.reference, registry)
+            && !ka_judge::p99_judged(&r)
+        {
+            issues.push(issue(
+                format!("{}/problem.toml", p.dir),
+                format!(
+                    "test {}: a p99 limit needs at least {} completed requests; the reference completes {:.0}",
+                    t.id,
+                    ka_core::scenario::P99_MIN_SAMPLES,
+                    ka_judge::simulated_completions(&r)
+                ),
+            ));
+        }
+    }
     let naive = judge(&p.def, &p.naive, registry, reference.cost_month);
     if naive.verdict == Verdict::InvalidDesign {
         issues.push(issue(

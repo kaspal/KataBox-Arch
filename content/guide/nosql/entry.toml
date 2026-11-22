@@ -78,9 +78,14 @@ note = "With replicas wired by Replicate, how long until one takes over from a d
 note_es = "Con réplicas unidas por Replicate, cuánto tarda una en sustituir a una principal caída."
 
 [[sim]]
+sim = "write_slots"
+note = "How many read slots one write occupies. A DynamoDB partition takes a third as many writes as reads per second, so writes count triple."
+note_es = "Cuántas plazas de lectura ocupa una escritura. Una partición de DynamoDB admite un tercio de escrituras que de lecturas por segundo, así que las escrituras cuentan el triple."
+
+[[sim]]
 cost = "per_instance_month"
-note = "A fixed monthly price per card, whatever the partition count."
-note_es = "Un precio mensual fijo por tarjeta, sea cual sea el número de particiones."
+note = "Priced per partition: a card at its flavour's default partition count costs this; more partitions cost more, fewer cost less."
+note_es = "Se cobra por partición: una tarjeta con el número de particiones por defecto de su sabor cuesta esto; más particiones cuestan más y menos, menos."
 
 [[sim]]
 cost = "per_million"

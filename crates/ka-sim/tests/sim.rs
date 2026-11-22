@@ -62,6 +62,15 @@ fn golden_c_stream_and_workers() {
     golden("c", &r);
 }
 
+#[test]
+fn golden_d_change_data_capture_through_a_stream_outage() {
+    let (d, s) = golden_d();
+    let r = run(&d, &s, 42);
+    assert_eq!(r.errors, 0.0);
+    assert_eq!(r.lost, 0.0, "changes wait in the database log, none lost");
+    golden("d", &r);
+}
+
 // --- Determinism --------------------------------------------------------------------------
 
 #[test]
@@ -237,9 +246,9 @@ fn a_consumer_s_calls_take_their_own_servers() {
     let (d, s) = golden_c();
     let r = run(&d, &s, 1);
     let store = node(&r, "store");
-    // 400 writes/s × ~3 ms over 4 partitions × 8 servers ≈ 0.04.
+    // 400 DynamoDB writes/s × ~3 ms × 3 write slots over 4 partitions × 8 servers ≈ 0.12.
     assert!(
-        (0.02..0.08).contains(&store.utilisation),
+        (0.08..0.2).contains(&store.utilisation),
         "{}",
         store.utilisation
     );
