@@ -6,8 +6,8 @@
 //! ka-pack build --out FILE [--content DIR]
 //! ```
 //!
-//! `--run` (from `ka-judge`, M2.2) judges each reference (Accepted on every test) and naive
-//! design (fails a hidden test).
+//! `--run` judges each reference (Accepted on every test) and naive design (fails a hidden
+//! test) with `ka-judge`.
 
 use std::path::PathBuf;
 use std::process::ExitCode;

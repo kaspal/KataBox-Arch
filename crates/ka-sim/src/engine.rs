@@ -156,6 +156,7 @@ struct NodeRt {
     sec_drops: f64,
     last_integral: f64,
     util_series: Vec<f64>,
+    down_seconds: Vec<u32>,
     queue_series: Vec<f64>,
     drop_series: Vec<f64>,
     rr: usize,
@@ -1722,6 +1723,9 @@ impl Engine {
             rt.queue_series
                 .push(rt.sec_max_queue as f64 * self.c.weight);
             rt.drop_series.push(rt.sec_drops);
+            if rt.down {
+                rt.down_seconds.push(rt.util_series.len() as u32 - 1);
+            }
             let qlen: usize = rt.lanes.iter().map(|l| l.queue.len()).sum();
             rt.sec_max_queue = qlen;
             rt.sec_drops = 0.0;
@@ -1784,6 +1788,7 @@ impl Engine {
                     util_series: rt.util_series.clone(),
                     queue_series: rt.queue_series.clone(),
                     drop_series: rt.drop_series.clone(),
+                    down_seconds: rt.down_seconds.clone(),
                 }
             })
             .collect();

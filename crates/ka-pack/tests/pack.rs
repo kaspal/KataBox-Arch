@@ -253,3 +253,29 @@ fn hints_need_three_tiers() {
     assert!(parse_hints("intro\n## 1\na\n## 2\nb\n## 3\nc\n").is_err());
     assert!(parse_hints("## 1\na\n## 2\n\n## 3\nc\n").is_err());
 }
+
+#[test]
+fn run_checks_judge_the_reference_and_the_naive_design() {
+    let root = temp("run");
+    write_problem(&root, "demo", TOML);
+    let r = registry();
+    let problems = load_problems(&root, &r).unwrap();
+    // The reference (4 app instances) passes; the naive one (1 instance) fails the hidden
+    // spike.
+    let (issues, reference, naive) = ka_pack::run::check_problem(&problems[0], &r);
+    assert!(issues.is_empty(), "{issues:#?}");
+    assert_eq!(reference.verdict, ka_judge::Verdict::Accepted);
+    assert_ne!(naive.verdict, ka_judge::Verdict::Accepted);
+
+    // A naive design that passes everything is refused.
+    let same = std::fs::read(root.join("problems/demo/reference.kbarch")).unwrap();
+    std::fs::write(root.join("problems/demo/naive.kbarch"), same).unwrap();
+    let problems = load_problems(&root, &r).unwrap();
+    let issues = ka_pack::run::run_checks(&problems, &r);
+    assert!(
+        issues
+            .iter()
+            .any(|i| i.message.contains("must fail at least one hidden test")),
+        "{issues:#?}"
+    );
+}

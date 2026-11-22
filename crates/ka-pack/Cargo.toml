@@ -10,6 +10,7 @@ rust-version.workspace = true
 [dependencies]
 ka-app.workspace = true
 ka-core.workspace = true
+ka-judge.workspace = true
 ka-sim.workspace = true
 ka-store.workspace = true
 serde.workspace = true

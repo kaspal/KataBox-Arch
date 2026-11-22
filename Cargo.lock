@@ -1845,11 +1845,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "ka-judge"
+version = "0.1.0"
+dependencies = [
+ "ka-core",
+ "ka-sim",
+ "serde",
+ "serde_json",
+ "specta",
+ "toml 0.8.2",
+]
+
+[[package]]
 name = "ka-pack"
 version = "0.1.0"
 dependencies = [
  "ka-app",
  "ka-core",
+ "ka-judge",
  "ka-sim",
  "ka-store",
  "serde",

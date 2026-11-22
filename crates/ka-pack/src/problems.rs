@@ -336,15 +336,8 @@ impl ProblemDir {
     pub fn row(&self, registry: &Registry) -> Result<ka_store::ProblemRow, String> {
         let d = &self.def;
         let first = d.tests.first().ok_or("no tests")?;
-        let seed = ka_core::rng::fnv64(format!("{}/{}", d.id, first.id).as_bytes());
-        let run = ka_sim::simulate(
-            &self.reference,
-            registry,
-            &d.scenario(first),
-            seed,
-            &ka_sim::SimOptions::default(),
-        )
-        .map_err(|e| e.to_string())?;
+        let run =
+            ka_judge::run_test(d, first, &self.reference, registry).map_err(|e| e.to_string())?;
         Ok(ka_store::ProblemRow {
             id: d.id.clone(),
             number: i64::from(d.number),

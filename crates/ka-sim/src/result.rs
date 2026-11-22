@@ -70,6 +70,9 @@ pub struct NodeResult {
     pub util_series: Vec<f64>,
     pub queue_series: Vec<f64>,
     pub drop_series: Vec<f64>,
+    /// Seconds (indices) in which the card was down (chaos); omitted when never down.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub down_seconds: Vec<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

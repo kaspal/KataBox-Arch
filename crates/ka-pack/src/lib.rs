@@ -3,8 +3,8 @@
 //! - `load_problems` reads every `content/problems/<id>/` folder.
 //! - `validate_problems` is the structural check: files, EN/ES parity, ids, routes, designs.
 //!   It is fast and needs no simulation, so the desktop build script can run it (review A5).
-//! - `ka-judge` adds `validate --run` (the reference passes every test, the naive design
-//!   fails a hidden one) in the CLI.
+//! - `run::run_checks` is `validate --run`: with `ka-judge`, the reference passes every
+//!   test and the naive design fails at least one hidden test.
 //! - `build_content` turns validated content into rows, and `write_db` writes the file.
 
 pub mod problems;
