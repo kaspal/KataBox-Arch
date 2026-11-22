@@ -56,6 +56,16 @@ describe("story framing", () => {
             expect(x1, where).toBeLessThanOrEqual(area.w - FRAME_MARGIN + 0.5);
             expect(y1, where).toBeLessThanOrEqual(area.h - FRAME_MARGIN + 0.5);
           }
+          // No card, focused or not, is cut off by the view's edge: each is fully in or out.
+          for (const n of step.nodes) {
+            const x0 = n.x * v.zoom + v.x;
+            const y0 = n.y * v.zoom + v.y;
+            const x1 = (n.x + CARD_W) * v.zoom + v.x;
+            const y1 = (n.y + CARD_H) * v.zoom + v.y;
+            const inside = x0 >= -0.5 && y0 >= -0.5 && x1 <= size.w + 0.5 && y1 <= area.h + 0.5;
+            const outside = x1 <= 0 || y1 <= 0 || x0 >= size.w || y0 >= area.h;
+            expect(inside || outside, `${n.id} is cut off at ${size.w}×${size.h}`).toBe(true);
+          }
         }
       });
     });

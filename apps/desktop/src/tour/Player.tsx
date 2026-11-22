@@ -67,30 +67,106 @@ export function focusBox(step: StoryStep, design: Design): Box | null {
   return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
 }
 
+type Area = { w: number; h: number };
+/** Breathing room every visible card keeps from the view's edge. */
+const EDGE = 12;
+
+/** Cards the view cuts through: partly inside, partly outside. */
+function cutCards(design: Design, v: Viewport, area: Area) {
+  return design.nodes.filter((n) => {
+    const x0 = n.position.x * v.zoom + v.x;
+    const y0 = n.position.y * v.zoom + v.y;
+    const x1 = x0 + CARD_W * v.zoom;
+    const y1 = y0 + CARD_H * v.zoom;
+    const inside = x0 >= EDGE && y0 >= EDGE && x1 <= area.w - EDGE && y1 <= area.h - EDGE;
+    const outside = x1 <= 0 || y1 <= 0 || x0 >= area.w || y0 >= area.h;
+    return !inside && !outside;
+  });
+}
+
 /**
- * Where a step's camera looks, above the caption band. The focused cards (else the design)
- * always fit with a margin (M1–M3 review F2): a step's own camera keeps its centre and zoom
- * only as far as they still show every focused card; otherwise it zooms out and slides just
- * enough.
+ * Slide `v` (keeping `box` inside the margins) so no card is cut by the view's edge, with
+ * the smallest move. None if no slide does it.
+ */
+function slideClear(design: Design, box: Box, v: Viewport, area: Area): Viewport | null {
+  const z = v.zoom;
+  // How far the view may move while the box stays inside the margins.
+  const range = (lo: number, hi: number, room: number): [number, number] => [FRAME_MARGIN - lo, room - FRAME_MARGIN - hi];
+  const [dxMin, dxMax] = range(box.x * z + v.x, (box.x + box.w) * z + v.x, area.w);
+  const [dyMin, dyMax] = range(box.y * z + v.y, (box.y + box.h) * z + v.y, area.h);
+  // Candidate moves: none, or one that puts some card's edge exactly on a view edge.
+  const xs = new Set<number>([0]);
+  const ys = new Set<number>([0]);
+  for (const n of design.nodes) {
+    const x0 = n.position.x * z + v.x;
+    const y0 = n.position.y * z + v.y;
+    const x1 = x0 + CARD_W * z;
+    const y1 = y0 + CARD_H * z;
+    for (const d of [EDGE - x0, area.w - EDGE - x1, -x1, area.w - x0]) xs.add(d);
+    for (const d of [EDGE - y0, area.h - EDGE - y1, -y1, area.h - y0]) ys.add(d);
+  }
+  const ok = (d: number, lo: number, hi: number) => d >= lo - 1e-6 && d <= hi + 1e-6;
+  let best: { v: Viewport; cost: number } | null = null;
+  for (const dx of xs) {
+    if (!ok(dx, Math.min(0, dxMin), Math.max(0, dxMax))) continue;
+    for (const dy of ys) {
+      if (!ok(dy, Math.min(0, dyMin), Math.max(0, dyMax))) continue;
+      const cost = Math.abs(dx) + Math.abs(dy);
+      if (best && cost >= best.cost) continue;
+      const moved = { x: v.x + dx, y: v.y + dy, zoom: z };
+      if (cutCards(design, moved, area).length === 0) best = { v: moved, cost };
+    }
+  }
+  return best?.v ?? null;
+}
+
+function union(a: Box, cards: Design["nodes"]): Box {
+  const x0 = Math.min(a.x, ...cards.map((n) => n.position.x));
+  const y0 = Math.min(a.y, ...cards.map((n) => n.position.y));
+  const x1 = Math.max(a.x + a.w, ...cards.map((n) => n.position.x + CARD_W));
+  const y1 = Math.max(a.y + a.h, ...cards.map((n) => n.position.y + CARD_H));
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+
+/**
+ * Where a step's camera looks, above the caption band (M1–M3 review F2):
+ * - the focused cards (else the design) always fit, with a margin;
+ * - a step's own camera keeps its centre and zoom only as far as they still show every
+ *   focused card;
+ * - no card is left cut off by the view's edge: the view slides as little as it can, and
+ *   if no slide clears every card, the framed box grows to take in the cut ones.
  */
 export function stepViewport(step: StoryStep, design: Design, size: { w: number; h: number }): Viewport {
   const area = { w: size.w, h: Math.max(1, size.h - CAPTION_H) };
-  const box = focusBox(step, design);
-  const fit = fitBox(box, area, FRAME_MARGIN, 0.05);
-  const fitted = { ...fit, zoom: Math.min(fit.zoom, 1.2) };
-  if (!step.camera || !box) return fitted;
-  const zoom = Math.min(step.camera.zoom, fitted.zoom);
-  let x = area.w / 2 - step.camera.x * zoom;
-  let y = area.h / 2 - step.camera.y * zoom;
-  const clamp = (pos: number, lo: number, hi: number, room: number) => {
-    // Slide so [lo, hi] (screen coordinates) sits inside [margin, room - margin].
-    if (lo + pos < FRAME_MARGIN) return FRAME_MARGIN - lo;
-    if (hi + pos > room - FRAME_MARGIN) return room - FRAME_MARGIN - hi;
-    return pos;
+  let box = focusBox(step, design);
+  if (!box) return fitBox(null, area);
+  const frame = (b: Box, camera: boolean): Viewport => {
+    const fit = fitBox(b, area, FRAME_MARGIN, 0.05);
+    const zoom = Math.min(fit.zoom, 1.2);
+    if (!camera || !step.camera) return { ...fit, zoom };
+    // The step's own camera, held to the fitting zoom and slid to keep the box in view.
+    const z = Math.min(step.camera.zoom, zoom);
+    const clamp = (pos: number, lo: number, hi: number, room: number) => {
+      if (lo + pos < FRAME_MARGIN) return FRAME_MARGIN - lo;
+      if (hi + pos > room - FRAME_MARGIN) return room - FRAME_MARGIN - hi;
+      return pos;
+    };
+    return {
+      x: clamp(area.w / 2 - step.camera.x * z, b.x * z, (b.x + b.w) * z, area.w),
+      y: clamp(area.h / 2 - step.camera.y * z, b.y * z, (b.y + b.h) * z, area.h),
+      zoom: z,
+    };
   };
-  x = clamp(x, box.x * zoom, (box.x + box.w) * zoom, area.w);
-  y = clamp(y, box.y * zoom, (box.y + box.h) * zoom, area.h);
-  return { x, y, zoom };
+  let v = frame(box, true);
+  for (let round = 0; round < 8; round++) {
+    const cut = cutCards(design, v, area);
+    if (cut.length === 0) return v;
+    const slid = slideClear(design, box, v, area);
+    if (slid) return slid;
+    box = union(box, cut);
+    v = frame(box, false);
+  }
+  return frame(designBounds(design) ?? box, false);
 }
 
 function Callout({ step }: { step: StoryStep }) {
