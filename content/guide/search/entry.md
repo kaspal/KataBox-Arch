@@ -1,0 +1,5 @@
+A **search index** stores your text in a shape built for finding it: an **inverted index** that maps each word to the documents that contain it. That makes free-text queries, prefixes, typo tolerance and relevance ranking fast, even over large amounts of data. It is what powers a search box, a typeahead or a log explorer.
+
+It is usually a second copy of data whose source of truth lives elsewhere, often a database. Writes reach the index through a pipeline and become searchable after a short refresh. The index is split into **shards** to spread the work, and each shard can have **replicas** that add read capacity and survive a lost node.
+
+In the simulator each shard is an independent lane with its own pool of search threads and a waiting queue, and a key always lands on the same shard, so one popular query loads one shard. The **replicas** setting is a design note the simulator does not model; to add read capacity or a standby, add Search Index cards joined by Replicate edges, and reads spread over them.

@@ -1,0 +1,132 @@
+kind = "waf"
+one_liner = "A filter that inspects each web request and blocks known attacks."
+one_liner_es = "Un filtro que inspecciona cada petición web y bloquea ataques conocidos."
+
+use_when = [
+  "The system is public on the internet",
+  "You handle logins, payments or personal data",
+  "Bots or scrapers waste your capacity",
+  "Security or compliance rules ask for request filtering",
+]
+use_when_es = [
+  "El sistema es público en internet",
+  "Gestionas inicios de sesión, pagos o datos personales",
+  "Los bots o scrapers malgastan tu capacidad",
+  "Las normas de seguridad o cumplimiento piden filtrar peticiones",
+]
+skip_when = [
+  "The service is internal only",
+  "You need per-customer quotas (use a Rate Limiter)",
+  "Every millisecond on the hot path counts and the threat is low",
+]
+skip_when_es = [
+  "El servicio es solo interno",
+  "Necesitas cuotas por cliente (usa un Limitador de tasa)",
+  "Cada milisegundo en el camino caliente cuenta y la amenaza es baja",
+]
+
+formula = "capacity = instances × requests one instance checks at once; each request adds the rule-check time (attacks themselves are not simulated)"
+formula_es = "capacidad = instancias × peticiones que una instancia revisa a la vez; cada petición suma el tiempo de revisar las reglas (los ataques en sí no se simulan)"
+
+gains = [
+  "Stops common attacks before they reach your code",
+  "Rules change without a deploy",
+]
+gains_es = [
+  "Frena ataques comunes antes de que lleguen a tu código",
+  "Las reglas cambian sin desplegar",
+]
+costs = [
+  "Adds a little latency to every request",
+  "Priced per instance and per request",
+  "Badly tuned rules block real users",
+]
+costs_es = [
+  "Añade algo de latencia a cada petición",
+  "Se cobra por instancia y por petición",
+  "Unas reglas mal ajustadas bloquean a usuarios reales",
+]
+
+works_with = ["cdn", "lb", "gateway", "ratelimit"]
+practice = []
+
+interview_tip = "Place the WAF at the edge, in front of anything public, and say it handles attack patterns while a rate limiter handles volume."
+interview_tip_es = "Pon el WAF en el borde, delante de todo lo público, y di que se ocupa de los patrones de ataque mientras un limitador de tasa se ocupa del volumen."
+
+[[sim]]
+prop = "instances"
+note = "More instances, more requests checked at once."
+note_es = "Más instancias, más peticiones revisadas a la vez."
+
+[[sim]]
+prop = "service_ms"
+note = "The time the rules take on each request."
+note_es = "Lo que tardan las reglas en cada petición."
+
+[[sim]]
+sim = "servers_per_instance"
+note = "Requests one instance inspects at once."
+note_es = "Peticiones que una instancia inspecciona a la vez."
+
+[[sim]]
+cost = "per_instance_month"
+note = "Each instance has a monthly price."
+note_es = "Cada instancia tiene un precio mensual."
+
+[[sim]]
+cost = "per_million"
+note = "Every inspected request adds to the bill."
+note_es = "Cada petición inspeccionada suma a la factura."
+
+[flavours_compared]
+flavours = ["aws_waf", "cloudflare_waf"]
+
+[[flavours_compared.rows]]
+label = "Protects"
+label_es = "Protege"
+cells = ["CloudFront, ALB, API Gateway and other AWS services", "Any site proxied through Cloudflare"]
+cells_es = ["CloudFront, ALB, API Gateway y otros servicios de AWS", "Cualquier sitio que pase por el proxy de Cloudflare"]
+
+[[flavours_compared.rows]]
+label = "Rules"
+label_es = "Reglas"
+cells = ["Web ACLs with managed rule groups and your own rules", "Managed rulesets and custom rules"]
+cells_es = ["ACL web con grupos de reglas gestionadas y reglas propias", "Conjuntos de reglas gestionadas y reglas personalizadas"]
+
+[[flavours_compared.rows]]
+label = "Volume limits"
+label_es = "Límites de volumen"
+cells = ["Rate-based rules", "Rate limiting rules"]
+cells_es = ["Reglas basadas en tasa", "Reglas de limitación de tasa"]
+
+[[flavours_compared.rows]]
+label = "Pick it for"
+label_es = "Elígelo para"
+cells = ["Designs already on AWS", "Sites already behind Cloudflare"]
+cells_es = ["Diseños que ya están en AWS", "Sitios que ya están detrás de Cloudflare"]
+
+[[pitfalls]]
+title = "Blocking real users"
+title_es = "Bloquear a usuarios reales"
+body = "Strict rules can match harmless requests, such as a form post that looks like SQL. Users see errors and nobody knows why."
+body_es = "Unas reglas estrictas pueden coincidir con peticiones inofensivas, como un formulario que parece SQL. Los usuarios ven errores y nadie sabe por qué."
+fix = "Start new rules in a count or log mode, watch what they match, then switch them to block."
+fix_es = "Empieza las reglas nuevas en modo de solo contar o registrar, mira qué detectan y luego pásalas a bloquear."
+
+[[pitfalls]]
+title = "Expecting a WAF to stop a noisy customer"
+title_es = "Esperar que un WAF pare a un cliente ruidoso"
+body = "A WAF matches attack patterns. A real customer who sends far too many valid calls passes every rule."
+body_es = "Un WAF busca patrones de ataque. Un cliente real que manda demasiadas llamadas válidas pasa todas las reglas."
+fix = "Add a Rate Limiter with a limit per API key."
+fix_es = "Añade un Limitador de tasa con un límite por clave de API."
+
+[[sources]]
+flavour = "aws_waf"
+title = "AWS WAF documentation"
+url = "https://docs.aws.amazon.com/waf/"
+
+[[sources]]
+flavour = "cloudflare_waf"
+title = "Cloudflare WAF documentation"
+url = "https://developers.cloudflare.com/waf/"

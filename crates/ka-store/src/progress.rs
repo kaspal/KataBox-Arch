@@ -303,6 +303,38 @@ impl UserDb {
     }
 }
 
+/// Read marks (user.db v3): Guide entries now, patterns later.
+impl UserDb {
+    /// Mark `id` of `kind` ("guide", "pattern") as read (or unread).
+    pub async fn set_read(&self, kind: &str, id: &str, read: bool) -> Result<()> {
+        if read {
+            sqlx::query("INSERT OR IGNORE INTO reads (kind, id, at) VALUES (?, ?, ?)")
+                .bind(kind)
+                .bind(id)
+                .bind(now_ms())
+                .execute(&self.pool)
+                .await?;
+        } else {
+            sqlx::query("DELETE FROM reads WHERE kind = ? AND id = ?")
+                .bind(kind)
+                .bind(id)
+                .execute(&self.pool)
+                .await?;
+        }
+        Ok(())
+    }
+
+    /// The ids of `kind` marked read, sorted.
+    pub async fn reads(&self, kind: &str) -> Result<Vec<String>> {
+        Ok(
+            sqlx::query_scalar("SELECT id FROM reads WHERE kind = ? ORDER BY id")
+                .bind(kind)
+                .fetch_all(&self.pool)
+                .await?,
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -412,5 +444,19 @@ mod tests {
         assert_eq!(db.streak("2026-11-22").await.unwrap(), 2);
         assert_eq!(db.streak("2026-11-21").await.unwrap(), 2);
         assert_eq!(db.streak("2026-11-23").await.unwrap(), 0);
+    }
+
+    #[tokio::test]
+    async fn read_marks_toggle_per_kind() {
+        let dir = temp_dir("reads");
+        let db = UserDb::open(&dir.join("user.db")).await.unwrap();
+        db.set_read("guide", "cache", true).await.unwrap();
+        db.set_read("guide", "cache", true).await.unwrap();
+        db.set_read("guide", "lb", true).await.unwrap();
+        db.set_read("pattern", "cache", true).await.unwrap();
+        assert_eq!(db.reads("guide").await.unwrap(), ["cache", "lb"]);
+        db.set_read("guide", "cache", false).await.unwrap();
+        assert_eq!(db.reads("guide").await.unwrap(), ["lb"]);
+        assert_eq!(db.reads("pattern").await.unwrap(), ["cache"]);
     }
 }

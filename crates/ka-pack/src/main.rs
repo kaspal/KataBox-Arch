@@ -2,7 +2,7 @@
 //!
 //! ```text
 //! ka-pack new <id>                       scaffold content/problems/<id>/ (with TODO markers)
-//! ka-pack validate [--run] [--problems a,b] [--kind problems|samples] [--content DIR]
+//! ka-pack validate [--run] [--problems a,b] [--kind problems|samples|guide] [--content DIR]
 //! ka-pack build --out FILE [--content DIR]
 //! ```
 //!
@@ -13,13 +13,13 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use ka_pack::{
-    Issue, build_content, load_problems, load_samples, validate_problems, validate_samples,
-    write_db,
+    Issue, build_content, load_guide, load_problems, load_samples, validate_guide,
+    validate_problems, validate_samples, write_db,
 };
 
 const USAGE: &str = "usage:
   ka-pack new <id>
-  ka-pack validate [--run [--verbose]] [--problems a,b] [--kind problems|samples] [--content DIR]
+  ka-pack validate [--run [--verbose]] [--problems a,b] [--kind problems|samples|guide] [--content DIR]
   ka-pack build --out FILE [--content DIR]";
 
 struct Args {
@@ -106,9 +106,9 @@ fn main() -> ExitCode {
         "validate" => {
             let kind = args.kind.as_deref();
             if let Some(k) = kind
-                && !["problems", "samples"].contains(&k)
+                && !["problems", "samples", "guide"].contains(&k)
             {
-                eprintln!("--kind {k}: one of problems, samples");
+                eprintln!("--kind {k}: one of problems, samples, guide");
                 return ExitCode::FAILURE;
             }
             let mut problems = match load_problems(&args.content, &registry) {
@@ -133,6 +133,29 @@ fn main() -> ExitCode {
                     Err(report(&issues))
                 }
             };
+            // The Guide reads the problem list (practice links) and needs no simulation.
+            let check_guide = |problems: &[ka_pack::ProblemDir]| -> Result<usize, ExitCode> {
+                let guide = load_guide(&args.content).map_err(|i| report(&i))?;
+                let issues = validate_guide(&guide, problems, &registry);
+                if !issues.is_empty() {
+                    return Err(report(&issues));
+                }
+                if args.verbose {
+                    for (kind, url) in ka_pack::guide::unchecked_sources(&guide) {
+                        println!("unchecked source: {kind} {url}");
+                    }
+                }
+                Ok(guide.len())
+            };
+            if kind == Some("guide") {
+                return match check_guide(&problems) {
+                    Ok(n) => {
+                        println!("{n} guide entr(ies) valid");
+                        ExitCode::SUCCESS
+                    }
+                    Err(code) => code,
+                };
+            }
             if kind == Some("samples") {
                 return match check_samples(&problems) {
                     Ok(n) => {
@@ -146,13 +169,18 @@ fn main() -> ExitCode {
                 };
             }
             // Everything (no --kind, no --problems): the samples too.
-            let samples = if kind.is_none() && args.problems.is_none() {
-                match check_samples(&problems) {
-                    Ok(n) => Some(n),
+            let (samples, guide) = if kind.is_none() && args.problems.is_none() {
+                let s = match check_samples(&problems) {
+                    Ok(n) => n,
                     Err(code) => return code,
-                }
+                };
+                let g = match check_guide(&problems) {
+                    Ok(n) => n,
+                    Err(code) => return code,
+                };
+                (Some(s), Some(g))
             } else {
-                None
+                (None, None)
             };
             if let Some(only) = &args.problems {
                 problems.retain(|p| only.contains(&p.def.id));
@@ -181,6 +209,9 @@ fn main() -> ExitCode {
                     "{n} sample(s) valid{}",
                     if args.run { ", callouts checked" } else { "" }
                 );
+            }
+            if let Some(n) = guide {
+                println!("{n} guide entr(ies) valid");
             }
             ExitCode::SUCCESS
         }

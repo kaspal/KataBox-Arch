@@ -235,6 +235,39 @@ async sample(id: string) : Promise<Result<Sample, AppError>> {
 }
 },
 /**
+ * The Component Guide index: every entry's one-liner and read mark.
+ */
+async listGuide() : Promise<Result<GuideSummary[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_guide") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * One Guide entry.
+ */
+async guidePage(kind: ComponentKind) : Promise<Result<GuidePage, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("guide_page", { kind }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Mark a Guide entry read (or unread).
+ */
+async setGuideRead(kind: ComponentKind, read: boolean) : Promise<Result<null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_guide_read", { kind, read }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * The window title (the webview has no `setTitle` permission).
  */
 async setWindowTitle(title: string) : Promise<Result<null, AppError>> {
@@ -480,6 +513,11 @@ export type ChaosEvent =
  * An external provider goes down, or slows by `add_ms`.
  */
 { external: { name: string; at: number; for?: number | null; down?: boolean; add_ms?: number } }
+export type CompareRow = { label: string; label_es: string; 
+/**
+ * One cell per compared flavour, in `flavours_compared.flavours` order.
+ */
+cells: string[]; cells_es: string[] }
 /**
  * The 25 component kinds. Ids match the icon ids (`icons.json`).
  */
@@ -542,6 +580,7 @@ cost: Cost;
  * Behaviour without a prop; None for kinds never on a request's path.
  */
 sim: SimDefaults | null }
+export type FlavoursCompared = { flavours: Flavour[]; rows: CompareRow[] }
 /**
  * A Region or AZ frame. Membership is by `Node::group_id` / `Group::parent_id`.
  */
@@ -559,6 +598,27 @@ export type GroupKind = "region" | "az" |
  * An autoscaling group wrapped around compute cards (v2).
  */
 "autoscale"
+export type GuideEntry = { kind: ComponentKind; 
+/**
+ * "A fast, in-memory copy of the data you read most."
+ */
+one_liner: string; one_liner_es: string; use_when: string[]; use_when_es: string[]; skip_when: string[]; skip_when_es: string[]; sim: SimRow[]; 
+/**
+ * The model in one line ("hit rate ≈ share of reads whose key is in the hot set").
+ */
+formula: string; formula_es: string; flavours_compared?: FlavoursCompared | null; pitfalls: Pitfall[]; gains: string[]; gains_es: string[]; costs: string[]; costs_es: string[]; works_with: ComponentKind[]; 
+/**
+ * Problem ids where this kind is a key move.
+ */
+practice?: string[]; interview_tip: string; interview_tip_es: string; sources: Source[] }
+/**
+ * A whole entry: the structured fields, the prose in both languages and the read mark.
+ */
+export type GuidePage = { entry: GuideEntry; md_en: string; md_es: string; read: boolean }
+/**
+ * An index card: the one-line definition and whether it was read.
+ */
+export type GuideSummary = { kind: ComponentKind; one_liner: string; one_liner_es: string; read: boolean }
 export type IssueCode = 
 /**
  * An id is empty, too long, or uses characters outside `[A-Za-z0-9_-]`.
@@ -711,6 +771,11 @@ export type PassCriteria = { p95_ms?: number | null; error_rate?: number | null;
  */
 lost?: number | null }
 export type Percentiles = { p50_ms: number; p95_ms: number; p99_ms: number }
+export type Pitfall = { title: string; title_es: string; body: string; body_es: string; fix: string; fix_es: string; 
+/**
+ * A problem id where a test shows it, if any.
+ */
+seen_in?: string | null }
 /**
  * How a kind is placed on the canvas.
  */
@@ -941,7 +1006,34 @@ queue_per_server: number;
  * Seconds before a replica takes over from a dead primary (data kinds).
  */
 failover_s: number }
+export type SimRow = (
+/**
+ * A prop key of the kind (its default per flavour, overrides applied).
+ */
+{ prop: string } | 
+/**
+ * A `SimDefaults` field: `servers_per_instance`, `service_ms`, `p99_ratio`,
+ * `queue_per_server`, `failover_s`.
+ */
+{ sim: string } | 
+/**
+ * A `Cost` field: `per_instance_month`, `per_gb_month`, `per_million`.
+ */
+{ cost: string }) & { 
+/**
+ * What the value does in the simulation (no digits: the number comes from the registry).
+ */
+note: string; note_es: string }
 export type Size = { w: number; h: number }
+/**
+ * A vendor page a flavour's figures were (or should be) checked against.
+ */
+export type Source = { flavour: Flavour; title: string; 
+/**
+ * The page. Unchecked links (written without fetching) are `checked = false` and listed
+ * for review; the page says so.
+ */
+url: string; checked?: boolean }
 /**
  * Start a live Sandbox run. Frames (binary, `KAF1`) stream to the channel the UI created;
  * they arrive in JavaScript as ArrayBuffers.

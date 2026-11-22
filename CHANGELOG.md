@@ -53,6 +53,13 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
       overlaid, the reference drawn faintly behind yours;
     - **a cost vs speed chart** places every accepted submission against the reference.
   - **A failed submission's results** offer the next hint.
+- **The Component Guide:**
+  - **25 entries**, one per component, in English and Spanish. Each covers what it does, when to use it and when
+    to skip it, how the simulator models it (every number read from the simulator itself), the products compared,
+    common pitfalls, trade-offs, practice problems, related components, an interview tip and vendor sources.
+  - **The index** groups entries by category, with search, a "Start here" path and read marks.
+  - **Open entries from anywhere:** the library's info button shows a quick look, the Inspector's "Learn more"
+    opens the entry at "In the simulator", and Ctrl+K finds every entry.
 - **Samples:**
   - **Five animated walkthroughs:** Hello, Traffic (the first-run tour), URL Shortener at scale, News Feed:
     fan-out, Chat with WebSockets, and Flash Sale. Every number they call out is checked against the simulator.

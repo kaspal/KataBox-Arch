@@ -11,6 +11,9 @@ import {
   type ChaosEvent,
   type ProblemBrief,
   type ProblemSummary,
+  type ComponentKind,
+  type GuidePage,
+  type GuideSummary,
   type Sample,
   type SampleSummary,
   type ProblemTest,
@@ -103,6 +106,10 @@ export const api = {
     call(commands.submitDesign(id, design, localDay)),
   submissions: (id: string): Promise<SubmissionSummary[]> => call(commands.submissions(id)),
   progress: (today: string): Promise<Progress> => call(commands.progress(today)),
+  /** The Component Guide index: one-liners and read marks, in registry order. */
+  listGuide: (): Promise<GuideSummary[]> => call(commands.listGuide()),
+  guidePage: (kind: ComponentKind): Promise<GuidePage> => call(commands.guidePage(kind)),
+  setGuideRead: (kind: ComponentKind, read: boolean): Promise<null> => call(commands.setGuideRead(kind, read)),
   /** The sample gallery, in order, each with its first step's design. */
   listSamples: (): Promise<SampleSummary[]> => call(commands.listSamples()),
   /** One sample for the player: steps and design snapshots. */

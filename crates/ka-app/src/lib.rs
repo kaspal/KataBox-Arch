@@ -3,6 +3,7 @@
 //! lives here and in `ka-core`, with tests.
 
 pub mod error;
+pub mod guide;
 pub mod kbarch;
 pub mod live;
 pub mod problems;

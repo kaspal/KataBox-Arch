@@ -1,0 +1,5 @@
+El **almacenamiento de objetos** guarda ficheros, llamados objetos, en buckets, cada uno bajo una clave como `pastes/abc123`. Un objeto se escribe entero y se lee entero. No hay tablas ni consultas: lo pides por clave, o listas las claves bajo un prefijo. A cambio tienes espacio prácticamente ilimitado, una durabilidad muy alta y nada que operar tú mismo.
+
+Es el sitio adecuado para todo lo grande: imágenes, vídeos, subidas, copias de seguridad, textos largos. El patrón habitual guarda los bytes en el almacenamiento de objetos y un registro pequeño en una base de datos que apunta a ellos. Una CDN puede servir los objetos directamente desde el bucket, así que los ficheros populares casi nunca tocan tus servidores.
+
+En el simulador, una tarjeta de Almacenamiento de objetos sirve un número muy grande de peticiones a la vez, y su tiempo de servicio no crece con el tamaño del objeto, a diferencia de una tarjeta SQL o NoSQL. Aun así, cada petición es más lenta que una lectura de caché o de base de datos, y se cobra por petición, así que una caché o una CDN delante sigue compensando para los objetos más pedidos.

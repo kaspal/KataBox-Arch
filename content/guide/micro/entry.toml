@@ -1,0 +1,117 @@
+kind = "micro"
+one_liner = "A small service that owns one part of the business and its own data."
+one_liner_es = "Un servicio pequeño que se encarga de una parte del negocio y de sus propios datos."
+
+use_when = [
+  "Several teams need to ship one part without waiting for the others",
+  "One feature has very different load from the rest and should scale on its own",
+  "A part needs its own language, runtime or release rhythm",
+  "The boundaries between parts of the domain are clear and stable",
+]
+use_when_es = [
+  "Varios equipos necesitan publicar una parte sin esperar a los demás",
+  "Una función tiene una carga muy distinta del resto y debe escalar por su cuenta",
+  "Una parte necesita su propio lenguaje, entorno de ejecución o ritmo de despliegue",
+  "Los límites entre las partes del dominio están claros y son estables",
+]
+skip_when = [
+  "One small team owns the whole product",
+  "The domain boundaries are still moving every week",
+  "Most requests would need to call several services in a row",
+  "One App Server tier already meets the targets",
+]
+skip_when_es = [
+  "Un solo equipo pequeño se encarga de todo el producto",
+  "Los límites del dominio siguen cambiando cada semana",
+  "La mayoría de las peticiones tendrían que llamar a varios servicios seguidos",
+  "Una sola capa de servidores de aplicaciones ya cumple los objetivos",
+]
+
+formula = "throughput ≈ instances × concurrency ÷ service time; a slot stays busy until every call it made has answered"
+formula_es = "rendimiento ≈ instancias × concurrencia ÷ tiempo de servicio; un hueco sigue ocupado hasta que responden todas las llamadas que hizo"
+
+gains = [
+  "Each part scales, deploys and fails on its own",
+  "Teams can work in parallel with fewer conflicts",
+  "A fault in one service need not take the rest down",
+]
+gains_es = [
+  "Cada parte escala, se despliega y falla por su cuenta",
+  "Los equipos pueden trabajar en paralelo con menos conflictos",
+  "Un fallo en un servicio no tiene por qué tumbar al resto",
+]
+costs = [
+  "Every call between services adds a network hop and a new way to fail",
+  "Many more things to deploy, monitor and trace",
+  "Data spread over services makes joins and transactions hard",
+]
+costs_es = [
+  "Cada llamada entre servicios añade un salto de red y una nueva forma de fallar",
+  "Muchas más cosas que desplegar, monitorizar y trazar",
+  "Los datos repartidos entre servicios complican los joins y las transacciones",
+]
+
+works_with = ["gateway", "lb", "queue", "tracing", "nosql"]
+practice = []
+
+interview_tip = "Draw the boundaries first: say which service owns which data, and how they talk (sync or async)."
+interview_tip_es = "Dibuja primero los límites: di qué servicio es dueño de qué datos y cómo se comunican (de forma síncrona o asíncrona)."
+
+[[sim]]
+prop = "instances"
+note = "Copies of the service. Capacity grows in step with them, and so does the monthly bill."
+note_es = "Copias del servicio. La capacidad crece al mismo ritmo, y la factura mensual también."
+
+[[sim]]
+prop = "concurrency"
+note = "Requests one instance works on at once. A request keeps its slot while it waits for its own calls."
+note_es = "Peticiones que una instancia atiende a la vez. Una petición conserva su hueco mientras espera sus propias llamadas."
+
+[[sim]]
+prop = "service_ms"
+note = "The median time of the service's own work, not counting the calls it makes."
+note_es = "La mediana del trabajo propio del servicio, sin contar las llamadas que hace."
+
+[[sim]]
+sim = "p99_ratio"
+note = "How much slower the slowest requests are than the median. It shapes the tail latency."
+note_es = "Cuánto más lentas son las peticiones más lentas que la mediana. Da forma a la latencia de cola."
+
+[[sim]]
+sim = "queue_per_server"
+note = "Waiting room per slot. When it is full, new requests are dropped."
+note_es = "Sala de espera por hueco. Cuando se llena, las peticiones nuevas se descartan."
+
+[[sim]]
+cost = "per_instance_month"
+note = "Priced per instance, busy or idle."
+note_es = "Se cobra por instancia, esté ocupada o no."
+
+[[pitfalls]]
+title = "A distributed monolith"
+title_es = "Un monolito distribuido"
+body = "The services share one database or must be released together, so you pay for the network hops and get none of the independence."
+body_es = "Los servicios comparten una base de datos o deben desplegarse juntos, así que pagas los saltos de red sin ganar nada de independencia."
+fix = "Give each service its own data, and let others reach it only through its API or its events."
+fix_es = "Da a cada servicio sus propios datos, y que los demás solo lleguen a ellos por su API o sus eventos."
+
+[[pitfalls]]
+title = "Long chains of calls"
+title_es = "Cadenas largas de llamadas"
+body = "A request that calls service after service in a row adds up every hop's latency, and fails if any one of them fails."
+body_es = "Una petición que llama a un servicio tras otro suma la latencia de cada salto, y falla si falla cualquiera de ellos."
+fix = "Call in parallel where you can, keep a local copy of data you read often, or move work behind a queue."
+fix_es = "Llama en paralelo cuando puedas, guarda una copia local de los datos que lees a menudo, o pasa trabajo detrás de una cola."
+
+[[pitfalls]]
+title = "A slow dependency fills every slot"
+title_es = "Una dependencia lenta llena todos los huecos"
+body = "Each waiting request holds its slot. When a service it calls slows down, the caller runs out of slots too, and the slowness spreads upstream."
+body_es = "Cada petición que espera conserva su hueco. Cuando un servicio al que llama se vuelve lento, el que llama también se queda sin huecos, y la lentitud se propaga hacia arriba."
+fix = "Set timeouts, limit how many calls can wait on one dependency, and fail fast when it is unhealthy."
+fix_es = "Pon tiempos de espera, limita cuántas llamadas pueden esperar a una dependencia y falla rápido cuando no está sana."
+
+[[sources]]
+flavour = "generic"
+title = "Microservice architecture patterns"
+url = "https://microservices.io/"

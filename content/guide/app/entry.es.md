@@ -1,0 +1,5 @@
+Un servidor de aplicaciones ejecuta tu código. Recibe una petición, la comprueba, llama a lo que necesite (una caché, una base de datos, otro servicio) y construye la respuesta. La mayoría de los diseños lo mantienen **sin estado**, sin guardar nada de un usuario en su memoria, para que cualquier instancia pueda servir cualquier petición y escales añadiendo instancias detrás de un balanceador.
+
+Cada instancia solo puede atender un número de peticiones a la vez, su **concurrencia**. Una petición conserva su hueco durante toda su vida, incluido el tiempo que espera a la base de datos. Así que una llamada lenta más abajo llena la capa de aplicación aunque la propia aplicación tenga poco que hacer.
+
+En el simulador la capacidad es instancias por concurrencia. Cuando todos los huecos están ocupados, las peticiones nuevas esperan en una cola corta, y una cola llena las descarta. Las variantes se diferencian en su tiempo de servicio y su concurrencia por defecto, que salen de la configuración habitual de cada entorno.

@@ -44,6 +44,9 @@ fn seeds(version: i64) -> Vec<String> {
             "INSERT INTO runs VALUES ('pastebin', 1700000009000), ('pastebin', 1700000010000)".into(),
             "INSERT INTO activity_days VALUES ('2026-11-20'), ('2026-11-21')".into(),
         ],
+        3 => vec![
+            "INSERT INTO reads VALUES ('guide', 'cache', 1700000011000), ('guide', 'lb', 1700000012000)".into(),
+        ],
         _ => vec![],
     }
 }

@@ -25,7 +25,9 @@
     "addItem": "Add {{name}}",
     "theme": "Theme",
     "language": "Language",
-    "devPerf": "Developer: packet layer frame rate"
+    "devPerf": "Developer: packet layer frame rate",
+    "guide": "Guide",
+    "guideItem": "Guide: {{name}}"
   },
   "theme": {
     "system": "System",
@@ -156,7 +158,9 @@
     "add": "{{name}}: drag onto the canvas or press Enter to add",
     "quickLook": "About {{name}}",
     "flavours": "Flavours",
-    "guideLater": "The full Component Guide entry (what it does, when to use it, its numbers) arrives in M3."
+    "watchFor": "Watch for:",
+    "dragHint": "Drag the item onto the canvas to add it",
+    "openInGuide": "Open in Guide"
   },
   "inspector": {
     "title": "Inspect",
@@ -187,7 +191,8 @@
     "rangeInt": "Enter a whole number from {{min}} to {{max}}.",
     "autoscaleHint": "Compute cards inside this frame scale between the minimum and maximum instances, adding instances when utilisation stays above the target.",
     "scaling": "Scaling policy",
-    "brief": "Brief"
+    "brief": "Brief",
+    "learnMore": "Learn more"
   },
   "home": {
     "eyebrow": "Your system design desk",
@@ -215,10 +220,6 @@
     "problems": {
       "title": "Problems arrive in M2",
       "body": "A LeetCode-style list of system design challenges, each judged against hidden traffic tests."
-    },
-    "guide": {
-      "title": "The Component Guide arrives in M3",
-      "body": "An entry and a concept card for every component: what it does, when to use it, and its numbers."
     },
     "progress": {
       "title": "Nothing to show yet",
@@ -575,5 +576,56 @@
     "none": "No samples yet",
     "noneBody": "The app was built without its samples.",
     "copyName": "{{title}} (my copy)"
+  },
+  "guide": {
+    "title": "Component Guide",
+    "subtitle": "What each component is, what it does, and when to reach for it. {{read}} of {{total}} read.",
+    "search": "Search: cache, fan-out, replication",
+    "searchLabel": "Search the Guide",
+    "startHere": "Start here",
+    "startHereBody": "The six pieces almost every design uses",
+    "read": "Read",
+    "noMatch": "No entry matches.",
+    "unavailable": "The Guide is unavailable",
+    "breadcrumb": "Where you are",
+    "markRead": "Mark as read",
+    "markedRead": "Read",
+    "whatItDoes": "What it does",
+    "useWhen": "Use it when",
+    "skipWhen": "Skip it when",
+    "inSimulator": "In the simulator",
+    "value": "Value",
+    "simNote": "Every number here is the simulator's own default for that product; the Inspector can change it on a card.",
+    "pitfalls": "Common pitfalls",
+    "fix": "Fix:",
+    "seenIn": "Seen in:",
+    "tradeoffs": "Trade-offs",
+    "gains": "What you gain",
+    "costs": "What you pay",
+    "flavoursCompared": "The products compared",
+    "practice": "Practice it",
+    "worksWith": "Works with",
+    "interviewTip": "Interview tip",
+    "sources": "Sources",
+    "sourcesUnchecked": "Vendor documentation to open in your browser. The links haven't been checked yet.",
+    "yes": "yes",
+    "no": "no",
+    "simField": {
+      "servers_per_instance": "Parallel work per node",
+      "service_ms": "Service time",
+      "p99_ratio": "Slow tail (p99 ÷ median)",
+      "queue_per_server": "Queue slots per worker",
+      "failover_s": "Failover time"
+    },
+    "costField": {
+      "per_instance_month": "Price per instance",
+      "per_gb_month": "Price per GB",
+      "per_million": "Price per million requests"
+    },
+    "costUnit": {
+      "per_instance_month": "{{v}} a month",
+      "per_gb_month": "{{v}} per GB a month",
+      "per_million": "{{v}} per million"
+    }
   }
 }

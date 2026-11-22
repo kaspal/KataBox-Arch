@@ -1,0 +1,120 @@
+kind = "scheduler"
+one_liner = "Starts jobs on a timetable instead of in answer to a user."
+one_liner_es = "Lanza tareas según un calendario en lugar de en respuesta a un usuario."
+
+use_when = [
+  "Work must run at set times, such as nightly reports or hourly clean-ups",
+  "A crawl or sync has to be started again and again",
+  "Jobs depend on each other and must run in order",
+]
+use_when_es = [
+  "Hay trabajo que debe ejecutarse a horas fijas, como informes nocturnos o limpiezas cada hora",
+  "Un rastreo o una sincronización tiene que lanzarse una y otra vez",
+  "Las tareas dependen unas de otras y deben ejecutarse en orden",
+]
+skip_when = [
+  "The work should happen as soon as an event occurs",
+  "A user is waiting for the result",
+  "A delayed message on a queue would do the same job",
+]
+skip_when_es = [
+  "El trabajo debe hacerse en cuanto ocurre un evento",
+  "Un usuario espera el resultado",
+  "Un mensaje retrasado en una cola haría lo mismo",
+]
+
+formula = "the scheduler is the traffic source for scheduled jobs: their rate comes from the problem, and a job counts as done when its whole route completes, since nobody waits for an answer"
+formula_es = "el planificador es la fuente de tráfico de las tareas programadas: su ritmo lo pone el problema, y una tarea cuenta como hecha cuando termina toda su ruta, ya que nadie espera respuesta"
+
+gains = [
+  "Recurring work runs without anyone pressing a button",
+  "Jobs can be spread over quiet hours",
+  "Workflow tools add retries, dependencies and a history of runs",
+]
+gains_es = [
+  "El trabajo recurrente se ejecuta sin que nadie pulse un botón",
+  "Las tareas se pueden repartir en horas tranquilas",
+  "Las herramientas de flujos añaden reintentos, dependencias y un historial de ejecuciones",
+]
+costs = [
+  "Many jobs set for the same moment arrive as one burst",
+  "A single scheduler is a single point of failure",
+  "A job that runs longer than its interval overlaps the next run",
+]
+costs_es = [
+  "Muchas tareas fijadas para el mismo momento llegan como una sola ráfaga",
+  "Un único planificador es un punto único de fallo",
+  "Una tarea que dura más que su intervalo se solapa con la siguiente ejecución",
+]
+
+works_with = ["queue", "worker", "stream", "app"]
+practice = ["job-scheduler", "web-crawler"]
+
+interview_tip = "Say what happens when many jobs are due at once, and what stops a job from running twice."
+interview_tip_es = "Di qué pasa cuando muchas tareas vencen a la vez, y qué impide que una tarea se ejecute dos veces."
+
+[[sim]]
+cost = "per_instance_month"
+note = "A fixed monthly price for the scheduler. Its interval is a design note: the problem sets how often jobs arrive."
+note_es = "Un precio mensual fijo por el planificador. Su intervalo es una nota de diseño: el problema fija cada cuánto llegan las tareas."
+
+[flavours_compared]
+flavours = ["cron", "airflow"]
+
+[[flavours_compared.rows]]
+label = "What it is"
+label_es = "Qué es"
+cells = ["A daemon that runs commands on one machine", "A platform for workflows written in Python"]
+cells_es = ["Un demonio que ejecuta comandos en una máquina", "Una plataforma de flujos escritos en Python"]
+
+[[flavours_compared.rows]]
+label = "Dependencies"
+label_es = "Dependencias"
+cells = ["None: each line is independent", "Tasks in a graph (a DAG) run in order"]
+cells_es = ["Ninguna: cada línea es independiente", "Las tareas de un grafo (un DAG) se ejecutan en orden"]
+
+[[flavours_compared.rows]]
+label = "Retries and history"
+label_es = "Reintentos e historial"
+cells = ["None built in", "Built in, with a web interface"]
+cells_es = ["Ninguno integrado", "Integrados, con una interfaz web"]
+
+[[flavours_compared.rows]]
+label = "Pick it for"
+label_es = "Elígelo para"
+cells = ["A few simple, independent jobs", "Pipelines with many dependent steps"]
+cells_es = ["Unas pocas tareas simples e independientes", "Pipelines con muchos pasos dependientes"]
+
+[[pitfalls]]
+title = "The midnight burst"
+title_es = "La ráfaga de medianoche"
+body = "Many jobs are set for the same round time, so they all start together and swamp whatever they call."
+body_es = "Muchas tareas se fijan a la misma hora en punto, así que arrancan todas juntas y saturan lo que llaman."
+fix = "Publish jobs to a queue and let workers drain it, or spread start times with a little jitter."
+fix_es = "Publica las tareas en una cola y deja que los workers la vacíen, o reparte las horas de inicio con un poco de variación."
+
+[[pitfalls]]
+title = "Calling workers directly"
+title_es = "Llamar a los workers directamente"
+body = "The scheduler calls the workers over HTTP. When they are busy or down, jobs fail with nothing to retry them."
+body_es = "El planificador llama a los workers por HTTP. Cuando están ocupados o caídos, las tareas fallan sin nada que las reintente."
+fix = "Put a durable queue between the scheduler and the workers."
+fix_es = "Pon una cola duradera entre el planificador y los workers."
+
+[[pitfalls]]
+title = "Jobs that run twice"
+title_es = "Tareas que se ejecutan dos veces"
+body = "Two scheduler copies, or a retry after a timeout, start the same job twice, and it charges or emails twice."
+body_es = "Dos copias del planificador, o un reintento tras un tiempo de espera, lanzan la misma tarea dos veces, y cobra o envía correos dos veces."
+fix = "Make jobs idempotent, and use a lock or a single leader for the scheduler."
+fix_es = "Haz las tareas idempotentes, y usa un bloqueo o un único líder para el planificador."
+
+[[sources]]
+flavour = "cron"
+title = "crontab(5) manual page"
+url = "https://man7.org/linux/man-pages/man5/crontab.5.html"
+
+[[sources]]
+flavour = "airflow"
+title = "Apache Airflow documentation"
+url = "https://airflow.apache.org/docs/"

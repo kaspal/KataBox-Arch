@@ -139,10 +139,41 @@ fn write_problem(root: &Path, id: &str, toml: &str) -> PathBuf {
     dir
 }
 
+/// The shipped Guide (every build needs all 25 entries), without its links to the shipped
+/// problems, which this temporary content root doesn't have.
+fn copy_guide(root: &Path) {
+    let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../content/guide");
+    for e in std::fs::read_dir(&src).unwrap() {
+        let dir = e.unwrap().path();
+        let out = root.join("guide").join(dir.file_name().unwrap());
+        std::fs::create_dir_all(&out).unwrap();
+        for f in ["entry.toml", "entry.md", "entry.es.md"] {
+            let text = std::fs::read_to_string(dir.join(f)).unwrap();
+            let text = if f == "entry.toml" {
+                text.lines()
+                    .filter(|l| !l.starts_with("seen_in = "))
+                    .map(|l| {
+                        if l.starts_with("practice = ") {
+                            "practice = []"
+                        } else {
+                            l
+                        }
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            } else {
+                text
+            };
+            std::fs::write(out.join(f), text).unwrap();
+        }
+    }
+}
+
 #[test]
 fn a_valid_problem_loads_validates_and_builds() {
     let root = temp("valid");
     write_problem(&root, "demo", TOML);
+    copy_guide(&root);
     let r = registry();
     let problems = load_problems(&root, &r).unwrap();
     assert_eq!(problems.len(), 1);

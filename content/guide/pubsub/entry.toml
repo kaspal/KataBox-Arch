@@ -1,0 +1,134 @@
+kind = "pubsub"
+one_liner = "A topic that pushes a copy of every message to each of its subscribers."
+one_liner_es = "Un topic que envía una copia de cada mensaje a cada uno de sus suscriptores."
+
+use_when = [
+  "One event must reach several different services",
+  "Servers holding live connections must hear about each other's messages",
+  "The publisher shouldn't know who listens",
+  "New subscribers will be added later without touching the publisher",
+]
+use_when_es = [
+  "Un evento debe llegar a varios servicios distintos",
+  "Los servidores con conexiones en vivo deben enterarse de los mensajes de los demás",
+  "Quien publica no debería saber quién escucha",
+  "Se añadirán suscriptores más adelante sin tocar a quien publica",
+]
+skip_when = [
+  "Only one consumer should handle each message",
+  "Subscribers need to replay old messages",
+  "Bursts must be buffered for slow subscribers",
+  "Strict order across all messages matters",
+]
+skip_when_es = [
+  "Solo un consumidor debe procesar cada mensaje",
+  "Los suscriptores necesitan volver a leer mensajes antiguos",
+  "Las ráfagas deben amortiguarse para suscriptores lentos",
+  "Importa un orden estricto entre todos los mensajes",
+]
+
+formula = "publish acknowledged after the hop + publish latency; one copy goes straight to every subscriber, and the message completes when the slowest copy is done"
+formula_es = "publicación confirmada tras el salto + latencia de publicación; una copia va directa a cada suscriptor, y el mensaje termina cuando acaba la copia más lenta"
+
+gains = [
+  "One publish reaches every subscriber",
+  "Publishers and subscribers are fully decoupled",
+  "Adding a subscriber needs no change to the publisher",
+]
+gains_es = [
+  "Una publicación llega a todos los suscriptores",
+  "Publicadores y suscriptores quedan totalmente desacoplados",
+  "Añadir un suscriptor no exige cambiar a quien publica",
+]
+costs = [
+  "Load multiplies by the number of subscribers",
+  "A slow subscriber delays the completion of every message",
+  "Little or no buffering, depending on the product",
+]
+costs_es = [
+  "La carga se multiplica por el número de suscriptores",
+  "Un suscriptor lento retrasa la finalización de cada mensaje",
+  "Poco o ningún almacenamiento intermedio, según el producto",
+]
+
+works_with = ["app", "worker", "queue", "serverless"]
+practice = ["chat"]
+
+interview_tip = "Say who subscribes, whether a subscriber may miss a message, and where a slow subscriber's backlog lives."
+interview_tip_es = "Di quién se suscribe, si un suscriptor puede perderse un mensaje y dónde vive la cola pendiente de un suscriptor lento."
+
+[[sim]]
+prop = "service_ms"
+note = "How long the topic takes to accept a publish before it acknowledges it."
+note_es = "Lo que tarda el topic en aceptar una publicación antes de confirmarla."
+
+[[sim]]
+cost = "per_million"
+note = "Priced only by volume: a price for every million messages published."
+note_es = "Se cobra solo por volumen: un precio por cada millón de mensajes publicados."
+
+[flavours_compared]
+flavours = ["google_pubsub", "sns", "redis_pubsub"]
+
+[[flavours_compared.rows]]
+label = "Who runs it"
+label_es = "Quién lo opera"
+cells = ["Google Cloud, fully managed", "AWS, fully managed", "You, inside a Redis server"]
+cells_es = ["Google Cloud, totalmente gestionado", "AWS, totalmente gestionado", "Tú, dentro de un servidor Redis"]
+
+[[flavours_compared.rows]]
+label = "Storage"
+label_es = "Almacenamiento"
+cells = ["Keeps unacknowledged messages for a while", "Retries delivery but doesn't store a backlog", "None: offline subscribers miss messages"]
+cells_es = ["Guarda un tiempo los mensajes no confirmados", "Reintenta la entrega pero no guarda pendientes", "Ninguno: los suscriptores desconectados pierden mensajes"]
+
+[[flavours_compared.rows]]
+label = "Delivery"
+label_es = "Entrega"
+cells = ["Push or pull subscriptions", "Push to queues, functions, HTTP endpoints and more", "Push to connected clients"]
+cells_es = ["Suscripciones push o pull", "Push a colas, funciones, endpoints HTTP y más", "Push a los clientes conectados"]
+
+[[flavours_compared.rows]]
+label = "Pick it for"
+label_es = "Elígelo para"
+cells = ["Durable fan-out on Google Cloud", "Fan-out into SQS queues on AWS", "Fast, best-effort fan-out between your servers"]
+cells_es = ["Difusión duradera en Google Cloud", "Difusión hacia colas SQS en AWS", "Difusión rápida y sin garantías entre tus servidores"]
+
+[[pitfalls]]
+title = "One slow subscriber"
+title_es = "Un suscriptor lento"
+body = "Every message waits for all its copies. One overloaded subscriber stretches the completion time of every message, even if the others are idle."
+body_es = "Cada mensaje espera a todas sus copias. Un suscriptor saturado alarga el tiempo de finalización de todos los mensajes, aunque los demás estén ociosos."
+fix = "Give each subscriber enough capacity, or put a queue in front of a slow one so it drains at its own pace."
+fix_es = "Da a cada suscriptor capacidad suficiente, o pon una cola delante de uno lento para que vacíe a su ritmo."
+
+[[pitfalls]]
+title = "Fire and forget"
+title_es = "Disparar y olvidar"
+body = "With a topic that stores nothing, a subscriber that restarts misses every message sent while it was away."
+body_es = "Con un topic que no guarda nada, un suscriptor que se reinicia pierde todos los mensajes enviados mientras no estaba."
+fix = "Use a durable product, or fan out into one queue per subscriber, when a missed message matters."
+fix_es = "Usa un producto duradero, o difunde hacia una cola por suscriptor, cuando perder un mensaje importa."
+
+[[pitfalls]]
+title = "Fan-out multiplies load"
+title_es = "La difusión multiplica la carga"
+body = "Each new subscriber adds a full copy of the traffic. A design sized for one consumer falls over when a third and fourth are added."
+body_es = "Cada nuevo suscriptor añade una copia completa del tráfico. Un diseño dimensionado para un consumidor se cae cuando se añaden un tercero y un cuarto."
+fix = "Size each subscriber for the full publish rate, not a share of it."
+fix_es = "Dimensiona cada suscriptor para todo el ritmo de publicación, no para una parte."
+
+[[sources]]
+flavour = "google_pubsub"
+title = "Google Cloud Pub/Sub documentation"
+url = "https://cloud.google.com/pubsub/docs"
+
+[[sources]]
+flavour = "sns"
+title = "Amazon SNS documentation"
+url = "https://docs.aws.amazon.com/sns/"
+
+[[sources]]
+flavour = "redis_pubsub"
+title = "Redis documentation"
+url = "https://redis.io/docs/latest/"

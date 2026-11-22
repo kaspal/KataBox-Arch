@@ -1,0 +1,156 @@
+kind = "cache"
+one_liner = "A fast, in-memory copy of the data you read most."
+one_liner_es = "Una copia rápida, en memoria, de los datos que más lees."
+
+use_when = [
+  "Reads far outnumber writes",
+  "The same keys are read again and again",
+  "Data a few seconds old is acceptable",
+  "The database is your bottleneck on reads",
+]
+use_when_es = [
+  "Las lecturas superan con mucho a las escrituras",
+  "Las mismas claves se leen una y otra vez",
+  "Se aceptan datos con unos segundos de antigüedad",
+  "La base de datos es tu cuello de botella en lecturas",
+]
+skip_when = [
+  "Every read must see the latest write",
+  "Keys are rarely read twice",
+  "Writes dominate the traffic",
+  "The database already serves reads comfortably",
+]
+skip_when_es = [
+  "Cada lectura debe ver la última escritura",
+  "Las claves casi nunca se leen dos veces",
+  "Las escrituras dominan el tráfico",
+  "La base de datos ya sirve las lecturas con holgura",
+]
+
+formula = "hit rate ≈ share of reads whose key is in the part of the hot set that fits in memory and was filled within the TTL (key skew comes from the problem)"
+formula_es = "tasa de aciertos ≈ fracción de lecturas cuya clave está en la parte del conjunto caliente que cabe en memoria y se llenó dentro del TTL (el sesgo de claves lo pone el problema)"
+
+gains = [
+  "Reads in well under a millisecond",
+  "Far less load on the database",
+  "Cheap capacity for read-heavy traffic",
+]
+gains_es = [
+  "Lecturas en mucho menos de un milisegundo",
+  "Mucha menos carga en la base de datos",
+  "Capacidad barata para tráfico de muchas lecturas",
+]
+costs = [
+  "Reads can be stale until entries expire",
+  "One more system to run, size and fail over",
+  "A cold or flushed cache sends the full load to the database",
+]
+costs_es = [
+  "Las lecturas pueden quedar obsoletas hasta que caducan las entradas",
+  "Un sistema más que operar, dimensionar y recuperar ante fallos",
+  "Una caché fría o vaciada manda toda la carga a la base de datos",
+]
+
+works_with = ["app", "sql", "nosql", "cdn"]
+practice = ["url-shortener", "leaderboard", "typeahead", "news-feed"]
+
+interview_tip = "Say what you cache, for how long, and what happens on a miss and on a write."
+interview_tip_es = "Di qué cacheas, durante cuánto tiempo y qué pasa en un fallo y en una escritura."
+
+[[sim]]
+prop = "memory_gb"
+note = "How much of the hot set fits. More memory, more hits."
+note_es = "Cuánto del conjunto caliente cabe. Más memoria, más aciertos."
+
+[[sim]]
+prop = "ttl_s"
+note = "Entries expire after this long, and the next read misses. Zero keeps them until evicted."
+note_es = "Las entradas caducan pasado este tiempo, y la siguiente lectura falla. Cero las mantiene hasta que se expulsan."
+
+[[sim]]
+prop = "service_ms"
+note = "The time a hit takes. A hit never touches the database."
+note_es = "Lo que tarda un acierto. Un acierto nunca toca la base de datos."
+
+[[sim]]
+sim = "servers_per_instance"
+note = "Requests one node works on at once: Redis runs commands on one thread, Memcached on several."
+note_es = "Peticiones que un nodo atiende a la vez: Redis ejecuta los comandos en un hilo, Memcached en varios."
+
+[[sim]]
+prop = "failover_s"
+note = "With a replica wired by Replicate, how long until it takes over from a dead primary. Until then reads miss."
+note_es = "Con una réplica unida por Replicate, cuánto tarda en sustituir a una principal caída. Hasta entonces las lecturas fallan."
+
+[[sim]]
+cost = "per_gb_month"
+note = "Caches are priced by memory, not by node."
+note_es = "Las cachés se cobran por memoria, no por nodo."
+
+[flavours_compared]
+flavours = ["redis", "memcached"]
+
+[[flavours_compared.rows]]
+label = "Data types"
+label_es = "Tipos de datos"
+cells = ["Strings, hashes, lists, sets, sorted sets", "Strings only"]
+cells_es = ["Cadenas, hashes, listas, conjuntos, conjuntos ordenados", "Solo cadenas"]
+
+[[flavours_compared.rows]]
+label = "Persistence"
+label_es = "Persistencia"
+cells = ["Optional (snapshots, append-only file)", "None"]
+cells_es = ["Opcional (snapshots, fichero de solo anexado)", "Ninguna"]
+
+[[flavours_compared.rows]]
+label = "Replication"
+label_es = "Replicación"
+cells = ["Built in", "Not built in"]
+cells_es = ["Integrada", "No integrada"]
+
+[[flavours_compared.rows]]
+label = "Threads"
+label_es = "Hilos"
+cells = ["Commands run on one thread", "Multi-threaded"]
+cells_es = ["Los comandos se ejecutan en un hilo", "Multihilo"]
+
+[[flavours_compared.rows]]
+label = "Pick it for"
+label_es = "Elígelo para"
+cells = ["Leaderboards, sessions, rate limits", "Big, simple, flat caches"]
+cells_es = ["Clasificaciones, sesiones, límites de tasa", "Cachés grandes, simples y planas"]
+
+[[pitfalls]]
+title = "Cache stampede"
+title_es = "Estampida de caché"
+body = "A popular key expires and thousands of misses hit the database at once."
+body_es = "Una clave popular caduca y miles de fallos llegan a la vez a la base de datos."
+fix = "Coalesce requests for the same key, or stagger the TTLs."
+fix_es = "Agrupa las peticiones de la misma clave, o escalona los TTL."
+
+[[pitfalls]]
+title = "Stale reads"
+title_es = "Lecturas obsoletas"
+body = "The database is updated but the cache still serves the old value until the entry expires."
+body_es = "La base de datos se actualiza pero la caché sigue sirviendo el valor antiguo hasta que la entrada caduca."
+fix = "Invalidate on write, write through the cache, or keep the TTL short where freshness matters."
+fix_es = "Invalida al escribir, escribe a través de la caché, o usa un TTL corto donde importe la frescura."
+
+[[pitfalls]]
+title = "A cold cache after a restart"
+title_es = "Una caché fría tras un reinicio"
+body = "After a restart or a flush every read misses, and the database takes the full load until the hot keys are back."
+body_es = "Tras un reinicio o un vaciado cada lectura falla, y la base de datos carga con todo hasta que vuelven las claves calientes."
+fix = "Size the database to survive a cold start, add a replica, or warm the hot keys first."
+fix_es = "Dimensiona la base de datos para aguantar un arranque en frío, añade una réplica o precalienta las claves calientes."
+seen_in = "pastebin"
+
+[[sources]]
+flavour = "redis"
+title = "Redis documentation"
+url = "https://redis.io/docs/latest/"
+
+[[sources]]
+flavour = "memcached"
+title = "Memcached wiki"
+url = "https://github.com/memcached/memcached/wiki"

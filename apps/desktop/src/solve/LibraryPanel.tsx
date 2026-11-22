@@ -3,8 +3,9 @@
 // the canvas; Enter adds at the viewport centre (both open the flavour picker).
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronDown, ChevronRight, Info, Search } from "lucide-react";
-import type { Category, KindSpec, MetaKind, Registry } from "@/bindings";
+import { Check, ChevronDown, ChevronRight, Info, Search } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import type { Category, ComponentKind, KindSpec, MetaKind, Registry } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,6 +15,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useGuidePage } from "@/lib/queries";
 import { normalizeForSearch } from "@/app/paletteFilter";
 import { cn } from "@/lib/utils";
 import { requestAdd, type AddRequest } from "@/solve/bridge";
@@ -168,7 +171,48 @@ export function LibraryPanel({ registry }: { registry: Registry }) {
   );
 }
 
-/** Placeholder quick look; the full one (concept, when to use, numbers) arrives in M3. */
+/** The Guide's short version: definition, when to use it, what to watch for, Open in Guide. */
+function QuickLookEntry({ kind, onOpen }: { kind: ComponentKind; onOpen: () => void }) {
+  const { t, i18n } = useTranslation();
+  const page = useGuidePage(kind);
+  const es = i18n.language.startsWith("es");
+  if (page.isLoading) return <Skeleton className="h-24 w-full" />;
+  const e = page.data?.entry;
+  return (
+    <div className="space-y-3 pt-2" data-testid="quick-look-entry">
+      {e && (
+        <>
+          <p className="text-base">{es ? e.one_liner_es : e.one_liner}</p>
+          <div>
+            <h4 className="mb-1 text-xs font-semibold tracking-wide text-green uppercase">{t("guide.useWhen")}</h4>
+            <ul className="space-y-1">
+              {(es ? e.use_when_es : e.use_when).slice(0, 3).map((s) => (
+                <li key={s} className="flex gap-2">
+                  <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-green" />
+                  {s}
+                </li>
+              ))}
+            </ul>
+          </div>
+          {e.pitfalls[0] && (
+            <p className="rounded-md border bg-muted p-3">
+              <span className="font-semibold">{t("library.watchFor")}</span> {es ? e.pitfalls[0].body_es : e.pitfalls[0].body}
+            </p>
+          )}
+        </>
+      )}
+      <div className="flex items-center justify-between gap-3 border-t pt-3 text-xs text-muted-foreground">
+        <span>{t("library.dragHint")}</span>
+        <Link to="/guide/$kind" params={{ kind }} onClick={onOpen} className="flex items-center gap-1 text-sm font-semibold text-primary underline underline-offset-4">
+          {t("library.openInGuide")}
+          <ChevronRight aria-hidden className="size-4" />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+/** The library's quick look at a kind (the Guide's entry, in short). */
 function QuickLook({ spec, onClose }: { spec: KindSpec | null; onClose: () => void }) {
   const { t } = useTranslation();
   return (
@@ -194,7 +238,7 @@ function QuickLook({ spec, onClose }: { spec: KindSpec | null; onClose: () => vo
                   </li>
                 ))}
               </ul>
-              <p className="pt-2 text-muted-foreground">{t("library.guideLater")}</p>
+              <QuickLookEntry kind={spec.kind} onOpen={onClose} />
             </div>
           </>
         )}

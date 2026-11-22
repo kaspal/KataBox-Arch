@@ -1,0 +1,144 @@
+kind = "serverless"
+one_liner = "Functions the cloud runs for you on demand, billed per request."
+one_liner_es = "Funciones que la nube ejecuta por ti bajo demanda, cobradas por petición."
+
+use_when = [
+  "Traffic is spiky or low, with long quiet periods",
+  "You want to pay nothing while nothing happens",
+  "Handlers are short and keep no state between requests",
+  "Glue work reacts to events: uploads, messages, schedules",
+]
+use_when_es = [
+  "El tráfico va a picos o es bajo, con periodos largos de calma",
+  "Quieres no pagar nada mientras no pasa nada",
+  "Los manejadores son cortos y no guardan estado entre peticiones",
+  "Trabajo de unión que reacciona a eventos: subidas, mensajes, horarios",
+]
+skip_when = [
+  "Steady high traffic, where always-on servers cost less per request",
+  "Every request needs a tight tail latency and cold starts would break it",
+  "The work runs for a long time or holds long-lived connections",
+  "A small database behind it cannot take a sudden flood of connections",
+]
+skip_when_es = [
+  "Tráfico alto y constante, donde los servidores siempre encendidos cuestan menos por petición",
+  "Cada petición necesita una latencia de cola ajustada y los arranques en frío la romperían",
+  "El trabajo dura mucho o mantiene conexiones de larga duración",
+  "Una base de datos pequeña detrás no aguanta una avalancha repentina de conexiones",
+]
+
+formula = "latency ≈ service time, plus a cold start each time concurrency climbs above its highest level so far; requests beyond the concurrency limit are throttled"
+formula_es = "latencia ≈ tiempo de servicio, más un arranque en frío cada vez que la concurrencia sube por encima de su máximo hasta entonces; las peticiones por encima del límite de concurrencia se rechazan"
+
+gains = [
+  "No servers to size: capacity follows the traffic",
+  "Zero cost when idle, since you pay per request",
+  "Less to operate: patching and scaling are the provider's job",
+]
+gains_es = [
+  "No hay servidores que dimensionar: la capacidad sigue al tráfico",
+  "Coste cero en reposo, porque pagas por petición",
+  "Menos que operar: los parches y el escalado son cosa del proveedor",
+]
+costs = [
+  "Cold starts add latency when new instances are needed",
+  "A hard concurrency limit: beyond it requests are throttled",
+  "Expensive per request at high, steady load",
+]
+costs_es = [
+  "Los arranques en frío añaden latencia cuando hacen falta instancias nuevas",
+  "Un límite de concurrencia estricto: por encima, las peticiones se rechazan",
+  "Cara por petición con carga alta y constante",
+]
+
+works_with = ["gateway", "queue", "nosql", "object", "pubsub"]
+practice = []
+
+interview_tip = "Say how you handle cold starts and the concurrency limit, and how the function reaches the database without exhausting its connections."
+interview_tip_es = "Di cómo manejas los arranques en frío y el límite de concurrencia, y cómo llega la función a la base de datos sin agotar sus conexiones."
+
+[[sim]]
+prop = "concurrency_limit"
+note = "The most requests running at once. It replaces instances times concurrency: there are no instances to set."
+note_es = "El máximo de peticiones ejecutándose a la vez. Sustituye a instancias por concurrencia: no hay instancias que configurar."
+
+[[sim]]
+prop = "cold_start_ms"
+note = "Added to a request that pushes concurrency above its highest level so far in the run. Warm instances then stay warm."
+note_es = "Se suma a una petición que lleva la concurrencia por encima de su máximo hasta entonces en la ejecución. Después, las instancias calientes siguen calientes."
+
+[[sim]]
+prop = "service_ms"
+note = "The median time of the function's own work, not counting the calls it makes."
+note_es = "La mediana del trabajo propio de la función, sin contar las llamadas que hace."
+
+[[sim]]
+sim = "queue_per_server"
+note = "Zero: past the limit there is only a very small buffer, then requests are throttled and fail."
+note_es = "Cero: pasado el límite solo hay un búfer muy pequeño, y después las peticiones se rechazan y fallan."
+
+[[sim]]
+cost = "per_million"
+note = "Priced per request only. There is no monthly charge for capacity."
+note_es = "Se cobra solo por petición. No hay cargo mensual por capacidad."
+
+[flavours_compared]
+flavours = ["aws_lambda", "cloud_run"]
+
+[[flavours_compared.rows]]
+label = "You deploy"
+label_es = "Despliegas"
+cells = ["A function (zip package or container image)", "A container image"]
+cells_es = ["Una función (paquete zip o imagen de contenedor)", "Una imagen de contenedor"]
+
+[[flavours_compared.rows]]
+label = "Requests per instance"
+label_es = "Peticiones por instancia"
+cells = ["One at a time", "Many at once (configurable)"]
+cells_es = ["Una cada vez", "Muchas a la vez (configurable)"]
+
+[[flavours_compared.rows]]
+label = "Triggers"
+label_es = "Disparadores"
+cells = ["HTTP and many AWS event sources", "HTTP, plus events through Eventarc and Pub/Sub"]
+cells_es = ["HTTP y muchas fuentes de eventos de AWS", "HTTP, más eventos mediante Eventarc y Pub/Sub"]
+
+[[flavours_compared.rows]]
+label = "Pick it for"
+label_es = "Elígelo para"
+cells = ["Event handlers tied to AWS services", "Web services you already package as containers"]
+cells_es = ["Manejadores de eventos ligados a servicios de AWS", "Servicios web que ya empaquetas como contenedores"]
+
+[[pitfalls]]
+title = "Cold starts on a burst"
+title_es = "Arranques en frío en un pico"
+body = "Traffic jumps past anything seen before, so many requests at once wait for new instances to start, and the tail latency spikes."
+body_es = "El tráfico salta por encima de todo lo visto antes, así que muchas peticiones a la vez esperan a que arranquen instancias nuevas, y la latencia de cola se dispara."
+fix = "Keep some capacity warm before a known peak, trim the start-up work, or use always-on servers for the steady part of the load."
+fix_es = "Mantén algo de capacidad caliente antes de un pico conocido, recorta el trabajo de arranque, o usa servidores siempre encendidos para la parte constante de la carga."
+
+[[pitfalls]]
+title = "A slow dependency eats the concurrency"
+title_es = "Una dependencia lenta se come la concurrencia"
+body = "Each invocation stays busy while it waits for its calls. When the database slows down, invocations pile up, hit the concurrency limit, and new requests are throttled."
+body_es = "Cada invocación sigue ocupada mientras espera sus llamadas. Cuando la base de datos se vuelve lenta, las invocaciones se acumulan, llegan al límite de concurrencia y las peticiones nuevas se rechazan."
+fix = "Set short timeouts on calls, keep the downstream fast, or put a queue in front so work waits instead of failing."
+fix_es = "Pon tiempos de espera cortos en las llamadas, mantén rápido lo que hay detrás, o pon una cola delante para que el trabajo espere en lugar de fallar."
+
+[[pitfalls]]
+title = "Flooding the database"
+title_es = "Inundar la base de datos"
+body = "Functions scale far faster than a SQL database. Thousands of concurrent invocations can each want a connection, and the database runs out long before the functions do."
+body_es = "Las funciones escalan mucho más rápido que una base de datos SQL. Miles de invocaciones simultáneas pueden querer cada una su conexión, y la base de datos se agota mucho antes que las funciones."
+fix = "Lower the concurrency limit to what the database can take, use a connection pooler, or pick a store built for many clients."
+fix_es = "Baja el límite de concurrencia a lo que aguante la base de datos, usa un gestor de conexiones, o elige un almacén pensado para muchos clientes."
+
+[[sources]]
+flavour = "aws_lambda"
+title = "AWS Lambda documentation"
+url = "https://docs.aws.amazon.com/lambda/"
+
+[[sources]]
+flavour = "cloud_run"
+title = "Cloud Run documentation"
+url = "https://cloud.google.com/run/docs"

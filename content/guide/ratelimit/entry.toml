@@ -1,0 +1,136 @@
+kind = "ratelimit"
+one_liner = "Caps how fast each caller may send, so one key cannot starve the rest."
+one_liner_es = "Pone un tope a lo rápido que puede enviar cada cliente, para que una clave no deje sin servicio al resto."
+
+use_when = [
+  "A public API serves many customers on shared servers",
+  "One client or bot could flood you",
+  "The capacity behind the edge is fixed or expensive",
+  "Your plans promise each customer a quota",
+]
+use_when_es = [
+  "Una API pública atiende a muchos clientes con servidores compartidos",
+  "Un cliente o un bot podría inundarte",
+  "La capacidad detrás del borde es fija o cara",
+  "Tus planes prometen una cuota a cada cliente",
+]
+skip_when = [
+  "All traffic comes from your own trusted services",
+  "Load is smooth and well below capacity",
+  "Every request must be served, even late (queue it instead)",
+]
+skip_when_es = [
+  "Todo el tráfico viene de tus propios servicios de confianza",
+  "La carga es estable y está muy por debajo de la capacidad",
+  "Hay que servir cada petición, aunque sea tarde (mejor encólala)",
+]
+
+formula = "per API key, tokens refill at the limit up to the burst; a request with no token is shed (shedding abuse counts as success, shedding a real user counts as an error)"
+formula_es = "por clave de API, los tokens se rellenan al ritmo del límite hasta la ráfaga; una petición sin token se descarta (descartar abuso cuenta como éxito, descartar a un usuario real cuenta como error)"
+
+gains = [
+  "Protects shared capacity from one noisy caller",
+  "Sheds the excess at the edge, cheaply",
+  "Keeps the load on the tiers behind it predictable",
+]
+gains_es = [
+  "Protege la capacidad compartida de un cliente ruidoso",
+  "Descarta el exceso en el borde, a bajo coste",
+  "Mantiene predecible la carga de las capas de detrás",
+]
+costs = [
+  "A limit set too low turns real peaks into errors",
+  "Limits shared by many servers need shared state, such as Redis",
+]
+costs_es = [
+  "Un límite demasiado bajo convierte los picos reales en errores",
+  "Los límites compartidos entre muchos servidores necesitan estado compartido, como Redis",
+]
+
+works_with = ["gateway", "app", "lb", "waf", "cache"]
+practice = ["rate-limiter"]
+
+interview_tip = "Say what you key the limit on, which algorithm you use (token bucket or sliding window), where the counters live, and what the caller sees when it is limited."
+interview_tip_es = "Di sobre qué clave aplicas el límite, qué algoritmo usas (cubeta de tokens o ventana deslizante), dónde viven los contadores y qué ve el cliente cuando se le limita."
+
+[[sim]]
+prop = "limit_rps"
+note = "Tokens added each second to every key's bucket: the steady rate one key may send."
+note_es = "Tokens que se añaden cada segundo a la cubeta de cada clave: el ritmo constante que puede enviar una clave."
+
+[[sim]]
+prop = "burst"
+note = "The size of each bucket: how many requests a key may send at once after a quiet spell."
+note_es = "El tamaño de cada cubeta: cuántas peticiones puede enviar una clave de golpe tras un rato de calma."
+
+[[sim]]
+sim = "service_ms"
+note = "The time a token check adds to each request."
+note_es = "Lo que añade a cada petición la comprobación del token."
+
+[[sim]]
+cost = "per_instance_month"
+note = "The limiter has a monthly price."
+note_es = "El limitador tiene un precio mensual."
+
+[flavours_compared]
+flavours = ["envoy", "redis_token_bucket"]
+
+[[flavours_compared.rows]]
+label = "Where the check runs"
+label_es = "Dónde se comprueba"
+cells = ["In the proxy, locally or by asking a global rate limit service", "In Redis, shared by every app server"]
+cells_es = ["En el proxy, en local o consultando un servicio global de límites", "En Redis, compartido por todos los servidores de aplicaciones"]
+
+[[flavours_compared.rows]]
+label = "State"
+label_es = "Estado"
+cells = ["Per proxy for local limits; a central service for global ones", "One counter per key, in Redis"]
+cells_es = ["Por proxy en los límites locales; un servicio central en los globales", "Un contador por clave, en Redis"]
+
+[[flavours_compared.rows]]
+label = "Cost of a check"
+label_es = "Coste de una comprobación"
+cells = ["Local checks need no network call", "One round trip to Redis"]
+cells_es = ["Las comprobaciones locales no necesitan llamada de red", "Un viaje de ida y vuelta a Redis"]
+
+[[flavours_compared.rows]]
+label = "Pick it for"
+label_es = "Elígelo para"
+cells = ["An Envoy edge or service mesh", "Apps that already use Redis"]
+cells_es = ["Un borde con Envoy o una malla de servicios", "Aplicaciones que ya usan Redis"]
+
+[[pitfalls]]
+title = "A limit below real peaks"
+title_es = "Un límite por debajo de los picos reales"
+body = "A limit picked from the average day looks safe until a real customer's busy hour. Then their legitimate calls are shed, and each one is an error."
+body_es = "Un límite elegido según el día medio parece seguro hasta la hora punta de un cliente real. Entonces se descartan sus llamadas legítimas, y cada una es un error."
+fix = "Set the limit above each real customer's peak, not their average, and give the bucket some burst."
+fix_es = "Pon el límite por encima del pico de cada cliente real, no de su media, y da algo de ráfaga a la cubeta."
+seen_in = "rate-limiter"
+
+[[pitfalls]]
+title = "One limit for everyone"
+title_es = "Un solo límite para todos"
+body = "A single shared limit lets one abusive key use up the whole budget and lock out every other customer."
+body_es = "Un único límite compartido deja que una clave abusiva gaste todo el presupuesto y deje fuera a los demás clientes."
+fix = "Keep one bucket per customer or API key."
+fix_es = "Usa una cubeta por cliente o por clave de API."
+
+[[pitfalls]]
+title = "Limiting without telling the caller"
+title_es = "Limitar sin avisar al cliente"
+body = "Callers that get a bare error retry straight away and make the flood worse."
+body_es = "Los clientes que reciben un error sin más reintentan al momento y empeoran la avalancha."
+fix = "Answer with HTTP status Too Many Requests and a Retry-After header, and have clients back off."
+fix_es = "Responde con el estado HTTP Too Many Requests y una cabecera Retry-After, y haz que los clientes esperen antes de reintentar."
+
+[[sources]]
+flavour = "envoy"
+title = "Envoy documentation"
+url = "https://www.envoyproxy.io/docs/envoy/latest/"
+
+[[sources]]
+flavour = "redis_token_bucket"
+title = "Redis documentation"
+url = "https://redis.io/docs/latest/"

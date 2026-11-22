@@ -1,5 +1,6 @@
 // React Query hooks over `api`. Query keys live here so mutations can invalidate them.
 import { useQuery } from "@tanstack/react-query";
+import type { ComponentKind } from "@/bindings";
 import { api } from "@/lib/api";
 import { localDay } from "@/lib/dates";
 
@@ -12,6 +13,8 @@ export const queryKeys = {
   progress: ["progress"] as const,
   submissions: (id: string) => ["submissions", id] as const,
   samples: ["samples"] as const,
+  guide: ["guide"] as const,
+  guidePage: (kind: string) => ["guide", kind] as const,
   sample: (id: string) => ["sample", id] as const,
 };
 
@@ -34,6 +37,14 @@ export function useProblemBrief(id: string) {
 
 export function useSubmissions(id: string) {
   return useQuery({ queryKey: queryKeys.submissions(id), queryFn: () => api.submissions(id) });
+}
+
+export function useGuide() {
+  return useQuery({ queryKey: queryKeys.guide, queryFn: api.listGuide });
+}
+
+export function useGuidePage(kind: ComponentKind) {
+  return useQuery({ queryKey: queryKeys.guidePage(kind), queryFn: () => api.guidePage(kind) });
 }
 
 export function useSamples() {

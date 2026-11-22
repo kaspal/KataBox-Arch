@@ -1,0 +1,138 @@
+kind = "autoscale"
+one_liner = "A zone around compute cards that adds or removes instances to follow the load."
+one_liner_es = "Una zona alrededor de tarjetas de cómputo que añade o quita instancias para seguir la carga."
+
+use_when = [
+  "Load changes a lot over the day or comes in bursts",
+  "A fixed fleet sized for the peak would sit idle most of the time",
+  "The peak builds over tens of seconds or more, not instantly",
+  "A queue in front can hold work while new instances start",
+]
+use_when_es = [
+  "La carga cambia mucho a lo largo del día o llega a picos",
+  "Una flota fija dimensionada para el pico estaría ociosa casi todo el tiempo",
+  "El pico se forma en decenas de segundos o más, no al instante",
+  "Una cola delante puede guardar el trabajo mientras arrancan instancias nuevas",
+]
+skip_when = [
+  "Load is flat, so a fixed size is simpler and just as cheap",
+  "A spike arrives faster than new instances can start and nothing can buffer it",
+  "The bottleneck is a database that does not scale with the compute",
+]
+skip_when_es = [
+  "La carga es plana, así que un tamaño fijo es más sencillo e igual de barato",
+  "Un pico llega más rápido de lo que arrancan las instancias nuevas y nada puede amortiguarlo",
+  "El cuello de botella es una base de datos que no escala con el cómputo",
+]
+
+formula = "every few seconds: if mean utilisation > target, instances ≈ instances × utilisation ÷ target; if it is below half the target, remove one; each change lands after the scale-out delay, within min and max"
+formula_es = "cada pocos segundos: si la utilización media > objetivo, instancias ≈ instancias × utilización ÷ objetivo; si está por debajo de la mitad del objetivo, quita una; cada cambio llega tras el retardo de escalado, entre el mínimo y el máximo"
+
+gains = [
+  "Pay for the average load instead of the peak",
+  "Rides out traffic growth without a manual resize",
+  "Replaces lost capacity without anyone stepping in",
+]
+gains_es = [
+  "Pagas por la carga media en lugar de por el pico",
+  "Aguanta el crecimiento del tráfico sin redimensionar a mano",
+  "Repone la capacidad perdida sin que nadie intervenga",
+]
+costs = [
+  "Reacts late: the first part of a spike hits the old fleet",
+  "A badly tuned policy flaps or scales too slowly",
+  "More instances upstream can overload what sits behind them",
+]
+costs_es = [
+  "Reacciona tarde: la primera parte de un pico la recibe la flota antigua",
+  "Una política mal ajustada oscila o escala demasiado despacio",
+  "Más instancias delante pueden sobrecargar lo que hay detrás",
+]
+
+works_with = ["app", "worker", "micro", "queue", "metrics"]
+practice = ["online-judge", "job-scheduler"]
+
+interview_tip = "Name the metric you scale on, the target, how long a new instance takes to be useful, and what absorbs the load until then."
+interview_tip_es = "Nombra la métrica con la que escalas, el objetivo, cuánto tarda una instancia nueva en ser útil y qué absorbe la carga hasta entonces."
+
+[[sim]]
+prop = "min_instances"
+note = "The floor. The group never scales in below it, and cards start at least this big."
+note_es = "El suelo. El grupo nunca baja de aquí, y las tarjetas empiezan al menos con este tamaño."
+
+[[sim]]
+prop = "max_instances"
+note = "The ceiling. Past it, extra load queues or is dropped as on a fixed card."
+note_es = "El techo. Por encima, la carga extra se encola o se descarta como en una tarjeta fija."
+
+[[sim]]
+prop = "target_util"
+note = "The busy share the policy aims for. Lower targets keep more headroom and cost more."
+note_es = "La fracción de ocupación que busca la política. Objetivos más bajos dejan más margen y cuestan más."
+
+[[sim]]
+prop = "scale_delay_s"
+note = "How long a decision takes to land, like booting a machine. No new decision is made while one waits."
+note_es = "Lo que tarda en aplicarse una decisión, como arrancar una máquina. No se toma otra decisión mientras una espera."
+
+[flavours_compared]
+flavours = ["kubernetes_hpa", "aws_asg"]
+
+[[flavours_compared.rows]]
+label = "Scales"
+label_es = "Escala"
+cells = ["Pods of a Deployment or similar workload", "EC2 virtual machines"]
+cells_es = ["Pods de un Deployment o una carga similar", "Máquinas virtuales EC2"]
+
+[[flavours_compared.rows]]
+label = "Signals"
+label_es = "Señales"
+cells = ["CPU, memory, or custom and external metrics", "CloudWatch metrics, schedules and predictive scaling"]
+cells_es = ["CPU, memoria, o métricas personalizadas y externas", "Métricas de CloudWatch, horarios y escalado predictivo"]
+
+[[flavours_compared.rows]]
+label = "New capacity"
+label_es = "Capacidad nueva"
+cells = ["Starts quickly if the cluster has room for the pod", "Slower: a machine has to boot"]
+cells_es = ["Arranca rápido si el clúster tiene sitio para el pod", "Más lenta: una máquina tiene que arrancar"]
+
+[[flavours_compared.rows]]
+label = "Pick it for"
+label_es = "Elígelo para"
+cells = ["Services already running on Kubernetes", "Fleets of plain virtual machines on AWS"]
+cells_es = ["Servicios que ya corren en Kubernetes", "Flotas de máquinas virtuales sencillas en AWS"]
+
+[[pitfalls]]
+title = "No room to grow"
+title_es = "Sin margen para crecer"
+body = "A fixed fleet handles a normal day, then a burst arrives, the backlog grows every second and latency climbs far past the target."
+body_es = "Una flota fija aguanta un día normal, luego llega un pico, lo acumulado crece cada segundo y la latencia sube muy por encima del objetivo."
+fix = "Wrap the busy cards in an Autoscaling zone, with a maximum sized for the peak."
+fix_es = "Mete las tarjetas con carga en una zona de Autoescalado, con un máximo dimensionado para el pico."
+seen_in = "online-judge"
+
+[[pitfalls]]
+title = "Scaling too late"
+title_es = "Escalar demasiado tarde"
+body = "With a long scale-out delay, the spike is over, or the backlog is huge, by the time new instances arrive."
+body_es = "Con un retardo de escalado largo, cuando llegan las instancias nuevas el pico ya ha pasado o lo acumulado es enorme."
+fix = "Shorten the start-up time, keep a higher minimum before known peaks, or lower the target to keep headroom."
+fix_es = "Acorta el tiempo de arranque, mantén un mínimo más alto antes de picos conocidos, o baja el objetivo para tener margen."
+
+[[pitfalls]]
+title = "Scaling the wrong tier"
+title_es = "Escalar la capa equivocada"
+body = "The compute scales out, but every new instance calls the same database, which becomes the bottleneck and slows everyone down."
+body_es = "El cómputo escala, pero cada instancia nueva llama a la misma base de datos, que se convierte en el cuello de botella y ralentiza a todos."
+fix = "Check the capacity behind the zone at the maximum instance count, and cap the maximum to what it can take."
+fix_es = "Comprueba la capacidad de lo que hay detrás de la zona con el máximo de instancias, y limita el máximo a lo que aguante."
+
+[[sources]]
+flavour = "kubernetes_hpa"
+title = "Kubernetes Horizontal Pod Autoscaling"
+url = "https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/"
+
+[[sources]]
+flavour = "aws_asg"
+title = "Amazon EC2 Auto Scaling user guide"
+url = "https://docs.aws.amazon.com/autoscaling/ec2/userguide/"

@@ -1,0 +1,5 @@
+A **SQL database** stores data in tables with a fixed schema and answers queries in SQL. It can join tables, enforce rules such as unique keys, and wrap several changes in a **transaction** that happens completely or not at all. For most products it is the right first place to keep the data that matters.
+
+One server, the **primary**, takes every write. You can add **replicas** that copy the primary and serve reads, which spreads read load and gives you a spare to promote if the primary dies. Replicas trail the primary a little, so a read from one can miss a very recent write. When the writes themselves outgrow one primary, you split the data into **shards** by a key, and queries that span shards get harder.
+
+In the simulator each shard has a fixed number of connections, and a query holds one for its whole service time, which grows with the payload size. A key always maps to the same shard. Cards joined by Replicate edges form a cluster: writes go to the primary, reads spread over healthy members, and a dead primary is replaced by the next member after the failover time.

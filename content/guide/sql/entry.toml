@@ -1,0 +1,163 @@
+kind = "sql"
+one_liner = "A relational database: tables, joins and transactions you can trust."
+one_liner_es = "Una base de datos relacional: tablas, joins y transacciones en las que puedes confiar."
+
+use_when = [
+  "Data has clear relations and you need joins across them",
+  "Several rows must change together or not at all",
+  "Every read must see the latest committed write",
+  "The write rate fits on one primary, or splits cleanly by a key",
+]
+use_when_es = [
+  "Los datos tienen relaciones claras y necesitas joins entre ellas",
+  "Varias filas deben cambiar juntas o no cambiar",
+  "Cada lectura debe ver la última escritura confirmada",
+  "El ritmo de escrituras cabe en una principal, o se reparte bien por una clave",
+]
+skip_when = [
+  "You store large files or blobs: they belong in object storage",
+  "Writes far exceed what one primary can take and there is no clean shard key",
+  "Lookups are always by one key and never need joins or transactions",
+  "Free-text search is the main way people find the data",
+]
+skip_when_es = [
+  "Guardas ficheros grandes o blobs: van en almacenamiento de objetos",
+  "Las escrituras superan con mucho lo que aguanta una principal y no hay una clave de partición clara",
+  "Las búsquedas son siempre por una clave y nunca necesitan joins ni transacciones",
+  "La búsqueda de texto libre es la forma principal de encontrar los datos",
+]
+
+formula = "throughput per shard ≈ concurrency ÷ (service time × (1 + payload KB ÷ 64)); a key always lands on the same shard; writes go to the primary, reads spread over healthy members"
+formula_es = "rendimiento por partición ≈ concurrencia ÷ (tiempo de servicio × (1 + KB de carga ÷ 64)); una clave cae siempre en la misma partición; las escrituras van a la principal y las lecturas se reparten entre los miembros sanos"
+
+gains = [
+  "Transactions and constraints keep the data correct",
+  "Flexible queries and joins over the same data",
+  "Mature tools for backups, replicas and migrations",
+]
+gains_es = [
+  "Las transacciones y las restricciones mantienen los datos correctos",
+  "Consultas flexibles y joins sobre los mismos datos",
+  "Herramientas maduras para copias de seguridad, réplicas y migraciones",
+]
+costs = [
+  "Writes are limited by a single primary",
+  "Sharding is manual and makes cross-shard queries hard",
+  "Large rows and blobs hold connections for a long time",
+]
+costs_es = [
+  "Las escrituras están limitadas por una sola principal",
+  "El particionado es manual y complica las consultas entre particiones",
+  "Las filas grandes y los blobs ocupan las conexiones mucho tiempo",
+]
+
+works_with = ["app", "cache", "worker", "object", "search"]
+practice = ["url-shortener"]
+
+interview_tip = "Say what is read and written per second, whether one primary takes the writes, and what you add for reads first: a cache or replicas."
+interview_tip_es = "Di cuánto se lee y se escribe por segundo, si una principal aguanta las escrituras y qué añades primero para las lecturas: una caché o réplicas."
+
+[[sim]]
+prop = "shards"
+note = "Independent slices of the data, each with its own connections. A key always lands on the same shard, so a hot key makes a hot shard."
+note_es = "Trozos independientes de los datos, cada uno con sus propias conexiones. Una clave cae siempre en la misma partición, así que una clave caliente crea una partición caliente."
+
+[[sim]]
+prop = "concurrency"
+note = "Connections per shard: queries that run at once. The flavour default follows each engine's out-of-the-box connection limit."
+note_es = "Conexiones por partición: consultas que se ejecutan a la vez. El valor por defecto de cada sabor sigue el límite de conexiones de fábrica del motor."
+
+[[sim]]
+prop = "service_ms"
+note = "The median time of a small indexed read or write. Bigger payloads take longer in proportion."
+note_es = "La mediana de una lectura o escritura pequeña con índice. Las cargas más grandes tardan más en proporción."
+
+[[sim]]
+prop = "replication_lag_ms"
+note = "How far a replica trails the primary. A replica read of a key written within this window counts as stale."
+note_es = "Cuánto va una réplica por detrás de la principal. Una lectura en réplica de una clave escrita dentro de este margen cuenta como obsoleta."
+
+[[sim]]
+prop = "failover_s"
+note = "With a replica wired by Replicate, how long until it is promoted after the primary dies. Writes fail until then."
+note_es = "Con una réplica unida por Replicate, cuánto tarda en ascender cuando cae la principal. Hasta entonces las escrituras fallan."
+
+[[sim]]
+sim = "p99_ratio"
+note = "How much slower the slowest queries are than the median. Databases have a long tail."
+note_es = "Cuánto más lentas son las consultas más lentas que la mediana. Las bases de datos tienen una cola larga."
+
+[[sim]]
+cost = "per_instance_month"
+note = "Priced per card: each replica is another card and adds the same price."
+note_es = "Se cobra por tarjeta: cada réplica es otra tarjeta y suma el mismo precio."
+
+[flavours_compared]
+flavours = ["postgresql", "mysql"]
+
+[[flavours_compared.rows]]
+label = "Licence"
+label_es = "Licencia"
+cells = ["PostgreSQL licence (permissive)", "GPL, with commercial editions from Oracle"]
+cells_es = ["Licencia PostgreSQL (permisiva)", "GPL, con ediciones comerciales de Oracle"]
+
+[[flavours_compared.rows]]
+label = "Connections"
+label_es = "Conexiones"
+cells = ["One process per connection", "One thread per connection"]
+cells_es = ["Un proceso por conexión", "Un hilo por conexión"]
+
+[[flavours_compared.rows]]
+label = "Strengths"
+label_es = "Puntos fuertes"
+cells = ["Rich types (JSONB, arrays), extensions, advanced SQL", "Simple, fast reads; very widely hosted"]
+cells_es = ["Tipos ricos (JSONB, arrays), extensiones, SQL avanzado", "Lecturas simples y rápidas; muy extendido en hostings"]
+
+[[flavours_compared.rows]]
+label = "Replication"
+label_es = "Replicación"
+cells = ["Streaming (physical) and logical replication", "Binary log replication, plus Group Replication"]
+cells_es = ["Replicación en streaming (física) y lógica", "Replicación por binlog, más Group Replication"]
+
+[[flavours_compared.rows]]
+label = "Pick it for"
+label_es = "Elígelo para"
+cells = ["Complex queries and varied data", "Read-heavy web apps with simple queries"]
+cells_es = ["Consultas complejas y datos variados", "Aplicaciones web de muchas lecturas con consultas simples"]
+
+[[pitfalls]]
+title = "A single primary with no replica"
+title_es = "Una sola principal sin réplica"
+body = "When the only database dies, there is nothing to promote, and every request that needs it fails until it comes back."
+body_es = "Cuando cae la única base de datos, no hay nada que ascender, y cada petición que la necesita falla hasta que vuelve."
+fix = "Add a replica joined by a Replicate edge, and keep the failover time short."
+fix_es = "Añade una réplica unida por un enlace Replicate, y mantén corto el tiempo de failover."
+seen_in = "url-shortener"
+
+[[pitfalls]]
+title = "Blobs in the database"
+title_es = "Blobs en la base de datos"
+body = "Large bodies make every query slower and hold a connection the whole time. A burst of big writes fills the connections and the app tier stalls behind them."
+body_es = "Los cuerpos grandes hacen más lenta cada consulta y ocupan una conexión todo el tiempo. Un pico de escrituras grandes llena las conexiones y la capa de aplicación se atasca detrás."
+fix = "Store the bytes in object storage and keep only the key and metadata in the database."
+fix_es = "Guarda los bytes en almacenamiento de objetos y deja en la base de datos solo la clave y los metadatos."
+seen_in = "pastebin"
+
+[[pitfalls]]
+title = "A write flood on one primary"
+title_es = "Una avalancha de escrituras en una principal"
+body = "Replicas help reads, not writes. When the write rate passes what the primary's connections can serve, writes queue, callers hold their slots, and errors spread."
+body_es = "Las réplicas ayudan a las lecturas, no a las escrituras. Cuando el ritmo de escrituras supera lo que sirven las conexiones de la principal, las escrituras se encolan, los que llaman conservan sus huecos y los errores se extienden."
+fix = "Shard by a key that spreads the writes, buffer them through a queue, or use a store built for heavy writes."
+fix_es = "Particiona por una clave que reparta las escrituras, amortígualas con una cola, o usa un almacén pensado para muchas escrituras."
+seen_in = "ride-sharing"
+
+[[sources]]
+flavour = "postgresql"
+title = "PostgreSQL documentation"
+url = "https://www.postgresql.org/docs/"
+
+[[sources]]
+flavour = "mysql"
+title = "MySQL documentation"
+url = "https://dev.mysql.com/doc/"

@@ -4,6 +4,7 @@ import { vi } from "vitest";
 import type { AppError, Design, JsonValue, OpenedDesign, ProblemBrief, RecentEntry, Registry, RunControl, SubmissionSummary, SubmitResult } from "@/bindings";
 import { FAKE_BRIEF, FAKE_REFERENCE, fakeJudgement } from "@/test/fakeProblems";
 import { FAKE_SAMPLE, FAKE_SAMPLE_SUMMARY } from "@/test/fakeSamples";
+import { FAKE_GUIDE } from "@/test/fakeGuide";
 import type { Api, RunOptions } from "@/lib/api";
 import fixture from "@/test/fixtures/registry.json";
 
@@ -47,6 +48,7 @@ export function createFakeApi(opts: FakeOptions = {}) {
   let draft: Design | null = null;
   let submissionsCount = 0;
   const submitted: SubmissionSummary[] = [];
+  const read = new Set<string>();
 
   const touch = (path: string, name: string) => {
     recent = [{ path, name, opened_at: 1_700_000_000_000 + recent.length, exists: true }, ...recent.filter((r) => r.path !== path)];
@@ -162,6 +164,19 @@ export function createFakeApi(opts: FakeOptions = {}) {
       return { submission_id: submissionsCount, judgement, first_solve: first, best_score: problemState.best_score ?? 0 };
     }),
     submissions: vi.fn(async () => [...submitted]),
+    listGuide: vi.fn(async () =>
+      FAKE_GUIDE.map((e) => ({ kind: e.kind, one_liner: e.one_liner, one_liner_es: e.one_liner_es, read: read.has(e.kind) })),
+    ),
+    guidePage: vi.fn(async (kind: string) => {
+      const entry = FAKE_GUIDE.find((e) => e.kind === kind);
+      if (!entry) throw err("not_found");
+      return { entry: structuredClone(entry), md_en: "A cache keeps **hot** data in memory.", md_es: "Una caché guarda datos **calientes** en memoria.", read: read.has(kind) };
+    }),
+    setGuideRead: vi.fn(async (kind: string, r: boolean) => {
+      if (r) read.add(kind);
+      else read.delete(kind);
+      return null;
+    }),
     listSamples: vi.fn(async () => [structuredClone(FAKE_SAMPLE_SUMMARY)]),
     sample: vi.fn(async (id: string) => {
       if (id !== FAKE_SAMPLE.def.id) throw err("not_found");

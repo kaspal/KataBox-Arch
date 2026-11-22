@@ -15,6 +15,7 @@ mod window_state;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use ka_app::guide::{GuidePage, GuideSummary};
 use ka_app::live::FrameSink;
 use ka_app::problems::{ProblemBrief, ProblemSummary, Progress, SubmitResult};
 use ka_app::samples::{Sample, SampleSummary};
@@ -253,6 +254,31 @@ async fn list_problems(state: State<'_, AppState>) -> Res<Vec<ProblemSummary>> {
     state.app()?.list_problems().await
 }
 
+/// The Component Guide index: every entry's one-liner and read mark.
+#[tauri::command]
+#[specta::specta]
+async fn list_guide(state: State<'_, AppState>) -> Res<Vec<GuideSummary>> {
+    state.app()?.list_guide().await
+}
+
+/// One Guide entry.
+#[tauri::command]
+#[specta::specta]
+async fn guide_page(state: State<'_, AppState>, kind: ka_core::ComponentKind) -> Res<GuidePage> {
+    state.app()?.guide_page(kind).await
+}
+
+/// Mark a Guide entry read (or unread).
+#[tauri::command]
+#[specta::specta]
+async fn set_guide_read(
+    state: State<'_, AppState>,
+    kind: ka_core::ComponentKind,
+    read: bool,
+) -> Res<()> {
+    state.app()?.set_guide_read(kind, read).await
+}
+
 /// The sample gallery, in order (each with its first step's design for the preview).
 #[tauri::command]
 #[specta::specta]
@@ -398,6 +424,9 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         progress,
         list_samples,
         sample,
+        list_guide,
+        guide_page,
+        set_guide_read,
         set_window_title,
         set_dirty,
         confirm_close,

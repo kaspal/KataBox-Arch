@@ -10,7 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { Shell } from "@/app/Shell";
 import { Home } from "@/pages/Home";
-import { Guide, Progress } from "@/pages/Placeholders";
+import { Progress } from "@/pages/Placeholders";
 import { ProblemsPage } from "@/pages/Problems";
 import { Settings } from "@/pages/Settings";
 
@@ -29,7 +29,18 @@ const routeTree = rootRoute.addChildren([
     path: "/sandbox",
     component: lazyRouteComponent(() => import("@/solve/SandboxPage"), "SandboxPage"),
   }),
-  createRoute({ getParentRoute: () => rootRoute, path: "/guide", component: Guide }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/guide",
+    component: lazyRouteComponent(() => import("@/guide/GuideIndex"), "GuideIndex"),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/guide/$kind",
+    // `?section=sim` opens the entry at "In the simulator" (the Inspector's Learn more).
+    validateSearch: (s: Record<string, unknown>): { section?: "sim" } => (s.section === "sim" ? { section: "sim" } : {}),
+    component: lazyRouteComponent(() => import("@/guide/GuideEntryPage"), "GuideEntryPage"),
+  }),
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/samples",

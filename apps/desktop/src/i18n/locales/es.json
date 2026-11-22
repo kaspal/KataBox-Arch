@@ -25,7 +25,9 @@
     "addItem": "Añadir {{name}}",
     "theme": "Tema",
     "language": "Idioma",
-    "devPerf": "Desarrollo: fotogramas de la capa de paquetes"
+    "devPerf": "Desarrollo: fotogramas de la capa de paquetes",
+    "guide": "Guía",
+    "guideItem": "Guía: {{name}}"
   },
   "theme": {
     "system": "Sistema",
@@ -156,7 +158,9 @@
     "add": "{{name}}: arrástralo al lienzo o pulsa Intro para añadirlo",
     "quickLook": "Acerca de {{name}}",
     "flavours": "Variantes",
-    "guideLater": "La entrada completa de la Guía de componentes (qué hace, cuándo usarlo, sus números) llega en M3."
+    "watchFor": "Atención:",
+    "dragHint": "Arrastra el elemento al lienzo para añadirlo",
+    "openInGuide": "Abrir en la guía"
   },
   "inspector": {
     "title": "Inspeccionar",
@@ -187,7 +191,8 @@
     "rangeInt": "Escribe un número entero de {{min}} a {{max}}.",
     "autoscaleHint": "Las tarjetas de cómputo dentro de este marco escalan entre el mínimo y el máximo de instancias, y añaden instancias cuando la utilización se mantiene por encima del objetivo.",
     "scaling": "Política de escalado",
-    "brief": "Enunciado"
+    "brief": "Enunciado",
+    "learnMore": "Saber más"
   },
   "home": {
     "eyebrow": "Tu mesa de diseño de sistemas",
@@ -215,10 +220,6 @@
     "problems": {
       "title": "Los problemas llegan en M2",
       "body": "Una lista al estilo LeetCode de retos de diseño de sistemas, cada uno juzgado con pruebas de tráfico ocultas."
-    },
-    "guide": {
-      "title": "La Guía de componentes llega en M3",
-      "body": "Una entrada y una tarjeta de concepto para cada componente: qué hace, cuándo usarlo y sus números."
     },
     "progress": {
       "title": "Todavía no hay nada que mostrar",
@@ -575,5 +576,56 @@
     "none": "Aún no hay ejemplos",
     "noneBody": "La aplicación se compiló sin sus ejemplos.",
     "copyName": "{{title}} (mi copia)"
+  },
+  "guide": {
+    "title": "Guía de componentes",
+    "subtitle": "Qué es cada componente, qué hace y cuándo usarlo. {{read}} de {{total}} leídos.",
+    "search": "Buscar: caché, fan-out, replicación",
+    "searchLabel": "Buscar en la guía",
+    "startHere": "Empieza aquí",
+    "startHereBody": "Las seis piezas que casi todo diseño usa",
+    "read": "Leído",
+    "noMatch": "Ninguna entrada coincide.",
+    "unavailable": "La guía no está disponible",
+    "breadcrumb": "Dónde estás",
+    "markRead": "Marcar como leído",
+    "markedRead": "Leído",
+    "whatItDoes": "Qué hace",
+    "useWhen": "Úsalo cuando",
+    "skipWhen": "Evítalo cuando",
+    "inSimulator": "En el simulador",
+    "value": "Valor",
+    "simNote": "Cada número es el valor por defecto del simulador para ese producto; el inspector puede cambiarlo en una tarjeta.",
+    "pitfalls": "Errores comunes",
+    "fix": "Solución:",
+    "seenIn": "Se ve en:",
+    "tradeoffs": "Compromisos",
+    "gains": "Lo que ganas",
+    "costs": "Lo que pagas",
+    "flavoursCompared": "Los productos comparados",
+    "practice": "Practícalo",
+    "worksWith": "Funciona con",
+    "interviewTip": "Consejo para la entrevista",
+    "sources": "Fuentes",
+    "sourcesUnchecked": "Documentación del fabricante para abrir en tu navegador. Los enlaces aún no se han comprobado.",
+    "yes": "sí",
+    "no": "no",
+    "simField": {
+      "servers_per_instance": "Trabajo en paralelo por nodo",
+      "service_ms": "Tiempo de servicio",
+      "p99_ratio": "Cola lenta (p99 ÷ mediana)",
+      "queue_per_server": "Huecos de cola por trabajador",
+      "failover_s": "Tiempo de failover"
+    },
+    "costField": {
+      "per_instance_month": "Precio por instancia",
+      "per_gb_month": "Precio por GB",
+      "per_million": "Precio por millón de peticiones"
+    },
+    "costUnit": {
+      "per_instance_month": "{{v}} al mes",
+      "per_gb_month": "{{v}} por GB al mes",
+      "per_million": "{{v}} por millón"
+    }
   }
 }

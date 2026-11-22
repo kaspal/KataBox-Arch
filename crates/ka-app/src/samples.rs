@@ -161,6 +161,7 @@ run = { preset = "normal" }
                     def: serde_json::to_string(&def).unwrap(),
                     snapshots: [("one.kbarch".to_string(), kbarch)].into(),
                 }],
+                guide: vec![],
             },
         )
         .await

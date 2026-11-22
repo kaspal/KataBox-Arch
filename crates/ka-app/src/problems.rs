@@ -528,6 +528,7 @@ error_rate = 0.001
                 meta: vec![],
                 problems: vec![row],
                 samples: vec![],
+                guide: vec![],
             },
         )
         .await

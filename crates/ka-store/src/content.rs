@@ -114,12 +114,23 @@ pub struct SampleRow {
     pub snapshots: std::collections::BTreeMap<String, String>,
 }
 
+/// One Component Guide entry: `entry` is the `GuideEntry` as JSON; the prose ("What it
+/// does") in both languages.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GuideRow {
+    pub kind: String,
+    pub entry: String,
+    pub md_en: String,
+    pub md_es: String,
+}
+
 /// Everything `ka-pack build` writes.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct ContentData {
     pub meta: Vec<(String, String)>,
     pub problems: Vec<ProblemRow>,
     pub samples: Vec<SampleRow>,
+    pub guide: Vec<GuideRow>,
 }
 
 /// Write a fresh `content.db` at `path` (replacing any file there).
@@ -180,6 +191,15 @@ pub async fn write_content(path: &Path, data: &ContentData) -> Result<()> {
             .bind(s.number)
             .bind(&s.def)
             .bind(serde_json::to_string(&s.snapshots)?)
+            .execute(&mut *tx)
+            .await?;
+    }
+    for g in &data.guide {
+        sqlx::query("INSERT INTO guide (kind, entry, md_en, md_es) VALUES (?, ?, ?, ?)")
+            .bind(&g.kind)
+            .bind(&g.entry)
+            .bind(&g.md_en)
+            .bind(&g.md_es)
             .execute(&mut *tx)
             .await?;
     }
@@ -304,9 +324,34 @@ impl ContentDb {
         row.as_ref().map(sample_row).transpose()
     }
 
+    /// Every Guide entry, by kind.
+    pub async fn guide(&self) -> Result<Vec<GuideRow>> {
+        let rows = sqlx::query("SELECT kind, entry, md_en, md_es FROM guide ORDER BY kind")
+            .fetch_all(&self.pool)
+            .await?;
+        rows.iter().map(guide_row).collect()
+    }
+
+    pub async fn guide_entry(&self, kind: &str) -> Result<Option<GuideRow>> {
+        let row = sqlx::query("SELECT kind, entry, md_en, md_es FROM guide WHERE kind = ?")
+            .bind(kind)
+            .fetch_optional(&self.pool)
+            .await?;
+        row.as_ref().map(guide_row).transpose()
+    }
+
     pub async fn close(&self) {
         self.pool.close().await;
     }
+}
+
+fn guide_row(r: &sqlx::sqlite::SqliteRow) -> Result<GuideRow> {
+    Ok(GuideRow {
+        kind: r.try_get("kind")?,
+        entry: r.try_get("entry")?,
+        md_en: r.try_get("md_en")?,
+        md_es: r.try_get("md_es")?,
+    })
 }
 
 fn sample_row(r: &sqlx::sqlite::SqliteRow) -> Result<SampleRow> {
@@ -349,6 +394,15 @@ mod tests {
         }
     }
 
+    fn guide(kind: &str) -> GuideRow {
+        GuideRow {
+            kind: kind.into(),
+            entry: format!(r#"{{"kind":"{kind}"}}"#),
+            md_en: "What it does.".into(),
+            md_es: "Qué hace. ñ".into(),
+        }
+    }
+
     fn sample(id: &str, number: i64) -> SampleRow {
         SampleRow {
             id: id.into(),
@@ -365,6 +419,7 @@ mod tests {
             meta: vec![("hash".into(), "abc".into())],
             problems: vec![problem("b", 2), problem("a", 1)],
             samples: vec![sample("s2", 2), sample("s1", 1)],
+            guide: vec![guide("lb"), guide("cache")],
         };
         write_content(&path, &data).await.unwrap();
         // Rewriting replaces the file.
@@ -385,6 +440,13 @@ mod tests {
         );
         assert_eq!(db.sample("s2").await.unwrap(), Some(sample("s2", 2)));
         assert_eq!(db.sample("nope").await.unwrap(), None);
+        let g = db.guide().await.unwrap();
+        assert_eq!(
+            g.iter().map(|x| x.kind.as_str()).collect::<Vec<_>>(),
+            ["cache", "lb"]
+        );
+        assert_eq!(db.guide_entry("lb").await.unwrap(), Some(guide("lb")));
+        assert_eq!(db.guide_entry("nope").await.unwrap(), None);
         db.close().await;
     }
 

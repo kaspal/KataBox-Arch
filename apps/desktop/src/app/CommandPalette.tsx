@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { FilePlus2, FileText, FolderOpen, Gauge, Languages, Monitor, Moon, Save, SaveAll, Sun } from "lucide-react";
+import { BookOpen, FilePlus2, FileText, FolderOpen, Gauge, Languages, Monitor, Moon, Save, SaveAll, Sun } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -104,6 +104,18 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                 {t("palette.openRecent", { name: r.name })}
               </CommandItem>
             ))}
+        </CommandGroup>
+        <CommandGroup heading={t("palette.guide")}>
+          {(registry.data?.kinds ?? []).map((k) => (
+            <CommandItem
+              key={k.kind}
+              value={`guide ${t("palette.guideItem", { name: kindName(t, k.kind) })}`}
+              onSelect={() => run(() => void navigate({ to: "/guide/$kind", params: { kind: k.kind } }))}
+            >
+              <BookOpen aria-hidden />
+              {t("palette.guideItem", { name: kindName(t, k.kind) })}
+            </CommandItem>
+          ))}
         </CommandGroup>
         <CommandGroup heading={t("palette.add")}>
           {(registry.data?.kinds ?? []).map((k) => (

@@ -119,7 +119,8 @@ describe("library", () => {
     await user.click(await screen.findByRole("button", { name: "About Queue" }));
     const look = await screen.findByTestId("quick-look");
     expect(within(look).getByText("RabbitMQ")).toBeInTheDocument();
-    expect(within(look).getByText(/arrives in M3/)).toBeInTheDocument();
+    // No Guide entry for this kind in the fake backend: the quick look still links to it.
+    expect(await within(look).findByRole("link", { name: "Open in Guide" })).toBeInTheDocument();
   });
 });
 

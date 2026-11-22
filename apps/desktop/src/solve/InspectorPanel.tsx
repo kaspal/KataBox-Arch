@@ -3,7 +3,8 @@
 // is shown as an error and never stored.
 import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Trash2 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Trash2, BookOpen } from "lucide-react";
 import type { Edge, Flavour, Group, Node, Note, PropSpec, PropValue, Protocol, Registry, Scaling } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -203,6 +204,15 @@ function NodeInspector({ registry, node }: { registry: Registry; node: Node }) {
           <div className="truncate font-semibold">{node.label.trim() || flavourName(t, node.flavour)}</div>
           <div className="text-xs text-muted-foreground">{kindName(t, node.kind)}</div>
         </div>
+        <Link
+          to="/guide/$kind"
+          params={{ kind: node.kind }}
+          search={{ section: "sim" }}
+          className="ml-auto flex shrink-0 items-center gap-1 text-xs font-semibold text-primary underline-offset-4 hover:underline"
+        >
+          <BookOpen aria-hidden className="size-3.5" />
+          {t("inspector.learnMore")}
+        </Link>
       </div>
       <TextField
         label={t("inspector.label")}

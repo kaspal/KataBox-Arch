@@ -1,0 +1,137 @@
+kind = "object"
+one_liner = "Cheap, durable storage for files and blobs, read and written whole by key."
+one_liner_es = "Almacenamiento barato y duradero para ficheros y blobs, que se leen y escriben enteros por clave."
+
+use_when = [
+  "You store files, images, videos, backups or large text bodies",
+  "Each item is written once and read many times",
+  "The data will grow without a clear limit",
+  "A CDN should serve the files straight from storage",
+]
+use_when_es = [
+  "Guardas ficheros, imágenes, vídeos, copias de seguridad o textos grandes",
+  "Cada elemento se escribe una vez y se lee muchas",
+  "Los datos van a crecer sin un límite claro",
+  "Una CDN debe servir los ficheros directamente desde el almacenamiento",
+]
+skip_when = [
+  "You update small parts of a record often",
+  "You need queries, filters or joins over the data",
+  "Every read must answer in a few milliseconds and there is no cache in front",
+]
+skip_when_es = [
+  "Actualizas a menudo partes pequeñas de un registro",
+  "Necesitas consultas, filtros o joins sobre los datos",
+  "Cada lectura debe responder en pocos milisegundos y no hay caché delante",
+]
+
+formula = "latency ≈ service time whatever the object size; capacity is very high, so it rarely saturates"
+formula_es = "latencia ≈ tiempo de servicio sea cual sea el tamaño del objeto; la capacidad es muy alta, así que rara vez se satura"
+
+gains = [
+  "Practically unlimited space at a low price",
+  "Very high durability without running anything",
+  "Large bodies don't slow down the database",
+]
+gains_es = [
+  "Espacio prácticamente ilimitado a bajo precio",
+  "Durabilidad muy alta sin operar nada",
+  "Los cuerpos grandes no ralentizan la base de datos",
+]
+costs = [
+  "Each request is slower than a database or cache read",
+  "No queries: you find objects by key or by listing a prefix",
+  "Paying per request adds up at high traffic",
+]
+costs_es = [
+  "Cada petición es más lenta que una lectura de base de datos o de caché",
+  "Sin consultas: encuentras los objetos por clave o listando un prefijo",
+  "Pagar por petición suma mucho con tráfico alto",
+]
+
+works_with = ["cdn", "cache", "app", "worker", "sql"]
+practice = ["pastebin", "static-site-cdn", "video-streaming", "flash-sale"]
+
+interview_tip = "Keep the bytes in object storage and the metadata in a database, and say how clients reach the files: through your app, a CDN or signed URLs."
+interview_tip_es = "Guarda los bytes en almacenamiento de objetos y los metadatos en una base de datos, y di cómo llegan los clientes a los ficheros: por tu aplicación, por una CDN o con URL firmadas."
+
+[[sim]]
+prop = "service_ms"
+note = "Time to first byte. Unlike a database, it does not grow with the object's size."
+note_es = "Tiempo hasta el primer byte. A diferencia de una base de datos, no crece con el tamaño del objeto."
+
+[[sim]]
+sim = "servers_per_instance"
+note = "Requests served at once. It is large, so object storage rarely becomes the bottleneck."
+note_es = "Peticiones servidas a la vez. Es un número grande, así que el almacenamiento de objetos rara vez es el cuello de botella."
+
+[[sim]]
+sim = "p99_ratio"
+note = "How much slower the slowest requests are than the median."
+note_es = "Cuánto más lentas son las peticiones más lentas que la mediana."
+
+[[sim]]
+cost = "per_million"
+note = "Priced per request only, a blend of reads and writes. Storage space is not billed in this model."
+note_es = "Se cobra solo por petición, una mezcla de lecturas y escrituras. El espacio ocupado no se cobra en este modelo."
+
+[flavours_compared]
+flavours = ["s3", "gcs"]
+
+[[flavours_compared.rows]]
+label = "Cloud"
+label_es = "Nube"
+cells = ["AWS", "Google Cloud"]
+cells_es = ["AWS", "Google Cloud"]
+
+[[flavours_compared.rows]]
+label = "Consistency"
+label_es = "Consistencia"
+cells = ["Strong read-after-write", "Strong read-after-write"]
+cells_es = ["Lectura tras escritura fuerte", "Lectura tras escritura fuerte"]
+
+[[flavours_compared.rows]]
+label = "Storage classes"
+label_es = "Clases de almacenamiento"
+cells = ["Standard, Intelligent-Tiering, infrequent access, Glacier archive tiers", "Standard, Nearline, Coldline, Archive"]
+cells_es = ["Standard, Intelligent-Tiering, acceso poco frecuente, niveles de archivo Glacier", "Standard, Nearline, Coldline, Archive"]
+
+[[flavours_compared.rows]]
+label = "Pick it for"
+label_es = "Elígelo para"
+cells = ["Systems built on AWS", "Systems built on Google Cloud"]
+cells_es = ["Sistemas construidos en AWS", "Sistemas construidos en Google Cloud"]
+
+[[pitfalls]]
+title = "Using it as a database"
+title_es = "Usarlo como base de datos"
+body = "Small records that change often are rewritten whole on every update, and finding them needs a listing instead of a query."
+body_es = "Los registros pequeños que cambian a menudo se reescriben enteros en cada actualización, y encontrarlos exige listar en lugar de consultar."
+fix = "Keep small, changing data in a database and only the large, write-once bodies in object storage."
+fix_es = "Deja los datos pequeños y cambiantes en una base de datos y solo los cuerpos grandes de una sola escritura en el almacenamiento de objetos."
+
+[[pitfalls]]
+title = "Every read goes to storage"
+title_es = "Cada lectura va al almacenamiento"
+body = "Popular files are fetched from storage on every view. Each read is slow compared with a cache, and the per-request bill grows with the traffic."
+body_es = "Los ficheros populares se piden al almacenamiento en cada visita. Cada lectura es lenta comparada con una caché, y la factura por petición crece con el tráfico."
+fix = "Put a CDN or a cache in front for the hot objects."
+fix_es = "Pon una CDN o una caché delante para los objetos más pedidos."
+
+[[pitfalls]]
+title = "Streaming every byte through the app"
+title_es = "Pasar cada byte por la aplicación"
+body = "Uploads and downloads pass through the app servers, which spend their slots copying bytes instead of handling requests."
+body_es = "Las subidas y descargas pasan por los servidores de aplicaciones, que gastan sus huecos copiando bytes en lugar de atender peticiones."
+fix = "Let clients upload and download directly with signed URLs, or serve the files from a CDN."
+fix_es = "Deja que los clientes suban y descarguen directamente con URL firmadas, o sirve los ficheros desde una CDN."
+
+[[sources]]
+flavour = "s3"
+title = "Amazon S3 documentation"
+url = "https://docs.aws.amazon.com/s3/"
+
+[[sources]]
+flavour = "gcs"
+title = "Cloud Storage documentation"
+url = "https://cloud.google.com/storage/docs"

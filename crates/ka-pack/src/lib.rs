@@ -9,6 +9,7 @@
 //!   `samples::check_callouts` is their part of `validate --run`.
 //! - `build_content` turns validated content into rows, and `write_db` writes the file.
 
+pub mod guide;
 pub mod problems;
 pub mod run;
 pub mod samples;
@@ -18,6 +19,7 @@ use std::path::Path;
 
 use sha2::{Digest, Sha256};
 
+pub use guide::{GuideDir, load_guide, validate_guide};
 pub use problems::{ProblemDir, load_problems, validate_problems};
 pub use samples::{SampleDir, load_samples, validate_samples};
 
@@ -90,8 +92,10 @@ pub fn build_content(
 ) -> Result<ka_store::ContentData, Vec<Issue>> {
     let problems = load_problems(root, registry)?;
     let samples = load_samples(root, registry)?;
+    let guide = load_guide(root)?;
     let mut issues = validate_problems(&problems, registry);
     issues.extend(validate_samples(&samples, &problems, registry));
+    issues.extend(validate_guide(&guide, &problems, registry));
     if !issues.is_empty() {
         return Err(issues);
     }
@@ -114,6 +118,11 @@ pub fn build_content(
         ],
         problems: rows,
         samples: sample_rows,
+        guide: guide
+            .iter()
+            .map(guide::guide_row)
+            .collect::<Result<_, _>>()
+            .map_err(|m| vec![issue("guide", m)])?,
     })
 }
 

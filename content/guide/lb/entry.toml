@@ -1,0 +1,153 @@
+kind = "lb"
+one_liner = "Spreads incoming requests over several servers and steers around dead ones."
+one_liner_es = "Reparte las peticiones entrantes entre varios servidores y esquiva los caídos."
+
+use_when = [
+  "You run two or more app servers",
+  "A server must be able to die without users noticing",
+  "You want to add servers without changing the clients",
+  "Long-lived connections, such as WebSockets, must be spread out",
+]
+use_when_es = [
+  "Tienes dos o más servidores de aplicaciones",
+  "Un servidor tiene que poder caer sin que los usuarios lo noten",
+  "Quieres añadir servidores sin cambiar los clientes",
+  "Hay que repartir conexiones largas, como WebSockets",
+]
+skip_when = [
+  "There is only one server and no plan for a second",
+  "A managed service already balances for you, as with serverless",
+  "The work flows through a queue, and consumers pull from it",
+]
+skip_when_es = [
+  "Solo hay un servidor y no se piensa poner otro",
+  "Un servicio gestionado ya reparte por ti, como en serverless",
+  "El trabajo pasa por una cola, y los consumidores tiran de ella",
+]
+
+formula = "capacity = instances × connections per instance; each request goes to one healthy server, chosen by the algorithm"
+formula_es = "capacidad = instancias × conexiones por instancia; cada petición va a un servidor sano, elegido por el algoritmo"
+
+gains = [
+  "Many servers behind one address, so you scale by adding more",
+  "Dead servers are taken out of rotation",
+  "Cheap: it adds well under a millisecond per request",
+]
+gains_es = [
+  "Muchos servidores detrás de una dirección, así que escalas añadiendo más",
+  "Los servidores caídos salen de la rotación",
+  "Barato: añade mucho menos de un milisegundo por petición",
+]
+costs = [
+  "One more hop on every request",
+  "A short spell of errors before health checks notice a dead server",
+  "Needs its own redundancy, or it becomes the weak spot",
+]
+costs_es = [
+  "Un salto más en cada petición",
+  "Un rato de errores hasta que las comprobaciones de salud detectan un servidor caído",
+  "Necesita su propia redundancia, o se convierte en el punto débil",
+]
+
+works_with = ["app", "client", "cdn", "waf", "autoscale"]
+practice = ["chat", "url-shortener"]
+
+interview_tip = "Name the algorithm and why, say how health checks work, and say what happens to requests in flight when a server dies."
+interview_tip_es = "Nombra el algoritmo y por qué, explica cómo funcionan las comprobaciones de salud y di qué pasa con las peticiones en curso cuando cae un servidor."
+
+[[sim]]
+prop = "instances"
+note = "More instances, more connections proxied at once. A balancer is rarely the bottleneck."
+note_es = "Más instancias, más conexiones a la vez. Un balanceador rara vez es el cuello de botella."
+
+[[sim]]
+prop = "algorithm"
+note = "Round robin takes turns. Least connections picks the server with the fewest busy and queued requests. IP hash pins each request key to one server, so a hot key makes a hot server (the model hashes the key, as it has no client addresses)."
+note_es = "Round robin va por turnos. Menos conexiones elige el servidor con menos peticiones en curso y en cola. IP hash fija cada clave de petición a un servidor, así que una clave caliente crea un servidor caliente (el modelo usa la clave, porque no tiene direcciones de cliente)."
+
+[[sim]]
+prop = "service_ms"
+note = "Proxying time per request. NLB works at the connection level and does not read HTTP, so it is faster."
+note_es = "Tiempo de reenvío por petición. NLB trabaja a nivel de conexión y no lee HTTP, así que es más rápido."
+
+[[sim]]
+sim = "servers_per_instance"
+note = "Connections one instance proxies at once."
+note_es = "Conexiones que una instancia reenvía a la vez."
+
+[[sim]]
+cost = "per_instance_month"
+note = "Each instance has a monthly price."
+note_es = "Cada instancia tiene un precio mensual."
+
+[flavours_compared]
+flavours = ["nginx", "haproxy", "aws_alb", "aws_nlb"]
+
+[[flavours_compared.rows]]
+label = "Layer"
+label_es = "Capa"
+cells = ["HTTP (layer seven), also TCP", "HTTP (layer seven) and TCP (layer four)", "HTTP and HTTPS (layer seven)", "TCP, UDP and TLS (layer four)"]
+cells_es = ["HTTP (capa siete), también TCP", "HTTP (capa siete) y TCP (capa cuatro)", "HTTP y HTTPS (capa siete)", "TCP, UDP y TLS (capa cuatro)"]
+
+[[flavours_compared.rows]]
+label = "Run by"
+label_es = "Lo opera"
+cells = ["You", "You", "AWS", "AWS"]
+cells_es = ["Tú", "Tú", "AWS", "AWS"]
+
+[[flavours_compared.rows]]
+label = "Also does"
+label_es = "Además"
+cells = ["Web server, static files, caching", "Detailed health checks and statistics", "Routing by path and host name", "Static IP addresses; keeps the client's IP"]
+cells_es = ["Servidor web, ficheros estáticos, caché", "Comprobaciones de salud y estadísticas detalladas", "Enrutado por ruta y nombre de host", "Direcciones IP estáticas; conserva la IP del cliente"]
+
+[[flavours_compared.rows]]
+label = "Pick it for"
+label_es = "Elígelo para"
+cells = ["A general-purpose proxy you control", "Fast TCP and HTTP balancing you control", "HTTP services on AWS", "Raw TCP and very many long-lived connections"]
+cells_es = ["Un proxy de uso general que controlas tú", "Balanceo rápido de TCP y HTTP que controlas tú", "Servicios HTTP en AWS", "TCP sin más y muchísimas conexiones largas"]
+
+[[pitfalls]]
+title = "Errors before health checks notice"
+title_es = "Errores hasta que las comprobaciones de salud se enteran"
+body = "When a server dies, the balancer keeps sending to it until its health checks see the failure, and those requests fail."
+body_es = "Cuando cae un servidor, el balanceador le sigue mandando peticiones hasta que sus comprobaciones de salud ven el fallo, y esas peticiones fallan."
+fix = "Run at least two servers with room to spare, so the survivors can carry the load once the dead one is out."
+fix_es = "Ten al menos dos servidores con margen, para que los que quedan aguanten la carga cuando el caído salga."
+seen_in = "chat"
+
+[[pitfalls]]
+title = "A hot server with hashing"
+title_es = "Un servidor caliente con hash"
+body = "Hashing pins a popular key or user to one server, which can overload while the others sit idle."
+body_es = "El hash fija una clave o un usuario popular a un servidor, que puede saturarse mientras los demás están ociosos."
+fix = "Use round robin or least connections unless you need stickiness, and keep session state out of the servers."
+fix_es = "Usa round robin o menos conexiones salvo que necesites afinidad, y saca el estado de sesión de los servidores."
+
+[[pitfalls]]
+title = "One balancer, one weak spot"
+title_es = "Un balanceador, un punto débil"
+body = "A single balancer in front of many servers moves the single point of failure instead of removing it."
+body_es = "Un único balanceador delante de muchos servidores mueve el punto único de fallo en vez de quitarlo."
+fix = "Use a managed balancer that spans zones, or run a redundant pair."
+fix_es = "Usa un balanceador gestionado que abarque varias zonas, o una pareja redundante."
+
+[[sources]]
+flavour = "nginx"
+title = "NGINX documentation"
+url = "https://nginx.org/en/docs/"
+
+[[sources]]
+flavour = "haproxy"
+title = "HAProxy documentation"
+url = "https://docs.haproxy.org/"
+
+[[sources]]
+flavour = "aws_alb"
+title = "Application Load Balancer documentation"
+url = "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/"
+
+[[sources]]
+flavour = "aws_nlb"
+title = "Network Load Balancer documentation"
+url = "https://docs.aws.amazon.com/elasticloadbalancing/latest/network/"

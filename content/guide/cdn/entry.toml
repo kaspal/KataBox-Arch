@@ -1,0 +1,143 @@
+kind = "cdn"
+one_liner = "A network of edge caches that serves your files close to users."
+one_liner_es = "Una red de cachés en el borde que sirve tus ficheros cerca de los usuarios."
+
+use_when = [
+  "Many users fetch the same static files",
+  "Users are spread across countries",
+  "The origin must be shielded from read spikes",
+  "Video, images or scripts dominate the traffic",
+]
+use_when_es = [
+  "Muchos usuarios piden los mismos ficheros estáticos",
+  "Los usuarios están repartidos por varios países",
+  "Hay que proteger el origen de los picos de lectura",
+  "El vídeo, las imágenes o los scripts dominan el tráfico",
+]
+skip_when = [
+  "Every response is personal to the user",
+  "Content changes on every request",
+  "Users are few and all close to the origin",
+]
+skip_when_es = [
+  "Cada respuesta es personal para el usuario",
+  "El contenido cambia en cada petición",
+  "Los usuarios son pocos y están todos cerca del origen",
+]
+
+formula = "hit rate ≈ share of cacheable requests whose key was fetched within the TTL (key skew comes from the problem); capacity is unlimited, and other requests pass through to the origin"
+formula_es = "tasa de aciertos ≈ fracción de peticiones cacheables cuya clave se pidió dentro del TTL (el sesgo de claves lo pone el problema); la capacidad es ilimitada, y las demás peticiones pasan al origen"
+
+gains = [
+  "Hits answered in milliseconds, near the user",
+  "The origin sees only the misses",
+  "Absorbs huge read spikes",
+]
+gains_es = [
+  "Los aciertos responden en milisegundos, cerca del usuario",
+  "El origen solo ve los fallos",
+  "Absorbe picos de lectura enormes",
+]
+costs = [
+  "Priced per request, so the bill grows with the traffic",
+  "Old files are served until the TTL ends or you purge",
+  "A purge sends a burst of misses to the origin",
+]
+costs_es = [
+  "Se cobra por petición, así que la factura crece con el tráfico",
+  "Se sirven ficheros antiguos hasta que acaba el TTL o purgas",
+  "Una purga manda una ráfaga de fallos al origen",
+]
+
+works_with = ["client", "object", "lb", "dns", "waf"]
+practice = ["static-site-cdn", "video-streaming", "flash-sale"]
+
+interview_tip = "Say which responses are cacheable, for how long, and how a deploy replaces the old copies at the edge."
+interview_tip_es = "Di qué respuestas se pueden cachear, durante cuánto tiempo y cómo un despliegue sustituye las copias antiguas en el borde."
+
+[[sim]]
+prop = "ttl_s"
+note = "Copies expire after this long, and the next request goes to the origin. Zero keeps them until a purge."
+note_es = "Las copias caducan pasado este tiempo, y la siguiente petición va al origen. Cero las mantiene hasta una purga."
+
+[[sim]]
+sim = "service_ms"
+note = "The time an edge hit takes, close to the user. A hit never reaches the origin."
+note_es = "Lo que tarda un acierto en el borde, cerca del usuario. Un acierto nunca llega al origen."
+
+[[sim]]
+sim = "servers_per_instance"
+note = "Requests the edge serves at once. It is set high: an edge network is not the bottleneck for one design."
+note_es = "Peticiones que el borde atiende a la vez. Es alto: una red de borde no es el cuello de botella de un diseño."
+
+[[sim]]
+cost = "per_million"
+note = "CDNs are priced per request, not per server."
+note_es = "Las CDN se cobran por petición, no por servidor."
+
+[flavours_compared]
+flavours = ["cloudfront", "cloudflare_cdn", "fastly"]
+
+[[flavours_compared.rows]]
+label = "Part of"
+label_es = "Forma parte de"
+cells = ["Amazon Web Services", "Cloudflare's network, with its DNS and WAF", "Fastly's edge cloud"]
+cells_es = ["Amazon Web Services", "La red de Cloudflare, con su DNS y su WAF", "La nube de borde de Fastly"]
+
+[[flavours_compared.rows]]
+label = "Code at the edge"
+label_es = "Código en el borde"
+cells = ["CloudFront Functions and Lambda@Edge", "Workers", "Compute (WebAssembly)"]
+cells_es = ["CloudFront Functions y Lambda@Edge", "Workers", "Compute (WebAssembly)"]
+
+[[flavours_compared.rows]]
+label = "Removing old copies"
+label_es = "Retirar copias antiguas"
+cells = ["Invalidations by path", "Purge by URL or by cache tag", "Purge by URL or by surrogate key"]
+cells_es = ["Invalidaciones por ruta", "Purga por URL o por etiqueta de caché", "Purga por URL o por clave sustituta (surrogate key)"]
+
+[[flavours_compared.rows]]
+label = "Pick it for"
+label_es = "Elígelo para"
+cells = ["Origins in AWS, such as S3", "Sites already behind Cloudflare", "Fine control of caching rules"]
+cells_es = ["Orígenes en AWS, como S3", "Sitios que ya están detrás de Cloudflare", "Control fino de las reglas de caché"]
+
+[[pitfalls]]
+title = "A purge empties the edge"
+title_es = "Una purga vacía el borde"
+body = "After a deploy purges the CDN, requests miss until the edge refills, and the origin takes the full load meanwhile."
+body_es = "Después de que un despliegue purgue la CDN, las peticiones fallan hasta que el borde se rellena, y mientras tanto el origen carga con todo."
+fix = "Size the origin to survive the refill, purge only what changed, or version file names so old copies never need purging."
+fix_es = "Dimensiona el origen para aguantar el rellenado, purga solo lo que ha cambiado, o pon versión en los nombres de fichero para no tener que purgar."
+seen_in = "static-site-cdn"
+
+[[pitfalls]]
+title = "Some traffic goes around the CDN"
+title_es = "Parte del tráfico rodea la CDN"
+body = "If the client is also wired straight to the load balancer, part of the file requests skip the edge and land on the origin."
+body_es = "Si el cliente también está conectado directamente al balanceador, parte de las peticiones de ficheros se saltan el borde y llegan al origen."
+fix = "Wire the client to the CDN alone, and let the CDN forward what it cannot cache."
+fix_es = "Conecta el cliente solo a la CDN, y deja que la CDN reenvíe lo que no puede cachear."
+
+[[pitfalls]]
+title = "Caching personal responses"
+title_es = "Cachear respuestas personales"
+body = "A page that depends on the user's account, cached under a shared key, can be shown to someone else."
+body_es = "Una página que depende de la cuenta del usuario, cacheada con una clave compartida, puede acabar mostrándose a otra persona."
+fix = "Cache only public responses, and mark personal ones as private or not cacheable."
+fix_es = "Cachea solo las respuestas públicas, y marca las personales como privadas o no cacheables."
+
+[[sources]]
+flavour = "cloudfront"
+title = "Amazon CloudFront documentation"
+url = "https://docs.aws.amazon.com/cloudfront/"
+
+[[sources]]
+flavour = "cloudflare_cdn"
+title = "Cloudflare Cache documentation"
+url = "https://developers.cloudflare.com/cache/"
+
+[[sources]]
+flavour = "fastly"
+title = "Fastly documentation"
+url = "https://docs.fastly.com/"

@@ -1,0 +1,160 @@
+kind = "nosql"
+one_liner = "A store that spreads data over many machines by key, built for scale."
+one_liner_es = "Un almacén que reparte los datos entre muchas máquinas por clave, pensado para escalar."
+
+use_when = [
+  "Writes are heavy and need to spread over many machines",
+  "Almost every access is by a known key",
+  "The data set or traffic will outgrow a single database server",
+  "Records are independent and rarely need joins",
+]
+use_when_es = [
+  "Las escrituras son muchas y hay que repartirlas entre muchas máquinas",
+  "Casi todos los accesos son por una clave conocida",
+  "Los datos o el tráfico van a superar lo que aguanta un solo servidor de base de datos",
+  "Los registros son independientes y casi nunca necesitan joins",
+]
+skip_when = [
+  "You need joins or transactions across many records",
+  "Queries are ad hoc and not known in advance",
+  "One relational database already handles the load comfortably",
+  "A few keys get most of the traffic and nothing spreads them",
+]
+skip_when_es = [
+  "Necesitas joins o transacciones entre muchos registros",
+  "Las consultas son improvisadas y no se conocen de antemano",
+  "Una base de datos relacional ya aguanta la carga con holgura",
+  "Unas pocas claves se llevan casi todo el tráfico y nada las reparte",
+]
+
+formula = "capacity ≈ partitions × requests per partition ÷ service time; each key always lands on the same partition, so the hottest key sets the real limit"
+formula_es = "capacidad ≈ particiones × peticiones por partición ÷ tiempo de servicio; cada clave cae siempre en la misma partición, así que la clave más caliente marca el límite real"
+
+gains = [
+  "Write capacity grows by adding partitions",
+  "Fast, predictable reads and writes by key",
+  "Replicas across machines survive node failures",
+]
+gains_es = [
+  "La capacidad de escritura crece añadiendo particiones",
+  "Lecturas y escrituras por clave rápidas y previsibles",
+  "Las réplicas en varias máquinas sobreviven a la caída de nodos",
+]
+costs = [
+  "You design the tables around the queries, up front",
+  "Joins and multi-record transactions are limited or missing",
+  "Hot keys overload one partition while the others idle",
+]
+costs_es = [
+  "Diseñas las tablas en función de las consultas, desde el principio",
+  "Los joins y las transacciones de varios registros son limitados o no existen",
+  "Las claves calientes sobrecargan una partición mientras las demás están ociosas",
+]
+
+works_with = ["app", "cache", "worker", "stream", "micro"]
+practice = ["ride-sharing", "web-crawler"]
+
+interview_tip = "Name the partition key and show that it spreads the load evenly, including on the worst day."
+interview_tip_es = "Nombra la clave de partición y demuestra que reparte la carga de forma uniforme, también en el peor día."
+
+[[sim]]
+prop = "partitions"
+note = "Independent slices of the key space. Each adds capacity, but one key always lands on the same slice."
+note_es = "Trozos independientes del espacio de claves. Cada uno añade capacidad, pero una clave cae siempre en el mismo trozo."
+
+[[sim]]
+sim = "servers_per_instance"
+note = "Requests one partition works on at once. The managed service allows fewer per partition than a self-run cluster."
+note_es = "Peticiones que una partición atiende a la vez. El servicio gestionado permite menos por partición que un clúster propio."
+
+[[sim]]
+prop = "service_ms"
+note = "The median time of a single-item read or write. Bigger items take longer in proportion."
+note_es = "La mediana de una lectura o escritura de un solo elemento. Los elementos más grandes tardan más en proporción."
+
+[[sim]]
+sim = "failover_s"
+note = "With replicas wired by Replicate, how long until one takes over from a dead primary."
+note_es = "Con réplicas unidas por Replicate, cuánto tarda una en sustituir a una principal caída."
+
+[[sim]]
+cost = "per_instance_month"
+note = "A fixed monthly price per card, whatever the partition count."
+note_es = "Un precio mensual fijo por tarjeta, sea cual sea el número de particiones."
+
+[[sim]]
+cost = "per_million"
+note = "Plus a price per request. At high traffic this is usually most of the bill."
+note_es = "Más un precio por petición. Con mucho tráfico suele ser la mayor parte de la factura."
+
+[flavours_compared]
+flavours = ["dynamodb", "cassandra", "mongodb"]
+
+[[flavours_compared.rows]]
+label = "Data model"
+label_es = "Modelo de datos"
+cells = ["Key-value and document items", "Wide-column rows grouped by partition key", "JSON-like documents"]
+cells_es = ["Elementos clave-valor y documento", "Filas de columnas anchas agrupadas por clave de partición", "Documentos tipo JSON"]
+
+[[flavours_compared.rows]]
+label = "Run by"
+label_es = "Lo opera"
+cells = ["AWS, fully managed", "You, or a managed provider", "You, or MongoDB Atlas"]
+cells_es = ["AWS, totalmente gestionado", "Tú, o un proveedor gestionado", "Tú, o MongoDB Atlas"]
+
+[[flavours_compared.rows]]
+label = "Writes go to"
+label_es = "Las escrituras van a"
+cells = ["The partition that owns the key", "Any node, which forwards to the replicas (no leader)", "The primary of a replica set"]
+cells_es = ["La partición dueña de la clave", "Cualquier nodo, que reenvía a las réplicas (sin líder)", "La principal de un replica set"]
+
+[[flavours_compared.rows]]
+label = "Consistency"
+label_es = "Consistencia"
+cells = ["Eventual reads by default, strong on request", "Tunable per query", "Reads from the primary by default"]
+cells_es = ["Lecturas eventuales por defecto, fuertes si se piden", "Ajustable por consulta", "Lee de la principal por defecto"]
+
+[[flavours_compared.rows]]
+label = "Queries"
+label_es = "Consultas"
+cells = ["By key and sort key, plus secondary indexes", "CQL, shaped around the partition key", "Rich query language and secondary indexes"]
+cells_es = ["Por clave y clave de ordenación, más índices secundarios", "CQL, pensado en torno a la clave de partición", "Lenguaje de consulta rico e índices secundarios"]
+
+[[pitfalls]]
+title = "A hot partition"
+title_es = "Una partición caliente"
+body = "A few keys get most of the traffic. They all land on one partition, which saturates while the rest sit idle, and adding partitions doesn't split a single key."
+body_es = "Unas pocas claves se llevan casi todo el tráfico. Todas caen en una partición, que se satura mientras las demás están ociosas, y añadir particiones no divide una sola clave."
+fix = "Pick a key with many evenly used values, add a suffix to spread very hot keys, or cache the hot reads."
+fix_es = "Elige una clave con muchos valores usados por igual, añade un sufijo para repartir las claves muy calientes, o cachea las lecturas calientes."
+
+[[pitfalls]]
+title = "Modelling it like SQL"
+title_es = "Modelarlo como si fuera SQL"
+body = "Tables are normalised as in a relational schema, so one page needs several round trips that the store can't join for you."
+body_es = "Las tablas se normalizan como en un esquema relacional, así que una página necesita varias idas y vueltas que el almacén no puede unir por ti."
+fix = "List the queries first and shape each table so that one query reads one partition."
+fix_es = "Enumera primero las consultas y da forma a cada tabla para que una consulta lea una sola partición."
+
+[[pitfalls]]
+title = "Assuming every read is fresh"
+title_es = "Suponer que toda lectura está al día"
+body = "With eventual consistency, a read right after a write can return the old value from a replica that hasn't caught up."
+body_es = "Con consistencia eventual, una lectura justo después de una escritura puede devolver el valor antiguo desde una réplica que aún no se ha puesto al día."
+fix = "Ask for strong reads where it matters, or design the flow so a short delay is harmless."
+fix_es = "Pide lecturas fuertes donde importe, o diseña el flujo para que un breve retraso no haga daño."
+
+[[sources]]
+flavour = "dynamodb"
+title = "Amazon DynamoDB documentation"
+url = "https://docs.aws.amazon.com/dynamodb/"
+
+[[sources]]
+flavour = "cassandra"
+title = "Apache Cassandra documentation"
+url = "https://cassandra.apache.org/doc/latest/"
+
+[[sources]]
+flavour = "mongodb"
+title = "MongoDB documentation"
+url = "https://www.mongodb.com/docs/"

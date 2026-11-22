@@ -1,0 +1,149 @@
+kind = "app"
+one_liner = "The servers that run your application code and call everything behind them."
+one_liner_es = "Los servidores que ejecutan el código de tu aplicación y llaman a todo lo que tienen detrás."
+
+use_when = [
+  "Requests need logic: checks, joins, decisions",
+  "Each request must call a database, a cache or other services",
+  "You can spread the load by adding identical instances",
+]
+use_when_es = [
+  "Las peticiones necesitan lógica: comprobaciones, cruces, decisiones",
+  "Cada petición tiene que llamar a una base de datos, una caché u otros servicios",
+  "Puedes repartir la carga añadiendo instancias idénticas",
+]
+skip_when = [
+  "Requests are for static files (serve them from a CDN or object storage)",
+  "The work takes seconds and the user need not wait (hand it to a queue and workers)",
+  "Traffic is rare and bursty, so Serverless may cost less",
+]
+skip_when_es = [
+  "Las peticiones piden ficheros estáticos (sírvelos desde una CDN o un almacenamiento de objetos)",
+  "El trabajo tarda segundos y el usuario no tiene por qué esperar (pásalo a una cola y a workers)",
+  "El tráfico es escaso y a ráfagas, así que Serverless puede salir más barato",
+]
+
+formula = "capacity = instances × concurrency; a request holds its slot until all its downstream calls answer, so throughput ≈ slots ÷ total time per request"
+formula_es = "capacidad = instancias × concurrencia; una petición ocupa su hueco hasta que responden todas sus llamadas, así que el rendimiento ≈ huecos ÷ tiempo total por petición"
+
+gains = [
+  "Scales out by adding identical, stateless instances",
+  "Full control of the logic and of every call it makes",
+]
+gains_es = [
+  "Escala añadiendo instancias idénticas y sin estado",
+  "Control total de la lógica y de cada llamada que hace",
+]
+costs = [
+  "Priced per instance, busy or idle",
+  "A slow database or service ties up its threads",
+  "Needs a load balancer and spare instances to survive failures",
+]
+costs_es = [
+  "Se cobra por instancia, esté ocupada u ociosa",
+  "Una base de datos o un servicio lento le ocupa los hilos",
+  "Necesita un balanceador e instancias de sobra para sobrevivir a fallos",
+]
+
+works_with = ["lb", "cache", "sql", "queue", "autoscale"]
+practice = ["chat", "static-site-cdn", "online-judge"]
+
+interview_tip = "Keep the app tier stateless, then size it: requests per second times seconds per request, divided by concurrency, plus room for a failure."
+interview_tip_es = "Mantén la capa de aplicación sin estado y luego dimensiónala: peticiones por segundo por segundos por petición, dividido entre la concurrencia, más margen para un fallo."
+
+[[sim]]
+prop = "instances"
+note = "Identical copies of the server. Capacity and cost grow with them."
+note_es = "Copias idénticas del servidor. La capacidad y el coste crecen con ellas."
+
+[[sim]]
+prop = "concurrency"
+note = "Requests one instance works on at once, threads and CPU together. Django is set lower: a few worker processes per machine."
+note_es = "Peticiones que una instancia atiende a la vez, hilos y CPU juntos. Django va más bajo: unos pocos procesos por máquina."
+
+[[sim]]
+prop = "service_ms"
+note = "The app's own work per request, before any downstream call. Go is lighter, Django heavier."
+note_es = "El trabajo propio de la aplicación por petición, sin contar las llamadas. Go es más ligero y Django más pesado."
+
+[[sim]]
+sim = "p99_ratio"
+note = "How spread out service times are: the slow tail compared with the median."
+note_es = "Lo dispersos que son los tiempos de servicio: la cola lenta comparada con la mediana."
+
+[[sim]]
+sim = "queue_per_server"
+note = "Waiting room per slot. When it is full, new requests are dropped."
+note_es = "Sala de espera por hueco. Cuando se llena, las peticiones nuevas se descartan."
+
+[[sim]]
+cost = "per_instance_month"
+note = "Each instance has a monthly price, busy or idle."
+note_es = "Cada instancia tiene un precio mensual, esté ocupada u ociosa."
+
+[flavours_compared]
+flavours = ["nodejs", "spring_boot", "go", "django"]
+
+[[flavours_compared.rows]]
+label = "Language"
+label_es = "Lenguaje"
+cells = ["JavaScript or TypeScript", "Java or Kotlin", "Go", "Python"]
+cells_es = ["JavaScript o TypeScript", "Java o Kotlin", "Go", "Python"]
+
+[[flavours_compared.rows]]
+label = "Concurrency model"
+label_es = "Modelo de concurrencia"
+cells = ["One event loop with non-blocking I/O", "A thread per request by default", "Lightweight goroutines across all cores", "Several worker processes, synchronous by default"]
+cells_es = ["Un bucle de eventos con E/S no bloqueante", "Un hilo por petición por defecto", "Goroutines ligeras en todos los núcleos", "Varios procesos, síncronos por defecto"]
+
+[[flavours_compared.rows]]
+label = "Pick it for"
+label_es = "Elígelo para"
+cells = ["Many I/O-bound connections, one language with the front end", "Large teams and a mature enterprise ecosystem", "Low overhead and a single binary to deploy", "Fast development with batteries included"]
+cells_es = ["Muchas conexiones que esperan E/S, un mismo lenguaje con el front end", "Equipos grandes y un ecosistema empresarial maduro", "Poca sobrecarga y un único binario que desplegar", "Desarrollo rápido con todo incluido"]
+
+[[pitfalls]]
+title = "A slow dependency eats every thread"
+title_es = "Una dependencia lenta se come todos los hilos"
+body = "Each request keeps its slot while it waits on a database or another service. When that call slows down, slots run out, requests queue, and then they fail."
+body_es = "Cada petición conserva su hueco mientras espera a una base de datos u otro servicio. Cuando esa llamada se vuelve lenta, se acaban los huecos, las peticiones se encolan y después fallan."
+fix = "Put a cache or a CDN in front of slow reads, move slow work to a queue, and keep spare concurrency."
+fix_es = "Pon una caché o una CDN delante de las lecturas lentas, lleva el trabajo lento a una cola y deja concurrencia de sobra."
+seen_in = "static-site-cdn"
+
+[[pitfalls]]
+title = "Only one app card"
+title_es = "Una sola tarjeta de aplicación"
+body = "Instances on one card fail together. When that card dies there is nowhere to send requests, and almost all of them fail."
+body_es = "Las instancias de una misma tarjeta caen juntas. Cuando esa tarjeta muere no hay adónde mandar las peticiones, y fallan casi todas."
+fix = "Run at least two app cards behind a load balancer, each with room to carry the other's load."
+fix_es = "Ten al menos dos tarjetas de aplicación detrás de un balanceador, cada una con margen para cargar con el trabajo de la otra."
+seen_in = "chat"
+
+[[pitfalls]]
+title = "State kept in memory"
+title_es = "Estado guardado en memoria"
+body = "Sessions or carts held in one instance's memory are lost when it dies, and they tie each user to that instance."
+body_es = "Las sesiones o carritos guardados en la memoria de una instancia se pierden cuando cae, y atan a cada usuario a esa instancia."
+fix = "Keep state in a cache or a database, so any instance can serve any request."
+fix_es = "Guarda el estado en una caché o una base de datos, para que cualquier instancia pueda servir cualquier petición."
+
+[[sources]]
+flavour = "nodejs"
+title = "Node.js documentation"
+url = "https://nodejs.org/docs/latest/api/"
+
+[[sources]]
+flavour = "spring_boot"
+title = "Spring Boot documentation"
+url = "https://docs.spring.io/spring-boot/"
+
+[[sources]]
+flavour = "go"
+title = "Go documentation"
+url = "https://go.dev/doc/"
+
+[[sources]]
+flavour = "django"
+title = "Django documentation"
+url = "https://docs.djangoproject.com/"
