@@ -32,6 +32,8 @@ A request type has:
   - `?` makes a step optional, and `cache?` is cache-aside;
   - `:write` goes to a cluster's primary;
   - `a|b` accepts either;
+  - `broker?` followed by its consumer: an optional hand-off. A caller with no broker edge makes the following calls
+    itself (inline, so the answer waits for them); use it when the lesson is `queue it or do it now`;
   - `cdc` (right after a `datastore:write` to SQL or NoSQL): the database publishes the committed change to the
     stream on its CDC edge, and the consumer after it becomes the caller. The request's latency ends at the commit,
     so measure the CDC chain with `measure = "completion"` (for example "the search index is fresh within 30 s").

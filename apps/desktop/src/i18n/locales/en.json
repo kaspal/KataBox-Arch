@@ -670,6 +670,15 @@
     "search": "Search the glossary",
     "see": "See {{name}}."
   },
+  "flaws": {
+    "title": "Find the flaw",
+    "intro": "Each design looks fine and passes a normal day, but has one flaw a test exposes. Run it, find the flaw, fix it, and submit until every test passes. Once fixed, the explanation and the reference fix appear in the brief.",
+    "progress": "{{solved}} of {{total}} fixed",
+    "fixed": "Fixed",
+    "open": "To fix",
+    "drill": "Find the flaw",
+    "task": "Find the flaw and fix it so every test passes."
+  },
   "estimate": {
     "title": "Estimation drills",
     "intro": "Back-of-the-envelope practice: work out the number, type it, and check. Anything within the drill's band counts; the worked solution shows one way there. Rough figures are on the",

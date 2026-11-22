@@ -1,0 +1,45 @@
+id = "sync-email"
+number = 5
+title = "The customer waits for the email"
+title_es = "El cliente espera al correo"
+story = "At checkout the API saves the order, then sends the confirmation email itself before answering."
+story_es = "Al pagar, la API guarda el pedido y luego envía ella misma el correo de confirmación antes de responder."
+symptom = "When the email provider got slow, checkout itself started failing, although the orders database was fine."
+symptom_es = "Cuando el proveedor de correo se volvió lento, el propio pago empezó a fallar, aunque la base de datos de pedidos iba bien."
+target_test = "slow-email"
+explanation = "The API held a thread for every email it was sending, so a slow provider used up every thread and new checkouts had to wait or fail. The email doesn't need to finish before the customer gets an answer: publish it to a queue and let a worker send it."
+explanation_es = "La API ocupaba un hilo por cada correo que enviaba, así que un proveedor lento agotó todos los hilos y los pagos nuevos tuvieron que esperar o fallaron. El correo no tiene que terminar antes de que el cliente reciba respuesta: publícalo en una cola y deja que un worker lo envíe."
+kinds = ["queue", "worker"]
+
+[[scenario.tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[scenario.nfr]
+peak_rps = 300
+p95_ms = 1000
+availability = 0.999
+budget_usd = 2000
+
+[[scenario.externals]]
+name = "email"
+median_ms = 200
+p99_ms = 800
+
+[[scenario.request_types]]
+id = "order"
+name = "Place an order"
+name_es = "Hacer un pedido"
+share = 1.0
+route = ["compute", "datastore:write", "broker?", "worker", "external:email"]
+
+[[scenario.tests]]
+id = "slow-email"
+name = "The email provider slows by 3 s"
+name_es = "El proveedor de correo va 3 s más lento"
+chaos = [{ external = { name = "email", at = 15, for = 30, add_ms = 3000 } }]
+
+[scenario.pass]
+p95_ms = 1000
+error_rate = 0.001

@@ -10,6 +10,7 @@
 //! - `build_content` turns validated content into rows, and `write_db` writes the file.
 
 pub mod decide;
+pub mod flaws;
 pub mod guide;
 pub mod migrate;
 pub mod patterns;
@@ -167,7 +168,8 @@ pub fn build_content(
             .map(guide::guide_row)
             .collect::<Result<_, _>>()
             .map_err(|m| vec![issue("guide", m)])?,
-        docs: practice::practice_docs(&practice).map_err(|m| vec![issue("practice", m)])?,
+        docs: practice::practice_docs(&practice, registry)
+            .map_err(|m| vec![issue("practice", m)])?,
     })
 }
 

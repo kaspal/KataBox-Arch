@@ -1,0 +1,86 @@
+{
+  "schema_version": 3,
+  "id": "flaw-missing-dlq-broken",
+  "name": "Receipts",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Shop",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Orders API",
+      "position": {
+        "x": 0,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "queue",
+      "kind": "queue",
+      "flavour": "sqs",
+      "label": "Receipts",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "senders",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Senders",
+      "position": {
+        "x": 0,
+        "y": 510
+      },
+      "props": {
+        "instances": 30,
+        "service_ms": 5
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "api",
+      "to": "queue",
+      "protocol": "publish"
+    },
+    {
+      "id": "e2",
+      "from": "queue",
+      "to": "senders",
+      "protocol": "consume"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

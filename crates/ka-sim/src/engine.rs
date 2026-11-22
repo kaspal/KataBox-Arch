@@ -1256,10 +1256,28 @@ impl Engine {
     // --- Segment ends, brokers --------------------------------------------------------
 
     fn segment_end(&mut self, r: u32) {
-        self.release_caller(r);
         let q = &self.reqs[r as usize];
         let (ty, seg, caller) = (q.ty as usize, q.seg as usize, q.caller);
         let nseg = self.c.types[ty].route.segments.len();
+        // An optional hand-off with no broker wired: the caller goes on with the next
+        // segment's calls itself, still holding its slot (the answer waits for them).
+        if !q.hit_end
+            && seg + 1 < nseg
+            && caller != NONE
+            && self.c.types[ty].route.segments[seg + 1]
+                .broker
+                .as_ref()
+                .is_some_and(|b| b.optional)
+            && self.c.types[ty].plan.brokers[seg + 1][caller as usize].is_empty()
+        {
+            let q = &mut self.reqs[r as usize];
+            q.seg += 1;
+            q.step = 0;
+            self.run_calls(r);
+            return;
+        }
+        self.release_caller(r);
+        let q = &self.reqs[r as usize];
         if q.hit_end || seg + 1 >= nseg {
             if !self.reqs[r as usize].resp_sent {
                 self.succeed_sync(r);

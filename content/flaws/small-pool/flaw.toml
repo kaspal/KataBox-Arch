@@ -1,0 +1,40 @@
+id = "small-pool"
+number = 8
+title = "Threads waiting on a slow database"
+title_es = "Hilos esperando a una base de datos lenta"
+story = "A reports API runs each request as one database query of about 20 ms. Each app server was set to 16 threads to save memory."
+story_es = "Una API de informes resuelve cada petición con una consulta de unos 20 ms a la base de datos. Cada servidor se configuró con 16 hilos para ahorrar memoria."
+symptom = "In the busy hour, requests time out at the API while the database has plenty of spare capacity."
+symptom_es = "En la hora punta, las peticiones agotan su tiempo en la API mientras la base de datos tiene capacidad de sobra."
+target_test = "busy-hour"
+explanation = "An app thread stays busy for as long as its query runs. With 32 threads and 25 ms per request, the API tops out near 1,300 requests a second, whatever the database can do. More threads (or more instances) let more queries wait at once; the database was never the limit."
+explanation_es = "Un hilo de la aplicación sigue ocupado mientras dura su consulta. Con 32 hilos y 25 ms por petición, la API no pasa de unas 1300 peticiones por segundo, pueda lo que pueda la base de datos. Más hilos (o más instancias) permiten que esperen más consultas a la vez; la base de datos nunca fue el límite."
+kinds = ["app", "sql"]
+
+[[scenario.tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[scenario.nfr]
+peak_rps = 600
+p95_ms = 100
+availability = 0.999
+budget_usd = 1500
+
+[[scenario.request_types]]
+id = "report"
+name = "Run a report"
+name_es = "Ejecutar un informe"
+share = 1.0
+route = ["compute", "datastore"]
+
+[[scenario.tests]]
+id = "busy-hour"
+name = "The busy hour (×3 for 30 s)"
+name_es = "La hora punta (×3 durante 30 s)"
+traffic = { spike = { at = 15, x = 3, for = 30 } }
+
+[scenario.pass]
+p95_ms = 100
+error_rate = 0.001

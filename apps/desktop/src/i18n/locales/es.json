@@ -670,6 +670,15 @@
     "search": "Buscar en el glosario",
     "see": "Ver {{name}}."
   },
+  "flaws": {
+    "title": "Encuentra el fallo",
+    "intro": "Cada diseño parece correcto y aguanta un día normal, pero tiene un fallo que una prueba deja al descubierto. Ejecútalo, encuentra el fallo, corrígelo y envíalo hasta que pase todas las pruebas. Una vez corregido, la explicación y la solución de referencia aparecen en el resumen.",
+    "progress": "{{solved}} de {{total}} corregidos",
+    "fixed": "Corregido",
+    "open": "Por corregir",
+    "drill": "Encuentra el fallo",
+    "task": "Encuentra el fallo y corrígelo para que pase todas las pruebas."
+  },
   "estimate": {
     "title": "Ejercicios de estimación",
     "intro": "Práctica de cálculos rápidos: calcula la cifra, escríbela y comprueba. Vale todo lo que caiga dentro de la banda del ejercicio; la solución explicada muestra un camino. Las cifras aproximadas están en la",

@@ -20,6 +20,8 @@ pub struct Practice {
     pub numbers: Vec<NumberFigure>,
     /// Estimation drills by problem (`estimation/<problem-id>.toml`), in problem-id order.
     pub estimation: Vec<(String, Vec<DrillDef>)>,
+    /// Find-the-flaw drills (`flaws/<id>/`), in folder order.
+    pub flaws: Vec<crate::flaws::FlawDir>,
 }
 
 fn kebab(id: &str) -> bool {
@@ -216,25 +218,53 @@ pub fn validate_estimation(
     issues
 }
 
-pub fn load_practice(root: &Path, _registry: &Registry) -> Result<Practice, Vec<Issue>> {
+pub fn load_practice(root: &Path, registry: &Registry) -> Result<Practice, Vec<Issue>> {
     Ok(Practice {
         numbers: load_numbers(root)?,
         estimation: load_estimation(root)?,
+        flaws: crate::flaws::load_flaws(root, registry)?,
     })
 }
 
-pub fn validate_practice(
-    p: &Practice,
-    problems: &[ProblemDir],
-    _registry: &Registry,
-) -> Vec<Issue> {
+pub fn validate_practice(p: &Practice, problems: &[ProblemDir], registry: &Registry) -> Vec<Issue> {
     let mut issues = validate_numbers(&p.numbers);
     issues.extend(validate_estimation(&p.estimation, problems));
+    issues.extend(crate::flaws::validate_flaws(&p.flaws, registry));
+    issues
+}
+
+/// `validate --run` for practice content: every flaw drill shows its flaw and its fix works.
+/// Warnings are printed; issues fail.
+pub fn run_practice(p: &Practice, registry: &Registry, verbose: bool) -> Vec<Issue> {
+    let mut issues = Vec::new();
+    for f in &p.flaws {
+        let (found, warnings, details) = crate::flaws::check_flaw(f, registry);
+        for w in warnings {
+            println!("warning: {w}");
+        }
+        if verbose || !found.is_empty() {
+            println!(
+                "{}: {}",
+                f.def.id,
+                if found.is_empty() {
+                    "flaw shown, fix accepted"
+                } else {
+                    "FAILED"
+                }
+            );
+            if verbose {
+                for d in details {
+                    println!("{d}");
+                }
+            }
+        }
+        issues.extend(found);
+    }
     issues
 }
 
 /// The `docs` rows for `content.db`.
-pub fn practice_docs(p: &Practice) -> Result<Vec<DocRow>, String> {
+pub fn practice_docs(p: &Practice, registry: &Registry) -> Result<Vec<DocRow>, String> {
     let mut rows = Vec::new();
     if !p.numbers.is_empty() {
         rows.push(DocRow {
@@ -259,6 +289,14 @@ pub fn practice_docs(p: &Practice) -> Result<Vec<DocRow>, String> {
             json: serde_json::to_string(&set).map_err(|e| e.to_string())?,
         });
     }
+    for f in &p.flaws {
+        let doc = crate::flaws::flaw_doc(f, registry)?;
+        rows.push(DocRow {
+            kind: "flaw".into(),
+            id: f.def.id.clone(),
+            json: serde_json::to_string(&doc).map_err(|e| e.to_string())?,
+        });
+    }
     Ok(rows)
 }
 
@@ -266,9 +304,10 @@ pub fn practice_docs(p: &Practice) -> Result<Vec<DocRow>, String> {
 pub fn summary(p: &Practice) -> String {
     let drills: usize = p.estimation.iter().map(|(_, d)| d.len()).sum();
     format!(
-        "{} number(s), {drills} estimation drill(s) for {} problem(s) valid",
+        "{} number(s), {drills} estimation drill(s) for {} problem(s), {} flaw drill(s) valid",
         p.numbers.len(),
-        p.estimation.len()
+        p.estimation.len(),
+        p.flaws.len()
     )
 }
 

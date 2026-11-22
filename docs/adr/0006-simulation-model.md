@@ -209,6 +209,10 @@ new.
   whole zone is lost.
 - **p99 limits.** `pass.p99_ms` is judged only on runs with at least 1,000 simulated completions (`ka-pack` refuses a
   problem whose reference falls short), and the sampled-vs-full accuracy check includes p99 where a problem uses it.
+- **Optional hand-offs (M5.3).** A `broker?` step (with its consumer) may be skipped: a caller wired to such a
+  broker publishes as usual; a caller with no broker edge makes the next segment's calls itself, still holding its
+  slot, so the answer waits for them. One route then fits both the queued design and the inline one (Find the flaw's
+  `sync-email`, Set 2's Checkout).
 - **Still simplifications:** DNS TTL, WAF and gateway blocking, the serverless cold-start rule, sagas and circuit
   breakers.
 

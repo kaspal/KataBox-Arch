@@ -140,6 +140,11 @@ pub fn judge_design(
 
 impl App {
     pub(crate) async fn problem_row(&self, id: &str) -> Result<ka_store::ProblemRow> {
+        // A Find-the-flaw drill is judged, run, drafted and recorded as the problem
+        // `flaw--<id>` (M5.3).
+        if let Some(flaw) = id.strip_prefix("flaw--") {
+            return self.flaw_row(flaw).await;
+        }
         self.content()?
             .problem(id)
             .await
@@ -401,7 +406,7 @@ impl App {
         let statuses = self.user.problem_statuses().await.map_err(store)?;
         p.continue_with = statuses
             .iter()
-            .filter(|s| s.status == "attempted")
+            .filter(|s| s.status == "attempted" && !s.problem_id.starts_with("flaw--"))
             .max_by_key(|s| s.updated_at)
             .map(|s| s.problem_id.clone());
         Ok(p)

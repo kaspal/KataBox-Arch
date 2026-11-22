@@ -194,6 +194,13 @@ fn main() -> ExitCode {
                 if !issues.is_empty() {
                     return Err(report(&issues));
                 }
+                if args.run {
+                    let issues =
+                        ka_pack::practice::run_practice(&practice, &registry, args.verbose);
+                    if !issues.is_empty() {
+                        return Err(report(&issues));
+                    }
+                }
                 Ok(ka_pack::practice::summary(&practice))
             };
             if kind == Some("practice") {

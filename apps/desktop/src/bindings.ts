@@ -301,6 +301,17 @@ async estimateStatuses() : Promise<Result<EstimateStatus[], AppError>> {
 }
 },
 /**
+ * The Find-the-flaw drills (each opens as the problem `flaw--<id>`).
+ */
+async listFlaws() : Promise<Result<FlawSummary[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_flaws") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * The pattern library, in order (each with its template for the preview).
  */
 async listPatterns() : Promise<Result<PatternSummary[], AppError>> {
@@ -754,6 +765,10 @@ cost: Cost;
  */
 sim: SimDefaults | null }
 export type FlavoursCompared = { flavours: Flavour[]; rows: CompareRow[] }
+/**
+ * One row of the Find-the-flaw list.
+ */
+export type FlawSummary = { id: string; number: number; title: string; title_es: string; kinds: ComponentKind[]; solved: boolean }
 export type GlossaryTerm = { id: string; term: string; term_es: string; definition: string; definition_es: string; 
 /**
  * A Guide entry that explains it further.

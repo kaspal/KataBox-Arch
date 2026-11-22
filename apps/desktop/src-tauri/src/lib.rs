@@ -333,6 +333,13 @@ async fn estimate_statuses(state: State<'_, AppState>) -> Res<Vec<ka_store::Esti
     state.app()?.estimate_statuses().await
 }
 
+/// The Find-the-flaw drills (each opens as the problem `flaw--<id>`).
+#[tauri::command]
+#[specta::specta]
+async fn list_flaws(state: State<'_, AppState>) -> Res<Vec<ka_core::flaw::FlawSummary>> {
+    state.app()?.list_flaws().await
+}
+
 /// The pattern library, in order (each with its template for the preview).
 #[tauri::command]
 #[specta::specta]
@@ -512,6 +519,7 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         drills,
         check_estimate,
         estimate_statuses,
+        list_flaws,
         list_patterns,
         pattern,
         set_pattern_read,

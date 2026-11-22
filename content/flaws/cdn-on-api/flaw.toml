@@ -1,0 +1,35 @@
+id = "cdn-on-api"
+number = 7
+title = "A CDN for answers it can't keep"
+title_es = "Una CDN para respuestas que no puede guardar"
+story = "A quotes API answers trading screens with live prices from Redis. Someone put a CDN in front \"to make it faster\"."
+story_es = "Una API de cotizaciones responde a las pantallas de trading con precios en vivo desde Redis. Alguien puso una CDN delante «para que vaya más rápido»."
+symptom = "The monthly bill is far over budget, and the API isn't any faster."
+symptom_es = "La factura mensual se pasa de largo del presupuesto, y la API no va más rápida."
+target_test = "normal"
+explanation = "Live quotes change every moment, so none of these answers can be cached: the CDN forwards every request to the origin, adding a hop and charging for every request. A CDN pays for itself on content many people fetch unchanged; take it off a personalised or live API."
+explanation_es = "Las cotizaciones cambian a cada momento, así que ninguna de estas respuestas se puede cachear: la CDN reenvía cada petición al origen, suma un salto y cobra por cada petición. Una CDN se amortiza con contenido que mucha gente pide sin cambios; quítala de una API personalizada o en vivo."
+kinds = ["cdn"]
+
+[[scenario.tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[scenario.nfr]
+peak_rps = 20000
+p95_ms = 30
+availability = 0.999
+budget_usd = 3000
+
+[[scenario.request_types]]
+id = "quote"
+name = "Live quote"
+name_es = "Cotización en vivo"
+share = 1.0
+route = ["edge?", "compute", "cache"]
+key_space = 5000
+
+[scenario.pass]
+p95_ms = 30
+error_rate = 0.001

@@ -20,6 +20,7 @@ import {
   type Drill,
   type EstimateCheck,
   type EstimateStatus,
+  type FlawSummary,
   type PatternPage,
   type PatternSummary,
   type Sample,
@@ -129,6 +130,8 @@ export const api = {
   checkEstimate: (problemId: string, drillId: string, answer: number): Promise<EstimateCheck> =>
     call(commands.checkEstimate(problemId, drillId, answer)),
   estimateStatuses: (): Promise<EstimateStatus[]> => call(commands.estimateStatuses()),
+  /** The Find-the-flaw drills (each opens as the problem `flaw--<id>`). */
+  listFlaws: (): Promise<FlawSummary[]> => call(commands.listFlaws()),
   /** The pattern library, in order, each with its template. */
   listPatterns: (): Promise<PatternSummary[]> => call(commands.listPatterns()),
   pattern: (id: string): Promise<PatternPage> => call(commands.pattern(id)),

@@ -62,16 +62,18 @@ export function BriefPanel({ brief }: { brief: ProblemBrief }) {
   const pct = new Intl.NumberFormat(i18n.language, { style: "percent", maximumFractionDigits: 2 });
   const usd = new Intl.NumberFormat(i18n.language, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
   const hints = loc.es ? brief.hints_es : brief.hints_en;
+  // A Find-the-flaw drill (M5.3) runs as the problem `flaw--<id>`: no difficulty, no topic.
+  const drill = p.id.startsWith("flaw--");
 
   return (
     <div className="space-y-5" data-testid="brief">
       <div className="space-y-1">
         <div className="flex items-center gap-3">
           <span className="font-mono text-xs text-muted-foreground">#{p.number}</span>
-          <DifficultyBadge d={p.difficulty} />
+          {drill ? <span className="text-xs font-semibold text-terracotta-ink">{t("flaws.drill")}</span> : <DifficultyBadge d={p.difficulty} />}
           <StatusMark status={p.status} />
         </div>
-        <p className="text-xs text-muted-foreground">{t("brief.teaches", { what: loc.teaches(p) })}</p>
+        {drill ? <p className="text-xs text-muted-foreground">{t("flaws.task")}</p> : <p className="text-xs text-muted-foreground">{t("brief.teaches", { what: loc.teaches(p) })}</p>}
       </div>
       <Markdown>{loc.es ? brief.statement_es : brief.statement_en}</Markdown>
       <Section title={t("brief.targets")}>

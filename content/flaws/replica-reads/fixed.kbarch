@@ -1,0 +1,87 @@
+{
+  "schema_version": 3,
+  "id": "flaw-replica-reads-fixed",
+  "name": "Profiles",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Members",
+      "position": {
+        "x": 130,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Profile API",
+      "position": {
+        "x": 130,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Primary",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {
+        "read_from": "primary"
+      },
+      "group_id": null
+    },
+    {
+      "id": "db-replica",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Replica",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {
+        "replication_lag_ms": 500
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "app",
+      "to": "db",
+      "protocol": "query"
+    },
+    {
+      "id": "e2",
+      "from": "db",
+      "to": "db-replica",
+      "protocol": "replicate"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

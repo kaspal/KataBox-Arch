@@ -1,7 +1,7 @@
 // An in-memory backend with the same shape as `api`, for UI tests. The registry is the
 // fixture Rust exports (`src/test/fixtures/registry.json`), so tests see the real data.
 import { vi } from "vitest";
-import type { AppError, Design, JsonValue, OpenedDesign, ProblemBrief, RecentEntry, Registry, RunControl, SubmissionSummary, SubmitResult } from "@/bindings";
+import type { FlawSummary, AppError, Design, JsonValue, OpenedDesign, ProblemBrief, RecentEntry, Registry, RunControl, SubmissionSummary, SubmitResult } from "@/bindings";
 import { FAKE_BRIEF, FAKE_REFERENCE, fakeJudgement } from "@/test/fakeProblems";
 import { FAKE_SAMPLE, FAKE_SAMPLE_SUMMARY } from "@/test/fakeSamples";
 import { FAKE_DRILLS, FAKE_FLOW, FAKE_GUIDE, FAKE_NUMBERS, FAKE_PATTERN, FAKE_TEMPLATE, FAKE_TERMS } from "@/test/fakeGuide";
@@ -190,6 +190,10 @@ export function createFakeApi(opts: FakeOptions = {}) {
       estimates.set(key, { tries: s.tries + 1, done: s.done || ok });
       return { ok, closeness, answer, solution: "{daily} ÷ 86,400 = {answer}", solution_es: "{daily} ÷ 86 400 = {answer}", inputs: d.inputs } as const;
     }),
+    listFlaws: vi.fn(async (): Promise<FlawSummary[]> => [
+      { id: "cache-no-ttl", number: 1, title: "A cache that never forgets", title_es: "Una caché que nunca olvida", kinds: ["cache"], solved: false },
+      { id: "single-primary", number: 2, title: "One database, no plan B", title_es: "Una base de datos, sin plan B", kinds: ["sql"], solved: true },
+    ]),
     estimateStatuses: vi.fn(async () =>
       [...estimates].map(([key, s]) => {
         const [problem_id, drill_id] = key.split("/");

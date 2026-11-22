@@ -693,7 +693,11 @@ fn plan_type(
                     .filter(|b| !consumers[s + 1][*b as usize].is_empty())
                     .collect();
                 if found.is_empty() {
-                    continue;
+                    // An optional hand-off: with no broker wired, the caller makes the next
+                    // segment's calls itself (empty `brokers` marks it inline).
+                    if !(bstep.optional && calls[s + 1][caller as usize].is_some()) {
+                        continue;
+                    }
                 }
                 brokers[s + 1][caller as usize] = found;
             }

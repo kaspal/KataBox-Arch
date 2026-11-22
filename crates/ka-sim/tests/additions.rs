@@ -415,3 +415,58 @@ fn a_split_cuts_traffic_across_its_border_until_routing_learns() {
         calm.stale_reads
     );
 }
+
+// --- Optional hand-offs ------------------------------------------------------------------
+
+#[test]
+fn an_optional_broker_lets_a_caller_work_inline_or_hand_off() {
+    // checkout: the app writes the order, then the email is sent: by a worker behind a
+    // queue, or by the app itself while the customer waits.
+    let mut s = scenario(
+        50.0,
+        20.0,
+        vec![rtype(
+            "order",
+            1.0,
+            &[
+                "compute",
+                "datastore:write",
+                "broker?",
+                "worker",
+                "external:email",
+            ],
+        )],
+    );
+    s.externals.push(External {
+        name: "email".into(),
+        median_ms: 300.0,
+        p99_ms: 900.0,
+        rate_limit: None,
+    });
+    let inline = design(
+        vec![
+            node("client", K::Client, Flavour::Web, &[]),
+            node("app", K::App, Flavour::Go, &[]),
+            node("db", K::Sql, Flavour::Postgresql, &[]),
+        ],
+        vec![
+            edge("client", "app", Protocol::Http),
+            edge("app", "db", Protocol::Query),
+        ],
+    );
+    let mut queued = inline.clone();
+    queued.nodes.push(node("q", K::Queue, Flavour::Sqs, &[]));
+    queued
+        .nodes
+        .push(node("mailer", K::Worker, Flavour::Celery, &[]));
+    queued.edges.push(edge("app", "q", Protocol::Publish));
+    queued.edges.push(edge("q", "mailer", Protocol::Consume));
+    let a = run(&inline, &s);
+    let b = run(&queued, &s);
+    assert_eq!(a.errors + b.errors, 0.0);
+    // Inline, the customer waits for the provider; queued, the answer leaves at the publish.
+    assert!(a.response.p50_ms > 250.0, "{}", a.response.p50_ms);
+    assert!(b.response.p50_ms < 50.0, "{}", b.response.p50_ms);
+    let mailer = b.nodes.iter().find(|n| n.id == "mailer").unwrap();
+    assert!(mailer.served > 500.0);
+}

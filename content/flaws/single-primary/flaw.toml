@@ -1,0 +1,48 @@
+id = "single-primary"
+number = 2
+title = "One database, no plan B"
+title_es = "Una base de datos, sin plan B"
+story = "A booking site runs two app servers behind a load balancer, both talking to one PostgreSQL server."
+story_es = "Una web de reservas tiene dos servidores de aplicaciones detrás de un balanceador, los dos hablando con un único servidor PostgreSQL."
+symptom = "When the database server crashed, the whole site went down and stayed down."
+symptom_es = "Cuando se cayó el servidor de la base de datos, toda la web se cayó y siguió caída."
+target_test = "primary-dies"
+explanation = "Two app servers and a load balancer make the front redundant, but the database was a single point of failure. A replica joined by a Replicate edge takes over after the failover time; writes fail only in that window, and reads can use the replica meanwhile."
+explanation_es = "Dos servidores y un balanceador hacen redundante la parte de delante, pero la base de datos era un punto único de fallo. Una réplica unida por un enlace Replicate toma el relevo tras el tiempo de failover; las escrituras solo fallan en ese intervalo, y mientras tanto las lecturas pueden usar la réplica."
+kinds = ["sql"]
+
+[[scenario.tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[scenario.nfr]
+peak_rps = 2000
+p95_ms = 50
+availability = 0.99
+budget_usd = 2000
+
+[[scenario.request_types]]
+id = "browse"
+name = "Browse rooms"
+name_es = "Ver habitaciones"
+share = 0.9
+route = ["edge", "compute", "datastore"]
+
+[[scenario.request_types]]
+id = "book"
+name = "Book a room"
+name_es = "Reservar"
+share = 0.1
+route = ["edge", "compute", "datastore:write"]
+
+[[scenario.tests]]
+id = "primary-dies"
+name = "The database server dies"
+name_es = "Se cae el servidor de la base de datos"
+chaos = [{ kill = { kind = "sql", role = "primary", at = 20 } }]
+pass = { error_rate = 0.15, availability = 0.85 }
+
+[scenario.pass]
+p95_ms = 50
+error_rate = 0.001

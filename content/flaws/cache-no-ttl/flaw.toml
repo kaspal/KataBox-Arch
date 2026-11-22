@@ -1,0 +1,51 @@
+id = "cache-no-ttl"
+number = 1
+title = "A cache that never forgets"
+title_es = "Una caché que nunca olvida"
+story = "An online shop serves product pages from a Redis cache in front of PostgreSQL. Staff change prices in the database a few times a minute."
+story_es = "Una tienda online sirve las páginas de producto desde una caché Redis delante de PostgreSQL. El personal cambia precios en la base de datos unas cuantas veces por minuto."
+symptom = "During a big price update, customers keep seeing old prices long after they changed."
+symptom_es = "Durante una gran actualización de precios, los clientes siguen viendo precios antiguos mucho después del cambio."
+target_test = "price-update"
+explanation = "The cache's TTL was 0, which here means \"never expire\". Cache-aside fills an entry once and nothing removes it, so every price written after the fill is invisible to readers. A TTL of a few seconds bounds how stale a read can be, at the price of a few more database reads."
+explanation_es = "El TTL de la caché era 0, que aquí significa «no caduca nunca». Cache-aside llena una entrada una vez y nada la quita, así que cada precio escrito después de llenarla es invisible para los lectores. Un TTL de unos segundos limita cuánto de obsoleta puede ser una lectura, a cambio de unas pocas lecturas más a la base de datos."
+kinds = ["cache"]
+
+[[scenario.tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[scenario.nfr]
+peak_rps = 3000
+p95_ms = 60
+availability = 0.999
+budget_usd = 1500
+
+[[scenario.request_types]]
+id = "view"
+name = "Product page"
+name_es = "Página de producto"
+share = 0.995
+route = ["compute", "cache?", "datastore"]
+key_space = 20000
+key_skew = { zipf = 1.0 }
+
+[[scenario.request_types]]
+id = "price"
+name = "Price change"
+name_es = "Cambio de precio"
+share = 0.005
+route = ["compute", "datastore:write"]
+key_space = 20000
+
+[[scenario.tests]]
+id = "price-update"
+name = "A big price update"
+name_es = "Una gran actualización de precios"
+type_multipliers = { price = 10 }
+pass = { stale_rate = 0.03 }
+
+[scenario.pass]
+p95_ms = 60
+error_rate = 0.001

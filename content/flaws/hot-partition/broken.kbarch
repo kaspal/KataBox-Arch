@@ -1,0 +1,69 @@
+{
+  "schema_version": 3,
+  "id": "flaw-hot-partition-broken",
+  "name": "Profiles",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "mobile",
+      "label": "App",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Profile API",
+      "position": {
+        "x": 0,
+        "y": 170
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "store",
+      "kind": "nosql",
+      "flavour": "dynamodb",
+      "label": "Profiles",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {
+        "partitions": 8
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "api",
+      "to": "store",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

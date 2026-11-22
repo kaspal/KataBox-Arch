@@ -1,0 +1,49 @@
+id = "replica-reads"
+number = 9
+title = "My edit disappeared"
+title_es = "Mi cambio ha desaparecido"
+story = "A membership site keeps profiles in PostgreSQL with a replica. Reads are spread over both to share the load."
+story_es = "Una web de socios guarda los perfiles en PostgreSQL con una réplica. Las lecturas se reparten entre las dos para compartir la carga."
+symptom = "Members save their profile, reload the page and see their old details, as if the change hadn't happened."
+symptom_es = "Los socios guardan su perfil, recargan la página y ven sus datos antiguos, como si el cambio no hubiera ocurrido."
+target_test = "edit-then-view"
+explanation = "Writes go to the primary, but half the reads went to a replica that trails it by half a second, so a member who reloaded right after saving often read the old row. When a user must see their own writes, read from the primary (the replica can still take failover, or reads that may be a little old)."
+explanation_es = "Las escrituras van a la principal, pero la mitad de las lecturas iban a una réplica que va medio segundo por detrás, así que un socio que recargaba justo después de guardar leía a menudo la fila antigua. Cuando un usuario debe ver lo que acaba de escribir, lee de la principal (la réplica sigue sirviendo para el failover, o para lecturas que pueden ser algo antiguas)."
+kinds = ["sql"]
+
+[[scenario.tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[scenario.nfr]
+peak_rps = 1000
+p95_ms = 50
+availability = 0.999
+budget_usd = 1500
+
+[[scenario.request_types]]
+id = "view"
+name = "View a profile"
+name_es = "Ver un perfil"
+share = 0.8
+route = ["compute", "datastore"]
+key_space = 2000
+
+[[scenario.request_types]]
+id = "edit"
+name = "Save a profile"
+name_es = "Guardar un perfil"
+share = 0.2
+route = ["compute", "datastore:write"]
+key_space = 2000
+
+[[scenario.tests]]
+id = "edit-then-view"
+name = "Save, then reload"
+name_es = "Guardar y recargar"
+pass = { stale_rate = 0.005 }
+
+[scenario.pass]
+p95_ms = 50
+error_rate = 0.001

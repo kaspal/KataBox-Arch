@@ -15,6 +15,9 @@
 //!                         consumer after it becomes the caller
 //! "external:email"        a provider outside the design
 //! "compute|datastore"     either role satisfies the step
+//! "broker?" "worker"      an optional hand-off: a caller wired to such a broker publishes
+//!                         as usual; one that isn't makes the next segment's calls itself,
+//!                         inline, so its answer waits for them
 //! ```
 //!
 //! **CDC.** A `cdc` step must follow a `datastore:write` call to SQL or NoSQL. The caller's
@@ -287,6 +290,9 @@ pub fn parse_route(steps: &[String], scheduler: bool) -> Result<Route, RouteErro
             }
         }
         if s.has_role(Role::Broker) {
+            if s.optional && s.cdc {
+                return Err(RouteError("a cdc step can't be optional".into()));
+            }
             let consumer = parsed
                 .get(i + 1)
                 .filter(|c| c.is_caller_step())
@@ -404,6 +410,20 @@ mod tests {
             r(&["compute", "broker"]).is_err(),
             "broker without a consumer"
         );
+    }
+
+    #[test]
+    fn a_broker_step_may_be_optional() {
+        let route = r(&[
+            "compute",
+            "datastore:write",
+            "broker?",
+            "worker",
+            "external:email",
+        ])
+        .unwrap();
+        assert_eq!(route.segments.len(), 2);
+        assert!(route.segments[1].broker.as_ref().unwrap().optional);
     }
 
     #[test]
