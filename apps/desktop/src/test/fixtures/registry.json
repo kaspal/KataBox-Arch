@@ -1,0 +1,6053 @@
+{
+  "matrix": [
+    {
+      "from": "client",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "client",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "dns"
+    },
+    {
+      "from": "client",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "cdn"
+    },
+    {
+      "from": "client",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "waf"
+    },
+    {
+      "from": "client",
+      "protocols": [
+        "http",
+        "grpc",
+        "ws"
+      ],
+      "reason": null,
+      "to": "lb"
+    },
+    {
+      "from": "client",
+      "protocols": [
+        "http",
+        "grpc",
+        "ws"
+      ],
+      "reason": null,
+      "to": "gateway"
+    },
+    {
+      "from": "client",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "ratelimit"
+    },
+    {
+      "from": "client",
+      "protocols": [
+        "http",
+        "grpc",
+        "ws"
+      ],
+      "reason": null,
+      "to": "app"
+    },
+    {
+      "from": "client",
+      "protocols": [
+        "http",
+        "grpc",
+        "ws"
+      ],
+      "reason": null,
+      "to": "micro"
+    },
+    {
+      "from": "client",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "worker"
+    },
+    {
+      "from": "client",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "serverless"
+    },
+    {
+      "from": "client",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "autoscale"
+    },
+    {
+      "from": "client",
+      "protocols": [],
+      "reason": "client_to_data",
+      "to": "sql"
+    },
+    {
+      "from": "client",
+      "protocols": [],
+      "reason": "client_to_data",
+      "to": "nosql"
+    },
+    {
+      "from": "client",
+      "protocols": [],
+      "reason": "client_to_data",
+      "to": "cache"
+    },
+    {
+      "from": "client",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "object"
+    },
+    {
+      "from": "client",
+      "protocols": [],
+      "reason": "client_to_data",
+      "to": "search"
+    },
+    {
+      "from": "client",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "queue"
+    },
+    {
+      "from": "client",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "stream"
+    },
+    {
+      "from": "client",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "pubsub"
+    },
+    {
+      "from": "client",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "dlq"
+    },
+    {
+      "from": "client",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "scheduler"
+    },
+    {
+      "from": "client",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "metrics"
+    },
+    {
+      "from": "client",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "logs"
+    },
+    {
+      "from": "client",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "tracing"
+    },
+    {
+      "from": "dns",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "dns",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "dns"
+    },
+    {
+      "from": "dns",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "cdn"
+    },
+    {
+      "from": "dns",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "waf"
+    },
+    {
+      "from": "dns",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "lb"
+    },
+    {
+      "from": "dns",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "gateway"
+    },
+    {
+      "from": "dns",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "ratelimit"
+    },
+    {
+      "from": "dns",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "app"
+    },
+    {
+      "from": "dns",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "micro"
+    },
+    {
+      "from": "dns",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "worker"
+    },
+    {
+      "from": "dns",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "serverless"
+    },
+    {
+      "from": "dns",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "autoscale"
+    },
+    {
+      "from": "dns",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "sql"
+    },
+    {
+      "from": "dns",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "nosql"
+    },
+    {
+      "from": "dns",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "cache"
+    },
+    {
+      "from": "dns",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "object"
+    },
+    {
+      "from": "dns",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "search"
+    },
+    {
+      "from": "dns",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "queue"
+    },
+    {
+      "from": "dns",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "stream"
+    },
+    {
+      "from": "dns",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "pubsub"
+    },
+    {
+      "from": "dns",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "dlq"
+    },
+    {
+      "from": "dns",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "scheduler"
+    },
+    {
+      "from": "dns",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "metrics"
+    },
+    {
+      "from": "dns",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "logs"
+    },
+    {
+      "from": "dns",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "tracing"
+    },
+    {
+      "from": "cdn",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "cdn",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "dns"
+    },
+    {
+      "from": "cdn",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "cdn"
+    },
+    {
+      "from": "cdn",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "waf"
+    },
+    {
+      "from": "cdn",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "lb"
+    },
+    {
+      "from": "cdn",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "gateway"
+    },
+    {
+      "from": "cdn",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "ratelimit"
+    },
+    {
+      "from": "cdn",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "app"
+    },
+    {
+      "from": "cdn",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "micro"
+    },
+    {
+      "from": "cdn",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "worker"
+    },
+    {
+      "from": "cdn",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "serverless"
+    },
+    {
+      "from": "cdn",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "autoscale"
+    },
+    {
+      "from": "cdn",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "sql"
+    },
+    {
+      "from": "cdn",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "nosql"
+    },
+    {
+      "from": "cdn",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "cache"
+    },
+    {
+      "from": "cdn",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "object"
+    },
+    {
+      "from": "cdn",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "search"
+    },
+    {
+      "from": "cdn",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "queue"
+    },
+    {
+      "from": "cdn",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "stream"
+    },
+    {
+      "from": "cdn",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "pubsub"
+    },
+    {
+      "from": "cdn",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "dlq"
+    },
+    {
+      "from": "cdn",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "scheduler"
+    },
+    {
+      "from": "cdn",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "metrics"
+    },
+    {
+      "from": "cdn",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "logs"
+    },
+    {
+      "from": "cdn",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "tracing"
+    },
+    {
+      "from": "waf",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "waf",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "dns"
+    },
+    {
+      "from": "waf",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "cdn"
+    },
+    {
+      "from": "waf",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "waf"
+    },
+    {
+      "from": "waf",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "lb"
+    },
+    {
+      "from": "waf",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "gateway"
+    },
+    {
+      "from": "waf",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "ratelimit"
+    },
+    {
+      "from": "waf",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "app"
+    },
+    {
+      "from": "waf",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "micro"
+    },
+    {
+      "from": "waf",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "worker"
+    },
+    {
+      "from": "waf",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "serverless"
+    },
+    {
+      "from": "waf",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "autoscale"
+    },
+    {
+      "from": "waf",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "sql"
+    },
+    {
+      "from": "waf",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "nosql"
+    },
+    {
+      "from": "waf",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "cache"
+    },
+    {
+      "from": "waf",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "object"
+    },
+    {
+      "from": "waf",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "search"
+    },
+    {
+      "from": "waf",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "queue"
+    },
+    {
+      "from": "waf",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "stream"
+    },
+    {
+      "from": "waf",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "pubsub"
+    },
+    {
+      "from": "waf",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "dlq"
+    },
+    {
+      "from": "waf",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "scheduler"
+    },
+    {
+      "from": "waf",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "metrics"
+    },
+    {
+      "from": "waf",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "logs"
+    },
+    {
+      "from": "waf",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "tracing"
+    },
+    {
+      "from": "lb",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "lb",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "dns"
+    },
+    {
+      "from": "lb",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "cdn"
+    },
+    {
+      "from": "lb",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "waf"
+    },
+    {
+      "from": "lb",
+      "protocols": [
+        "http",
+        "grpc",
+        "ws"
+      ],
+      "reason": null,
+      "to": "lb"
+    },
+    {
+      "from": "lb",
+      "protocols": [
+        "http",
+        "grpc",
+        "ws"
+      ],
+      "reason": null,
+      "to": "gateway"
+    },
+    {
+      "from": "lb",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "ratelimit"
+    },
+    {
+      "from": "lb",
+      "protocols": [
+        "http",
+        "grpc",
+        "ws"
+      ],
+      "reason": null,
+      "to": "app"
+    },
+    {
+      "from": "lb",
+      "protocols": [
+        "http",
+        "grpc",
+        "ws"
+      ],
+      "reason": null,
+      "to": "micro"
+    },
+    {
+      "from": "lb",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "worker"
+    },
+    {
+      "from": "lb",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "serverless"
+    },
+    {
+      "from": "lb",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "autoscale"
+    },
+    {
+      "from": "lb",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "sql"
+    },
+    {
+      "from": "lb",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "nosql"
+    },
+    {
+      "from": "lb",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "cache"
+    },
+    {
+      "from": "lb",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "object"
+    },
+    {
+      "from": "lb",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "search"
+    },
+    {
+      "from": "lb",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "queue"
+    },
+    {
+      "from": "lb",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "stream"
+    },
+    {
+      "from": "lb",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "pubsub"
+    },
+    {
+      "from": "lb",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "dlq"
+    },
+    {
+      "from": "lb",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "scheduler"
+    },
+    {
+      "from": "lb",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "metrics"
+    },
+    {
+      "from": "lb",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "logs"
+    },
+    {
+      "from": "lb",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "tracing"
+    },
+    {
+      "from": "gateway",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "gateway",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "dns"
+    },
+    {
+      "from": "gateway",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "cdn"
+    },
+    {
+      "from": "gateway",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "waf"
+    },
+    {
+      "from": "gateway",
+      "protocols": [
+        "http",
+        "grpc",
+        "ws"
+      ],
+      "reason": null,
+      "to": "lb"
+    },
+    {
+      "from": "gateway",
+      "protocols": [
+        "http",
+        "grpc",
+        "ws"
+      ],
+      "reason": null,
+      "to": "gateway"
+    },
+    {
+      "from": "gateway",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "ratelimit"
+    },
+    {
+      "from": "gateway",
+      "protocols": [
+        "http",
+        "grpc",
+        "ws"
+      ],
+      "reason": null,
+      "to": "app"
+    },
+    {
+      "from": "gateway",
+      "protocols": [
+        "http",
+        "grpc",
+        "ws"
+      ],
+      "reason": null,
+      "to": "micro"
+    },
+    {
+      "from": "gateway",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "worker"
+    },
+    {
+      "from": "gateway",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "serverless"
+    },
+    {
+      "from": "gateway",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "autoscale"
+    },
+    {
+      "from": "gateway",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "sql"
+    },
+    {
+      "from": "gateway",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "nosql"
+    },
+    {
+      "from": "gateway",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "cache"
+    },
+    {
+      "from": "gateway",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "object"
+    },
+    {
+      "from": "gateway",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "search"
+    },
+    {
+      "from": "gateway",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "queue"
+    },
+    {
+      "from": "gateway",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "stream"
+    },
+    {
+      "from": "gateway",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "pubsub"
+    },
+    {
+      "from": "gateway",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "dlq"
+    },
+    {
+      "from": "gateway",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "scheduler"
+    },
+    {
+      "from": "gateway",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "metrics"
+    },
+    {
+      "from": "gateway",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "logs"
+    },
+    {
+      "from": "gateway",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "tracing"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "dns"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "cdn"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "waf"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "lb"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "gateway"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "ratelimit"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "app"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "micro"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "worker"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "serverless"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "autoscale"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "sql"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "nosql"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "cache"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "object"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [],
+      "reason": "edge_to_data",
+      "to": "search"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "queue"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "stream"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "pubsub"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "dlq"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "scheduler"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "metrics"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "logs"
+    },
+    {
+      "from": "ratelimit",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "tracing"
+    },
+    {
+      "from": "app",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "app",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "dns"
+    },
+    {
+      "from": "app",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "cdn"
+    },
+    {
+      "from": "app",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "waf"
+    },
+    {
+      "from": "app",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "lb"
+    },
+    {
+      "from": "app",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "gateway"
+    },
+    {
+      "from": "app",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "ratelimit"
+    },
+    {
+      "from": "app",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "app"
+    },
+    {
+      "from": "app",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "micro"
+    },
+    {
+      "from": "app",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "worker"
+    },
+    {
+      "from": "app",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "serverless"
+    },
+    {
+      "from": "app",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "autoscale"
+    },
+    {
+      "from": "app",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "sql"
+    },
+    {
+      "from": "app",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "nosql"
+    },
+    {
+      "from": "app",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "cache"
+    },
+    {
+      "from": "app",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "object"
+    },
+    {
+      "from": "app",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "search"
+    },
+    {
+      "from": "app",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "queue"
+    },
+    {
+      "from": "app",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "stream"
+    },
+    {
+      "from": "app",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "pubsub"
+    },
+    {
+      "from": "app",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "dlq"
+    },
+    {
+      "from": "app",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "scheduler"
+    },
+    {
+      "from": "app",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "metrics"
+    },
+    {
+      "from": "app",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "logs"
+    },
+    {
+      "from": "app",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "tracing"
+    },
+    {
+      "from": "micro",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "micro",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "dns"
+    },
+    {
+      "from": "micro",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "cdn"
+    },
+    {
+      "from": "micro",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "waf"
+    },
+    {
+      "from": "micro",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "lb"
+    },
+    {
+      "from": "micro",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "gateway"
+    },
+    {
+      "from": "micro",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "ratelimit"
+    },
+    {
+      "from": "micro",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "app"
+    },
+    {
+      "from": "micro",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "micro"
+    },
+    {
+      "from": "micro",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "worker"
+    },
+    {
+      "from": "micro",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "serverless"
+    },
+    {
+      "from": "micro",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "autoscale"
+    },
+    {
+      "from": "micro",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "sql"
+    },
+    {
+      "from": "micro",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "nosql"
+    },
+    {
+      "from": "micro",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "cache"
+    },
+    {
+      "from": "micro",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "object"
+    },
+    {
+      "from": "micro",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "search"
+    },
+    {
+      "from": "micro",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "queue"
+    },
+    {
+      "from": "micro",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "stream"
+    },
+    {
+      "from": "micro",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "pubsub"
+    },
+    {
+      "from": "micro",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "dlq"
+    },
+    {
+      "from": "micro",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "scheduler"
+    },
+    {
+      "from": "micro",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "metrics"
+    },
+    {
+      "from": "micro",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "logs"
+    },
+    {
+      "from": "micro",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "tracing"
+    },
+    {
+      "from": "worker",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "worker",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "dns"
+    },
+    {
+      "from": "worker",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "cdn"
+    },
+    {
+      "from": "worker",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "waf"
+    },
+    {
+      "from": "worker",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "lb"
+    },
+    {
+      "from": "worker",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "gateway"
+    },
+    {
+      "from": "worker",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "ratelimit"
+    },
+    {
+      "from": "worker",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "app"
+    },
+    {
+      "from": "worker",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "micro"
+    },
+    {
+      "from": "worker",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "worker"
+    },
+    {
+      "from": "worker",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "serverless"
+    },
+    {
+      "from": "worker",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "autoscale"
+    },
+    {
+      "from": "worker",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "sql"
+    },
+    {
+      "from": "worker",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "nosql"
+    },
+    {
+      "from": "worker",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "cache"
+    },
+    {
+      "from": "worker",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "object"
+    },
+    {
+      "from": "worker",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "search"
+    },
+    {
+      "from": "worker",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "queue"
+    },
+    {
+      "from": "worker",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "stream"
+    },
+    {
+      "from": "worker",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "pubsub"
+    },
+    {
+      "from": "worker",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "dlq"
+    },
+    {
+      "from": "worker",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "scheduler"
+    },
+    {
+      "from": "worker",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "metrics"
+    },
+    {
+      "from": "worker",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "logs"
+    },
+    {
+      "from": "worker",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "tracing"
+    },
+    {
+      "from": "serverless",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "serverless",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "dns"
+    },
+    {
+      "from": "serverless",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "cdn"
+    },
+    {
+      "from": "serverless",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "waf"
+    },
+    {
+      "from": "serverless",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "lb"
+    },
+    {
+      "from": "serverless",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "gateway"
+    },
+    {
+      "from": "serverless",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "ratelimit"
+    },
+    {
+      "from": "serverless",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "app"
+    },
+    {
+      "from": "serverless",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "micro"
+    },
+    {
+      "from": "serverless",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "worker"
+    },
+    {
+      "from": "serverless",
+      "protocols": [
+        "http",
+        "grpc"
+      ],
+      "reason": null,
+      "to": "serverless"
+    },
+    {
+      "from": "serverless",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "autoscale"
+    },
+    {
+      "from": "serverless",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "sql"
+    },
+    {
+      "from": "serverless",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "nosql"
+    },
+    {
+      "from": "serverless",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "cache"
+    },
+    {
+      "from": "serverless",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "object"
+    },
+    {
+      "from": "serverless",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "search"
+    },
+    {
+      "from": "serverless",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "queue"
+    },
+    {
+      "from": "serverless",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "stream"
+    },
+    {
+      "from": "serverless",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "pubsub"
+    },
+    {
+      "from": "serverless",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "dlq"
+    },
+    {
+      "from": "serverless",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "scheduler"
+    },
+    {
+      "from": "serverless",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "metrics"
+    },
+    {
+      "from": "serverless",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "logs"
+    },
+    {
+      "from": "serverless",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "tracing"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "dns"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "cdn"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "waf"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "lb"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "gateway"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "ratelimit"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "app"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "micro"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "worker"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "serverless"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "autoscale"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "sql"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "nosql"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "cache"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "object"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "search"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "queue"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "stream"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "pubsub"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "dlq"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "scheduler"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "metrics"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "logs"
+    },
+    {
+      "from": "autoscale",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "tracing"
+    },
+    {
+      "from": "sql",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "sql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "dns"
+    },
+    {
+      "from": "sql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "cdn"
+    },
+    {
+      "from": "sql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "waf"
+    },
+    {
+      "from": "sql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "lb"
+    },
+    {
+      "from": "sql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "gateway"
+    },
+    {
+      "from": "sql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "ratelimit"
+    },
+    {
+      "from": "sql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "app"
+    },
+    {
+      "from": "sql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "micro"
+    },
+    {
+      "from": "sql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "worker"
+    },
+    {
+      "from": "sql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "serverless"
+    },
+    {
+      "from": "sql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "autoscale"
+    },
+    {
+      "from": "sql",
+      "protocols": [
+        "replicate"
+      ],
+      "reason": null,
+      "to": "sql"
+    },
+    {
+      "from": "sql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "nosql"
+    },
+    {
+      "from": "sql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "cache"
+    },
+    {
+      "from": "sql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "object"
+    },
+    {
+      "from": "sql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "search"
+    },
+    {
+      "from": "sql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "queue"
+    },
+    {
+      "from": "sql",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "stream"
+    },
+    {
+      "from": "sql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "pubsub"
+    },
+    {
+      "from": "sql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "dlq"
+    },
+    {
+      "from": "sql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "scheduler"
+    },
+    {
+      "from": "sql",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "metrics"
+    },
+    {
+      "from": "sql",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "logs"
+    },
+    {
+      "from": "sql",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "tracing"
+    },
+    {
+      "from": "nosql",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "nosql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "dns"
+    },
+    {
+      "from": "nosql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "cdn"
+    },
+    {
+      "from": "nosql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "waf"
+    },
+    {
+      "from": "nosql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "lb"
+    },
+    {
+      "from": "nosql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "gateway"
+    },
+    {
+      "from": "nosql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "ratelimit"
+    },
+    {
+      "from": "nosql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "app"
+    },
+    {
+      "from": "nosql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "micro"
+    },
+    {
+      "from": "nosql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "worker"
+    },
+    {
+      "from": "nosql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "serverless"
+    },
+    {
+      "from": "nosql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "autoscale"
+    },
+    {
+      "from": "nosql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "sql"
+    },
+    {
+      "from": "nosql",
+      "protocols": [
+        "replicate"
+      ],
+      "reason": null,
+      "to": "nosql"
+    },
+    {
+      "from": "nosql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "cache"
+    },
+    {
+      "from": "nosql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "object"
+    },
+    {
+      "from": "nosql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "search"
+    },
+    {
+      "from": "nosql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "queue"
+    },
+    {
+      "from": "nosql",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "stream"
+    },
+    {
+      "from": "nosql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "pubsub"
+    },
+    {
+      "from": "nosql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "dlq"
+    },
+    {
+      "from": "nosql",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "scheduler"
+    },
+    {
+      "from": "nosql",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "metrics"
+    },
+    {
+      "from": "nosql",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "logs"
+    },
+    {
+      "from": "nosql",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "tracing"
+    },
+    {
+      "from": "cache",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "cache",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "dns"
+    },
+    {
+      "from": "cache",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "cdn"
+    },
+    {
+      "from": "cache",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "waf"
+    },
+    {
+      "from": "cache",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "lb"
+    },
+    {
+      "from": "cache",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "gateway"
+    },
+    {
+      "from": "cache",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "ratelimit"
+    },
+    {
+      "from": "cache",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "app"
+    },
+    {
+      "from": "cache",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "micro"
+    },
+    {
+      "from": "cache",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "worker"
+    },
+    {
+      "from": "cache",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "serverless"
+    },
+    {
+      "from": "cache",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "autoscale"
+    },
+    {
+      "from": "cache",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "sql"
+    },
+    {
+      "from": "cache",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "nosql"
+    },
+    {
+      "from": "cache",
+      "protocols": [
+        "replicate"
+      ],
+      "reason": null,
+      "to": "cache"
+    },
+    {
+      "from": "cache",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "object"
+    },
+    {
+      "from": "cache",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "search"
+    },
+    {
+      "from": "cache",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "queue"
+    },
+    {
+      "from": "cache",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "stream"
+    },
+    {
+      "from": "cache",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "pubsub"
+    },
+    {
+      "from": "cache",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "dlq"
+    },
+    {
+      "from": "cache",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "scheduler"
+    },
+    {
+      "from": "cache",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "metrics"
+    },
+    {
+      "from": "cache",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "logs"
+    },
+    {
+      "from": "cache",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "tracing"
+    },
+    {
+      "from": "object",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "object",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "dns"
+    },
+    {
+      "from": "object",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "cdn"
+    },
+    {
+      "from": "object",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "waf"
+    },
+    {
+      "from": "object",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "lb"
+    },
+    {
+      "from": "object",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "gateway"
+    },
+    {
+      "from": "object",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "ratelimit"
+    },
+    {
+      "from": "object",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "app"
+    },
+    {
+      "from": "object",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "micro"
+    },
+    {
+      "from": "object",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "worker"
+    },
+    {
+      "from": "object",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "serverless"
+    },
+    {
+      "from": "object",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "autoscale"
+    },
+    {
+      "from": "object",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "sql"
+    },
+    {
+      "from": "object",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "nosql"
+    },
+    {
+      "from": "object",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "cache"
+    },
+    {
+      "from": "object",
+      "protocols": [
+        "replicate"
+      ],
+      "reason": null,
+      "to": "object"
+    },
+    {
+      "from": "object",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "search"
+    },
+    {
+      "from": "object",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "queue"
+    },
+    {
+      "from": "object",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "stream"
+    },
+    {
+      "from": "object",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "pubsub"
+    },
+    {
+      "from": "object",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "dlq"
+    },
+    {
+      "from": "object",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "scheduler"
+    },
+    {
+      "from": "object",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "metrics"
+    },
+    {
+      "from": "object",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "logs"
+    },
+    {
+      "from": "object",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "tracing"
+    },
+    {
+      "from": "search",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "search",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "dns"
+    },
+    {
+      "from": "search",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "cdn"
+    },
+    {
+      "from": "search",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "waf"
+    },
+    {
+      "from": "search",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "lb"
+    },
+    {
+      "from": "search",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "gateway"
+    },
+    {
+      "from": "search",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "ratelimit"
+    },
+    {
+      "from": "search",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "app"
+    },
+    {
+      "from": "search",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "micro"
+    },
+    {
+      "from": "search",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "worker"
+    },
+    {
+      "from": "search",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "serverless"
+    },
+    {
+      "from": "search",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "autoscale"
+    },
+    {
+      "from": "search",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "sql"
+    },
+    {
+      "from": "search",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "nosql"
+    },
+    {
+      "from": "search",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "cache"
+    },
+    {
+      "from": "search",
+      "protocols": [
+        "query"
+      ],
+      "reason": null,
+      "to": "object"
+    },
+    {
+      "from": "search",
+      "protocols": [
+        "query",
+        "replicate"
+      ],
+      "reason": null,
+      "to": "search"
+    },
+    {
+      "from": "search",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "queue"
+    },
+    {
+      "from": "search",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "stream"
+    },
+    {
+      "from": "search",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "pubsub"
+    },
+    {
+      "from": "search",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "dlq"
+    },
+    {
+      "from": "search",
+      "protocols": [],
+      "reason": "data_calls_out",
+      "to": "scheduler"
+    },
+    {
+      "from": "search",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "metrics"
+    },
+    {
+      "from": "search",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "logs"
+    },
+    {
+      "from": "search",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "tracing"
+    },
+    {
+      "from": "queue",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "queue",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "dns"
+    },
+    {
+      "from": "queue",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "cdn"
+    },
+    {
+      "from": "queue",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "waf"
+    },
+    {
+      "from": "queue",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "lb"
+    },
+    {
+      "from": "queue",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "gateway"
+    },
+    {
+      "from": "queue",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "ratelimit"
+    },
+    {
+      "from": "queue",
+      "protocols": [
+        "consume"
+      ],
+      "reason": null,
+      "to": "app"
+    },
+    {
+      "from": "queue",
+      "protocols": [
+        "consume"
+      ],
+      "reason": null,
+      "to": "micro"
+    },
+    {
+      "from": "queue",
+      "protocols": [
+        "consume"
+      ],
+      "reason": null,
+      "to": "worker"
+    },
+    {
+      "from": "queue",
+      "protocols": [
+        "consume"
+      ],
+      "reason": null,
+      "to": "serverless"
+    },
+    {
+      "from": "queue",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "autoscale"
+    },
+    {
+      "from": "queue",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "sql"
+    },
+    {
+      "from": "queue",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "nosql"
+    },
+    {
+      "from": "queue",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "cache"
+    },
+    {
+      "from": "queue",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "object"
+    },
+    {
+      "from": "queue",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "search"
+    },
+    {
+      "from": "queue",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "queue"
+    },
+    {
+      "from": "queue",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "stream"
+    },
+    {
+      "from": "queue",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "pubsub"
+    },
+    {
+      "from": "queue",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "dlq"
+    },
+    {
+      "from": "queue",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "scheduler"
+    },
+    {
+      "from": "queue",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "metrics"
+    },
+    {
+      "from": "queue",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "logs"
+    },
+    {
+      "from": "queue",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "tracing"
+    },
+    {
+      "from": "stream",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "stream",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "dns"
+    },
+    {
+      "from": "stream",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "cdn"
+    },
+    {
+      "from": "stream",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "waf"
+    },
+    {
+      "from": "stream",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "lb"
+    },
+    {
+      "from": "stream",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "gateway"
+    },
+    {
+      "from": "stream",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "ratelimit"
+    },
+    {
+      "from": "stream",
+      "protocols": [
+        "consume"
+      ],
+      "reason": null,
+      "to": "app"
+    },
+    {
+      "from": "stream",
+      "protocols": [
+        "consume"
+      ],
+      "reason": null,
+      "to": "micro"
+    },
+    {
+      "from": "stream",
+      "protocols": [
+        "consume"
+      ],
+      "reason": null,
+      "to": "worker"
+    },
+    {
+      "from": "stream",
+      "protocols": [
+        "consume"
+      ],
+      "reason": null,
+      "to": "serverless"
+    },
+    {
+      "from": "stream",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "autoscale"
+    },
+    {
+      "from": "stream",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "sql"
+    },
+    {
+      "from": "stream",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "nosql"
+    },
+    {
+      "from": "stream",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "cache"
+    },
+    {
+      "from": "stream",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "object"
+    },
+    {
+      "from": "stream",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "search"
+    },
+    {
+      "from": "stream",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "queue"
+    },
+    {
+      "from": "stream",
+      "protocols": [
+        "replicate"
+      ],
+      "reason": null,
+      "to": "stream"
+    },
+    {
+      "from": "stream",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "pubsub"
+    },
+    {
+      "from": "stream",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "dlq"
+    },
+    {
+      "from": "stream",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "scheduler"
+    },
+    {
+      "from": "stream",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "metrics"
+    },
+    {
+      "from": "stream",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "logs"
+    },
+    {
+      "from": "stream",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "tracing"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "dns"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "cdn"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "waf"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "lb"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "gateway"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "ratelimit"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [
+        "consume"
+      ],
+      "reason": null,
+      "to": "app"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [
+        "consume"
+      ],
+      "reason": null,
+      "to": "micro"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [
+        "consume"
+      ],
+      "reason": null,
+      "to": "worker"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [
+        "consume"
+      ],
+      "reason": null,
+      "to": "serverless"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "autoscale"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "sql"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "nosql"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "cache"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "object"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "search"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "queue"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "stream"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "pubsub"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "dlq"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "scheduler"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "metrics"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "logs"
+    },
+    {
+      "from": "pubsub",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "tracing"
+    },
+    {
+      "from": "dlq",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "dlq",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "dns"
+    },
+    {
+      "from": "dlq",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "cdn"
+    },
+    {
+      "from": "dlq",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "waf"
+    },
+    {
+      "from": "dlq",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "lb"
+    },
+    {
+      "from": "dlq",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "gateway"
+    },
+    {
+      "from": "dlq",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "ratelimit"
+    },
+    {
+      "from": "dlq",
+      "protocols": [
+        "consume"
+      ],
+      "reason": null,
+      "to": "app"
+    },
+    {
+      "from": "dlq",
+      "protocols": [
+        "consume"
+      ],
+      "reason": null,
+      "to": "micro"
+    },
+    {
+      "from": "dlq",
+      "protocols": [
+        "consume"
+      ],
+      "reason": null,
+      "to": "worker"
+    },
+    {
+      "from": "dlq",
+      "protocols": [
+        "consume"
+      ],
+      "reason": null,
+      "to": "serverless"
+    },
+    {
+      "from": "dlq",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "autoscale"
+    },
+    {
+      "from": "dlq",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "sql"
+    },
+    {
+      "from": "dlq",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "nosql"
+    },
+    {
+      "from": "dlq",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "cache"
+    },
+    {
+      "from": "dlq",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "object"
+    },
+    {
+      "from": "dlq",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "search"
+    },
+    {
+      "from": "dlq",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "queue"
+    },
+    {
+      "from": "dlq",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "stream"
+    },
+    {
+      "from": "dlq",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "pubsub"
+    },
+    {
+      "from": "dlq",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "dlq"
+    },
+    {
+      "from": "dlq",
+      "protocols": [],
+      "reason": "consume_needs_compute",
+      "to": "scheduler"
+    },
+    {
+      "from": "dlq",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "metrics"
+    },
+    {
+      "from": "dlq",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "logs"
+    },
+    {
+      "from": "dlq",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "tracing"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "dns"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "cdn"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "waf"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "lb"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "gateway"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "ratelimit"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "app"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "micro"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "worker"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "serverless"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "autoscale"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "sql"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "nosql"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "cache"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "object"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "search"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "queue"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "stream"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [
+        "publish"
+      ],
+      "reason": null,
+      "to": "pubsub"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "dlq"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [],
+      "reason": "no_rule",
+      "to": "scheduler"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "metrics"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "logs"
+    },
+    {
+      "from": "scheduler",
+      "protocols": [
+        "http"
+      ],
+      "reason": null,
+      "to": "tracing"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "dns"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "cdn"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "waf"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "lb"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "gateway"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "ratelimit"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "app"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "micro"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "worker"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "serverless"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "autoscale"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "sql"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "nosql"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "cache"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "object"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "search"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "queue"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "stream"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "pubsub"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "dlq"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "scheduler"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "metrics"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "logs"
+    },
+    {
+      "from": "metrics",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "tracing"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "dns"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "cdn"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "waf"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "lb"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "gateway"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "ratelimit"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "app"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "micro"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "worker"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "serverless"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "autoscale"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "sql"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "nosql"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "cache"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "object"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "search"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "queue"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "stream"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "pubsub"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "dlq"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "scheduler"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "metrics"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "logs"
+    },
+    {
+      "from": "logs",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "tracing"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "into_client",
+      "to": "client"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "dns"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "cdn"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "waf"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "lb"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "gateway"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "ratelimit"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "app"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "micro"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "worker"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "serverless"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "autoscale"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "sql"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "nosql"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "cache"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "object"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "search"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "queue"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "stream"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "pubsub"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "dlq"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "scheduler"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "metrics"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "logs"
+    },
+    {
+      "from": "tracing",
+      "protocols": [],
+      "reason": "from_ops",
+      "to": "tracing"
+    }
+  ],
+  "registry": {
+    "categories": [
+      "edge",
+      "compute",
+      "data",
+      "async",
+      "ops"
+    ],
+    "kinds": [
+      {
+        "category": "edge",
+        "color_token": "cat-edge",
+        "default_flavour": "web",
+        "flavours": [
+          {
+            "flavour": "web",
+            "overrides": []
+          },
+          {
+            "flavour": "mobile",
+            "overrides": []
+          }
+        ],
+        "icon": "client",
+        "kind": "client",
+        "props": [
+          {
+            "default": 1000,
+            "key": "rps",
+            "ty": {
+              "max": 1000000.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "rps"
+          }
+        ]
+      },
+      {
+        "category": "edge",
+        "color_token": "cat-edge",
+        "default_flavour": "route53",
+        "flavours": [
+          {
+            "flavour": "route53",
+            "overrides": []
+          },
+          {
+            "flavour": "cloudflare_dns",
+            "overrides": []
+          }
+        ],
+        "icon": "dns",
+        "kind": "dns",
+        "props": [
+          {
+            "default": 300,
+            "key": "ttl_s",
+            "ty": {
+              "max": 86400.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "category": "edge",
+        "color_token": "cat-edge",
+        "default_flavour": "cloudfront",
+        "flavours": [
+          {
+            "flavour": "cloudfront",
+            "overrides": []
+          },
+          {
+            "flavour": "cloudflare_cdn",
+            "overrides": []
+          },
+          {
+            "flavour": "fastly",
+            "overrides": []
+          }
+        ],
+        "icon": "cdn",
+        "kind": "cdn",
+        "props": [
+          {
+            "default": 80,
+            "key": "hit_rate",
+            "ty": {
+              "max": 100.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "float"
+            },
+            "unit": "percent"
+          },
+          {
+            "default": 3600,
+            "key": "ttl_s",
+            "ty": {
+              "max": 604800.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "category": "edge",
+        "color_token": "cat-edge",
+        "default_flavour": "aws_waf",
+        "flavours": [
+          {
+            "flavour": "aws_waf",
+            "overrides": []
+          },
+          {
+            "flavour": "cloudflare_waf",
+            "overrides": []
+          }
+        ],
+        "icon": "waf",
+        "kind": "waf",
+        "props": [
+          {
+            "default": 1,
+            "key": "instances",
+            "ty": {
+              "max": 64.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": 1,
+            "key": "service_ms",
+            "ty": {
+              "max": 10000.0,
+              "min": 0.1,
+              "step": 0.1,
+              "type": "float"
+            },
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "category": "edge",
+        "color_token": "cat-edge",
+        "default_flavour": "nginx",
+        "flavours": [
+          {
+            "flavour": "nginx",
+            "overrides": []
+          },
+          {
+            "flavour": "haproxy",
+            "overrides": []
+          },
+          {
+            "flavour": "aws_alb",
+            "overrides": []
+          },
+          {
+            "flavour": "aws_nlb",
+            "overrides": [
+              {
+                "key": "service_ms",
+                "value": 0.2
+              }
+            ]
+          }
+        ],
+        "icon": "lb",
+        "kind": "lb",
+        "props": [
+          {
+            "default": 1,
+            "key": "instances",
+            "ty": {
+              "max": 16.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": "round_robin",
+            "key": "algorithm",
+            "ty": {
+              "options": [
+                "round_robin",
+                "least_conn",
+                "ip_hash"
+              ],
+              "type": "choice"
+            },
+            "unit": "none"
+          },
+          {
+            "default": 0.5,
+            "key": "service_ms",
+            "ty": {
+              "max": 10000.0,
+              "min": 0.1,
+              "step": 0.1,
+              "type": "float"
+            },
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "category": "edge",
+        "color_token": "cat-edge",
+        "default_flavour": "kong",
+        "flavours": [
+          {
+            "flavour": "kong",
+            "overrides": []
+          },
+          {
+            "flavour": "aws_api_gateway",
+            "overrides": []
+          }
+        ],
+        "icon": "gateway",
+        "kind": "gateway",
+        "props": [
+          {
+            "default": 2,
+            "key": "instances",
+            "ty": {
+              "max": 64.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": 256,
+            "key": "concurrency",
+            "ty": {
+              "max": 4096.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": 2,
+            "key": "service_ms",
+            "ty": {
+              "max": 10000.0,
+              "min": 0.1,
+              "step": 0.1,
+              "type": "float"
+            },
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "category": "edge",
+        "color_token": "cat-edge",
+        "default_flavour": "envoy",
+        "flavours": [
+          {
+            "flavour": "envoy",
+            "overrides": []
+          },
+          {
+            "flavour": "redis_token_bucket",
+            "overrides": []
+          }
+        ],
+        "icon": "ratelimit",
+        "kind": "ratelimit",
+        "props": [
+          {
+            "default": 1000,
+            "key": "limit_rps",
+            "ty": {
+              "max": 1000000.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "rps"
+          },
+          {
+            "default": 100,
+            "key": "burst",
+            "ty": {
+              "max": 100000.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          }
+        ]
+      },
+      {
+        "category": "compute",
+        "color_token": "cat-compute",
+        "default_flavour": "nodejs",
+        "flavours": [
+          {
+            "flavour": "nodejs",
+            "overrides": []
+          },
+          {
+            "flavour": "spring_boot",
+            "overrides": []
+          },
+          {
+            "flavour": "go",
+            "overrides": [
+              {
+                "key": "service_ms",
+                "value": 5
+              }
+            ]
+          },
+          {
+            "flavour": "django",
+            "overrides": [
+              {
+                "key": "service_ms",
+                "value": 20
+              }
+            ]
+          }
+        ],
+        "icon": "app",
+        "kind": "app",
+        "props": [
+          {
+            "default": 2,
+            "key": "instances",
+            "ty": {
+              "max": 64.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": 64,
+            "key": "concurrency",
+            "ty": {
+              "max": 4096.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": 10,
+            "key": "service_ms",
+            "ty": {
+              "max": 10000.0,
+              "min": 0.1,
+              "step": 0.1,
+              "type": "float"
+            },
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "category": "compute",
+        "color_token": "cat-compute",
+        "default_flavour": "generic",
+        "flavours": [
+          {
+            "flavour": "generic",
+            "overrides": []
+          }
+        ],
+        "icon": "micro",
+        "kind": "micro",
+        "props": [
+          {
+            "default": 2,
+            "key": "instances",
+            "ty": {
+              "max": 64.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": 64,
+            "key": "concurrency",
+            "ty": {
+              "max": 4096.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": 10,
+            "key": "service_ms",
+            "ty": {
+              "max": 10000.0,
+              "min": 0.1,
+              "step": 0.1,
+              "type": "float"
+            },
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "category": "compute",
+        "color_token": "cat-compute",
+        "default_flavour": "celery",
+        "flavours": [
+          {
+            "flavour": "celery",
+            "overrides": []
+          },
+          {
+            "flavour": "sidekiq",
+            "overrides": []
+          }
+        ],
+        "icon": "worker",
+        "kind": "worker",
+        "props": [
+          {
+            "default": 2,
+            "key": "instances",
+            "ty": {
+              "max": 64.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": 8,
+            "key": "concurrency",
+            "ty": {
+              "max": 1024.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": 100,
+            "key": "service_ms",
+            "ty": {
+              "max": 10000.0,
+              "min": 0.1,
+              "step": 0.1,
+              "type": "float"
+            },
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "category": "compute",
+        "color_token": "cat-compute",
+        "default_flavour": "aws_lambda",
+        "flavours": [
+          {
+            "flavour": "aws_lambda",
+            "overrides": []
+          },
+          {
+            "flavour": "cloud_run",
+            "overrides": [
+              {
+                "key": "cold_start_ms",
+                "value": 500
+              }
+            ]
+          }
+        ],
+        "icon": "serverless",
+        "kind": "serverless",
+        "props": [
+          {
+            "default": 1000,
+            "key": "concurrency_limit",
+            "ty": {
+              "max": 10000.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": 250,
+            "key": "cold_start_ms",
+            "ty": {
+              "max": 10000.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "float"
+            },
+            "unit": "ms"
+          },
+          {
+            "default": 20,
+            "key": "service_ms",
+            "ty": {
+              "max": 10000.0,
+              "min": 0.1,
+              "step": 0.1,
+              "type": "float"
+            },
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "category": "compute",
+        "color_token": "cat-compute",
+        "default_flavour": "kubernetes_hpa",
+        "flavours": [
+          {
+            "flavour": "kubernetes_hpa",
+            "overrides": []
+          },
+          {
+            "flavour": "aws_asg",
+            "overrides": []
+          }
+        ],
+        "icon": "autoscale",
+        "kind": "autoscale",
+        "props": [
+          {
+            "default": 2,
+            "key": "min_instances",
+            "ty": {
+              "max": 64.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": 10,
+            "key": "max_instances",
+            "ty": {
+              "max": 256.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": 60,
+            "key": "target_util",
+            "ty": {
+              "max": 95.0,
+              "min": 10.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "percent"
+          },
+          {
+            "default": 60,
+            "key": "scale_delay_s",
+            "ty": {
+              "max": 600.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "category": "data",
+        "color_token": "cat-data",
+        "default_flavour": "postgresql",
+        "flavours": [
+          {
+            "flavour": "postgresql",
+            "overrides": []
+          },
+          {
+            "flavour": "mysql",
+            "overrides": []
+          }
+        ],
+        "icon": "sql",
+        "kind": "sql",
+        "props": [
+          {
+            "default": 0,
+            "key": "read_replicas",
+            "ty": {
+              "max": 15.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": 1,
+            "key": "shards",
+            "ty": {
+              "max": 64.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": 100,
+            "key": "concurrency",
+            "ty": {
+              "max": 1000.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": 5,
+            "key": "service_ms",
+            "ty": {
+              "max": 10000.0,
+              "min": 0.1,
+              "step": 0.1,
+              "type": "float"
+            },
+            "unit": "ms"
+          },
+          {
+            "default": 50,
+            "key": "replication_lag_ms",
+            "ty": {
+              "max": 10000.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "float"
+            },
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "category": "data",
+        "color_token": "cat-data",
+        "default_flavour": "dynamodb",
+        "flavours": [
+          {
+            "flavour": "dynamodb",
+            "overrides": []
+          },
+          {
+            "flavour": "cassandra",
+            "overrides": []
+          },
+          {
+            "flavour": "mongodb",
+            "overrides": []
+          }
+        ],
+        "icon": "nosql",
+        "kind": "nosql",
+        "props": [
+          {
+            "default": 4,
+            "key": "partitions",
+            "ty": {
+              "max": 1024.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": 3,
+            "key": "replication_factor",
+            "ty": {
+              "max": 5.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": "eventual",
+            "key": "consistency",
+            "ty": {
+              "options": [
+                "eventual",
+                "strong"
+              ],
+              "type": "choice"
+            },
+            "unit": "none"
+          },
+          {
+            "default": 3,
+            "key": "service_ms",
+            "ty": {
+              "max": 10000.0,
+              "min": 0.1,
+              "step": 0.1,
+              "type": "float"
+            },
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "category": "data",
+        "color_token": "cat-data",
+        "default_flavour": "redis",
+        "flavours": [
+          {
+            "flavour": "redis",
+            "overrides": []
+          },
+          {
+            "flavour": "memcached",
+            "overrides": []
+          }
+        ],
+        "icon": "cache",
+        "kind": "cache",
+        "props": [
+          {
+            "default": 2,
+            "key": "memory_gb",
+            "ty": {
+              "max": 1024.0,
+              "min": 0.5,
+              "step": 0.5,
+              "type": "float"
+            },
+            "unit": "gb"
+          },
+          {
+            "default": 300,
+            "key": "ttl_s",
+            "ty": {
+              "max": 604800.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "s"
+          },
+          {
+            "default": "lru",
+            "key": "eviction",
+            "ty": {
+              "options": [
+                "lru",
+                "lfu",
+                "ttl"
+              ],
+              "type": "choice"
+            },
+            "unit": "none"
+          },
+          {
+            "default": false,
+            "key": "persistence",
+            "ty": {
+              "type": "bool"
+            },
+            "unit": "none"
+          },
+          {
+            "default": 0.5,
+            "key": "service_ms",
+            "ty": {
+              "max": 10000.0,
+              "min": 0.1,
+              "step": 0.1,
+              "type": "float"
+            },
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "category": "data",
+        "color_token": "cat-data",
+        "default_flavour": "s3",
+        "flavours": [
+          {
+            "flavour": "s3",
+            "overrides": []
+          },
+          {
+            "flavour": "gcs",
+            "overrides": []
+          }
+        ],
+        "icon": "object",
+        "kind": "object",
+        "props": [
+          {
+            "default": 50,
+            "key": "service_ms",
+            "ty": {
+              "max": 10000.0,
+              "min": 0.1,
+              "step": 0.1,
+              "type": "float"
+            },
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "category": "data",
+        "color_token": "cat-data",
+        "default_flavour": "elasticsearch",
+        "flavours": [
+          {
+            "flavour": "elasticsearch",
+            "overrides": []
+          },
+          {
+            "flavour": "opensearch",
+            "overrides": []
+          }
+        ],
+        "icon": "search",
+        "kind": "search",
+        "props": [
+          {
+            "default": 2,
+            "key": "shards",
+            "ty": {
+              "max": 64.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": 1,
+            "key": "replicas",
+            "ty": {
+              "max": 5.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": 20,
+            "key": "service_ms",
+            "ty": {
+              "max": 10000.0,
+              "min": 0.1,
+              "step": 0.1,
+              "type": "float"
+            },
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "category": "async",
+        "color_token": "cat-async",
+        "default_flavour": "rabbitmq",
+        "flavours": [
+          {
+            "flavour": "rabbitmq",
+            "overrides": []
+          },
+          {
+            "flavour": "sqs",
+            "overrides": []
+          }
+        ],
+        "icon": "queue",
+        "kind": "queue",
+        "props": [
+          {
+            "default": 100000,
+            "key": "max_depth",
+            "ty": {
+              "max": 10000000.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": 30,
+            "key": "visibility_timeout_s",
+            "ty": {
+              "max": 43200.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "s"
+          },
+          {
+            "default": 3,
+            "key": "max_retries",
+            "ty": {
+              "max": 20.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          }
+        ]
+      },
+      {
+        "category": "async",
+        "color_token": "cat-async",
+        "default_flavour": "kafka",
+        "flavours": [
+          {
+            "flavour": "kafka",
+            "overrides": []
+          },
+          {
+            "flavour": "kinesis",
+            "overrides": []
+          }
+        ],
+        "icon": "stream",
+        "kind": "stream",
+        "props": [
+          {
+            "default": 6,
+            "key": "partitions",
+            "ty": {
+              "max": 1024.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "default": 168,
+            "key": "retention_h",
+            "ty": {
+              "max": 8760.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "h"
+          }
+        ]
+      },
+      {
+        "category": "async",
+        "color_token": "cat-async",
+        "default_flavour": "google_pubsub",
+        "flavours": [
+          {
+            "flavour": "google_pubsub",
+            "overrides": []
+          },
+          {
+            "flavour": "sns",
+            "overrides": []
+          },
+          {
+            "flavour": "redis_pubsub",
+            "overrides": []
+          }
+        ],
+        "icon": "pubsub",
+        "kind": "pubsub",
+        "props": [
+          {
+            "default": 5,
+            "key": "service_ms",
+            "ty": {
+              "max": 10000.0,
+              "min": 0.1,
+              "step": 0.1,
+              "type": "float"
+            },
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "category": "async",
+        "color_token": "cat-async",
+        "default_flavour": "generic",
+        "flavours": [
+          {
+            "flavour": "generic",
+            "overrides": []
+          }
+        ],
+        "icon": "dlq",
+        "kind": "dlq",
+        "props": [
+          {
+            "default": 4,
+            "key": "retention_days",
+            "ty": {
+              "max": 14.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "days"
+          }
+        ]
+      },
+      {
+        "category": "async",
+        "color_token": "cat-async",
+        "default_flavour": "cron",
+        "flavours": [
+          {
+            "flavour": "cron",
+            "overrides": []
+          },
+          {
+            "flavour": "airflow",
+            "overrides": []
+          }
+        ],
+        "icon": "scheduler",
+        "kind": "scheduler",
+        "props": [
+          {
+            "default": 60,
+            "key": "interval_s",
+            "ty": {
+              "max": 86400.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "category": "ops",
+        "color_token": "cat-ops",
+        "default_flavour": "prometheus_grafana",
+        "flavours": [
+          {
+            "flavour": "prometheus_grafana",
+            "overrides": []
+          }
+        ],
+        "icon": "metrics",
+        "kind": "metrics",
+        "props": [
+          {
+            "default": 15,
+            "key": "retention_days",
+            "ty": {
+              "max": 365.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "days"
+          }
+        ]
+      },
+      {
+        "category": "ops",
+        "color_token": "cat-ops",
+        "default_flavour": "elk",
+        "flavours": [
+          {
+            "flavour": "elk",
+            "overrides": []
+          },
+          {
+            "flavour": "loki",
+            "overrides": []
+          }
+        ],
+        "icon": "logs",
+        "kind": "logs",
+        "props": [
+          {
+            "default": 7,
+            "key": "retention_days",
+            "ty": {
+              "max": 365.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "days"
+          }
+        ]
+      },
+      {
+        "category": "ops",
+        "color_token": "cat-ops",
+        "default_flavour": "jaeger",
+        "flavours": [
+          {
+            "flavour": "jaeger",
+            "overrides": []
+          }
+        ],
+        "icon": "tracing",
+        "kind": "tracing",
+        "props": [
+          {
+            "default": 10,
+            "key": "sample_rate",
+            "ty": {
+              "max": 100.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "float"
+            },
+            "unit": "percent"
+          }
+        ]
+      }
+    ],
+    "limits": {
+      "max_edges": 2000,
+      "max_groups": 100,
+      "max_label": 120,
+      "max_nodes": 500,
+      "max_note": 4000,
+      "max_notes": 200
+    },
+    "meta": [
+      {
+        "icon": "zone",
+        "kind": "region"
+      },
+      {
+        "icon": "zone",
+        "kind": "az"
+      },
+      {
+        "icon": "note",
+        "kind": "note"
+      }
+    ],
+    "wiring": {
+      "denials": [
+        {
+          "from": {
+            "categories": [
+              "edge",
+              "compute",
+              "data",
+              "async",
+              "ops"
+            ],
+            "except": [],
+            "kinds": []
+          },
+          "reason": "into_client",
+          "to": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "client"
+            ]
+          }
+        },
+        {
+          "from": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "client"
+            ]
+          },
+          "reason": "client_to_data",
+          "to": {
+            "categories": [
+              "data"
+            ],
+            "except": [],
+            "kinds": []
+          }
+        },
+        {
+          "from": {
+            "categories": [
+              "ops"
+            ],
+            "except": [],
+            "kinds": []
+          },
+          "reason": "from_ops",
+          "to": {
+            "categories": [
+              "edge",
+              "compute",
+              "data",
+              "async",
+              "ops"
+            ],
+            "except": [],
+            "kinds": []
+          }
+        },
+        {
+          "from": {
+            "categories": [
+              "data"
+            ],
+            "except": [],
+            "kinds": []
+          },
+          "reason": "data_calls_out",
+          "to": {
+            "categories": [
+              "edge",
+              "compute",
+              "data",
+              "async",
+              "ops"
+            ],
+            "except": [],
+            "kinds": []
+          }
+        },
+        {
+          "from": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "queue",
+              "stream",
+              "pubsub",
+              "dlq"
+            ]
+          },
+          "reason": "consume_needs_compute",
+          "to": {
+            "categories": [
+              "edge",
+              "compute",
+              "data",
+              "async",
+              "ops"
+            ],
+            "except": [],
+            "kinds": []
+          }
+        },
+        {
+          "from": {
+            "categories": [
+              "edge"
+            ],
+            "except": [],
+            "kinds": []
+          },
+          "reason": "edge_to_data",
+          "to": {
+            "categories": [
+              "data"
+            ],
+            "except": [],
+            "kinds": []
+          }
+        }
+      ],
+      "rules": [
+        {
+          "from": {
+            "categories": [
+              "edge",
+              "compute"
+            ],
+            "except": [
+              "autoscale"
+            ],
+            "kinds": []
+          },
+          "id": "sync_call",
+          "protocol": "http",
+          "same_kind": false,
+          "to": {
+            "categories": [
+              "edge",
+              "compute"
+            ],
+            "except": [
+              "client",
+              "autoscale"
+            ],
+            "kinds": []
+          }
+        },
+        {
+          "from": {
+            "categories": [
+              "edge",
+              "compute"
+            ],
+            "except": [
+              "autoscale"
+            ],
+            "kinds": []
+          },
+          "id": "sync_call",
+          "protocol": "grpc",
+          "same_kind": false,
+          "to": {
+            "categories": [
+              "edge",
+              "compute"
+            ],
+            "except": [
+              "client",
+              "autoscale"
+            ],
+            "kinds": []
+          }
+        },
+        {
+          "from": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "client",
+              "lb",
+              "gateway"
+            ]
+          },
+          "id": "websocket",
+          "protocol": "ws",
+          "same_kind": false,
+          "to": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "lb",
+              "gateway",
+              "app",
+              "micro"
+            ]
+          }
+        },
+        {
+          "from": {
+            "categories": [
+              "compute"
+            ],
+            "except": [
+              "autoscale"
+            ],
+            "kinds": [
+              "search"
+            ]
+          },
+          "id": "query",
+          "protocol": "query",
+          "same_kind": false,
+          "to": {
+            "categories": [
+              "data"
+            ],
+            "except": [],
+            "kinds": []
+          }
+        },
+        {
+          "from": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "ratelimit"
+            ]
+          },
+          "id": "token_bucket",
+          "protocol": "query",
+          "same_kind": false,
+          "to": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "cache"
+            ]
+          }
+        },
+        {
+          "from": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "cdn"
+            ]
+          },
+          "id": "cdn_origin",
+          "protocol": "http",
+          "same_kind": false,
+          "to": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "object"
+            ]
+          }
+        },
+        {
+          "from": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "client"
+            ]
+          },
+          "id": "presigned_upload",
+          "protocol": "http",
+          "same_kind": false,
+          "to": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "object"
+            ]
+          }
+        },
+        {
+          "from": {
+            "categories": [
+              "compute"
+            ],
+            "except": [
+              "autoscale"
+            ],
+            "kinds": [
+              "client",
+              "scheduler"
+            ]
+          },
+          "id": "publish",
+          "protocol": "publish",
+          "same_kind": false,
+          "to": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "queue",
+              "stream",
+              "pubsub"
+            ]
+          }
+        },
+        {
+          "from": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "queue",
+              "stream"
+            ]
+          },
+          "id": "dead_letter",
+          "protocol": "publish",
+          "same_kind": false,
+          "to": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "dlq"
+            ]
+          }
+        },
+        {
+          "from": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "sql",
+              "nosql"
+            ]
+          },
+          "id": "change_data_capture",
+          "protocol": "publish",
+          "same_kind": false,
+          "to": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "stream"
+            ]
+          }
+        },
+        {
+          "from": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "pubsub"
+            ]
+          },
+          "id": "fan_out",
+          "protocol": "publish",
+          "same_kind": false,
+          "to": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "queue"
+            ]
+          }
+        },
+        {
+          "from": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "queue",
+              "stream",
+              "pubsub",
+              "dlq"
+            ]
+          },
+          "id": "consume",
+          "protocol": "consume",
+          "same_kind": false,
+          "to": {
+            "categories": [
+              "compute"
+            ],
+            "except": [
+              "autoscale"
+            ],
+            "kinds": []
+          }
+        },
+        {
+          "from": {
+            "categories": [
+              "data"
+            ],
+            "except": [],
+            "kinds": [
+              "stream"
+            ]
+          },
+          "id": "replicate",
+          "protocol": "replicate",
+          "same_kind": true,
+          "to": {
+            "categories": [
+              "data"
+            ],
+            "except": [],
+            "kinds": [
+              "stream"
+            ]
+          }
+        },
+        {
+          "from": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "scheduler"
+            ]
+          },
+          "id": "scheduled_job",
+          "protocol": "http",
+          "same_kind": false,
+          "to": {
+            "categories": [
+              "compute"
+            ],
+            "except": [
+              "autoscale"
+            ],
+            "kinds": []
+          }
+        },
+        {
+          "from": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "autoscale"
+            ]
+          },
+          "id": "scale_control",
+          "protocol": "http",
+          "same_kind": false,
+          "to": {
+            "categories": [],
+            "except": [],
+            "kinds": [
+              "app",
+              "micro",
+              "worker"
+            ]
+          }
+        },
+        {
+          "from": {
+            "categories": [
+              "edge",
+              "compute",
+              "data",
+              "async"
+            ],
+            "except": [
+              "client"
+            ],
+            "kinds": []
+          },
+          "id": "telemetry",
+          "protocol": "http",
+          "same_kind": false,
+          "to": {
+            "categories": [
+              "ops"
+            ],
+            "except": [],
+            "kinds": []
+          }
+        }
+      ]
+    }
+  }
+}

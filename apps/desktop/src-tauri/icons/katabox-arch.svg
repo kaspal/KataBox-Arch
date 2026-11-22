@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- KataBox Arch: three index cards on paper, wired with curved edges. -->
+  <rect x="32" y="32" width="960" height="960" rx="200" fill="#F8F4EB"/>
+  <rect x="32" y="32" width="960" height="960" rx="200" fill="none" stroke="#D9D5CA" stroke-width="16"/>
+  <path d="M318 400 C 470 400, 470 300, 600 300" fill="none" stroke="#35689E" stroke-width="34" stroke-linecap="round"/>
+  <path d="M318 400 C 470 400, 470 700, 600 700" fill="none" stroke="#C45832" stroke-width="34" stroke-linecap="round" stroke-dasharray="1 62"/>
+  <rect x="140" y="320" width="200" height="160" rx="36" fill="#FFFCF5" stroke="#26302B" stroke-width="22"/>
+  <rect x="590" y="220" width="290" height="160" rx="36" fill="#FFFCF5" stroke="#35689E" stroke-width="26"/>
+  <rect x="590" y="620" width="290" height="160" rx="36" fill="#FFFCF5" stroke="#26302B" stroke-width="22"/>
+  <rect x="628" y="258" width="84" height="84" rx="20" fill="#35689E" opacity="0.18"/>
+  <rect x="628" y="658" width="84" height="84" rx="20" fill="#C45832" opacity="0.2"/>
+  <rect x="178" y="358" width="84" height="84" rx="20" fill="#3F7560" opacity="0.2"/>
+</svg>
