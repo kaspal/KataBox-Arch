@@ -3,13 +3,13 @@
 [[drill]]
 id = "bus-messages-per-month"
 kind = "capacity"
-prompt = "Editors send {peak_rps} messages a second at peak, and {edit_pct}% of them are edits, each published once to a Redis Pub/Sub. If that rate held for a month of {days} days, how many messages would the bus carry? It bills $0.50 per million."
-prompt_es = "Los editores envían {peak_rps} mensajes por segundo en el pico, y el {edit_pct} % son ediciones, que se publican una vez en un Pub/Sub Redis. Si ese ritmo se mantuviera durante un mes de {days} días, ¿cuántos mensajes transportaría el bus? Cobra 0,50 $ por millón."
+prompt = "Editors send {peak_rps} messages a second at peak, and {edit_pct}% of them are edits, each published once to a Redis Pub/Sub. If that rate held for a month of {days} days, how many messages would the bus carry?"
+prompt_es = "Los editores envían {peak_rps} mensajes por segundo en el pico, y el {edit_pct} % son ediciones, que se publican una vez en un Pub/Sub Redis. Si ese ritmo se mantuviera durante un mes de {days} días, ¿cuántos mensajes transportaría el bus?"
 inputs = { peak_rps = 6_000, edit_pct = 90, days = 30 }
 formula = "peak_rps * edit_pct / 100 * 86400 * days"
 unit = "count"
-solution = "{edit_pct}% of {peak_rps} = 5,400 edits a second. × 86,400 s × {days} days ≈ {answer} messages, about 14,000 million. At $0.50 per million that is about $7,000 a month, far more than the sync servers and the database together. Every edit you avoid sending, for example by batching keystrokes, comes straight off this line."
-solution_es = "El {edit_pct} % de {peak_rps} = 5400 ediciones por segundo. × 86 400 s × {days} días ≈ {answer} mensajes, unos 14 000 millones. A 0,50 $ por millón son unos 7000 $ al mes, mucho más que los servidores de sincronización y la base de datos juntos. Cada edición que evitas enviar, por ejemplo agrupando pulsaciones, sale directamente de esta línea."
+solution = "{edit_pct}% of {peak_rps} = 5,400 edits a second. × 86,400 s × {days} days ≈ {answer} messages, about 14,000 million. The bill doesn't grow with them: a self-hosted Redis Pub/Sub is one node at $36 a month, with no fee per message. The work does: every sync card receives each of these messages. Every edit you avoid sending, for example by batching keystrokes, takes load off every card."
+solution_es = "El {edit_pct} % de {peak_rps} = 5400 ediciones por segundo. × 86 400 s × {days} días ≈ {answer} mensajes, unos 14 000 millones. La factura no crece con ellos: un Pub/Sub Redis propio es un nodo de 36 $ al mes, sin coste por mensaje. El trabajo sí: cada tarjeta de sincronización recibe todos estos mensajes. Cada edición que evitas enviar, por ejemplo agrupando pulsaciones, quita carga a todas las tarjetas."
 
 [[drill]]
 id = "sync-slots-alone"

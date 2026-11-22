@@ -391,7 +391,8 @@
       "retention_h": "Retention",
       "retention_days": "Retention",
       "interval_s": "Interval",
-      "sample_rate": "Sample rate"
+      "sample_rate": "Sample rate",
+      "query_ratio": "Share of requests that are DNS queries"
     },
     "choice": {
       "round_robin": "Round robin",
@@ -463,16 +464,17 @@
     "p99": "p99 latency",
     "throughput": "Throughput",
     "errorRate": "Error rate",
-    "cost": "Cost",
+    "cost": "Monthly cost",
     "perMonth": "/month",
-    "lastSecond": "Latency, throughput and errors cover the last simulated second; cost is per month at the traffic so far.",
+    "lastSecond": "Latency, throughput and errors cover the last simulated second. Cost is per month at this run's average load, at list prices: no free tiers, discounts or data transfer.",
     "busiest": "Busiest components",
     "down": "down",
     "sampled": "Simulating {{pct}}% of requests; counts are scaled back up.",
     "p95Trend": "p95 latency per second",
     "stale": "Stale reads",
     "availability": "Availability",
-    "retried": "Retries"
+    "retried": "Retries",
+    "costTest": "The cost is for the test “{{name}}”."
   },
   "breaking": {
     "title": "Breaking point",
@@ -540,7 +542,8 @@
     "hint": "Hint {{n}}",
     "showHint": "Show hint {{n}}",
     "editorial": "Editorial",
-    "compare": "Compare"
+    "compare": "Compare",
+    "testAvailability": "availability ≥ {{a}}"
   },
   "results": {
     "title": "Results",
@@ -567,7 +570,9 @@
     },
     "stuck": "Stuck?",
     "retried_one": "{{n}} attempt failed and was retried: not an error, since the message was still delivered or kept.",
-    "retried_other": "{{n}} attempts failed and were retried: not errors, since the messages were still delivered or kept."
+    "retried_other": "{{n}} attempts failed and were retried: not errors, since the messages were still delivered or kept.",
+    "costNote": "Monthly cost at the load of “{{test}}”, at list prices: no free tiers, discounts or data transfer.",
+    "lost": "{{n}} messages lost (limit {{limit}})"
   },
   "compare": {
     "open": "Compare with reference",
@@ -666,12 +671,16 @@
     "costField": {
       "per_instance_month": "Price per instance",
       "per_gb_month": "Price per GB",
-      "per_million": "Price per million requests"
+      "per_million": "Price per million requests or reads",
+      "per_lane_month": "Price per shard or partition",
+      "per_million_write": "Price per million writes or messages"
     },
     "costUnit": {
       "per_instance_month": "{{v}} a month",
       "per_gb_month": "{{v}} per GB a month",
-      "per_million": "{{v}} per million"
+      "per_million": "{{v}} per million",
+      "per_lane_month": "{{v}} a month each",
+      "per_million_write": "{{v}} per million"
     },
     "conceptCard": "Concept card",
     "playConcept_one": "Play the concept card ({{count}} step)",

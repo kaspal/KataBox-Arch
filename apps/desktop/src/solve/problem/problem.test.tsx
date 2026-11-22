@@ -59,6 +59,8 @@ describe("solving a problem", () => {
     const tests = within(brief).getByTestId("tests");
     expect(tests).toHaveTextContent("Link goes viral");
     expect(tests).toHaveTextContent("hidden");
+    // A visible test with its own availability limit says so (M7b.4).
+    expect(tests).toHaveTextContent("60 s · availability ≥ 99%");
     await user.click(within(brief).getByRole("button", { name: "Show hint 1" }));
     expect(await within(brief).findByText("Look at the reads.")).toBeInTheDocument();
     expect(fake().api.unlockHint).toHaveBeenCalledWith("url-shortener", 1);
@@ -82,6 +84,12 @@ describe("solving a problem", () => {
     // A p99 cell only where the test has a p99 limit.
     expect(within(rows[0]).queryByTestId("p99")).toBeNull();
     expect(within(rows[1]).getByTestId("p99")).toHaveTextContent("900 ms / 120 ms");
+    // Each test shows its availability limit, and lost messages against theirs (M7b.4).
+    expect(within(rows[1]).getByTestId("availability")).toHaveTextContent("96.6% / ≥ 99.9%");
+    expect(within(rows[0]).queryByTestId("lost")).toBeNull();
+    expect(within(rows[1]).getByTestId("lost")).toHaveTextContent("12 messages lost (limit 0)");
+    // The cost says which test's load and which prices it uses.
+    expect(within(results).getByTestId("cost-note")).toHaveTextContent("Monthly cost at the load of “Normal day”, at list prices");
     // Retried attempts are their own number, not errors (review F3).
     expect(within(rows[0]).queryByTestId("retried")).toBeNull();
     expect(within(rows[1]).getByTestId("retried")).toHaveTextContent("1,234 attempts failed and were retried: not errors");

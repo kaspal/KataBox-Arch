@@ -8,7 +8,7 @@ Un stream entrega un mensaje por partición cada vez, así que las particiones l
 
 ## El diseño de referencia
 
-La Collector, con 2 instancias Go detrás de un Load Balancer, publica cada lote en un stream Kafka con 128 particiones. Lo consumen dos tarjetas de Shippers Celery, Shippers A y Shippers B, cada una con 10 instancias y la concurrencia por defecto de Celery, 8: 160 huecos en total, más que las 128 particiones, así que cualquiera de las dos puede con un día normal ella sola. Las dos escriben en un archivo S3; las búsquedas van a Elasticsearch. Cuesta unos 4913 $ al mes, sobre todo por el archivo: unos 2569 $, porque S3 cobra cada escritura y 990 lotes por segundo son unos 2600 millones de escrituras al mes. En un día normal el p95 es de unos 152 ms.
+La Collector, con 2 instancias Go detrás de un Load Balancer, publica cada lote en un stream Kafka con 128 particiones. Lo consumen dos tarjetas de Shippers Celery, Shippers A y Shippers B, cada una con 10 instancias y la concurrencia por defecto de Celery, 8: 160 huecos en total, más que las 128 particiones, así que cualquiera de las dos puede con un día normal ella sola. Las dos escriben en un archivo S3; las búsquedas van a Elasticsearch. Cuesta unos 14 814 $ al mes, sobre todo por el archivo: unos 12 800 $, porque S3 cobra 5 $ por cada millón de escrituras y 990 lotes por segundo son unos 2600 millones de escrituras al mes. En un día normal el p95 es de unos 152 ms.
 
 «Un incidente triplica los logs» multiplica el tráfico por tres durante 10 segundos, a partir del segundo 20, y admite un p95 de 15 segundos. Llegan unos 1000 lotes por segundo más de los que pueden archivar 128 particiones, así que se acumulan unos 10 000 en el stream. Después, los 1000 por segundo de sobra los despachan en unos 10 segundos: el p95 queda en unos 5,4 s.
 
@@ -16,7 +16,7 @@ La Collector, con 2 instancias Go detrás de un Load Balancer, publica cada lote
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual usa 96 particiones y una sola tarjeta de Shippers con 12 instancias: 96 huecos, por unos 4353 $ al mes. Supera «Un día normal» con el mismo p95. Incluso supera el incidente, aunque su atasco, mayor, se vacía más despacio y el p95 llega a unos 10,5 s.
+Un primer intento habitual usa 96 particiones y una sola tarjeta de Shippers con 12 instancias: 96 huecos, por unos 14 254 $ al mes. Supera «Un día normal» con el mismo p95. Incluso supera el incidente, aunque su atasco, mayor, se vacía más despacio y el p95 llega a unos 10,5 s.
 
 Donde falla es en la prueba del rebalanceo. Cuando cae la única tarjeta de Shippers, el stream ya no tiene a quién entregar los lotes. A partir del segundo 20 no se archiva nada; cada lote espera hasta que termina la ejecución y cuenta con la antigüedad que tenga entonces. El p95 llega a unos 66 segundos. No se pierde ningún lote; el stream los guarda todos.
 

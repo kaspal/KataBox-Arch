@@ -11,7 +11,7 @@ Tienes una API pública con 50 clientes de pago. Cada cliente la llama con su pr
 | Tráfico pico | 3 000 peticiones/s |
 | Latencia p95 | 100 ms o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 1 500 $ al mes |
+| Presupuesto | 1500 $ al mes |
 
 ## El tráfico
 

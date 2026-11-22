@@ -39,9 +39,10 @@ export function simValue(t: TFunction, lang: string, spec: KindSpec, flavour: Fl
         return num(n);
     }
   }
-  const c = f?.cost as Record<string, number> | undefined;
-  const n = c?.[v.cost];
-  if (n === undefined) return "—";
+  const c = f?.cost as Record<string, number | null> | undefined;
+  // A write price left unset bills writes as reads.
+  const n = v.cost === "per_million_write" ? (c?.per_million_write ?? c?.per_million) : c?.[v.cost];
+  if (n === undefined || n === null) return "—";
   const usd = new Intl.NumberFormat(lang, { style: "currency", currency: "USD", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n);
   return t(`guide.costUnit.${v.cost}` as "guide.costUnit.per_million", { v: usd });
 }

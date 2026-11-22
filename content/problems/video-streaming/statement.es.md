@@ -12,7 +12,7 @@ Tienes un servicio de vídeo. Los espectadores pulsan reproducir y el reproducto
 | Reproducción de segmentos | 99 % de las peticiones |
 | Latencia p95 | 80 ms o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 15 000 $ al mes |
+| Presupuesto | 17 000 $ al mes |
 
 ## El tráfico
 

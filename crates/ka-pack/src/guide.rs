@@ -27,7 +27,13 @@ pub const SIM_FIELDS: [&str; 6] = [
     "failover_s",
     "write_slots",
 ];
-pub const COST_FIELDS: [&str; 3] = ["per_instance_month", "per_gb_month", "per_million"];
+pub const COST_FIELDS: [&str; 5] = [
+    "per_instance_month",
+    "per_lane_month",
+    "per_gb_month",
+    "per_million",
+    "per_million_write",
+];
 /// Props the simulator doesn't read (design notes only): an "In the simulator" row may not
 /// name them. `tests/guide.rs` checks `ka-sim` still ignores each one.
 pub const NOT_SIMULATED: [&str; 9] = [

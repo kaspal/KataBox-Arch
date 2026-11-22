@@ -11,7 +11,7 @@ You run click counting for an ad network. Each time someone clicks an ad, the ad
 | Peak traffic | 10,000 requests/s |
 | p95 completion latency | 30 s or less |
 | Availability | 99.9% or more |
-| Budget | $8,000 per month |
+| Budget | $2,000 per month |
 | Lost messages | None |
 
 ## The traffic

@@ -12,7 +12,7 @@ tags = ["queues", "workers", "object-storage", "leases"]
 peak_rps = 300
 p95_ms = 5000
 availability = 0.999
-budget_usd = 5000
+budget_usd = 14500
 
 [[request_types]]
 id = "upload"

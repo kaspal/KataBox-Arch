@@ -11,7 +11,7 @@ Llevas un editor de documentos en el que varias personas pueden trabajar a la ve
 | Tráfico pico | 6000 mensajes/s |
 | Latencia p95 hasta completar | 150 ms o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 11 000 $ al mes |
+| Presupuesto | 1600 $ al mes |
 
 ## El tráfico
 

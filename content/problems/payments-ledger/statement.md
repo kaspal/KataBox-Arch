@@ -11,7 +11,7 @@ You run the money-moving core of a payments app. Every transfer takes an amount 
 | Peak traffic | 1,000 transfers/s |
 | p95 completion latency | 3 s or less |
 | Availability | 99.9% or more |
-| Budget | $4,000 per month |
+| Budget | $3,800 per month |
 | Lost messages | None |
 
 ## The traffic

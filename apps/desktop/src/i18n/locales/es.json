@@ -391,7 +391,8 @@
       "retention_h": "Retención",
       "retention_days": "Retención",
       "interval_s": "Intervalo",
-      "sample_rate": "Tasa de muestreo"
+      "sample_rate": "Tasa de muestreo",
+      "query_ratio": "Parte de las peticiones que son consultas DNS"
     },
     "choice": {
       "round_robin": "Round robin",
@@ -463,16 +464,17 @@
     "p99": "Latencia p99",
     "throughput": "Rendimiento",
     "errorRate": "Tasa de errores",
-    "cost": "Coste",
+    "cost": "Coste mensual",
     "perMonth": "/mes",
-    "lastSecond": "Latencia, rendimiento y errores cubren el último segundo simulado; el coste es mensual con el tráfico visto hasta ahora.",
+    "lastSecond": "Latencia, rendimiento y errores son del último segundo simulado. El coste es mensual, con la carga media de esta ejecución y precios de lista: sin niveles gratuitos, descuentos ni transferencia de datos.",
     "busiest": "Componentes más ocupados",
     "down": "caído",
     "sampled": "Se simula el {{pct}} % de las solicitudes; los recuentos se escalan de vuelta.",
     "p95Trend": "Latencia p95 por segundo",
     "stale": "Lecturas obsoletas",
     "availability": "Disponibilidad",
-    "retried": "Reintentos"
+    "retried": "Reintentos",
+    "costTest": "El coste es el de la prueba «{{name}}»."
   },
   "breaking": {
     "title": "Punto de ruptura",
@@ -540,7 +542,8 @@
     "hint": "Pista {{n}}",
     "showHint": "Mostrar la pista {{n}}",
     "editorial": "Solución comentada",
-    "compare": "Comparar"
+    "compare": "Comparar",
+    "testAvailability": "disponibilidad ≥ {{a}}"
   },
   "results": {
     "title": "Resultados",
@@ -567,7 +570,9 @@
     },
     "stuck": "¿Te has atascado?",
     "retried_one": "{{n}} intento falló y se reintentó: no es un error, porque el mensaje se entregó o se guardó igualmente.",
-    "retried_other": "{{n}} intentos fallaron y se reintentaron: no son errores, porque los mensajes se entregaron o se guardaron igualmente."
+    "retried_other": "{{n}} intentos fallaron y se reintentaron: no son errores, porque los mensajes se entregaron o se guardaron igualmente.",
+    "costNote": "Coste mensual con la carga de «{{test}}», a precios de lista: sin niveles gratuitos, descuentos ni transferencia de datos.",
+    "lost": "{{n}} mensajes perdidos (límite {{limit}})"
   },
   "compare": {
     "open": "Comparar con la referencia",
@@ -666,12 +671,16 @@
     "costField": {
       "per_instance_month": "Precio por instancia",
       "per_gb_month": "Precio por GB",
-      "per_million": "Precio por millón de peticiones"
+      "per_million": "Precio por millón de peticiones o lecturas",
+      "per_lane_month": "Precio por shard o partición",
+      "per_million_write": "Precio por millón de escrituras o mensajes"
     },
     "costUnit": {
       "per_instance_month": "{{v}} al mes",
       "per_gb_month": "{{v}} por GB al mes",
-      "per_million": "{{v}} por millón"
+      "per_million": "{{v}} por millón",
+      "per_lane_month": "{{v}} al mes cada uno",
+      "per_million_write": "{{v}} por millón"
     },
     "conceptCard": "Tarjeta de concepto",
     "playConcept_one": "Ver la tarjeta de concepto ({{count}} paso)",

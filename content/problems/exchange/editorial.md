@@ -8,7 +8,7 @@ A stream hands out one message per partition at a time, so one partition matches
 
 ## The reference design
 
-The Order gateway, 6 Go instances behind a Network Load Balancer, publishes each order to a Kafka stream, the Order log, with 128 partitions. Two Celery matcher cards consume it, Matchers A and Matchers B, each with 12 instances at Celery's default concurrency of 8: 96 slots per card, 192 in all. Both write to a Redis order book with a TTL of 86,400 seconds. This costs about $7,447 per month, mostly the stream: about $5,286, because Kafka is billed per message and 10,000 orders a second is about 26 billion messages a month. On a normal session the p95 is about 19 ms, with the gateway and the matchers about 16% busy.
+The Order gateway, 6 Go instances behind a Network Load Balancer, publishes each order to a Kafka stream, the Order log, with 128 partitions. Two Celery matcher cards consume it, Matchers A and Matchers B, each with 12 instances at Celery's default concurrency of 8: 96 slots per card, 192 in all. Both write to a Redis order book with a TTL of 86,400 seconds. This costs about $2,314 per month, mostly the matchers: 24 instances at $70 is $1,680. 10,000 orders a second is about 26 billion messages a month, but Kafka (Amazon MSK) is billed per broker, not per message: the stream is one broker at $153. On a normal session the p95 is about 19 ms, with the gateway and the matchers about 16% busy.
 
 "The market opens" runs four times the traffic for 10 seconds, from 20 seconds in, and allows a p95 of 1 s and a p99 of 3 s. 40,000 orders a second fit under the ceiling of 128 partitions, and 6 gateway instances can take about 76,800 a second, so no backlog forms: the p95 stays at about 19 ms.
 
@@ -16,7 +16,7 @@ The Order gateway, 6 Go instances behind a Network Load Balancer, publishes each
 
 ## Why the first try breaks
 
-A common first try uses 3 gateway instances, 48 partitions and one matcher card of 8 instances: 64 slots, for about $6,117 per month. It passes "Normal session" with the same p95 of about 19 ms; the matchers are about 47% busy.
+A common first try uses 3 gateway instances, 48 partitions and one matcher card of 8 instances: 64 slots, for about $984 per month. It passes "Normal session" with the same p95 of about 19 ms; the matchers are about 47% busy.
 
 At the open it runs short twice. 3 gateway instances take about 38,400 orders a second, just under the 40,000 that arrive, and 48 partitions match only about 16,000. The backlog grows for the whole 10 seconds: about 16% of the orders fail and the p95 reaches about 6.4 s.
 

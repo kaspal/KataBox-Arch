@@ -316,7 +316,7 @@ pub enum CalibrationStatus {
 }
 
 /// Props whose defaults are calibrated figures rather than design choices.
-pub const CALIBRATED_PROPS: [&str; 8] = [
+pub const CALIBRATED_PROPS: [&str; 9] = [
     "service_ms",
     "concurrency",
     "concurrency_limit",
@@ -325,11 +325,12 @@ pub const CALIBRATED_PROPS: [&str; 8] = [
     "failover_s",
     "visibility_timeout_s",
     "session_timeout_s",
+    "query_ratio",
 ];
 
 /// Calibration row ids whose source has been confirmed (the planning chat checked these on
 /// 2026-11-22; `docs/calibration.md` quotes each source). Every other row is `source: needed`.
-pub const CITED: [&str; 13] = [
+pub const CITED: [&str; 42] = [
     "sql.concurrency",
     "sql.concurrency@mysql",
     "sql.failover_s",
@@ -343,6 +344,36 @@ pub const CITED: [&str; 13] = [
     "search.servers_per_instance",
     "stream.session_timeout_s",
     "nosql.write_slots@dynamodb",
+    // Prices cited in the M7b plan review (list prices, us-east-1, read 2026-11-22).
+    "dns.cost.million",
+    "nosql.cost.million",
+    "nosql.cost.million_write",
+    "nosql.cost.lane@cassandra",
+    "nosql.cost.million@cassandra",
+    "nosql.cost.million_write@cassandra",
+    "nosql.cost.lane@mongodb",
+    "nosql.cost.million@mongodb",
+    "nosql.cost.million_write@mongodb",
+    "object.cost.million",
+    "object.cost.million_write",
+    "queue.cost.million",
+    "queue.cost.million_write",
+    "queue.cost.instance@rabbitmq",
+    "queue.cost.million@rabbitmq",
+    "queue.cost.million_write@rabbitmq",
+    "stream.cost.instance",
+    "stream.cost.instance@kinesis",
+    "stream.cost.lane@kinesis",
+    "stream.cost.million_write@kinesis",
+    "stream.cost.unit_kb@kinesis",
+    "pubsub.cost.million_write",
+    "pubsub.cost.million@google_pubsub",
+    "pubsub.cost.million_write@google_pubsub",
+    "pubsub.cost.unit_kb@google_pubsub",
+    "pubsub.cost.instance@redis_pubsub",
+    "pubsub.cost.million_write@redis_pubsub",
+    "dlq.cost.million",
+    "dlq.cost.million_write",
 ];
 
 fn calibration_status(id: &str) -> CalibrationStatus {
@@ -414,15 +445,27 @@ pub struct FlavourSpec {
     pub sim: Option<SimDefaults>,
 }
 
-/// A flavour's monthly price: per instance (or per card), per GB of cache memory, and per
-/// million requests through it. Teaching figures, loosely shaped like public list prices
-/// (ADR 0006); the judge compares designs with each other, never with a real bill.
+/// A flavour's monthly price (ADR 0006): per instance (or per card), per shard or partition,
+/// per GB of cache memory, and per million requests through it, reads and writes apart.
+/// List prices (us-east-1, on demand, read 2026-11-22; `docs/calibration.md` cites each) with
+/// no free tiers, discounts or data transfer; the judge compares designs with each other.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct Cost {
     pub per_instance_month: f64,
+    /// Per lane (a stream's partitions as shards, a NoSQL card's partitions as nodes), for
+    /// products billed that way. SQL and Search scale `per_instance_month` by their shards
+    /// over the default instead (M5.0's cost per shard).
+    pub per_lane_month: f64,
     pub per_gb_month: f64,
+    /// Per million requests served; for stores and brokers, the reads (GET, read units,
+    /// deliveries, the receive of a retried message).
     pub per_million: f64,
+    /// Per million writes (PUT, write units, publishes, messages); None bills them as reads.
+    pub per_million_write: Option<f64>,
+    /// Billing unit size: a request counts `max(1, payload_kb / unit_kb)` units; 0 counts
+    /// every request as one.
+    pub unit_kb: f64,
 }
 
 /// The kind's behaviour where it has no prop (`docs/calibration.md`, rows `<kind>.<field>`).
@@ -474,6 +517,47 @@ fn kind_sim(kind: ComponentKind) -> Option<SimDefaults> {
     s
 }
 
+/// A flavour's own price, where it isn't its kind's.
+fn flavour_cost(flavour: Flavour) -> Option<Cost> {
+    use Flavour as F;
+    let lane = |m: f64| Cost {
+        per_lane_month: m,
+        per_million_write: Some(0.0),
+        ..Cost::default()
+    };
+    let node = |m: f64| Cost {
+        per_instance_month: m,
+        per_million_write: Some(0.0),
+        ..Cost::default()
+    };
+    Some(match flavour {
+        // Self-hosted on EC2 m5.large ($0.096/h × 730); no per-request fee.
+        F::Rabbitmq => node(70.0),
+        // $0.015 per shard-hour × 730, plus $0.014 per million 25 KB PUT payload units.
+        F::Kinesis => Cost {
+            per_lane_month: 10.95,
+            per_million_write: Some(0.014),
+            unit_kb: 25.0,
+            ..Cost::default()
+        },
+        // $40 per TiB, at least 1 KB per publish and per delivery: $0.037 per million each.
+        F::GooglePubsub => Cost {
+            per_million: 0.037,
+            per_million_write: Some(0.037),
+            unit_kb: 1.0,
+            ..Cost::default()
+        },
+        // Self-hosted Redis: the cache node price (2 GB at $18/GB-month); no per-message fee.
+        F::RedisPubsub => node(36.0),
+        // Self-hosted on EC2 i4i.xlarge ($0.343/h × 730) per node (partition).
+        F::Cassandra => lane(250.0),
+        // MongoDB Atlas M30 ($0.54/h × 730) per shard (partition), a 3-node replica set.
+        F::Mongodb => lane(394.0),
+        // GCS Standard: Class B $0.40, Class A $5.00 per million, as S3.
+        _ => return None,
+    })
+}
+
 /// A flavour's departures from its kind's behaviour.
 fn flavour_sim(flavour: Flavour, s: &mut SimDefaults) {
     use Flavour as F;
@@ -491,13 +575,20 @@ fn flavour_sim(flavour: Flavour, s: &mut SimDefaults) {
     }
 }
 
-/// The kind's default price (flavours may override in `fl_cost`).
+/// The kind's default price (flavours depart from it in `flavour_cost`).
 fn kind_cost(kind: ComponentKind) -> Cost {
     use ComponentKind as K;
     let c = |i: f64, g: f64, m: f64| Cost {
         per_instance_month: i,
         per_gb_month: g,
         per_million: m,
+        ..Cost::default()
+    };
+    // Reads and writes priced apart.
+    let rw = |read: f64, write: f64| Cost {
+        per_million: read,
+        per_million_write: Some(write),
+        ..Cost::default()
     };
     match kind {
         K::Client | K::Autoscale => c(0.0, 0.0, 0.0),
@@ -510,14 +601,19 @@ fn kind_cost(kind: ComponentKind) -> Cost {
         K::App | K::Micro | K::Worker => c(70.0, 0.0, 0.0),
         K::Serverless => c(0.0, 0.0, 0.5),
         K::Sql => c(350.0, 0.0, 0.0),
-        K::Nosql => c(120.0, 0.0, 0.5),
+        // DynamoDB on demand: $0.125 per million read units, $0.625 per million write units.
+        K::Nosql => rw(0.125, 0.625),
         K::Cache => c(0.0, 18.0, 0.0),
-        K::Object => c(0.0, 0.0, 1.0),
+        // S3: GET $0.40, PUT $5.00 per million.
+        K::Object => rw(0.4, 5.0),
         K::Search => c(250.0, 0.0, 0.0),
-        K::Queue => c(40.0, 0.0, 0.4),
-        K::Stream => c(15.0, 0.0, 0.2),
-        K::Pubsub => c(0.0, 0.0, 0.5),
-        K::Dlq => c(0.0, 0.0, 0.4),
+        // SQS: $0.40 per million requests, three per message (send, receive, delete); a
+        // retry is one more receive.
+        K::Queue | K::Dlq => rw(0.4, 1.2),
+        // Kafka on MSK: kafka.m5.large at $0.21/h × 730 per broker; no per-request fee.
+        K::Stream => c(153.0, 0.0, 0.0),
+        // SNS: $0.50 per million publishes; deliveries to queues and functions are free.
+        K::Pubsub => rw(0.0, 0.5),
         K::Scheduler => c(20.0, 0.0, 0.0),
         K::Metrics => c(100.0, 0.0, 0.0),
         K::Logs => c(150.0, 0.0, 0.0),
@@ -686,7 +782,7 @@ fn kind(kind: ComponentKind, mut flavours: Vec<FlavourSpec>, mut props: Vec<Prop
     let category = kind.category();
     for f in &mut flavours {
         if f.cost == Cost::default() {
-            f.cost = kind_cost(kind);
+            f.cost = flavour_cost(f.flavour).unwrap_or_else(|| kind_cost(kind));
         }
         f.sim = kind_sim(kind).map(|mut s| {
             flavour_sim(f.flavour, &mut s);
@@ -746,7 +842,12 @@ pub fn registry() -> Registry {
         kind(
             K::Dns,
             vec![fl(F::Route53), fl(F::CloudflareDns)],
-            vec![int("ttl_s", 0.0, 86_400.0, 300.0, Unit::S)],
+            vec![
+                int("ttl_s", 0.0, 86_400.0, 300.0, Unit::S),
+                // Billing only: the share of requests that reach the DNS service as a query
+                // (clients and resolvers cache answers for the TTL).
+                float("query_ratio", 0.001, 1.0, 0.001, 0.01, Unit::None),
+            ],
         ),
         kind(
             K::Cdn,
@@ -995,7 +1096,8 @@ pub struct CalibrationRow {
 /// - behaviour without a prop: `<kind>.<field>` (`servers_per_instance`, `service_ms` when the
 ///   kind has no such prop, `p99_ratio`, `queue_per_server`, `failover_s` when set), and
 ///   `@<flavour>` where a flavour departs from its kind;
-/// - prices: `<kind>.cost.instance|gb|million` when non-zero, `@<flavour>` likewise.
+/// - prices: `<kind>.cost.instance|lane|gb|million|million_write|unit_kb` when non-zero,
+///   `@<flavour>` where a flavour departs from its kind.
 pub fn calibration_rows(registry: &Registry) -> Vec<CalibrationRow> {
     let mut rows = Vec::new();
     let mut push = |id: String, value: f64| rows.push(CalibrationRow { id, value });
@@ -1048,8 +1150,11 @@ pub fn calibration_rows(registry: &Registry) -> Vec<CalibrationRow> {
         let cost_fields = |c: &Cost| {
             [
                 ("instance", c.per_instance_month),
+                ("lane", c.per_lane_month),
                 ("gb", c.per_gb_month),
                 ("million", c.per_million),
+                ("million_write", c.per_million_write.unwrap_or(0.0)),
+                ("unit_kb", c.unit_kb),
             ]
         };
         let kc = kind_cost(k.kind);
@@ -1174,5 +1279,55 @@ mod tests {
         // A float prop edited to a whole number in the UI arrives as 2: still valid.
         assert!(f.accepts(&PropValue::Number(2.0)));
         assert!(f.accepts(&PropValue::Number(2.5)));
+    }
+
+    /// B2 (M7b): every flavour resolves to exactly one way of billing its capacity. A
+    /// per-lane price belongs to kinds whose lanes are real shards (NoSQL partitions, stream
+    /// partitions as Kinesis shards) and replaces the per-instance price there; SQL and
+    /// Search keep M5.0's per-instance price scaled by shards, so they have no lane price.
+    #[test]
+    fn every_flavour_has_one_capacity_rule() {
+        use ComponentKind as K;
+        for k in &registry().kinds {
+            for f in &k.flavours {
+                let c = f.cost;
+                let id = format!("{}@{}", k.kind.id(), flavour_id(f.flavour));
+                if c.per_lane_month > 0.0 {
+                    assert!(
+                        matches!(k.kind, K::Nosql | K::Stream),
+                        "{id}: a lane price on a kind without billed lanes"
+                    );
+                    assert_eq!(
+                        c.per_instance_month, 0.0,
+                        "{id}: billed per lane and per instance"
+                    );
+                }
+                if matches!(k.kind, K::Sql | K::Search) {
+                    assert_eq!(
+                        c.per_lane_month, 0.0,
+                        "{id}: SQL/Search scale the instance price"
+                    );
+                }
+                assert!(
+                    c.unit_kb >= 0.0 && c.per_million >= 0.0,
+                    "{id}: negative price"
+                );
+                assert!(
+                    c.per_million_write.unwrap_or(0.0) >= 0.0,
+                    "{id}: negative price"
+                );
+            }
+        }
+        // The cited rules, spot-checked.
+        let cost = |k: K, f: Flavour| registry().kind(k).flavour(f).unwrap().cost;
+        assert_eq!(
+            cost(K::Nosql, Flavour::Dynamodb).per_million_write,
+            Some(0.625)
+        );
+        assert_eq!(cost(K::Nosql, Flavour::Cassandra).per_lane_month, 250.0);
+        assert_eq!(cost(K::Stream, Flavour::Kafka).per_instance_month, 153.0);
+        assert_eq!(cost(K::Stream, Flavour::Kinesis).unit_kb, 25.0);
+        assert_eq!(cost(K::Queue, Flavour::Sqs).per_million_write, Some(1.2));
+        assert_eq!(cost(K::Object, Flavour::Gcs), cost(K::Object, Flavour::S3));
     }
 }

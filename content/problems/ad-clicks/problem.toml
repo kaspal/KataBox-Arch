@@ -12,7 +12,7 @@ tags = ["streams", "partitioning", "caching", "aggregation"]
 peak_rps = 10000
 p95_ms = 30000
 availability = 0.999
-budget_usd = 8000
+budget_usd = 2000
 
 [[request_types]]
 id = "click"

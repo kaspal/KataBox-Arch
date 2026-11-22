@@ -11,7 +11,7 @@ Tienes una plataforma de marketing. Tus clientes escriben una campaña, eligen e
 | Tráfico pico | 500 correos/s |
 | Latencia p95 hasta completar | 30 s o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 1500 $ al mes |
+| Presupuesto | 3300 $ al mes |
 | Mensajes perdidos | Ninguno |
 
 ## El tráfico

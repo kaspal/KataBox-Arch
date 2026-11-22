@@ -8,7 +8,7 @@ At 10,000 requests/s with 97% reads, about 9,700 requests/s open a feed and abou
 
 A Load Balancer spreads traffic over 6 Go App Servers. A read checks a Redis feed Cache of 16 GB first. A hit ends the request; a miss reads PostgreSQL, which runs as a primary with one replica, and fills the cache. A post is written to the primary and published to a Kafka Stream with 32 partitions, and the App Server is free again. 4 Fan-out Workers (Celery) consume the Stream and write the post into each follower's feed in the Cache.
 
-This costs about $1,885 per month and has a p95 near 23 ms on a normal day. It passes both hidden tests. The feeds are already built when the readers arrive, and a burst of posts only keeps the Workers busier for a while, without slowing the read path.
+This costs about $1,866 per month and has a p95 near 23 ms on a normal day. It passes both hidden tests. The feeds are already built when the readers arrive, and a burst of posts only keeps the Workers busier for a while, without slowing the read path.
 
 ## Why the first try breaks
 

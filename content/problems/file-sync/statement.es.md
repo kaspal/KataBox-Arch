@@ -11,7 +11,7 @@ Tienes un servicio de sincronización de archivos. La gente guarda carpetas en s
 | Tráfico pico | 2000 peticiones/s |
 | Latencia p95 hasta completar | 5 s o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 4000 $ al mes |
+| Presupuesto | 6000 $ al mes |
 | Mensajes perdidos | Ninguno |
 
 ## El tráfico

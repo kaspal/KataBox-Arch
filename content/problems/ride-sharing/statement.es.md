@@ -11,7 +11,7 @@ Tienes una aplicación de viajes compartidos. Cada conductor de turno envía su 
 | Tráfico pico | 15 000 peticiones/s |
 | Latencia p95 | 60 ms o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 25 000 $ al mes |
+| Presupuesto | 6000 $ al mes |
 
 ## El tráfico
 

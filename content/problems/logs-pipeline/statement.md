@@ -11,7 +11,7 @@ You run the logging platform for a company with hundreds of services. Each servi
 | Peak traffic | 1,000 requests/s |
 | p95 latency (batches measured until archived) | 2 s or less |
 | Availability | 99.9% or more |
-| Budget | $6,000 per month |
+| Budget | $18,500 per month |
 | Lost messages | None |
 
 ## The traffic

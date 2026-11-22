@@ -39,6 +39,9 @@ pub struct TestBrief {
     pub name_es: String,
     pub hidden: bool,
     pub duration_s: f64,
+    /// The test's own availability limit, when it differs from the problem's (visible
+    /// tests only; a hidden test's limits show in Results after its verdict).
+    pub availability: Option<f64>,
 }
 
 /// What a problem's latency limits measure (review F2): every request type's answer, every
@@ -331,6 +334,10 @@ impl App {
                     name_es: t.name_es.clone(),
                     hidden: t.hidden,
                     duration_s: t.duration_s,
+                    availability: def
+                        .pass_for(t)
+                        .availability
+                        .filter(|a| !t.hidden && *a != def.nfr.availability),
                 })
                 .collect(),
             hints_unlocked: unlocked,

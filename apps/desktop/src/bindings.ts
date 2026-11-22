@@ -825,11 +825,32 @@ cells: string[]; cells_es: string[] }
  */
 export type ComponentKind = "client" | "dns" | "cdn" | "waf" | "lb" | "gateway" | "ratelimit" | "app" | "micro" | "worker" | "serverless" | "autoscale" | "sql" | "nosql" | "cache" | "object" | "search" | "queue" | "stream" | "pubsub" | "dlq" | "scheduler" | "metrics" | "logs" | "tracing"
 /**
- * A flavour's monthly price: per instance (or per card), per GB of cache memory, and per
- * million requests through it. Teaching figures, loosely shaped like public list prices
- * (ADR 0006); the judge compares designs with each other, never with a real bill.
+ * A flavour's monthly price (ADR 0006): per instance (or per card), per shard or partition,
+ * per GB of cache memory, and per million requests through it, reads and writes apart.
+ * List prices (us-east-1, on demand, read 2026-11-22; `docs/calibration.md` cites each) with
+ * no free tiers, discounts or data transfer; the judge compares designs with each other.
  */
-export type Cost = { per_instance_month: number; per_gb_month: number; per_million: number }
+export type Cost = { per_instance_month: number; 
+/**
+ * Per lane (a stream's partitions as shards, a NoSQL card's partitions as nodes), for
+ * products billed that way. SQL and Search scale `per_instance_month` by their shards
+ * over the default instead (M5.0's cost per shard).
+ */
+per_lane_month: number; per_gb_month: number; 
+/**
+ * Per million requests served; for stores and brokers, the reads (GET, read units,
+ * deliveries, the receive of a retried message).
+ */
+per_million: number; 
+/**
+ * Per million writes (PUT, write units, publishes, messages); None bills them as reads.
+ */
+per_million_write: number | null; 
+/**
+ * Billing unit size: a request counts `max(1, payload_kb / unit_kb)` units; 0 counts
+ * every request as one.
+ */
+unit_kb: number }
 export type DecideFlow = { id: string; number: number; title: string; title_es: string; intro: string; intro_es: string; 
 /**
  * The first question's id.
@@ -1598,7 +1619,12 @@ export type SubmitResult = { submission_id: number; judgement: Judgement;
  * The problem was solved by this submission for the first time.
  */
 first_solve: boolean; best_score: number }
-export type TestBrief = { id: string; name: string; name_es: string; hidden: boolean; duration_s: number }
+export type TestBrief = { id: string; name: string; name_es: string; hidden: boolean; duration_s: number; 
+/**
+ * The test's own availability limit, when it differs from the problem's (visible
+ * tests only; a hidden test's limits show in Results after its verdict).
+ */
+availability: number | null }
 /**
  * The result of one test. Hidden tests carry the same numbers, but never their traffic or
  * chaos: the definition stays in Rust.

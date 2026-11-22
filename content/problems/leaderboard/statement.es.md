@@ -14,7 +14,7 @@ Algunas clasificaciones están calientes: el modo principal en las regiones más
 | Lecturas | 80 % de las solicitudes |
 | Latencia p95 | 50 ms o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 1 500 $/mes o menos |
+| Presupuesto | 1500 $/mes o menos |
 
 ## El tráfico
 

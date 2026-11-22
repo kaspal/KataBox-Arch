@@ -11,7 +11,7 @@ Tienes un servicio que envía notificaciones en nombre de otras apps: avisos pus
 | Tráfico pico | 1 500 notificaciones/s |
 | Latencia p95 hasta completar | 3 s o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 5 000 $ al mes |
+| Presupuesto | 9000 $ al mes |
 | Mensajes perdidos | Ninguno |
 
 ## El tráfico

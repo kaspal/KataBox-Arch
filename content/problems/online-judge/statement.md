@@ -11,7 +11,7 @@ You run an online judge for programming practice and contests. A user submits a 
 | Peak traffic | 40 submissions/s |
 | p95 completion time | 20 s or less |
 | Availability | 99.9% or more |
-| Budget | $3,000 per month |
+| Budget | $3,100 per month |
 
 Latency here is measured until the verdict is stored, not until the submission is accepted.
 

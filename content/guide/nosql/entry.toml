@@ -83,14 +83,19 @@ note = "How many read slots one write occupies. A DynamoDB partition takes a thi
 note_es = "Cuántas plazas de lectura ocupa una escritura. Una partición de DynamoDB admite un tercio de escrituras que de lecturas por segundo, así que las escrituras cuentan el triple."
 
 [[sim]]
-cost = "per_instance_month"
-note = "Priced per partition: a card at its flavour's default partition count costs this; more partitions cost more, fewer cost less."
-note_es = "Se cobra por partición: una tarjeta con el número de particiones por defecto de su sabor cuesta esto; más particiones cuestan más y menos, menos."
+cost = "per_lane_month"
+note = "No fee per partition on DynamoDB on demand, so extra partitions cost nothing there. Cassandra and MongoDB are billed per node or shard instead, one per partition, so on those more partitions cost more."
+note_es = "DynamoDB bajo demanda no cobra por partición, así que ahí las particiones de más no cuestan nada. Cassandra y MongoDB se cobran por nodo o por shard, uno por partición, así que en ellos más particiones cuestan más."
 
 [[sim]]
 cost = "per_million"
-note = "Plus a price per request. At high traffic this is usually most of the bill."
-note_es = "Más un precio por petición. Con mucho tráfico suele ser la mayor parte de la factura."
+note = "DynamoDB bills each read. Cassandra and MongoDB have no fee per request."
+note_es = "DynamoDB cobra cada lectura. Cassandra y MongoDB no cobran por petición."
+
+[[sim]]
+cost = "per_million_write"
+note = "DynamoDB bills each write at five times the price of a read. At high traffic this is most of its bill."
+note_es = "DynamoDB cobra cada escritura a cinco veces el precio de una lectura. Con mucho tráfico es la mayor parte de su factura."
 
 [flavours_compared]
 flavours = ["dynamodb", "cassandra", "mongodb"]

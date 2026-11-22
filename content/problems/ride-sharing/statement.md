@@ -11,7 +11,7 @@ You run a ride-sharing app. Every driver on shift sends their position every few
 | Peak traffic | 15,000 requests/s |
 | p95 latency | 60 ms or less |
 | Availability | 99.9% or more |
-| Budget | $25,000 per month |
+| Budget | $6,000 per month |
 
 ## The traffic
 

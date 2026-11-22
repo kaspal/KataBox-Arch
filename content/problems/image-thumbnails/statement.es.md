@@ -11,7 +11,7 @@ Llevas el backend de fotos de un grupo de apps móviles. La gente hace una foto,
 | Tráfico pico | 300 subidas/s |
 | Latencia p95 hasta completar | 5 s o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 5 000 $ al mes |
+| Presupuesto | 14 500 $ al mes |
 | Mensajes perdidos | Ninguno |
 
 ## El tráfico

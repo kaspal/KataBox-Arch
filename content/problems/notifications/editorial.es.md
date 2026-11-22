@@ -8,7 +8,7 @@ Un proveedor caído cambia las cuentas. Cada llamada a él falla solo tras un ti
 
 ## El diseño de referencia
 
-La Notify API funciona con 2 instancias Go y publica en una Queue SQS con max_retries en 10. Desde esa cola sale una Dead-letter Queue. La consumen 32 Senders Celery, cada uno con concurrencia 32: 1 024 huecos en total. Cuesta unos 4 001 $ al mes.
+La Notify API funciona con 2 instancias Go y publica en una Queue SQS con max_retries en 10. Desde esa cola sale una Dead-letter Queue. La consumen 32 Senders Celery, cada uno con concurrencia 32: 1 024 huecos en total. Cuesta unos 7 122 $ al mes.
 
 «Se cae el proveedor de correo» detiene el correo durante 40 segundos, a partir del segundo 15. Admite un p95 de 60 segundos y ningún mensaje perdido. Los envíos fallidos que se reintentan no son errores (la notificación sigue en camino); Resultados los cuenta aparte como intentos reintentados. Los reintentos llegan tras 1, 2, 4, 8, 16 y 32 segundos, lo que dura más que la caída, así que los correos salen cuando el proveedor vuelve. Lo que aún fallara acabaría en la Dead-letter Queue. «Un envío masivo de marketing» manda 5 veces el tráfico durante 10 segundos y admite un p95 de 15 segundos; este diseño lo resuelve con un p95 de cerca de 1,2 segundos.
 

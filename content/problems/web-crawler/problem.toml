@@ -12,7 +12,7 @@ tags = ["queues", "scheduler", "dedup", "external-providers"]
 peak_rps = 800
 p95_ms = 4000
 availability = 0.999
-budget_usd = 2500
+budget_usd = 7500
 
 [[externals]]
 name = "web"

@@ -10,7 +10,7 @@ Capacity is easy. The hard part is that a whole Region can fail at once.
 
 ## The reference design
 
-Route 53 DNS, with a TTL of 30 s, spreads customers over three Regions: us-east, eu-west and ap-south. Each has an AWS ALB, a Go App Server with 2 instances and a PostgreSQL member. The primary is in us-east, and the members in eu-west and ap-south are replicas wired to it with Replicate edges. This costs about $7,886 per month, of which DNS is about $6,341, with a p95 of about 155 ms.
+Route 53 DNS, with a TTL of 30 s, spreads customers over three Regions: us-east, eu-west and ap-south. Each has an AWS ALB, a Go App Server with 2 instances and a PostgreSQL member. The primary is in us-east, and the members in eu-west and ap-south are replicas wired to it with Replicate edges. This costs about $1,608 per month, of which DNS is about $62, with a p95 of about 155 ms.
 
 About 8% of reads are stale on a normal day, because the replicas are 50 ms behind; the problem judges staleness only during the split.
 
@@ -20,13 +20,13 @@ About 8% of reads are stale on a normal day, because the replicas are 50 ms behi
 
 ## Why the first try breaks
 
-A common first try is one Region, us-east, with two Availability Zones, each holding a Go App Server of 3 instances and a PostgreSQL member: the primary in one, its replica in the other. It costs about $7,486 per month and passes "Normal day" with a p95 of about 32 ms.
+A common first try is one Region, us-east, with two Availability Zones, each holding a Go App Server of 3 instances and a PostgreSQL member: the primary in one, its replica in the other. It costs about $1,208 per month and passes "Normal day" with a p95 of about 32 ms.
 
 When its Region goes dark nothing is left: about 75% errors, every request from 30 seconds on. The split is as bad. The customers and DNS are outside the Region, so for 20 of 60 seconds no request gets in: about 33% errors. Zones protect you from a data centre failing, not from a Region failing.
 
 ## What the simulator leaves out
 
-The simulator doesn't cache DNS answers: every request counts as a DNS query, and each query is billed. Real clients keep an answer for the TTL, so they make far fewer queries, but they also keep going to a dead Region until it runs out. Writing in every Region at once (multi-primary with conflict resolution) isn't simulated, and data sent between Regions isn't billed.
+The simulator doesn't cache DNS answers when it routes: every request follows the current answer. Real clients keep an answer for the TTL, so they make far fewer queries, but they also keep going to a dead Region until it runs out. The bill does count that caching: only about 1 request in 100 is billed as a query. Writing in every Region at once (multi-primary with conflict resolution) isn't simulated, and data sent between Regions isn't billed.
 
 ## Things to try
 

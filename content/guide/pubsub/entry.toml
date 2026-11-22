@@ -63,9 +63,19 @@ note = "How long the topic takes to accept a publish before it acknowledges it."
 note_es = "Lo que tarda el topic en aceptar una publicación antes de confirmarla."
 
 [[sim]]
+cost = "per_instance_month"
+note = "A self-hosted Redis Pub/Sub is a fixed node price, with no fee per message."
+note_es = "Un Redis Pub/Sub propio tiene un precio fijo por nodo, sin cobro por mensaje."
+
+[[sim]]
 cost = "per_million"
-note = "Priced only by volume: a price for every million messages published."
-note_es = "Se cobra solo por volumen: un precio por cada millón de mensajes publicados."
+note = "Google Pub/Sub also bills each delivery. SNS deliveries to queues and functions are free."
+note_es = "Google Pub/Sub cobra también cada entrega. Las entregas de SNS a colas y funciones son gratis."
+
+[[sim]]
+cost = "per_million_write"
+note = "SNS and Google Pub/Sub bill each message published."
+note_es = "SNS y Google Pub/Sub cobran cada mensaje publicado."
 
 [flavours_compared]
 flavours = ["google_pubsub", "sns", "redis_pubsub"]

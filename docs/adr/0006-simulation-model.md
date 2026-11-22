@@ -175,6 +175,23 @@ card's shard (or partition) count over its flavour's default count: a card at it
 before, more shards cost more, and fewer cost less, so the cost score rewards a design that doesn't over-shard.
 Replicas stay separate cards with their own price.
 
+**Billing calibration (M7b).** The products the M7b plan review cited are billed at their list prices (us-east-1,
+on demand, read 2026-11-22; `docs/calibration.md` quotes each), with no free tiers, discounts or data transfer:
+- `Cost` gains `per_lane_month` (a price per shard or partition), `per_million_write` (writes, publishes and
+  messages priced apart from reads; unset bills them as reads) and `unit_kb` (a request counts
+  `max(1, payload_kb / unit_kb)` billing units). Flavours may now have their own price.
+- Each card counts billed read and write units: a datastore call with a write is a write; a broker publish, a
+  message stored and a dead letter are writes; a pub/sub delivery and the receive of a retried message are reads.
+- `per_lane_month` × lanes replaces the shard factor for Kinesis (stream partitions as shards), Cassandra and MongoDB
+  (partitions as nodes or shards). SQL and Search keep the M5.0 shard factor; other kinds have none. DynamoDB on
+  demand and Kafka partitions are free.
+- DNS bills `query_ratio` (default 0.01) of the requests through it: clients and resolvers cache answers.
+- The live cost spreads billed units over `min(now, duration)`, as the judge does, so a finished run's tile equals
+  the judged cost (before, the 30 s drain diluted the per-request part to 2/3).
+- Verdict guard (review B1): every reference stayed Accepted on every test, every naive design still fails a hidden
+  test, every flaw and sample still holds. Budgets whose reference cost moved were re-tuned at their old ratio to the
+  reference. One visible naive verdict moved: Web Crawler's naive design is no longer Over Budget on Normal.
+
 ### M5.0 additions (the M1–M3 review's Q2 decisions)
 Each addition has tests in `tests/additions.rs`. Golden c changed with the DynamoDB write factor, and golden d is
 new.

@@ -19,8 +19,8 @@ prompt_es = "Sin un índice de bloques, cada una de las {chunks_per_s} subidas d
 inputs = { chunks_per_s = 1_700, seconds_per_month = 2_592_000 }
 formula = "chunks_per_s * seconds_per_month"
 unit = "count"
-solution = "{chunks_per_s} × {seconds_per_month} s ≈ {answer} requests, about 4.4 billion. At $1 per million that is about $4,400 a month for S3 alone, and SQS adds about $1,800 more for the change notices, past the $4,000 budget. If about 96% of uploads end at the index, S3 sees only about 4% of them: under $200."
-solution_es = "{chunks_per_s} × {seconds_per_month} s ≈ {answer} peticiones, unos 4400 millones. A 1 $ por millón son unos 4400 $ al mes solo de S3, y SQS añade unos 1800 $ más por los avisos de cambio: por encima del presupuesto de 4000 $. Si cerca del 96 % de las subidas terminan en el índice, a S3 solo llega un 4 %: menos de 200 $."
+solution = "{chunks_per_s} × {seconds_per_month} s ≈ {answer} requests, about 4.4 billion. At $5 per million writes (PUTs) that is about $22,000 a month for S3 alone, and SQS adds about $5,300 more for the change notices, at $1.20 per million messages: far past the $6,000 budget. If about 96% of uploads end at the index, S3 sees only about 4% of them: under $900."
+solution_es = "{chunks_per_s} × {seconds_per_month} s ≈ {answer} peticiones, unos 4400 millones. A 5 $ por millón de escrituras (PUT) son unos 22 000 $ al mes solo de S3, y SQS añade unos 5300 $ más por los avisos de cambio, a 1,20 $ por millón de mensajes: muy por encima del presupuesto de 6000 $. Si cerca del 96 % de las subidas terminan en el índice, a S3 solo llega un 4 %: menos de 900 $."
 
 [[drill]]
 id = "index-size"

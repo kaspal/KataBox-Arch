@@ -11,7 +11,7 @@ You run a chat service. People keep the app open all evening and send short mess
 | Peak traffic | 4,000 messages/s |
 | p95 delivery latency | 150 ms or less |
 | Availability | 99.9% or more |
-| Budget | $12,000 per month |
+| Budget | $800 per month |
 
 In this problem, pub/sub requests make up most of the bill. Count them when you plan.
 

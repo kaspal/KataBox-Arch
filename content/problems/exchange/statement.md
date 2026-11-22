@@ -12,7 +12,7 @@ You run the core of a stock exchange. Brokers' gateways send you orders to buy a
 | p95 completion latency | 30 ms or less |
 | p99 completion latency | 50 ms or less |
 | Availability | 99.9% or more |
-| Budget | $9,000 per month |
+| Budget | $2,800 per month |
 | Lost messages | None |
 
 ## The traffic

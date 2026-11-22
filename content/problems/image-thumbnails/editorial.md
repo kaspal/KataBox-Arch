@@ -8,7 +8,7 @@ With a queue in between, the Upload API answers fast and the jobs wait their tur
 
 ## The reference design
 
-A Load Balancer (AWS ALB) sends uploads to the Upload API, 2 Go instances. It writes the original to S3 and publishes a job to an SQS Queue, left at its defaults. Two Celery Worker cards consume that queue: Thumbnailers A and Thumbnailers B, 12 instances each at the default concurrency of 8, so 96 slots per card and 192 in all. This costs about $3,786 per month, S3 and SQS requests included, with a p95 near 0.7 s on a normal day.
+A Load Balancer (AWS ALB) sends uploads to the Upload API, 2 Go instances. It writes the original to S3 and publishes a job to an SQS Queue, left at its defaults. Two Celery Worker cards consume that queue: Thumbnailers A and Thumbnailers B, 12 instances each at the default concurrency of 8, so 96 slots per card and 192 in all. This costs about $10,717 per month, S3 and SQS requests included, most of it the S3 writes at $5 per million, with a p95 near 0.7 s on a normal day.
 
 "Upload burst" sends 3 times the traffic for 10 seconds, starting at 20 seconds, and allows a p95 of 20 s. 900 jobs a second need about 225 slots, a little more than the 192 there are, so a short backlog builds and drains a few seconds after the burst. The p95 is about 4 s.
 
@@ -16,7 +16,7 @@ A Load Balancer (AWS ALB) sends uploads to the Upload API, 2 Go instances. It wr
 
 ## Why the first try breaks
 
-A common first try is one Worker card, Thumbnailers, with 16 instances: 128 slots, more than the 75 the peak needs, for about $3,226 per month. It passes "Normal day", and the burst too, with a p95 of about 11 s, still under the limit.
+A common first try is one Worker card, Thumbnailers, with 16 instances: 128 slots, more than the 75 the peak needs, for about $10,157 per month. It passes "Normal day", and the burst too, with a p95 of about 11 s, still under the limit.
 
 The crash is where it fails. That one card is the first Worker card, so the chaos kills all of the thumbnailing for 30 seconds. No message is lost, because the lease brings every job back, but about 9,000 jobs pile up in the queue. When the card returns it has only about 50 spare slots over the incoming load to clear them, which takes well over half a minute. The p95 reaches about 28 s, past the 20 s limit.
 

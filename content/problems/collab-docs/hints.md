@@ -8,4 +8,4 @@ Let every sync server publish its edits to one shared bus and subscribe to it, s
 
 ## 3
 
-Put a Network Load Balancer in front of two Go App Server cards of 3 instances each. Wire both cards to publish to a Redis Pub/Sub and to consume from it, and write snapshots to PostgreSQL. The bus bills per message, so check its share of the monthly cost before you add more of anything.
+Put a Network Load Balancer in front of two Go App Server cards of 3 instances each. Wire both cards to publish to a Redis Pub/Sub and to consume from it, and write snapshots to PostgreSQL. A self-hosted Redis Pub/Sub has no fee per message, so the monthly cost is mostly the sync cards and the database: check what each one adds before you add more of anything.

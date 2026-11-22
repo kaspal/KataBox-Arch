@@ -2,13 +2,13 @@
 
 ## Where the load goes
 
-At 4,000 messages/s, every message passes through compute twice: once at the sender's gateway, which publishes it, and once at the recipient's gateway, which delivers it. Between the two sits the broker. A Pub/Sub hands a copy of each message to every subscribed gateway, and the pub/sub requests grow with the traffic: they are most of the bill. The work per message is small. The hard part is keeping delivery going when a gateway fails and when the evening gets busy.
+At 4,000 messages/s, every message passes through compute twice: once at the sender's gateway, which publishes it, and once at the recipient's gateway, which delivers it. Between the two sits the broker. A Pub/Sub hands a copy of each message to every subscribed gateway, The Redis Pub/Sub here is one self-hosted node at $36 a month, with no fee per message, so the gateways are most of the bill. The work per message is small. The hard part is keeping delivery going when a gateway fails and when the evening gets busy.
 
 ## The reference design
 
 A Network Load Balancer that carries WebSockets spreads connections over two gateway cards, Gateway A and Gateway B, each with 2 Go instances. Both publish to a Redis Pub/Sub "message bus", and both consume from it, so whichever gateway holds the recipient can deliver.
 
-This costs about $5,590 per month and has a p95 near 28 ms on a normal evening. When Gateway A dies, the messages it was handling fail, and for a short while the Load Balancer keeps sending to it. Health checks notice in 2 to 4 seconds, and connections move to Gateway B. About 1.7% of messages fail and some deliveries wait about a second; then Gateway B carries everything. The design also handles the evening peak.
+This costs about $341 per month and has a p95 near 28 ms on a normal evening. When Gateway A dies, the messages it was handling fail, and for a short while the Load Balancer keeps sending to it. Health checks notice in 2 to 4 seconds, and connections move to Gateway B. About 1.7% of messages fail and some deliveries wait about a second; then Gateway B carries everything. The design also handles the evening peak.
 
 ## Why the first try breaks
 

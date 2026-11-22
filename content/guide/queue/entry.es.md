@@ -3,3 +3,5 @@ Una cola se sitúa entre la parte del sistema que pide el trabajo y la parte que
 La cola convierte una ráfaga en trabajo pendiente. Cuando el tráfico se dispara, los mensajes esperan en lugar de fallar, y los workers se ponen al día después. El precio es el tiempo: el trabajo termina más tarde, así que el usuario recibe un "aceptado" rápido y el resultado real llega a su ritmo.
 
 Las colas también hacen que los fallos se puedan sobrevivir. Un mensaje cuyo trabajo falla se vuelve a intentar tras una breve espera, y la espera crece con cada intento. Si sigue fallando, pasa a una **cola de mensajes fallidos** para que lo revise una persona o una herramienta, en lugar de desaparecer.
+
+**Cómo lo factura el simulador.** Amazon SQS cobra 0,40 $ por millón de peticiones, y cada mensaje lleva tres, enviar, recibir y borrar: 1,20 $ por millón de mensajes. Cada reintento suma una recepción más. No hay coste por cola, y el envío por lotes no se modela. RabbitMQ es propio, en un nodo EC2 m5.large a 70 $ al mes, sin coste por mensaje; con Amazon MQ gestionado serían unos 210 $ (precio de lista, us-east-1, consultado el 2026-11-22).

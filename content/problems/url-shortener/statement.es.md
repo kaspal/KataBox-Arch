@@ -12,7 +12,7 @@ Tienes un servicio que convierte direcciones web largas en cortas. Alguien pega 
 | Lecturas | 95 % de las peticiones |
 | Latencia p95 | 80 ms o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 2 500 $ al mes |
+| Presupuesto | 2500 $ al mes |
 
 ## El tráfico
 

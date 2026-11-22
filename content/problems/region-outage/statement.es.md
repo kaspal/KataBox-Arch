@@ -12,7 +12,7 @@ Gestionas el servicio de cuentas de una app que se usa en todo el mundo. La gent
 | Lecturas | 90 % de las peticiones |
 | Latencia p95 | 250 ms o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 9000 $ al mes |
+| Presupuesto | 1900 $ al mes |
 
 ## El tráfico
 

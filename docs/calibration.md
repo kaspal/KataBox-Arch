@@ -9,7 +9,8 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
   - `<kind>.<prop>` is a calibrated prop default; `@<flavour>` is a flavour's override.
   - `<kind>.servers_per_instance`, `service_ms`, `p99_ratio`, `queue_per_server` and `failover_s` are behaviour the
     card has no prop for.
-  - `<kind>.cost.instance|gb|million` is the teaching price.
+  - `<kind>.cost.instance|lane|gb|million|million_write|unit_kb` are the prices: per instance, per shard or
+    partition, per GB, per million reads, per million writes, and the billing unit size.
 - **What is calibrated, and what isn't:**
   - Calibrated: service times, concurrency, cold starts, replication lag, failover and visibility timeouts.
   - Not calibrated: design choices (instances, shards, partitions, memory, TTLs, retries, limits). Their defaults
@@ -20,8 +21,9 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
   - The unattended M1–M3 run could not open web pages, so every row starts this way. Confirming a row means
     replacing its source with the citation and adding its id to `CITED` in the registry. The inspector then
     shows the figure as cited.
-- **Prices** are a teaching model: consistent across designs and loosely shaped like public list prices, but
-  never a quote. The judge compares designs with each other, not with a bill.
+- **Prices** are list prices (us-east-1, on demand, read 2026-11-22) for the products cited in M7b, and teaching
+  prices shaped like them elsewhere. No free tiers, discounts or data transfer. The judge compares designs with each
+  other, not with a bill.
 - **The model** the figures feed is described in ADR 0006:
   - a card has `servers = instances × concurrency`;
   - service times are lognormal, from the median and `p99_ratio`;
@@ -37,7 +39,8 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `dns.service_ms` | 0.2 | ms | source: needed (suggested: https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/Welcome.html); clients cache answers; only the resolver hit is paid |
 | `dns.p99_ratio` | 3 | × median | source: needed (suggested: https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/Welcome.html); tail spread of the service time |
 | `dns.queue_per_server` | 4 | slots per server | source: needed (suggested: https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/Welcome.html); backlog before the card drops requests |
-| `dns.cost.million` | 0.4 | $/million requests | source: needed (suggested: https://aws.amazon.com/route53/pricing/); teaching price, shaped like the list price |
+| `dns.query_ratio` | 0.01 | share of requests billed | source: needed (suggested: https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/Welcome.html); billing only: clients and resolvers cache answers for the TTL, so about 1 request in 100 reaches the DNS service as a query |
+| `dns.cost.million` | 0.4 | $/million queries | https://aws.amazon.com/route53/pricing/ — "$0.40 per million queries (first 1 billion queries per month)"; billed × `query_ratio`; the $0.50 hosted-zone fee is left out (list price, us-east-1, read 2026-11-22) |
 
 ### `cdn`
 
@@ -164,8 +167,14 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `nosql.servers_per_instance@dynamodb` | 8 | in parallel per partition | https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html — "a maximum capacity of 3,000 read units per second and 1,000 write units per second" per partition; a write takes 3 slots here (ADR 0006), and reads are modelled as strongly consistent, which is conservative (checked 2026-11-22) |
 | `nosql.write_slots` | 1 | slots per write | source: needed (suggested: https://cassandra.apache.org/doc/latest/cassandra/architecture/storage-engine.html); a write costs a store about what a read does unless the flavour says otherwise |
 | `nosql.write_slots@dynamodb` | 3 | slots per write | https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html — a partition delivers "3,000 read units per second and 1,000 write units per second", so a write takes 3 read slots (checked 2026-11-22) |
-| `nosql.cost.instance` | 120 | $/instance-month | source: needed (suggested: https://aws.amazon.com/dynamodb/pricing/); teaching price, shaped like the list price |
-| `nosql.cost.million` | 0.5 | $/million requests | source: needed (suggested: https://aws.amazon.com/dynamodb/pricing/); teaching price, shaped like the list price |
+| `nosql.cost.million` | 0.125 | $/million read units | https://aws.amazon.com/dynamodb/pricing/on-demand/ — "$0.125 per million reads" (one read unit per read of up to 4 KB); on demand, so no per-partition fee (list price, us-east-1, read 2026-11-22) |
+| `nosql.cost.million_write` | 0.625 | $/million write units | https://aws.amazon.com/dynamodb/pricing/on-demand/ — "$0.6250 per million writes" (one write unit per 1 KB); the 3 write slots are a capacity rule, not a price (list price, us-east-1, read 2026-11-22) |
+| `nosql.cost.lane@cassandra` | 250 | $/node-month (one per partition) | https://aws.amazon.com/ec2/pricing/on-demand/ — self-hosted on i4i.xlarge at $0.343/h × 730 (corroborated by https://calculator.holori.com/aws/ec2/i4i.xlarge/us-east-1); no per-request fee (list price, us-east-1, read 2026-11-22) |
+| `nosql.cost.million@cassandra` | 0 | $/million read units | self-hosted: no per-request fee |
+| `nosql.cost.million_write@cassandra` | 0 | $/million write units | self-hosted: no per-request fee |
+| `nosql.cost.lane@mongodb` | 394 | $/shard-month (one per partition) | https://www.mongodb.com/pricing — Atlas M30 at $0.54/h × 730, taken as a 3-node replica set per shard (the Atlas default); no per-request fee (list price, us-east-1, read 2026-11-22) |
+| `nosql.cost.million@mongodb` | 0 | $/million read units | Atlas dedicated clusters: no per-request fee |
+| `nosql.cost.million_write@mongodb` | 0 | $/million write units | Atlas dedicated clusters: no per-request fee |
 
 ### `cache`
 
@@ -187,7 +196,8 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `object.servers_per_instance` | 1000 | in parallel per instance | https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html — "at least 3,500 PUT/COPY/POST/DELETE or 11,000 GET/HEAD requests per second per partitioned prefix"; 1,000 in parallel at 50 ms ≈ 20,000 GET/s ≈ two prefixes (checked 2026-11-22) |
 | `object.p99_ratio` | 4 | × median | source: needed (suggested: https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html); tail spread of the service time |
 | `object.queue_per_server` | 4 | slots per server | source: needed (suggested: https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html); backlog before the card drops requests |
-| `object.cost.million` | 1 | $/million requests | source: needed (suggested: https://aws.amazon.com/s3/pricing/); a read-heavy blend of GET (~$0.4/M) and PUT (~$5/M) list prices |
+| `object.cost.million` | 0.4 | $/million GETs | https://aws.amazon.com/s3/pricing/ — GET "$0.0004 per 1,000 requests"; GCS Standard Class B is the same (https://cloud.google.com/storage/pricing) (list price, us-east-1, read 2026-11-22) |
+| `object.cost.million_write` | 5 | $/million PUTs | https://aws.amazon.com/s3/pricing/ — PUT $0.005 per 1,000 (corroborated by https://www.manageengine.com/cloudspend/articles/s3-pricing-guide.html); GCS Standard Class A is the same (list price, us-east-1, read 2026-11-22) |
 
 ### `search`
 
@@ -210,8 +220,11 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `queue.p99_ratio` | 3 | × median | source: needed (suggested: https://www.rabbitmq.com/docs/confirms); tail spread of the service time |
 | `queue.queue_per_server` | 4 | slots per server | source: needed (suggested: https://www.rabbitmq.com/docs/confirms); backlog before the card drops requests |
 | `queue.service_ms@sqs` | 10 | ms | source: needed (suggested: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/welcome.html); an SQS send over HTTPS |
-| `queue.cost.instance` | 40 | $/instance-month | source: needed (suggested: https://aws.amazon.com/sqs/pricing/); teaching price, shaped like the list price |
-| `queue.cost.million` | 0.4 | $/million requests | source: needed (suggested: https://aws.amazon.com/sqs/pricing/); teaching price, shaped like the list price |
+| `queue.cost.million` | 0.4 | $/million retried receives | https://aws.amazon.com/sqs/pricing/ — every action is a request, $0.40 per million (https://aws.amazon.com/about-aws/whats-new/2016/11/amazon-sqs-introduces-fifo-queues-with-exactly-once-processing-and-lower-prices-for-standard-queues); a retry is one more receive; batching is not modelled (list price, us-east-1, read 2026-11-22) |
+| `queue.cost.million_write` | 1.2 | $/million messages | https://aws.amazon.com/sqs/pricing/ — three requests per message (send, receive, delete) at $0.40 per million; no free tier (list price, us-east-1, read 2026-11-22) |
+| `queue.cost.instance@rabbitmq` | 70 | $/node-month | https://aws.amazon.com/ec2/pricing/on-demand/ — self-hosted on m5.large at $0.096/h × 730; managed Amazon MQ mq.m5.large would be $0.288/h ≈ $210 (https://aws.amazon.com/amazon-mq/pricing/) (list price, us-east-1, read 2026-11-22) |
+| `queue.cost.million@rabbitmq` | 0 | $/million retried receives | self-hosted: no per-request fee |
+| `queue.cost.million_write@rabbitmq` | 0 | $/million messages | self-hosted: no per-request fee |
 
 ### `stream`
 
@@ -223,8 +236,11 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `stream.p99_ratio` | 3 | × median | source: needed (suggested: https://kafka.apache.org/documentation/#producerconfigs); tail spread of the service time |
 | `stream.queue_per_server` | 4 | slots per server | source: needed (suggested: https://kafka.apache.org/documentation/#producerconfigs); backlog before the card drops requests |
 | `stream.service_ms@kinesis` | 15 | ms | source: needed (suggested: https://docs.aws.amazon.com/streams/latest/dev/service-sizes-and-limits.html); a Kinesis PutRecord |
-| `stream.cost.instance` | 15 | $/instance-month | source: needed (suggested: https://aws.amazon.com/kinesis/data-streams/pricing/); teaching price, shaped like the list price |
-| `stream.cost.million` | 0.2 | $/million requests | source: needed (suggested: https://aws.amazon.com/kinesis/data-streams/pricing/); teaching price, shaped like the list price |
+| `stream.cost.instance` | 153 | $/broker-month | https://aws.amazon.com/msk/pricing/ — kafka.m5.large at $0.21/h × 730; no per-request fee, partitions free; storage ($0.10/GB-month) is not modelled (list price, us-east-1, read 2026-11-22) |
+| `stream.cost.instance@kinesis` | 0 | $/broker-month | Kinesis bills shards, not brokers |
+| `stream.cost.lane@kinesis` | 10.95 | $/shard-month (one per partition) | https://aws.amazon.com/kinesis/data-streams/pricing/ — $0.015 per shard-hour × 730 (list price, us-east-1, read 2026-11-22) |
+| `stream.cost.million_write@kinesis` | 0.014 | $/million PUT payload units | https://aws.amazon.com/kinesis/data-streams/pricing/ — $0.014 per million PUT payload units of 25 KB (list price, us-east-1, read 2026-11-22) |
+| `stream.cost.unit_kb@kinesis` | 25 | KB per billed unit | https://aws.amazon.com/kinesis/data-streams/pricing/ — a PUT payload unit is 25 KB |
 
 ### `pubsub`
 
@@ -234,7 +250,12 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `pubsub.servers_per_instance` | 10000 | in parallel per instance | source: needed (suggested: https://cloud.google.com/pubsub/docs/overview); managed fan-out scales with the topic |
 | `pubsub.p99_ratio` | 3 | × median | source: needed (suggested: https://cloud.google.com/pubsub/docs/overview); tail spread of the service time |
 | `pubsub.queue_per_server` | 4 | slots per server | source: needed (suggested: https://cloud.google.com/pubsub/docs/overview); backlog before the card drops requests |
-| `pubsub.cost.million` | 0.5 | $/million requests | source: needed (suggested: https://cloud.google.com/pubsub/pricing); teaching price, shaped like the list price |
+| `pubsub.cost.million_write` | 0.5 | $/million publishes | https://aws.amazon.com/sns/faqs — "$0.50 per 1 million Amazon SNS Requests"; deliveries to SQS and Lambda are free (https://aws.amazon.com/sns/pricing/); HTTP deliveries ($0.60/M) are treated as free (list price, us-east-1, read 2026-11-22) |
+| `pubsub.cost.million@google_pubsub` | 0.037 | $/million deliveries (1 KB) | https://cloud.google.com/pubsub/pricing — $40 per TiB with a 1 KB minimum per message; the first 10 GiB free is left out (list price, us-east-1, read 2026-11-22) |
+| `pubsub.cost.million_write@google_pubsub` | 0.037 | $/million publishes (1 KB) | https://cloud.google.com/pubsub/pricing — as deliveries (list price, us-east-1, read 2026-11-22) |
+| `pubsub.cost.unit_kb@google_pubsub` | 1 | KB per billed unit | https://cloud.google.com/pubsub/pricing — billed by volume, at least 1 KB per message |
+| `pubsub.cost.instance@redis_pubsub` | 36 | $/node-month | self-hosted Redis: the cache node price (2 GB × `cache.cost.gb`); no per-message fee |
+| `pubsub.cost.million_write@redis_pubsub` | 0 | $/million publishes | self-hosted: no per-message fee |
 
 ### `dlq`
 
@@ -244,7 +265,8 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `dlq.service_ms` | 2 | ms | source: needed (suggested: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html); as a queue |
 | `dlq.p99_ratio` | 3 | × median | source: needed (suggested: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html); tail spread of the service time |
 | `dlq.queue_per_server` | 4 | slots per server | source: needed (suggested: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html); backlog before the card drops requests |
-| `dlq.cost.million` | 0.4 | $/million requests | source: needed (suggested: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html); teaching price, shaped like the list price |
+| `dlq.cost.million` | 0.4 | $/million requests | https://aws.amazon.com/sqs/pricing/ — a dead-letter queue is an SQS queue (list price, us-east-1, read 2026-11-22) |
+| `dlq.cost.million_write` | 1.2 | $/million messages | https://aws.amazon.com/sqs/pricing/ — as `queue.cost.million_write` (list price, us-east-1, read 2026-11-22) |
 
 ### `scheduler`
 

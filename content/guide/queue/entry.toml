@@ -79,13 +79,18 @@ note_es = "Lo que tarda el broker en guardar una publicación antes de confirmar
 
 [[sim]]
 cost = "per_instance_month"
-note = "A fixed monthly price for the broker."
-note_es = "Un precio mensual fijo por el broker."
+note = "A fixed monthly price per node for a self-hosted broker such as RabbitMQ. SQS has no fee per queue."
+note_es = "Un precio mensual fijo por nodo para un broker propio como RabbitMQ. SQS no cobra por cola."
 
 [[sim]]
 cost = "per_million"
-note = "Plus a price for every million messages it accepts."
-note_es = "Más un precio por cada millón de mensajes que acepta."
+note = "On SQS each retry adds one more receive."
+note_es = "En SQS cada reintento suma una recepción más."
+
+[[sim]]
+cost = "per_million_write"
+note = "SQS bills each message as a send, a receive and a delete. Batching isn't modelled."
+note_es = "SQS cobra cada mensaje como un envío, una recepción y un borrado. El envío por lotes no se modela."
 
 [flavours_compared]
 flavours = ["rabbitmq", "sqs"]

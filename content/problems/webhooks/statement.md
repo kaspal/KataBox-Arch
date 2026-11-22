@@ -11,7 +11,7 @@ You run a platform that tells your customers when something happens: an order is
 | Peak traffic | 2,000 events/s |
 | p95 completion latency | 5 s or less |
 | Availability | 99.9% or more |
-| Budget | $5,000 per month |
+| Budget | $10,000 per month |
 | Lost messages | None |
 
 ## The traffic

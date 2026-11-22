@@ -24,7 +24,10 @@ function Tile({ label, value, unit, testId }: { label: string; value: string; un
 
 export function MetricsPanel() {
   // The live p95 measures what the problem's limits measure (review F2).
-  const judged = useProblemMode()?.brief.judged_on ?? "response";
+  const mode = useProblemMode();
+  const judged = mode?.brief.judged_on ?? "response";
+  const problemTest = useRun((s) => s.problemTest);
+  const playingTest = problemTest ? mode?.brief.tests.find((x) => x.id === problemTest.test_id) : undefined;
   const { t, i18n } = useTranslation();
   const frame = useRun((s) => s.frame);
   const info = useRun((s) => s.info);
@@ -61,6 +64,11 @@ export function MetricsPanel() {
         <Tile label={t("metrics.retried")} value={n0.format(frame.retried)} testId="metric-retried" />
       </div>
       <p className="text-xs text-muted-foreground">{t("metrics.lastSecond")}</p>
+      {playingTest && (
+        <p className="text-xs text-muted-foreground" data-testid="cost-test">
+          {t("metrics.costTest", { name: i18n.language.startsWith("es") ? playingTest.name_es : playingTest.name })}
+        </p>
+      )}
       {series.length > 1 && (
         <section className="space-y-1">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("metrics.p95Trend")}</h3>

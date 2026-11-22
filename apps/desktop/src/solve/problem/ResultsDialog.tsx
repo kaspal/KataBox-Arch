@@ -97,11 +97,19 @@ function TestRow({ test, onReplay }: { test: TestResult; onReplay: (t: TestResul
               {test.limits.error_rate != null && ` / ${pct.format(test.limits.error_rate)}`}
             </dd>
           </div>
-          <div>
+          <div data-testid="availability">
             <dt className="text-muted-foreground">{t("metrics.availability")}</dt>
-            <dd className="font-mono tabular-nums">{pct.format(test.availability)}</dd>
+            <dd className="font-mono tabular-nums">
+              {pct.format(test.availability)}
+              {test.limits.availability != null && ` / ≥ ${pct.format(test.limits.availability)}`}
+            </dd>
           </div>
         </dl>
+      )}
+      {test.lost > 0 && test.verdict !== "invalid_design" && (
+        <p className="text-xs text-destructive" data-testid="lost">
+          {t("results.lost", { n: new Intl.NumberFormat(i18n.language).format(Math.round(test.lost)), limit: Math.round(test.limits.lost ?? 0) })}
+        </p>
       )}
       {(test.retried ?? 0) > 0 && test.verdict !== "invalid_design" && (
         <p className="text-xs text-muted-foreground" data-testid="retried">
@@ -134,6 +142,7 @@ export function ResultsDialog({
 }) {
   const { t, i18n } = useTranslation();
   const usd = new Intl.NumberFormat(i18n.language, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  const es = i18n.language.startsWith("es");
   const j = result?.judgement;
   return (
     <Dialog open={!!result} onOpenChange={(o) => !o && onClose()}>
@@ -170,6 +179,9 @@ export function ResultsDialog({
               <ScoreBar label={t("results.correctness")} value={j.score.correctness} max={70} />
               <ScoreBar label={t("results.cost", { cost: usd.format(j.cost_month), ref: usd.format(j.ref_cost) })} value={j.score.cost} max={20} />
               <ScoreBar label={t("results.latency")} value={j.score.latency} max={10} />
+              <p className="text-xs text-muted-foreground" data-testid="cost-note">
+                {t("results.costNote", { test: j.tests[0] ? (es ? j.tests[0].name_es : j.tests[0].name) : "" })}
+              </p>
               <p className="text-xs text-muted-foreground">{t("results.best", { score: result.best_score })}</p>
             </section>
             <ul className="space-y-2">

@@ -12,7 +12,7 @@ tags = ["streams", "partitioning", "p99", "failover", "caching"]
 peak_rps = 10000
 p95_ms = 30
 availability = 0.999
-budget_usd = 9000
+budget_usd = 2800
 
 [[request_types]]
 id = "order"

@@ -111,6 +111,14 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
     English and Spanish.
 
 ### Changed
+- **Prices are list prices** (us-east-1, on demand) for DNS, SQS, RabbitMQ, Kafka (MSK), Kinesis, SNS, Google
+  Pub/Sub, Redis Pub/Sub, S3, GCS, DynamoDB, Cassandra and MongoDB, each cited in `docs/calibration.md`: reads and
+  writes are priced apart, shards and partitions where the product bills them, and DNS only for the queries that
+  aren't cached (`query_ratio`). Problem budgets moved with their references; every verdict stays the same except
+  Web Crawler's first-try design, which now fits the budget on the normal day (it still fails the hidden tests).
+- **The live cost matches Results** once a run ends, and both say which test's load and which prices they use. Test
+  results show each test's availability limit and any lost messages; the brief shows a test's own availability limit.
+- The Guide shows prices per shard and per write where a product has them, and says how the simulator bills it.
 - Design files are format version 2. Version 1 files still open: an Autoscaling card becomes a
   frame around what it scaled, and two retired properties (SQL read replicas, CDN hit rate) are
   dropped.

@@ -20,7 +20,7 @@ name_es = "Un día normal"
 peak_rps = 300
 p95_ms = 1000
 availability = 0.999
-budget_usd = 2000
+budget_usd = 3000
 
 [[scenario.externals]]
 name = "email"

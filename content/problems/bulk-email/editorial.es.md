@@ -8,7 +8,7 @@ Las pruebas ocultas se llevan ese margen. Cuando el límite baja a 250 llamadas 
 
 ## El diseño de referencia
 
-Un Campaign scheduler, una tarjeta Airflow que se dispara cada segundo, publica los correos en una Queue SQS con max_retries en 10. Desde esa cola sale una Dead-letter Queue. La consumen 4 instancias Celery de Mail senders, cada una con concurrencia 64: 256 huecos en total, ocupados en unos dos tercios en un día normal. Cuesta unos 865 $ al mes, la mayor parte por la cola, y el p95 de la campaña normal es de unos 786 ms.
+Un Campaign scheduler, una tarjeta Airflow que se dispara cada segundo, publica los correos en una Queue SQS con max_retries en 10. Desde esa cola sale una Dead-letter Queue. La consumen 4 instancias Celery de Mail senders, cada una con concurrencia 64: 256 huecos en total, ocupados en unos dos tercios en un día normal. Cuesta unos 1874 $ al mes, la mayor parte por la cola, y el p95 de la campaña normal es de unos 786 ms.
 
 «El proveedor te baja el límite» reduce el límite a 250 llamadas por segundo a partir del segundo 20, durante 40 segundos, en una ejecución de 120 segundos. Admite un p95 de 120 segundos y ningún correo perdido. Las llamadas rechazadas que se reintentan no son errores: el correo sigue en camino, así que Resultados las cuenta aparte como intentos reintentados. Cada correo rechazado vuelve a la cola y se reintenta tras 1, 2, 4, 8, 16, 32, 32, 32, 32 y 32 segundos: 191 segundos en total, mucho más que el recorte. El atasco se vacía cuando el límite vuelve a 800: el p95 queda en unos 25 s, sin perder nada. Lo que aún fallara acabaría en la Dead-letter Queue.
 

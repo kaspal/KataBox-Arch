@@ -65,9 +65,14 @@ pub struct NodeSpec {
     pub cdc_buffer_s: f64,
     /// Service slots a write occupies (DynamoDB: 3).
     pub write_slots: f64,
-    /// Lanes (shards, partitions) over the kind's default count: the per-instance price
-    /// scales with it (cost per shard, ADR 0006).
+    /// SQL and Search: shards over the kind's default count; the per-instance price scales
+    /// with it (cost per shard, ADR 0006). 1 for every other kind.
     pub cost_lanes: f64,
+    /// What `Cost::per_lane_month` is multiplied by: a NoSQL card's partitions, a stream's
+    /// partitions (shards); 0 for kinds without lanes.
+    pub bill_lanes: f64,
+    /// The share of requests through the card that are billed (DNS: `query_ratio`).
+    pub bill_ratio: f64,
 }
 
 /// The value of `key` for `node`: the card's prop, else its flavour override, else the
@@ -163,6 +168,18 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         read_from_primary: text(registry, node, "read_from").as_deref() == Some("primary"),
         cdc_buffer_s: n("cdc_buffer_s").unwrap_or(300.0),
         write_slots: d.write_slots.max(1.0),
-        cost_lanes: f64::from(lanes) / default_lanes,
+        cost_lanes: match node.kind {
+            K::Sql | K::Search => f64::from(lanes) / default_lanes,
+            _ => 1.0,
+        },
+        bill_lanes: match node.kind {
+            K::Nosql => f64::from(lanes),
+            K::Stream => n("partitions").unwrap_or(0.0),
+            _ => 0.0,
+        },
+        bill_ratio: match node.kind {
+            K::Dns => n("query_ratio").unwrap_or(1.0),
+            _ => 1.0,
+        },
     }
 }

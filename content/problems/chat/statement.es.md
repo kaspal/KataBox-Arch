@@ -11,7 +11,7 @@ Tienes un servicio de chat. La gente deja la app abierta toda la tarde y envía 
 | Tráfico pico | 4 000 mensajes/s |
 | Latencia p95 de entrega | 150 ms o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 12 000 $ al mes |
+| Presupuesto | 800 $ al mes |
 
 En este problema, las peticiones de pub/sub son la mayor parte de la factura. Tenlas en cuenta al planificar.
 

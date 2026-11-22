@@ -8,7 +8,7 @@ Un stream entrega un mensaje por partición cada vez, así que una partición ca
 
 ## El diseño de referencia
 
-La Order gateway, con 6 instancias Go detrás de un Network Load Balancer, publica cada orden en un stream Kafka, el Order log, con 128 particiones. Lo consumen dos tarjetas de matchers Celery, Matchers A y Matchers B, cada una con 12 instancias y la concurrencia por defecto de Celery, 8: 96 huecos por tarjeta, 192 en total. Las dos escriben en un libro de órdenes Redis con un TTL de 86 400 segundos. Cuesta unos 7447 $ al mes, sobre todo por el stream: unos 5286 $, porque Kafka se cobra por mensaje y 10 000 órdenes por segundo son unos 26 000 millones de mensajes al mes. En una sesión normal el p95 es de unos 19 ms, con la pasarela y los matchers ocupados en torno al 16 %.
+La Order gateway, con 6 instancias Go detrás de un Network Load Balancer, publica cada orden en un stream Kafka, el Order log, con 128 particiones. Lo consumen dos tarjetas de matchers Celery, Matchers A y Matchers B, cada una con 12 instancias y la concurrencia por defecto de Celery, 8: 96 huecos por tarjeta, 192 en total. Las dos escriben en un libro de órdenes Redis con un TTL de 86 400 segundos. Cuesta unos 2314 $ al mes, sobre todo por los matchers: 24 instancias a 70 $ son 1680 $. 10 000 órdenes por segundo son unos 26 000 millones de mensajes al mes, pero Kafka (Amazon MSK) se cobra por broker, no por mensaje: el stream es un broker de 153 $. En una sesión normal el p95 es de unos 19 ms, con la pasarela y los matchers ocupados en torno al 16 %.
 
 «Abre el mercado» multiplica el tráfico por cuatro durante 10 segundos, a partir del segundo 20, y admite un p95 de 1 s y un p99 de 3 s. 40 000 órdenes por segundo caben bajo el techo de 128 particiones, y 6 instancias en la pasarela aguantan unas 76 800 por segundo, así que no se forma atasco: el p95 se queda en unos 19 ms.
 
@@ -16,7 +16,7 @@ La Order gateway, con 6 instancias Go detrás de un Network Load Balancer, publi
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual usa 3 instancias en la pasarela, 48 particiones y una sola tarjeta de matchers con 8 instancias: 64 huecos, por unos 6117 $ al mes. Supera «Una sesión normal» con el mismo p95 de unos 19 ms; los matchers están ocupados en torno al 47 %.
+Un primer intento habitual usa 3 instancias en la pasarela, 48 particiones y una sola tarjeta de matchers con 8 instancias: 64 huecos, por unos 984 $ al mes. Supera «Una sesión normal» con el mismo p95 de unos 19 ms; los matchers están ocupados en torno al 47 %.
 
 En la apertura se queda corto por dos lados. 3 instancias en la pasarela aguantan unas 38 400 órdenes por segundo, justo por debajo de las 40 000 que llegan, y 48 particiones solo casan unas 16 000. El atasco crece durante los 10 segundos: en torno al 16 % de las órdenes fallan y el p95 llega a unos 6,4 s.
 
