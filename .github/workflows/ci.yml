@@ -1,0 +1,94 @@
+name: CI
+
+# GitHub Actions is blocked by billing for now: the same checks run locally before each
+# merge (CLAUDE.md → Commands). This workflow is ready for when Actions is available.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    name: Rust crates (Linux)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --all-targets -- -D warnings
+      # .kbarch round-trip and strict refusals, registry, wiring matrix snapshot,
+      # validation, migrations, settings and path rules.
+      - run: cargo test
+
+  licenses:
+    name: Licences and versions
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check licenses
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm licenses:check
+      # The app version matches in all three files, and the MSI version follows the rule
+      # in docs/packaging.md so every later release installs as an upgrade.
+      - run: pnpm versions:check
+
+  ui:
+    name: UI build
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      # Vitest + Testing Library: i18n parity, token contrast, routeEdge geometry, wiring
+      # parity with Rust, store and undo grouping, pages, palette, files.
+      - run: pnpm test
+
+  desktop:
+    name: Desktop shell (${{ matrix.os }})
+    # Windows minutes count double on a private repo: Windows only on main.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ github.event_name == 'push' && fromJSON('["ubuntu-22.04","windows-latest"]') || fromJSON('["ubuntu-22.04"]') }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install WebKitGTK (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy -p katabox-arch-desktop --all-targets -- -D warnings
+      # Auto-update is off by default; keep the opt-in feature compiling.
+      - run: cargo clippy -p katabox-arch-desktop --features updater -- -D warnings
+      - name: Bindings and the registry fixture are up to date
+        run: |
+          cargo run -p katabox-arch-desktop --features bindings --bin export-bindings
+          git diff --exit-code apps/desktop/src/bindings.ts apps/desktop/src/test/fixtures/registry.json
