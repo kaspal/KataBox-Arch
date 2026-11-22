@@ -49,6 +49,9 @@ const routeTree = rootRoute.addChildren([
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/glossary",
+    // `?term=<id>`: a glossary link from content prose lands on that term.
+    validateSearch: (s: Record<string, unknown>): { term?: string } =>
+      typeof s.term === "string" && /^[a-z0-9-]{1,64}$/.test(s.term) ? { term: s.term } : {},
     component: lazyRouteComponent(() => import("@/guide/Decide"), "GlossaryPage"),
   }),
   createRoute({
