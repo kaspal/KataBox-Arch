@@ -24,4 +24,15 @@ describe("the Export menu", () => {
     await waitFor(() => expect(fake().api.saveMermaid).toHaveBeenCalled());
     expect(vi.mocked(fake().api.saveMermaid).mock.calls[0]![2]).toMatch(/\.mmd$/);
   });
+
+  it("saves the design as an SVG image through Rust", async () => {
+    const { user } = renderApp("/sandbox");
+    await user.click(await screen.findByTestId("export-menu"));
+    await user.click(await screen.findByRole("menuitem", { name: "Save as SVG image…" }));
+    await waitFor(() => expect(fake().api.saveExport).toHaveBeenCalled());
+    const [format, bytes, name] = vi.mocked(fake().api.saveExport).mock.calls[0]!;
+    expect(format).toBe("svg");
+    expect(new TextDecoder().decode(bytes)).toMatch(/^<svg xmlns/);
+    expect(name).toMatch(/\.svg$/);
+  });
 });

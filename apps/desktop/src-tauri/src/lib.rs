@@ -197,6 +197,46 @@ async fn save_mermaid(
     Ok(Some(svc.export_mermaid(path, &design, &names)?))
 }
 
+/// Show the Save dialog and write an image export the UI rendered (M7.3). `None` when
+/// cancelled.
+#[tauri::command]
+#[specta::specta]
+async fn save_export(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    format: ka_app::ExportFormat,
+    data: Vec<u8>,
+    suggested_name: String,
+) -> Res<Option<String>> {
+    let svc = state.app()?;
+    if data.len() > ka_app::MAX_EXPORT_BYTES {
+        return Err(AppError::new(
+            AppErrorCode::FileTooLarge,
+            "export too large",
+        ));
+    }
+    use tauri_plugin_dialog::DialogExt;
+    let (name, ext) = match format {
+        ka_app::ExportFormat::Svg => ("SVG image", "svg"),
+        ka_app::ExportFormat::Png => ("PNG image", "png"),
+    };
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .add_filter(name, &[ext])
+            .set_file_name(suggested_name)
+            .blocking_save_file()
+    })
+    .await
+    .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    let Some(path) = picked else {
+        return Ok(None);
+    };
+    let path = path
+        .into_path()
+        .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    Ok(Some(svc.write_export(path, format, &data)?))
+}
 // --- Problem packs (M6.4) ---------------------------------------------------------------
 
 /// Show the Open dialog for a `.kbpack`, then open and check it (nothing is installed
@@ -689,6 +729,7 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         confirm_close,
         katabox_links,
         mermaid_text,
+        save_export,
         save_mermaid,
         preview_pack,
         apply_pack,

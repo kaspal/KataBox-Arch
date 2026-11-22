@@ -317,6 +317,7 @@ export function createFakeApi(opts: FakeOptions = {}) {
         ? [{ kind: "learn" as const, id: "linear/lru-cache", title: "LRU cache", title_es: "Caché LRU" }, { kind: "problem" as const, id: "league-rank", title: "League Rank", title_es: "Clasificación de la liga" }]
         : [],
     ),
+    saveExport: vi.fn(async (_f: string, _d: Uint8Array, name: string) => `C:/exports/${name}`),
     mermaidText: vi.fn(async () => "flowchart LR\n"),
     saveMermaid: vi.fn(async (_d: Design, _n: Record<string, string>, name: string) => `C:/exports/${name}`),
     previewPack: vi.fn(async () => {

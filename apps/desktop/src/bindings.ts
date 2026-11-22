@@ -495,6 +495,18 @@ async mermaidText(design: Design, names: Partial<{ [key in string]: string }>) :
     return await TAURI_INVOKE("mermaid_text", { design, names });
 },
 /**
+ * Show the Save dialog and write an image export the UI rendered (M7.3). `None` when
+ * cancelled.
+ */
+async saveExport(format: ExportFormat, data: number[], suggestedName: string) : Promise<Result<string | null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("save_export", { format, data, suggestedName }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Show the Save dialog and write the design as a `.mmd` file. `None` when cancelled.
  */
 async saveMermaid(design: Design, names: Partial<{ [key in string]: string }>, suggestedName: string) : Promise<Result<string | null, AppError>> {
@@ -872,6 +884,10 @@ solution: string; solution_es: string; inputs: Partial<{ [key in string]: number
  * One drill's record: how many checks, and whether any was within its band.
  */
 export type EstimateStatus = { problem_id: string; drill_id: string; tries: number; done: boolean }
+/**
+ * What an image export is (M7.3).
+ */
+export type ExportFormat = "svg" | "png"
 export type ExternalBrief = { name: string; median_ms: number; p99_ms: number; rate_limit: number | null }
 /**
  * Why the first card failed.

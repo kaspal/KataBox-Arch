@@ -821,7 +821,9 @@
     "menu": "Export",
     "copyMermaid": "Copy as Mermaid",
     "saveMermaid": "Save as Mermaid…",
-    "copied": "Mermaid diagram copied."
+    "copied": "Mermaid diagram copied.",
+    "saveSvg": "Save as SVG image…",
+    "savePng": "Save as PNG image…"
   },
   "katabox": {
     "title": "Related in KataBox",

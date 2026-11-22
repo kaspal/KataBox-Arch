@@ -4,14 +4,15 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { Check, Copy, FileDown, Share2 } from "lucide-react";
+import { Check, Copy, FileDown, FileImage, Share2 } from "lucide-react";
 import type { Registry } from "@/bindings";
 import { useReportError } from "@/app/dialogs";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { api } from "@/lib/api";
 import { useRegistry } from "@/lib/queries";
-import { kindName } from "@/solve/registry";
+import { flavourName, kindName } from "@/solve/registry";
+import { designSvg, readPalette, svgToPng, type SceneNames } from "@/solve/export/scene";
 import { toDesign, useEditor } from "@/solve/store";
 
 const PROTOCOLS = ["http", "grpc", "ws", "query", "publish", "consume", "replicate"] as const;
@@ -53,6 +54,26 @@ export function ExportMenu() {
     }
   };
 
+  const image = async (format: "svg" | "png") => {
+    if (!registry.data) return;
+    try {
+      const d = design();
+      const sceneNames: SceneNames = {
+        kind: (k) => kindName(t, k as never),
+        flavour: (f) => flavourName(t, f as never),
+        protocol: (p) => t(`protocol.${p}` as "protocol.http"),
+        zone: (z) => t(`canvas.zone.${z}` as "canvas.zone.region"),
+      };
+      // Webfonts first (review A7), so text measures the same as on screen.
+      await document.fonts?.ready;
+      const svg = designSvg(d, registry.data, sceneNames, readPalette());
+      const bytes = format === "svg" ? new TextEncoder().encode(svg) : await svgToPng(svg);
+      await api.saveExport(format, bytes, `${d.name || "design"}.${format}`);
+    } catch (e) {
+      report(e);
+    }
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -70,6 +91,14 @@ export function ExportMenu() {
           <DropdownMenuItem onSelect={() => void save()} className="gap-2">
             <FileDown aria-hidden className="size-4" />
             {t("export.saveMermaid")}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => void image("svg")} className="gap-2">
+            <FileImage aria-hidden className="size-4" />
+            {t("export.saveSvg")}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => void image("png")} className="gap-2">
+            <FileImage aria-hidden className="size-4" />
+            {t("export.savePng")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

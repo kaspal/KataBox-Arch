@@ -43,6 +43,7 @@ import {
   type RunInfo,
   type RunResult,
   type SandboxPreset,
+  ExportFormat,
   KataboxLink,
   PackInfo,
   PackPreview,
@@ -152,6 +153,9 @@ export const api = {
   mermaidText: (design: Design, names: Record<string, string>): Promise<string> => commands.mermaidText(design, names),
   saveMermaid: (design: Design, names: Record<string, string>, suggestedName: string): Promise<string | null> =>
     call(commands.saveMermaid(design, names, suggestedName)),
+  // Image export (M7.3): the bytes the UI rendered; Rust opens the Save dialog. null when cancelled.
+  saveExport: (format: ExportFormat, data: Uint8Array, suggestedName: string): Promise<string | null> =>
+    call(commands.saveExport(format, Array.from(data), suggestedName)),
   // Problem packs (M6.4): Rust opens the file dialog; null when cancelled.
   previewPack: (): Promise<PackPreview | null> => call(commands.previewPack()),
   applyPack: (token: number): Promise<PackInfo> => call(commands.applyPack(token)),
