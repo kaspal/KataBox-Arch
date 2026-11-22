@@ -50,25 +50,47 @@ function useSize(ref: React.RefObject<HTMLElement | null>) {
   return size;
 }
 
-/** Where a step's camera looks: its own camera, else the focused cards, else the design. */
-export function stepViewport(step: StoryStep, design: Design, size: { w: number; h: number }): Viewport {
-  if (step.camera) {
-    const { x, y, zoom } = step.camera;
-    return { x: size.w / 2 - x * zoom, y: size.h / 2 - y * zoom, zoom };
-  }
+/** The caption card's band along the bottom of the player. */
+export const CAPTION_H = 160;
+/** Space kept between the focused cards and the edge of the view. */
+export const FRAME_MARGIN = 48;
+
+/** The box a step must show: its focused cards, else the whole design. */
+export function focusBox(step: StoryStep, design: Design): Box | null {
   const focus = step.focus ?? [];
   const lit = design.nodes.filter((n) => focus.includes(n.id));
-  let box: Box | null = designBounds(design);
-  if (lit.length > 0) {
-    const x0 = Math.min(...lit.map((n) => n.position.x));
-    const y0 = Math.min(...lit.map((n) => n.position.y));
-    const x1 = Math.max(...lit.map((n) => n.position.x + CARD_W));
-    const y1 = Math.max(...lit.map((n) => n.position.y + CARD_H));
-    box = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
-  }
-  // Leave room for the caption card along the bottom.
-  const v = fitBox(box, { w: size.w, h: Math.max(1, size.h - 160) }, 48);
-  return { ...v, zoom: Math.min(v.zoom, 1.2) };
+  if (lit.length === 0) return designBounds(design);
+  const x0 = Math.min(...lit.map((n) => n.position.x));
+  const y0 = Math.min(...lit.map((n) => n.position.y));
+  const x1 = Math.max(...lit.map((n) => n.position.x + CARD_W));
+  const y1 = Math.max(...lit.map((n) => n.position.y + CARD_H));
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+
+/**
+ * Where a step's camera looks, above the caption band. The focused cards (else the design)
+ * always fit with a margin (M1–M3 review F2): a step's own camera keeps its centre and zoom
+ * only as far as they still show every focused card; otherwise it zooms out and slides just
+ * enough.
+ */
+export function stepViewport(step: StoryStep, design: Design, size: { w: number; h: number }): Viewport {
+  const area = { w: size.w, h: Math.max(1, size.h - CAPTION_H) };
+  const box = focusBox(step, design);
+  const fit = fitBox(box, area, FRAME_MARGIN, 0.05);
+  const fitted = { ...fit, zoom: Math.min(fit.zoom, 1.2) };
+  if (!step.camera || !box) return fitted;
+  const zoom = Math.min(step.camera.zoom, fitted.zoom);
+  let x = area.w / 2 - step.camera.x * zoom;
+  let y = area.h / 2 - step.camera.y * zoom;
+  const clamp = (pos: number, lo: number, hi: number, room: number) => {
+    // Slide so [lo, hi] (screen coordinates) sits inside [margin, room - margin].
+    if (lo + pos < FRAME_MARGIN) return FRAME_MARGIN - lo;
+    if (hi + pos > room - FRAME_MARGIN) return room - FRAME_MARGIN - hi;
+    return pos;
+  };
+  x = clamp(x, box.x * zoom, (box.x + box.w) * zoom, area.w);
+  y = clamp(y, box.y * zoom, (box.y + box.h) * zoom, area.h);
+  return { x, y, zoom };
 }
 
 function Callout({ step }: { step: StoryStep }) {

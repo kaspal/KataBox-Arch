@@ -87,9 +87,19 @@ describe("the sample gallery and the player", () => {
 
 describe("the camera", () => {
   const size = { w: 1000, h: 800 };
-  it("centres a step's own camera point", () => {
+  it("centres a step's own camera point above the caption band", () => {
     const step = FAKE_SAMPLE.def.steps[1];
-    expect(stepViewport(step, FAKE_SAMPLE.snapshots["two.kbarch"]!, size)).toEqual({ x: 400, y: 200, zoom: 1 });
+    // 400 tall less the 160 px caption band: the point sits at y = 120.
+    expect(stepViewport(step, FAKE_SAMPLE.snapshots["two.kbarch"]!, size)).toEqual({ x: 400, y: 120, zoom: 1 });
+  });
+  it("a step's own camera never cuts off a focused card: it zooms out and slides", () => {
+    // The camera looks far to the right of the focused card, zoomed in.
+    const step = { ...FAKE_SAMPLE.def.steps[0], camera: { x: 2000, y: 0, zoom: 2 } };
+    const v = stepViewport(step, ONE, size);
+    expect(v.zoom).toBeLessThanOrEqual(1.2);
+    const card = ONE.nodes.find((n) => (step.focus ?? []).includes(n.id))!;
+    const x0 = card.position.x * v.zoom + v.x;
+    expect(x0).toBeGreaterThanOrEqual(48 - 0.5);
   });
   it("otherwise fits the focused cards (at most 100%), leaving room for the caption", () => {
     const step = FAKE_SAMPLE.def.steps[0];

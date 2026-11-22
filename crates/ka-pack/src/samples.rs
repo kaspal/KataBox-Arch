@@ -108,6 +108,46 @@ fn preset(name: &str) -> Option<SandboxPreset> {
     serde_json::from_value(serde_json::Value::String(name.into())).ok()
 }
 
+/// The player the framing check assumes (px): its caption band, margin and card size match
+/// the UI's `stepViewport` (`tour/Player.tsx`), which always fits the focused cards.
+const NOMINAL_PLAYER: (f64, f64) = (960.0, 540.0);
+const CAPTION_H: f64 = 160.0;
+const FRAME_MARGIN: f64 = 48.0;
+const CARD: (f64, f64) = (208.0, 64.0);
+/// Below this zoom the focused cards' text is too small to read.
+pub const MIN_FOCUS_ZOOM: f64 = 0.35;
+
+/// The zoom at which a step's focused cards (else every card) fit the nominal player.
+fn focus_zoom(focus: &[String], design: &ka_core::Design) -> Option<f64> {
+    let lit: Vec<&ka_core::Node> = design
+        .nodes
+        .iter()
+        .filter(|n| focus.is_empty() || focus.contains(&n.id))
+        .collect();
+    if lit.is_empty() {
+        return None;
+    }
+    let x0 = lit
+        .iter()
+        .map(|n| n.position.x)
+        .fold(f64::INFINITY, f64::min);
+    let y0 = lit
+        .iter()
+        .map(|n| n.position.y)
+        .fold(f64::INFINITY, f64::min);
+    let x1 = lit
+        .iter()
+        .map(|n| n.position.x + CARD.0)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let y1 = lit
+        .iter()
+        .map(|n| n.position.y + CARD.1)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let w = NOMINAL_PLAYER.0 - 2.0 * FRAME_MARGIN;
+    let h = NOMINAL_PLAYER.1 - CAPTION_H - 2.0 * FRAME_MARGIN;
+    Some((w / (x1 - x0)).min(h / (y1 - y0)).min(1.0))
+}
+
 /// Structural checks: ids, text in both languages, snapshots, focus, runs and callouts.
 pub fn validate_samples(
     samples: &[SampleDir],
@@ -200,6 +240,14 @@ pub fn validate_samples(
                         step.snapshot
                     )));
                 }
+            }
+            if let Some(zoom) = focus_zoom(&step.focus, design)
+                && zoom < MIN_FOCUS_ZOOM
+            {
+                issues.push(here(format!(
+                    "the focused cards are too far apart to read in a {}×{} player (zoom {zoom:.2} < {MIN_FOCUS_ZOOM}); focus fewer cards",
+                    NOMINAL_PLAYER.0, NOMINAL_PLAYER.1
+                )));
             }
             if let Some(c) = &step.camera
                 && !(0.3..=2.0).contains(&c.zoom)
@@ -421,5 +469,30 @@ mod tests {
         assert!(close(CalloutMetric::P95Ms, 3.0, 1.5));
         assert!(close(CalloutMetric::ErrorRate, 0.0, 0.008));
         assert!(!close(CalloutMetric::ErrorRate, 0.6, 0.4));
+    }
+
+    #[test]
+    fn focused_cards_must_fit_a_readable_zoom() {
+        let card = |id: &str, x: f64, y: f64| ka_core::Node {
+            id: id.into(),
+            kind: ka_core::ComponentKind::App,
+            flavour: ka_core::Flavour::Go,
+            label: String::new(),
+            position: ka_core::Point { x, y },
+            props: Default::default(),
+            group_id: None,
+        };
+        let mut d = ka_core::Design::empty("d", "d");
+        d.nodes = vec![
+            card("a", 0.0, 0.0),
+            card("b", 400.0, 0.0),
+            card("far", 4000.0, 0.0),
+        ];
+        let near = focus_zoom(&["a".into(), "b".into()], &d).unwrap();
+        assert!((MIN_FOCUS_ZOOM..=1.0).contains(&near), "{near}");
+        let far = focus_zoom(&["a".into(), "far".into()], &d).unwrap();
+        assert!(far < MIN_FOCUS_ZOOM, "{far}");
+        // No focus: the whole design.
+        assert_eq!(focus_zoom(&[], &d), Some(far));
     }
 }
