@@ -1,0 +1,72 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "KataBox Arch",
+  "version": "0.1.0",
+  "identifier": "dev.katabox.arch",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "KataBox Arch",
+        "visible": false,
+        "width": 1280,
+        "height": 800,
+        "minWidth": 960,
+        "minHeight": 600,
+        "dragDropEnabled": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis",
+      "msi",
+      "deb",
+      "rpm",
+      "appimage"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": {
+      "resources/THIRD_PARTY_NOTICES.txt": "THIRD_PARTY_NOTICES.txt"
+    },
+    "category": "Education",
+    "shortDescription": "Offline system design practice: build, simulate and grade architectures",
+    "longDescription": "KataBox Arch is a free, open-source desktop app for practising system design. Place real-world components on a free-form canvas, wire them, and run a deterministic traffic simulation that grades the design against the problem's SLOs. Works offline.",
+    "publisher": "KataBox contributors",
+    "copyright": "Copyright © 2026 Ehrlichmann Casas and KataBox contributors",
+    "homepage": "https://github.com/kaspal/KataBox-Arch",
+    "license": "MIT OR Apache-2.0",
+    "windows": {
+      "webviewInstallMode": {
+        "type": "embedBootstrapper",
+        "silent": true
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["English", "Spanish"],
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico"
+      },
+      "wix": {
+        "version": "0.1.0",
+        "language": ["en-US", "es-ES"]
+      }
+    }
+  }
+}

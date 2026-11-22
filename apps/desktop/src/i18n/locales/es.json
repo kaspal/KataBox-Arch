@@ -1,0 +1,372 @@
+{
+  "app": {
+    "skipToContent": "Saltar al contenido",
+    "devData": "DATOS DE DESARROLLO",
+    "devDataHint": "Compilación de desarrollo: los datos van en carpetas -dev aparte, nunca en tu perfil real."
+  },
+  "nav": {
+    "label": "Principal",
+    "home": "Inicio",
+    "problems": "Problemas",
+    "sandbox": "Sandbox",
+    "guide": "Guía",
+    "samples": "Ejemplos",
+    "progress": "Progreso",
+    "settings": "Ajustes"
+  },
+  "palette": {
+    "open": "Buscar",
+    "placeholder": "Escribe un comando, una página o un componente…",
+    "empty": "No hay coincidencias.",
+    "pages": "Páginas",
+    "file": "Archivo",
+    "openRecent": "Abrir {{name}}",
+    "add": "Añadir al lienzo",
+    "addItem": "Añadir {{name}}",
+    "theme": "Tema",
+    "language": "Idioma"
+  },
+  "theme": {
+    "system": "Sistema",
+    "light": "Claro",
+    "dark": "Oscuro"
+  },
+  "language": {
+    "en": "English",
+    "es": "Español"
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "dismiss": "Cerrar",
+    "on": "Sí",
+    "off": "No"
+  },
+  "errors": {
+    "generic": "Algo salió mal.",
+    "not_found": "No se encontró el archivo. Puede que se haya movido o borrado.",
+    "invalid_input": "La petición no es válida.",
+    "store": "No se pudo leer ni escribir la base de datos de la app.",
+    "io": "No se pudo leer ni escribir el archivo.",
+    "file_too_large": "El archivo es demasiado grande para abrirlo.",
+    "invalid_file": "No es un archivo de diseño válido de KataBox Arch.",
+    "newer_file_schema": "Este diseño se guardó con una versión más nueva de KataBox Arch. Actualiza la app para abrirlo.",
+    "invalid_design": "El diseño incumple una regla (conexiones, ids o valores), así que no se guardó.",
+    "setting_not_allowed": "Ese ajuste no se puede cambiar desde aquí.",
+    "path_not_allowed": "Usa Guardar como o Abrir para elegir antes un archivo.",
+    "internal": "Algo salió mal dentro de la app."
+  },
+  "files": {
+    "unsaved": {
+      "title": "¿Guardar los cambios?",
+      "body": "«{{name}}» tiene cambios sin guardar. Se perderán si no los guardas.",
+      "discard": "No guardar",
+      "save": "Guardar"
+    },
+    "untitled": "Diseño sin título",
+    "notSaved": "Sin guardar todavía",
+    "unsavedChanges": "Cambios sin guardar",
+    "new": "Nuevo diseño",
+    "open": "Abrir diseño",
+    "openEllipsis": "Abrir…",
+    "openShort": "Abrir",
+    "save": "Guardar",
+    "saveAs": "Guardar como…"
+  },
+  "edit": {
+    "undo": "Deshacer",
+    "redo": "Rehacer"
+  },
+  "sandbox": {
+    "toolbar": "Acciones del diseño",
+    "run": "Ejecutar",
+    "aiReview": "Revisión con IA",
+    "submit": "Enviar",
+    "later": "Llega en {{milestone}}"
+  },
+  "canvas": {
+    "label": "Lienzo",
+    "statPending": "Las estadísticas en vivo llegan con la simulación",
+    "connectFrom": "Conectar desde {{name}}",
+    "zone": {
+      "region": "Región",
+      "az": "Zona de disponibilidad",
+      "note": "Nota adhesiva"
+    },
+    "noteText": "Texto de la nota",
+    "notePlaceholder": "Doble clic para escribir…",
+    "noteAria": "Nota: {{text}}",
+    "edgeLabel": "Conexión {{protocol}}",
+    "minimap": "Minimapa",
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "fit": "Ajustar el diseño",
+    "pickFlavour": "¿Qué {{kind}}?",
+    "pickProtocol": "Conectar con",
+    "snap": "Ajustar a la cuadrícula",
+    "snapHint": "Las tarjetas se ajustan a una cuadrícula de 8 px. Mantén Alt al arrastrar para colocarlas libremente."
+  },
+  "wiring": {
+    "reason": {
+      "self_loop": "Un componente no puede conectarse a sí mismo.",
+      "duplicate_edge": "Estos dos ya están conectados con todos los protocolos que admiten.",
+      "into_client": "Los clientes solo inician peticiones; nada llama a un cliente.",
+      "client_to_data": "Un cliente no puede llegar directamente a un almacén de datos. Pon un servicio en medio.",
+      "from_ops": "Las herramientas de observabilidad solo reciben telemetría.",
+      "data_calls_out": "Los almacenes de datos responden consultas; no inician llamadas.",
+      "consume_needs_compute": "Los mensajes salen de una cola o un stream solo a través de un servicio consumidor.",
+      "edge_to_data": "Pon un servicio entre el borde y los datos.",
+      "no_rule": "Estos componentes no se pueden conectar."
+    },
+    "added": "Conectado con {{protocol}}.",
+    "keyboard": {
+      "start": "Conectando desde {{name}}. Elige el destino con las flechas o Tab y pulsa Intro. Escape cancela.",
+      "target": "{{name}}: se puede conectar con {{protocols}}.",
+      "blocked": "{{name}}: {{reason}}",
+      "cancelled": "Conexión cancelada.",
+      "hint": "Flechas o Tab: elegir destino · Intro: conectar · Esc: cancelar"
+    }
+  },
+  "protocol": {
+    "http": "HTTP",
+    "grpc": "gRPC",
+    "ws": "WebSocket",
+    "query": "Consulta",
+    "publish": "Publicar",
+    "consume": "Consumir",
+    "replicate": "Replicar"
+  },
+  "library": {
+    "title": "Biblioteca",
+    "hint": "arrastra al lienzo",
+    "search": "Buscar componentes",
+    "searchLabel": "Buscar en la biblioteca",
+    "noMatch": "Ningún componente coincide.",
+    "meta": "Zonas y notas",
+    "add": "{{name}}: arrástralo al lienzo o pulsa Intro para añadirlo",
+    "quickLook": "Acerca de {{name}}",
+    "flavours": "Variantes",
+    "guideLater": "La entrada completa de la Guía de componentes (qué hace, cuándo usarlo, sus números) llega en M3."
+  },
+  "inspector": {
+    "title": "Inspeccionar",
+    "metrics": "Métricas",
+    "metricsLater": "Las métricas llegan con la simulación (M1)",
+    "label": "Etiqueta",
+    "flavour": "Variante",
+    "props": "Propiedades",
+    "placeholderNumbers": "Los valores por defecto son provisionales hasta calibrar el simulador (M1).",
+    "delete": "Borrar",
+    "zoneHint": "Las tarjetas dentro de una zona se mueven con ella. La latencia de red entre zonas llega con la simulación.",
+    "protocol": "Protocolo",
+    "designName": "Nombre del diseño",
+    "count": {
+      "nodes": "Componentes",
+      "edges": "Conexiones",
+      "zones": "Zonas",
+      "notes": "Notas"
+    },
+    "notSaved": "Sin guardar todavía",
+    "nothingSelected": "Selecciona una tarjeta, una conexión o una zona para editarla.",
+    "many_one": "{{count}} elemento seleccionado",
+    "many_other": "{{count}} elementos seleccionados",
+    "range": "Escribe un número de {{min}} a {{max}}.",
+    "rangeInt": "Escribe un número entero de {{min}} a {{max}}."
+  },
+  "home": {
+    "eyebrow": "Tu mesa de diseño de sistemas",
+    "title": "Diséñalo. Rómpelo. Arréglalo.",
+    "newDesign": "Nuevo diseño",
+    "recent": "Diseños recientes",
+    "noRecent": "Aún no hay diseños. Empieza uno nuevo o abre un archivo .kbarch.",
+    "missing": "Archivo no encontrado",
+    "openNamed": "Abrir {{name}}",
+    "forget": "Olvidar",
+    "forgetNamed": "Quitar {{name}} de los diseños recientes"
+  },
+  "placeholder": {
+    "problems": {
+      "title": "Los problemas llegan en M2",
+      "body": "Una lista al estilo LeetCode de retos de diseño de sistemas, cada uno juzgado con pruebas de tráfico ocultas."
+    },
+    "guide": {
+      "title": "La Guía de componentes llega en M3",
+      "body": "Una entrada y una tarjeta de concepto para cada componente: qué hace, cuándo usarlo y sus números."
+    },
+    "samples": {
+      "title": "Los ejemplos animados llegan en M3",
+      "body": "Cinco diseños guiados que muestran el tráfico fluyendo, rompiéndose y recuperándose."
+    },
+    "progress": {
+      "title": "Todavía no hay nada que mostrar",
+      "body": "Los problemas resueltos, las mejores puntuaciones y tu racha aparecerán aquí cuando lleguen los problemas."
+    }
+  },
+  "settings": {
+    "appearance": "Apariencia",
+    "theme": "Tema",
+    "contrast": "Contraste",
+    "contrastHint": "El alto contraste usa texto, bordes y anillos de foco más marcados.",
+    "contrastValue": {
+      "normal": "Normal",
+      "high": "Alto"
+    },
+    "motion": "Movimiento",
+    "motionHint": "Reduce las animaciones en toda la app o sigue el ajuste del sistema.",
+    "motionValue": {
+      "system": "Seguir al sistema",
+      "reduced": "Reducido"
+    },
+    "language": "Idioma",
+    "uiLanguage": "Idioma de la app",
+    "canvas": "Lienzo",
+    "about": "Acerca de",
+    "version": "Versión",
+    "privacy": "KataBox Arch funciona sin conexión. Nunca envía telemetría.",
+    "trademarks": "Los nombres de productos que aparecen como variantes pertenecen a sus dueños; KataBox Arch no está afiliada a ellos."
+  },
+  "registry": {
+    "category": {
+      "edge": "Clientes y borde",
+      "compute": "Cómputo",
+      "data": "Datos",
+      "async": "Asíncrono",
+      "ops": "Operaciones"
+    },
+    "kind": {
+      "client": "Cliente",
+      "dns": "DNS",
+      "cdn": "CDN",
+      "waf": "WAF",
+      "lb": "Balanceador de carga",
+      "gateway": "API Gateway",
+      "ratelimit": "Limitador de tasa",
+      "app": "Servidor de aplicaciones",
+      "micro": "Microservicio",
+      "worker": "Worker",
+      "serverless": "Serverless",
+      "autoscale": "Autoescalado",
+      "sql": "Base de datos SQL",
+      "nosql": "Almacén NoSQL",
+      "cache": "Caché",
+      "object": "Almacenamiento de objetos",
+      "search": "Índice de búsqueda",
+      "queue": "Cola",
+      "stream": "Stream",
+      "pubsub": "Pub/Sub",
+      "dlq": "Cola de mensajes fallidos",
+      "scheduler": "Planificador",
+      "metrics": "Métricas",
+      "logs": "Logs",
+      "tracing": "Trazas"
+    },
+    "flavour": {
+      "generic": "Genérico",
+      "web": "Cliente web",
+      "mobile": "Cliente móvil",
+      "route53": "Route 53",
+      "cloudflare_dns": "Cloudflare DNS",
+      "cloudfront": "CloudFront",
+      "cloudflare_cdn": "Cloudflare",
+      "fastly": "Fastly",
+      "aws_waf": "AWS WAF",
+      "cloudflare_waf": "Cloudflare WAF",
+      "nginx": "NGINX",
+      "haproxy": "HAProxy",
+      "aws_alb": "AWS ALB",
+      "aws_nlb": "AWS NLB",
+      "kong": "Kong",
+      "aws_api_gateway": "AWS API Gateway",
+      "envoy": "Envoy",
+      "redis_token_bucket": "Token bucket en Redis",
+      "nodejs": "Node.js",
+      "spring_boot": "Spring Boot",
+      "go": "Go",
+      "django": "Django",
+      "celery": "Celery",
+      "sidekiq": "Sidekiq",
+      "aws_lambda": "AWS Lambda",
+      "cloud_run": "Cloud Run",
+      "kubernetes_hpa": "Kubernetes HPA",
+      "aws_asg": "AWS Auto Scaling Group",
+      "postgresql": "PostgreSQL",
+      "mysql": "MySQL",
+      "dynamodb": "DynamoDB",
+      "cassandra": "Cassandra",
+      "mongodb": "MongoDB",
+      "redis": "Redis",
+      "memcached": "Memcached",
+      "s3": "Amazon S3",
+      "gcs": "Google Cloud Storage",
+      "elasticsearch": "Elasticsearch",
+      "opensearch": "OpenSearch",
+      "rabbitmq": "RabbitMQ",
+      "sqs": "Amazon SQS",
+      "kafka": "Apache Kafka",
+      "kinesis": "Kinesis",
+      "google_pubsub": "Google Pub/Sub",
+      "sns": "Amazon SNS",
+      "redis_pubsub": "Redis Pub/Sub",
+      "cron": "cron",
+      "airflow": "Airflow",
+      "prometheus_grafana": "Prometheus + Grafana",
+      "elk": "ELK",
+      "loki": "Loki",
+      "jaeger": "Jaeger"
+    },
+    "prop": {
+      "rps": "Peticiones por segundo",
+      "ttl_s": "TTL",
+      "hit_rate": "Tasa de aciertos",
+      "instances": "Instancias",
+      "service_ms": "Tiempo de servicio",
+      "algorithm": "Algoritmo",
+      "concurrency": "Concurrencia por instancia",
+      "limit_rps": "Límite",
+      "burst": "Ráfaga",
+      "concurrency_limit": "Límite de concurrencia",
+      "cold_start_ms": "Arranque en frío",
+      "min_instances": "Instancias mínimas",
+      "max_instances": "Instancias máximas",
+      "target_util": "Utilización objetivo",
+      "scale_delay_s": "Retardo de escalado",
+      "read_replicas": "Réplicas de lectura",
+      "shards": "Shards",
+      "replication_lag_ms": "Retraso de replicación",
+      "partitions": "Particiones",
+      "replication_factor": "Factor de replicación",
+      "consistency": "Consistencia",
+      "memory_gb": "Memoria",
+      "eviction": "Desalojo",
+      "persistence": "Persistencia",
+      "replicas": "Réplicas",
+      "max_depth": "Profundidad máxima",
+      "visibility_timeout_s": "Tiempo de visibilidad",
+      "max_retries": "Reintentos máximos",
+      "retention_h": "Retención",
+      "retention_days": "Retención",
+      "interval_s": "Intervalo",
+      "sample_rate": "Tasa de muestreo"
+    },
+    "choice": {
+      "round_robin": "Round robin",
+      "least_conn": "Menos conexiones",
+      "ip_hash": "Hash de IP",
+      "eventual": "Eventual",
+      "strong": "Fuerte",
+      "lru": "LRU",
+      "lfu": "LFU",
+      "ttl": "Solo TTL"
+    }
+  },
+  "units": {
+    "none": "sin unidad",
+    "count": "elementos",
+    "ms": "ms",
+    "s": "s",
+    "h": "h",
+    "days": "días",
+    "percent": "%",
+    "rps": "pet/s",
+    "gb": "GB"
+  }
+}

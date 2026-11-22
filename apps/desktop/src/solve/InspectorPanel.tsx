@@ -1,0 +1,336 @@
+// The Inspector (right panel): edits what is selected. Card props are generated from the
+// registry's PropSpecs (ranges, steps and units come from Rust); a value outside its range
+// is shown as an error and never stored.
+import { useEffect, useId, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Trash2 } from "lucide-react";
+import type { Edge, Group, Node, Note, PropSpec, PropValue, Protocol, Registry } from "@/bindings";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { GlyphTile } from "@/solve/icons";
+import { choiceName, flavourName, kindName, kindSpec, propName, unitName } from "@/solve/registry";
+import { useEditor } from "@/solve/store";
+import { checkWire, makeWiring } from "@/solve/wiring";
+
+function Field({ label, htmlFor, children, error }: { label: string; htmlFor: string; children: React.ReactNode; error?: string }) {
+  return (
+    <div className="space-y-1">
+      <label htmlFor={htmlFor} className="text-xs font-medium text-muted-foreground">
+        {label}
+      </label>
+      {children}
+      {error && (
+        <p className="text-xs text-destructive" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** A text field that commits on blur or Enter. */
+function TextField({ label, value, max, onCommit, multiline }: { label: string; value: string; max: number; onCommit: (v: string) => void; multiline?: boolean }) {
+  const id = useId();
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
+  const commit = () => draft !== value && onCommit(draft);
+  return (
+    <Field label={label} htmlFor={id}>
+      {multiline ? (
+        <textarea
+          id={id}
+          value={draft}
+          maxLength={max}
+          rows={5}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          className="w-full rounded-md border bg-card px-3 py-2 font-hand text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+      ) : (
+        <Input
+          id={id}
+          value={draft}
+          maxLength={max}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => e.key === "Enter" && commit()}
+          className="bg-card"
+        />
+      )}
+    </Field>
+  );
+}
+
+function PropField({ spec, value, onChange }: { spec: PropSpec; value: PropValue | undefined; onChange: (v: PropValue) => void }) {
+  const { t } = useTranslation();
+  const id = useId();
+  const current = value ?? spec.default;
+  // Plain counts and unitless props show no suffix.
+  const unit = spec.unit === "none" || spec.unit === "count" ? "" : unitName(t, spec.unit);
+  const label = propName(t, spec.key);
+  const [draft, setDraft] = useState(String(current));
+  const [error, setError] = useState<string | undefined>();
+  useEffect(() => {
+    setDraft(String(value ?? spec.default));
+    setError(undefined);
+  }, [value, spec.default]);
+
+  const ty = spec.ty;
+  if (ty.type === "bool") {
+    return (
+      <label className="flex items-center justify-between gap-3 py-1 text-sm">
+        <span>{label}</span>
+        <input type="checkbox" className="size-4 accent-[var(--primary)]" checked={current === true} onChange={(e) => onChange(e.target.checked)} />
+      </label>
+    );
+  }
+  if (ty.type === "choice") {
+    return (
+      <Field label={label} htmlFor={id}>
+        <Select value={String(current)} onValueChange={(v) => onChange(v)}>
+          <SelectTrigger id={id} className="w-full bg-card">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {ty.options.map((o) => (
+              <SelectItem key={o} value={o}>
+                {choiceName(t, o)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+    );
+  }
+  const commit = () => {
+    const n = Number(draft);
+    const whole = ty.type === "int";
+    if (draft.trim() === "" || !Number.isFinite(n) || n < ty.min || n > ty.max || (whole && !Number.isInteger(n))) {
+      setError(t(whole ? "inspector.rangeInt" : "inspector.range", { min: ty.min, max: ty.max }));
+      return;
+    }
+    setError(undefined);
+    if (n !== current) onChange(n);
+  };
+  return (
+    <Field label={unit ? `${label} (${unit})` : label} htmlFor={id} error={error}>
+      <Input
+        id={id}
+        type="number"
+        inputMode={ty.type === "int" ? "numeric" : "decimal"}
+        min={ty.min}
+        max={ty.max}
+        step={ty.step}
+        value={draft}
+        aria-invalid={error ? true : undefined}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => e.key === "Enter" && commit()}
+        className="bg-card font-mono"
+      />
+    </Field>
+  );
+}
+
+function DeleteButton({ ids }: { ids: string[] }) {
+  const { t } = useTranslation();
+  const removeItems = useEditor((s) => s.removeItems);
+  return (
+    <Button variant="outline" size="sm" className="gap-2 text-destructive" onClick={() => removeItems(ids)}>
+      <Trash2 aria-hidden className="size-4" />
+      {t("inspector.delete")}
+    </Button>
+  );
+}
+
+function NodeInspector({ registry, node }: { registry: Registry; node: Node }) {
+  const { t } = useTranslation();
+  const spec = kindSpec(registry, node.kind);
+  const updateNode = useEditor((s) => s.updateNode);
+  const setProp = useEditor((s) => s.setProp);
+  const setFlavour = useEditor((s) => s.setFlavour);
+  const flavourId = useId();
+  return (
+    <div className="space-y-4" data-testid="inspector-node">
+      <div className="flex items-center gap-3">
+        <GlyphTile icon={spec.icon} category={spec.category} className="size-9 [&_svg]:size-5" />
+        <div className="min-w-0">
+          <div className="truncate font-semibold">{node.label.trim() || flavourName(t, node.flavour)}</div>
+          <div className="text-xs text-muted-foreground">{kindName(t, node.kind)}</div>
+        </div>
+      </div>
+      <TextField
+        label={t("inspector.label")}
+        value={node.label}
+        max={registry.limits.max_label}
+        onCommit={(label) => updateNode(node.id, { label })}
+      />
+      <Field label={t("inspector.flavour")} htmlFor={flavourId}>
+        <Select value={node.flavour} onValueChange={(f) => setFlavour(registry, node.id, f as Node["flavour"])}>
+          <SelectTrigger id={flavourId} className="w-full bg-card">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {spec.flavours.map((f) => (
+              <SelectItem key={f.flavour} value={f.flavour}>
+                {flavourName(t, f.flavour)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+      <div className="space-y-3 border-t pt-4">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("inspector.props")}</h3>
+        {spec.props.map((p) => (
+          <PropField key={p.key} spec={p} value={node.props[p.key]} onChange={(v) => setProp(node.id, p.key, v)} />
+        ))}
+        <p className="text-xs text-muted-foreground">{t("inspector.placeholderNumbers")}</p>
+      </div>
+      <DeleteButton ids={[node.id]} />
+    </div>
+  );
+}
+
+function GroupInspector({ registry, group }: { registry: Registry; group: Group }) {
+  const { t } = useTranslation();
+  const updateGroup = useEditor((s) => s.updateGroup);
+  return (
+    <div className="space-y-4" data-testid="inspector-zone">
+      <div className="font-semibold">{t(`canvas.zone.${group.kind}`)}</div>
+      <TextField
+        label={t("inspector.label")}
+        value={group.label}
+        max={registry.limits.max_label}
+        onCommit={(label) => updateGroup(group.id, { label })}
+      />
+      <p className="text-xs text-muted-foreground">{t("inspector.zoneHint")}</p>
+      <DeleteButton ids={[group.id]} />
+    </div>
+  );
+}
+
+function NoteInspector({ registry, note }: { registry: Registry; note: Note }) {
+  const { t } = useTranslation();
+  const updateNote = useEditor((s) => s.updateNote);
+  return (
+    <div className="space-y-4" data-testid="inspector-note">
+      <TextField
+        label={t("canvas.noteText")}
+        value={note.text}
+        max={registry.limits.max_note}
+        multiline
+        onCommit={(text) => updateNote(note.id, { text })}
+      />
+      <DeleteButton ids={[note.id]} />
+    </div>
+  );
+}
+
+function EdgeInspector({ registry, edge }: { registry: Registry; edge: Edge }) {
+  const { t } = useTranslation();
+  const doc = useEditor((s) => s.doc);
+  const setEdgeProtocol = useEditor((s) => s.setEdgeProtocol);
+  const id = useId();
+  const from = doc.nodes.find((n) => n.id === edge.from);
+  const to = doc.nodes.find((n) => n.id === edge.to);
+  const wiring = makeWiring(registry);
+  const others = doc.edges.filter((e) => e.id !== edge.id);
+  const check = checkWire(wiring, doc.nodes, others, edge.from, edge.to);
+  const options: Protocol[] = check.ok ? check.protocols : [edge.protocol];
+  const name = (n?: Node) => (n ? n.label.trim() || flavourName(t, n.flavour) : "?");
+  return (
+    <div className="space-y-4" data-testid="inspector-edge">
+      <div className="font-semibold">
+        {name(from)} → {name(to)}
+      </div>
+      <Field label={t("inspector.protocol")} htmlFor={id}>
+        <Select
+          value={edge.protocol}
+          onValueChange={(p) => setEdgeProtocol(edge.id, p as Protocol)}
+        >
+          <SelectTrigger id={id} className="w-full bg-card">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((p) => (
+              <SelectItem key={p} value={p}>
+                {t(`protocol.${p}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+      <DeleteButton ids={[edge.id]} />
+    </div>
+  );
+}
+
+function DesignSummary({ registry }: { registry: Registry }) {
+  const { t } = useTranslation();
+  const doc = useEditor((s) => s.doc);
+  const path = useEditor((s) => s.path);
+  const rename = useEditor((s) => s.rename);
+  return (
+    <div className="space-y-4" data-testid="inspector-design">
+      <TextField label={t("inspector.designName")} value={doc.name} max={registry.limits.max_label} onCommit={rename} />
+      <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
+        <dt className="text-muted-foreground">{t("inspector.count.nodes")}</dt>
+        <dd className="text-right font-mono">{doc.nodes.length}</dd>
+        <dt className="text-muted-foreground">{t("inspector.count.edges")}</dt>
+        <dd className="text-right font-mono">{doc.edges.length}</dd>
+        <dt className="text-muted-foreground">{t("inspector.count.zones")}</dt>
+        <dd className="text-right font-mono">{doc.groups.length}</dd>
+        <dt className="text-muted-foreground">{t("inspector.count.notes")}</dt>
+        <dd className="text-right font-mono">{doc.notes.length}</dd>
+      </dl>
+      <p className="break-all text-xs text-muted-foreground">{path ?? t("inspector.notSaved")}</p>
+      <p className="text-xs text-muted-foreground">{t("inspector.nothingSelected")}</p>
+    </div>
+  );
+}
+
+export function InspectorPanel({ registry }: { registry: Registry }) {
+  const { t } = useTranslation();
+  const doc = useEditor((s) => s.doc);
+  const selection = useEditor((s) => s.selection);
+  let body: React.ReactNode;
+  if (selection.length > 1) {
+    body = (
+      <div className="space-y-4" data-testid="inspector-multi">
+        <p className="text-sm">{t("inspector.many", { count: selection.length })}</p>
+        <DeleteButton ids={selection} />
+      </div>
+    );
+  } else if (selection.length === 1) {
+    const id = selection[0];
+    const node = doc.nodes.find((n) => n.id === id);
+    const group = doc.groups.find((g) => g.id === id);
+    const note = doc.notes.find((n) => n.id === id);
+    const edge = doc.edges.find((e) => e.id === id);
+    body = node ? (
+      <NodeInspector key={node.id} registry={registry} node={node} />
+    ) : group ? (
+      <GroupInspector key={group.id} registry={registry} group={group} />
+    ) : note ? (
+      <NoteInspector key={note.id} registry={registry} note={note} />
+    ) : edge ? (
+      <EdgeInspector key={edge.id} registry={registry} edge={edge} />
+    ) : (
+      <DesignSummary registry={registry} />
+    );
+  } else {
+    body = <DesignSummary registry={registry} />;
+  }
+  return (
+    <aside aria-label={t("inspector.title")} className="flex h-full min-h-0 flex-col bg-background" data-testid="inspector">
+      <div className="flex gap-4 border-b px-4 pt-3 text-sm" role="presentation">
+        <span className="border-b-2 border-primary pb-2 font-medium">{t("inspector.title")}</span>
+        <span className="pb-2 text-muted-foreground" title={t("inspector.metricsLater")}>
+          {t("inspector.metrics")}
+        </span>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">{body}</div>
+    </aside>
+  );
+}
