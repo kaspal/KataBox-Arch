@@ -1,12 +1,13 @@
 // The Sandbox (matches the Solve mockup, without a brief): library | canvas | inspector,
-// with the file and edit actions on top. Run / Submit / AI review arrive in M1 / M2 / M4.
+// with the file and edit actions on top, and the live Run controls. Submit / AI review arrive
+// in M2 / M4.
 import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
   FilePlus2,
   FolderOpen,
   Grid3x3,
-  Play,
+  Loader2,
   Redo2,
   Save,
   SaveAll,
@@ -15,6 +16,7 @@ import {
   Undo2,
 } from "lucide-react";
 import { useStore } from "zustand";
+import { useReportError } from "@/app/dialogs";
 import type { Registry } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
@@ -27,7 +29,12 @@ import { Canvas } from "@/solve/Canvas";
 import { displayName, useFileActions } from "@/solve/files";
 import { InspectorPanel } from "@/solve/InspectorPanel";
 import { LibraryPanel } from "@/solve/LibraryPanel";
-import { redo, undo, useDirty, useEditor } from "@/solve/store";
+import { useProblemMode } from "@/solve/problem/context";
+import { RunControls } from "@/solve/run/RunControls";
+import { Timeline } from "@/solve/run/Timeline";
+import { isActive, simKey, useRun } from "@/solve/run/runStore";
+import { startTelemetry } from "@/solve/run/telemetry";
+import { redo, toDesign, undo, useDirty, useEditor } from "@/solve/store";
 
 function IconAction({
   label,
@@ -57,7 +64,7 @@ function IconAction({
   );
 }
 
-function Later({ label, tip, icon: Icon, primary }: { label: string; tip: string; icon: typeof Play; primary?: boolean }) {
+function Later({ label, tip, icon: Icon, primary }: { label: string; tip: string; icon: typeof Send; primary?: boolean }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -70,6 +77,18 @@ function Later({ label, tip, icon: Icon, primary }: { label: string; tip: string
       </TooltipTrigger>
       <TooltipContent>{tip}</TooltipContent>
     </Tooltip>
+  );
+}
+
+function SubmitButton() {
+  const { t } = useTranslation();
+  const problem = useProblemMode();
+  if (!problem) return <Later label={t("sandbox.submit")} tip={t("sandbox.submitProblem")} icon={Send} primary />;
+  return (
+    <Button size="sm" className="gap-2" onClick={problem.submit} disabled={problem.submitting}>
+      {problem.submitting ? <Loader2 aria-hidden className="size-4 animate-spin motion-reduce:animate-none" /> : <Send aria-hidden className="size-4" />}
+      {problem.submitting ? t("sandbox.judging") : t("sandbox.submit")}
+    </Button>
   );
 }
 
@@ -127,12 +146,47 @@ function Toolbar() {
         </Tooltip>
       </div>
       <div className="flex items-center gap-2">
-        <Later label={t("sandbox.run")} tip={t("sandbox.later", { milestone: "M1" })} icon={Play} />
+        <RunControls />
         <Later label={t("sandbox.aiReview")} tip={t("sandbox.later", { milestone: "M4" })} icon={Sparkles} />
-        <Later label={t("sandbox.submit")} tip={t("sandbox.later", { milestone: "M2" })} icon={Send} primary />
+        <SubmitButton />
       </div>
     </header>
   );
+}
+
+/**
+ * Editing the design during a run starts a fresh run of the edited design, with the same
+ * seed and traffic (plan ★13); the old metrics stay until the new run's first frame.
+ * Opening another design stops the run, and so does leaving the Sandbox.
+ */
+function useRunFollowsEdits() {
+  const report = useReportError();
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const unsub = useEditor.subscribe((s, prev) => {
+      if (s.doc === prev.doc) return;
+      const run = useRun.getState();
+      if (!isActive(run.status)) return;
+      if (s.doc.id !== prev.doc.id) {
+        run.stop();
+        return;
+      }
+      if (simKey(toDesign(s)) === run.startedKey) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const r = useRun.getState();
+        if (!isActive(r.status)) return;
+        const design = toDesign(useEditor.getState());
+        if (simKey(design) === r.startedKey) return;
+        r.start(design).catch(report);
+      }, 300);
+    });
+    return () => {
+      clearTimeout(timer);
+      unsub();
+      useRun.getState().stop();
+    };
+  }, [report]);
 }
 
 const isTyping = (t: EventTarget | null) =>
@@ -140,6 +194,8 @@ const isTyping = (t: EventTarget | null) =>
 
 function Workspace({ registry }: { registry: Registry }) {
   const { t } = useTranslation();
+  useRunFollowsEdits();
+  useEffect(() => startTelemetry(), []);
   const [layout, setLayout] = useSetting<SandboxLayout>("sandbox.layout", {}, parseLayout, { mirror: true });
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const saveLayout = useCallback(
@@ -174,8 +230,11 @@ function Workspace({ registry }: { registry: Registry }) {
       </ResizablePanel>
       <ResizableHandle />
       <ResizablePanel id="canvas" defaultSize="58" minSize="30">
-        <section aria-label={t("canvas.label")} className="h-full">
-          <Canvas registry={registry} />
+        <section aria-label={t("canvas.label")} className="flex h-full flex-col">
+          <div className="min-h-0 flex-1">
+            <Canvas registry={registry} />
+          </div>
+          <Timeline />
         </section>
       </ResizablePanel>
       <ResizableHandle />

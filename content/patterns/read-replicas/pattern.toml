@@ -1,0 +1,55 @@
+id = "read-replicas"
+number = 2
+
+title = "Read replicas"
+title_es = "Réplicas de lectura"
+
+one_liner = "Copies of the database that serve reads, while the primary takes the writes."
+one_liner_es = "Copias de la base de datos que sirven lecturas, mientras la principal recibe las escrituras."
+
+problem = "One database server cannot keep up with the reads, and if it dies, everything stops."
+problem_es = "Un único servidor de base de datos no da abasto con las lecturas, y si cae, todo se para."
+
+use_when = [
+  "Reads outgrow what one database server can serve",
+  "Reads can lag slightly behind writes",
+  "You need a standby ready to take over from the primary",
+]
+use_when_es = [
+  "Las lecturas superan lo que puede servir un servidor de base de datos",
+  "Las lecturas pueden ir algo por detrás de las escrituras",
+  "Necesitas un servidor de reserva listo para sustituir a la principal",
+]
+
+gains = [
+  "Read capacity grows with each replica",
+  "A replica can be promoted when the primary fails",
+  "Heavy reports can run on a replica without slowing the primary",
+]
+gains_es = [
+  "La capacidad de lectura crece con cada réplica",
+  "Una réplica puede ascender cuando falla la principal",
+  "Los informes pesados pueden ir a una réplica sin frenar a la principal",
+]
+
+costs = [
+  "Replicas lag, so a read straight after a write may miss it",
+  "Write capacity does not grow: every write still goes to the primary",
+  "Each replica is a full copy to pay for and run",
+]
+costs_es = [
+  "Las réplicas van con retraso, así que una lectura justo después de una escritura puede no verla",
+  "La capacidad de escritura no crece: cada escritura sigue yendo a la principal",
+  "Cada réplica es una copia completa que pagar y operar",
+]
+
+kinds = [
+  "app",
+  "sql",
+]
+practice = [
+  "url-shortener",
+]
+
+in_simulator = "Fully: reads spread over healthy members, writes go to the primary, replication lag produces stale reads, and a dead primary fails over to the next replica after its failover time."
+in_simulator_es = "Completamente: las lecturas se reparten entre los miembros sanos, las escrituras van a la principal, el retraso de replicación produce lecturas obsoletas y una principal caída pasa a la siguiente réplica tras su tiempo de failover."

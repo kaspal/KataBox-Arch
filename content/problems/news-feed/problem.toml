@@ -1,0 +1,59 @@
+id = "news-feed"
+number = 6
+set = 1
+difficulty = "medium"
+title = "News Feed"
+title_es = "Feed de noticias"
+teaches = "Fan-out on write: precompute feeds asynchronously, read them from a cache"
+teaches_es = "Fan-out en escritura: precalcular los feeds de forma asíncrona y leerlos de una caché"
+tags = ["fan-out", "async", "caching", "queues"]
+# The A1 accuracy check: sampling at 5,000 changed the naive design's verdict near saturation.
+sample_cap = 10000
+
+[nfr]
+peak_rps = 10000
+read_ratio = 0.97
+p95_ms = 100
+availability = 0.999
+budget_usd = 3500
+
+[[request_types]]
+id = "read"
+name = "Open your feed"
+name_es = "Abrir tu feed"
+share = 0.97
+route = ["edge?", "compute", "cache?", "datastore"]
+key_space = 1_000_000
+key_skew = { zipf = 1.0 }
+payload_kb = 16
+
+[[request_types]]
+id = "post"
+name = "Publish a post"
+name_es = "Publicar un post"
+share = 0.03
+route = ["edge?", "compute", "datastore:write", "broker", "worker", "cache:write|datastore:write"]
+key_space = 1_000_000
+fanout = { mean = 10, heavy_share = 0.01, heavy_x = 50 }
+
+[[tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "read-storm"
+name = "Everyone opens the app at once"
+name_es = "Todos abren la app a la vez"
+hidden = true
+traffic = { spike = { at = 20, x = 3, for = 15 } }
+
+[[tests]]
+id = "breaking-news"
+name = "Breaking news"
+name_es = "Noticia de última hora"
+hidden = true
+type_multipliers = { post = 4 }
+
+[pass]
+error_rate = 0.001

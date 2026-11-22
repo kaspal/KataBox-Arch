@@ -17,11 +17,15 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
+# Builds resources/content.db from content/ (structural validation only, review A5).
+ka-core.workspace = true
+ka-pack.workspace = true
 
 [dependencies]
 tauri = { version = "2", features = [] }
 ka-app = { workspace = true, features = ["specta"] }
 ka-core = { workspace = true, features = ["specta"] }
+ka-sim = { workspace = true, features = ["specta"] }
 ka-store = { workspace = true, features = ["specta"] }
 serde.workspace = true
 serde_json.workspace = true

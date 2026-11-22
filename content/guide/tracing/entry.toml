@@ -1,0 +1,80 @@
+kind = "tracing"
+one_liner = "Follows one request through every service it touches and shows where the time went."
+one_liner_es = "Sigue una petición por cada servicio que toca y muestra en qué se fue el tiempo."
+
+use_when = [
+  "A request crosses several services or queues",
+  "You need to know which hop makes the tail latency slow",
+  "Errors in one service surface as failures somewhere else",
+]
+use_when_es = [
+  "Una petición atraviesa varios servicios o colas",
+  "Necesitas saber qué salto hace lenta la latencia de cola",
+  "Los errores de un servicio aparecen como fallos en otro sitio",
+]
+skip_when = [
+  "A single service with one database, where logs and metrics suffice",
+  "You can't add the tracing context to the services' calls",
+  "Only totals matter, never one request (use metrics)",
+]
+skip_when_es = [
+  "Un solo servicio con una base de datos, donde bastan logs y métricas",
+  "No puedes añadir el contexto de trazas a las llamadas de los servicios",
+  "Solo importan los totales, nunca una petición concreta (usa métricas)",
+]
+
+formula = "never on a request path: it adds no latency and drops nothing; the simulator only counts its cost, and a problem may require it"
+formula_es = "nunca está en la ruta de una petición: no añade latencia ni descarta nada; el simulador solo cuenta su coste, y un problema puede exigirlo"
+
+gains = [
+  "Shows the slow hop in a request at a glance",
+  "Connects errors across service boundaries",
+  "Reveals the real call graph, including surprises",
+]
+gains_es = [
+  "Muestra de un vistazo el salto lento de una petición",
+  "Conecta errores a través de los límites entre servicios",
+  "Revela el grafo de llamadas real, sorpresas incluidas",
+]
+costs = [
+  "Every service must pass the trace context along",
+  "Storing every trace is expensive, so most are sampled away",
+  "Sampling can miss the rare request you care about",
+]
+costs_es = [
+  "Cada servicio debe pasar el contexto de traza",
+  "Guardar todas las trazas es caro, así que la mayoría se descartan por muestreo",
+  "El muestreo puede perder justo la petición rara que te importa",
+]
+
+works_with = ["metrics", "logs", "micro", "gateway"]
+practice = []
+
+interview_tip = "Say how the trace id travels, including across queues, and how you sample without losing the slow and failed requests."
+interview_tip_es = "Di cómo viaja el id de traza, también a través de colas, y cómo muestreas sin perder las peticiones lentas y fallidas."
+
+[[sim]]
+cost = "per_instance_month"
+note = "A fixed monthly price for the tracing backend. The sample rate is a design note and doesn't change the price here."
+note_es = "Un precio mensual fijo por el backend de trazas. La tasa de muestreo es una nota de diseño y aquí no cambia el precio."
+
+[[pitfalls]]
+title = "A broken chain"
+title_es = "Una cadena rota"
+body = "One service, or a queue in the middle, doesn't forward the trace context, so the trace stops there and the rest looks like separate requests."
+body_es = "Un servicio, o una cola en medio, no reenvía el contexto de traza, así que la traza se corta ahí y el resto parecen peticiones distintas."
+fix = "Instrument every service with the same library and carry the context in message headers too."
+fix_es = "Instrumenta todos los servicios con la misma biblioteca y lleva el contexto también en las cabeceras de los mensajes."
+
+[[pitfalls]]
+title = "Sampling away the interesting requests"
+title_es = "Descartar por muestreo las peticiones interesantes"
+body = "A low fixed sample rate keeps a tiny share of traces, and the rare slow or failed request is almost never among them."
+body_es = "Una tasa de muestreo fija y baja guarda una parte mínima de las trazas, y la petición rara lenta o fallida casi nunca está entre ellas."
+fix = "Keep all errors and slow requests, and sample only the ordinary ones."
+fix_es = "Guarda todos los errores y las peticiones lentas, y muestrea solo las normales."
+
+[[sources]]
+flavour = "jaeger"
+title = "Jaeger documentation"
+url = "https://www.jaegertracing.io/docs/"

@@ -75,7 +75,10 @@ export function useFileActions() {
     (opened: OpenedDesign) => {
       useEditor.getState().load(opened.design, opened.path);
       refreshRecents();
-      void navigate({ to: "/sandbox" });
+      // A design made for a problem opens on that problem's page.
+      const problem = opened.design.problem_id;
+      if (problem) void navigate({ to: "/problems/$id", params: { id: problem } });
+      else void navigate({ to: "/sandbox" });
     },
     [navigate, refreshRecents],
   );

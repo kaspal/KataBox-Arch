@@ -1,0 +1,91 @@
+{
+  "schema_version": 2,
+  "id": "sample-chat-naive",
+  "name": "chat: first try",
+  "problem_id": "chat",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "mobile",
+      "label": "Chat apps",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_nlb",
+      "label": "",
+      "position": {
+        "x": 0,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "gw",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Gateway",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "bus",
+      "kind": "pubsub",
+      "flavour": "redis_pubsub",
+      "label": "Message bus",
+      "position": {
+        "x": 0,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "ws"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "gw",
+      "protocol": "ws"
+    },
+    {
+      "id": "e2",
+      "from": "gw",
+      "to": "bus",
+      "protocol": "publish"
+    },
+    {
+      "id": "e3",
+      "from": "bus",
+      "to": "gw",
+      "protocol": "consume"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

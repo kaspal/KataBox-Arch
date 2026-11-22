@@ -3,22 +3,47 @@
 // is shown as an error and never stored.
 import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Trash2 } from "lucide-react";
-import type { Edge, Group, Node, Note, PropSpec, PropValue, Protocol, Registry } from "@/bindings";
+import { Link } from "@tanstack/react-router";
+import { Trash2, BookOpen } from "lucide-react";
+import type { Edge, Flavour, Group, Node, Note, PropSpec, PropValue, Protocol, Registry, Scaling } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GlyphTile } from "@/solve/icons";
 import { choiceName, flavourName, kindName, kindSpec, propName, unitName } from "@/solve/registry";
+import { BriefPanel } from "@/solve/problem/BriefPanel";
+import { useProblemMode } from "@/solve/problem/context";
+import { MetricsPanel } from "@/solve/run/MetricsPanel";
+import { useRun } from "@/solve/run/runStore";
 import { useEditor } from "@/solve/store";
 import { checkWire, makeWiring } from "@/solve/wiring";
 
-function Field({ label, htmlFor, children, error }: { label: string; htmlFor: string; children: React.ReactNode; error?: string }) {
+function Field({
+  label,
+  htmlFor,
+  children,
+  error,
+  tag,
+}: {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+  error?: string;
+  /** A short marker after the label, e.g. "ballpark" for a calibrated default. */
+  tag?: { text: string; title: string };
+}) {
   return (
     <div className="space-y-1">
-      <label htmlFor={htmlFor} className="text-xs font-medium text-muted-foreground">
-        {label}
-      </label>
+      <div className="flex items-center justify-between gap-2">
+        <label htmlFor={htmlFor} className="text-xs font-medium text-muted-foreground">
+          {label}
+        </label>
+        {tag && (
+          <span title={tag.title} data-testid="calibration-tag" className="rounded border px-1 text-[10px] leading-4 text-muted-foreground">
+            {tag.text}
+          </span>
+        )}
+      </div>
       {children}
       {error && (
         <p className="text-xs text-destructive" role="alert">
@@ -30,7 +55,21 @@ function Field({ label, htmlFor, children, error }: { label: string; htmlFor: st
 }
 
 /** A text field that commits on blur or Enter. */
-function TextField({ label, value, max, onCommit, multiline }: { label: string; value: string; max: number; onCommit: (v: string) => void; multiline?: boolean }) {
+function TextField({
+  label,
+  value,
+  max,
+  onCommit,
+  multiline,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  max: number;
+  onCommit: (v: string) => void;
+  multiline?: boolean;
+  placeholder?: string;
+}) {
   const id = useId();
   const [draft, setDraft] = useState(value);
   useEffect(() => setDraft(value), [value]);
@@ -52,6 +91,7 @@ function TextField({ label, value, max, onCommit, multiline }: { label: string; 
           id={id}
           value={draft}
           maxLength={max}
+          placeholder={placeholder}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
           onKeyDown={(e) => e.key === "Enter" && commit()}
@@ -69,6 +109,11 @@ function PropField({ spec, value, onChange }: { spec: PropSpec; value: PropValue
   // Plain counts and unitless props show no suffix.
   const unit = spec.unit === "none" || spec.unit === "count" ? "" : unitName(t, spec.unit);
   const label = propName(t, spec.key);
+  const tag = spec.calibration
+    ? spec.calibration.status === "cited"
+      ? { text: t("inspector.cited"), title: t("inspector.citedHint") }
+      : { text: t("inspector.ballpark"), title: t("inspector.ballparkHint") }
+    : undefined;
   const [draft, setDraft] = useState(String(current));
   const [error, setError] = useState<string | undefined>();
   useEffect(() => {
@@ -114,7 +159,7 @@ function PropField({ spec, value, onChange }: { spec: PropSpec; value: PropValue
     if (n !== current) onChange(n);
   };
   return (
-    <Field label={unit ? `${label} (${unit})` : label} htmlFor={id} error={error}>
+    <Field label={unit ? `${label} (${unit})` : label} htmlFor={id} error={error} tag={tag}>
       <Input
         id={id}
         type="number"
@@ -159,11 +204,21 @@ function NodeInspector({ registry, node }: { registry: Registry; node: Node }) {
           <div className="truncate font-semibold">{node.label.trim() || flavourName(t, node.flavour)}</div>
           <div className="text-xs text-muted-foreground">{kindName(t, node.kind)}</div>
         </div>
+        <Link
+          to="/guide/$kind"
+          params={{ kind: node.kind }}
+          search={{ section: "sim" }}
+          className="ml-auto flex shrink-0 items-center gap-1 text-xs font-semibold text-primary underline-offset-4 hover:underline"
+        >
+          <BookOpen aria-hidden className="size-3.5" />
+          {t("inspector.learnMore")}
+        </Link>
       </div>
       <TextField
         label={t("inspector.label")}
         value={node.label}
         max={registry.limits.max_label}
+        placeholder={flavourName(t, node.flavour)}
         onCommit={(label) => updateNode(node.id, { label })}
       />
       <Field label={t("inspector.flavour")} htmlFor={flavourId}>
@@ -185,7 +240,7 @@ function NodeInspector({ registry, node }: { registry: Registry; node: Node }) {
         {spec.props.map((p) => (
           <PropField key={p.key} spec={p} value={node.props[p.key]} onChange={(v) => setProp(node.id, p.key, v)} />
         ))}
-        <p className="text-xs text-muted-foreground">{t("inspector.placeholderNumbers")}</p>
+        {spec.props.some((p) => p.calibration) && <p className="text-xs text-muted-foreground">{t("inspector.calibrationNote")}</p>}
       </div>
       <DeleteButton ids={[node.id]} />
     </div>
@@ -204,8 +259,48 @@ function GroupInspector({ registry, group }: { registry: Registry; group: Group 
         max={registry.limits.max_label}
         onCommit={(label) => updateGroup(group.id, { label })}
       />
-      <p className="text-xs text-muted-foreground">{t("inspector.zoneHint")}</p>
+      {group.scaling ? (
+        <ScalingFields registry={registry} group={group} scaling={group.scaling} />
+      ) : (
+        <p className="text-xs text-muted-foreground">{t("inspector.zoneHint")}</p>
+      )}
       <DeleteButton ids={[group.id]} />
+    </div>
+  );
+}
+
+/** An autoscaling wrapper's policy: the Autoscaling kind's flavour and props. */
+function ScalingFields({ registry, group, scaling }: { registry: Registry; group: Group; scaling: Scaling }) {
+  const { t } = useTranslation();
+  const updateScaling = useEditor((s) => s.updateScaling);
+  const spec = kindSpec(registry, "autoscale");
+  const flavourId = useId();
+  return (
+    <div className="space-y-3 border-t pt-4">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("inspector.scaling")}</h3>
+      <Field label={t("inspector.flavour")} htmlFor={flavourId}>
+        <Select value={scaling.flavour} onValueChange={(f) => updateScaling(group.id, { ...scaling, flavour: f as Flavour })}>
+          <SelectTrigger id={flavourId} className="w-full bg-card">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {spec.flavours.map((f) => (
+              <SelectItem key={f.flavour} value={f.flavour}>
+                {flavourName(t, f.flavour)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+      {spec.props.map((p) => (
+        <PropField
+          key={p.key}
+          spec={p}
+          value={scaling.props[p.key]}
+          onChange={(v) => updateScaling(group.id, { ...scaling, props: { ...scaling.props, [p.key]: v } })}
+        />
+      ))}
+      <p className="text-xs text-muted-foreground">{t("inspector.autoscaleHint")}</p>
     </div>
   );
 }
@@ -294,6 +389,20 @@ export function InspectorPanel({ registry }: { registry: Registry }) {
   const { t } = useTranslation();
   const doc = useEditor((s) => s.doc);
   const selection = useEditor((s) => s.selection);
+  const problem = useProblemMode();
+  const [tab, setTab] = useState<"brief" | "inspect" | "metrics">(problem ? "brief" : "inspect");
+  // A run that starts from idle brings its metrics forward; selecting a card brings the
+  // inspector back.
+  useEffect(
+    () =>
+      useRun.subscribe((s, prev) => {
+        if (s.status === "starting" && (prev.status === "idle" || prev.status === "finished")) setTab("metrics");
+      }),
+    [],
+  );
+  useEffect(() => {
+    if (selection.length > 0) setTab("inspect");
+  }, [selection]);
   let body: React.ReactNode;
   if (selection.length > 1) {
     body = (
@@ -322,15 +431,26 @@ export function InspectorPanel({ registry }: { registry: Registry }) {
   } else {
     body = <DesignSummary registry={registry} />;
   }
+  const tabClass = (on: boolean) =>
+    `-mb-px border-b-2 pb-2 ${on ? "border-primary font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`;
   return (
     <aside aria-label={t("inspector.title")} className="flex h-full min-h-0 flex-col bg-background" data-testid="inspector">
-      <div className="flex gap-4 border-b px-4 pt-3 text-sm" role="presentation">
-        <span className="border-b-2 border-primary pb-2 font-medium">{t("inspector.title")}</span>
-        <span className="pb-2 text-muted-foreground" title={t("inspector.metricsLater")}>
+      <div className="flex gap-4 border-b px-4 pt-3 text-sm" role="tablist">
+        {problem && (
+          <button type="button" role="tab" id="tab-brief" aria-selected={tab === "brief"} aria-controls="tabpanel-side" className={tabClass(tab === "brief")} onClick={() => setTab("brief")}>
+            {t("inspector.brief")}
+          </button>
+        )}
+        <button type="button" role="tab" id="tab-inspect" aria-selected={tab === "inspect"} aria-controls="tabpanel-side" className={tabClass(tab === "inspect")} onClick={() => setTab("inspect")}>
+          {t("inspector.title")}
+        </button>
+        <button type="button" role="tab" id="tab-metrics" aria-selected={tab === "metrics"} aria-controls="tabpanel-side" className={tabClass(tab === "metrics")} onClick={() => setTab("metrics")}>
           {t("inspector.metrics")}
-        </span>
+        </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">{body}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-4" role="tabpanel" id="tabpanel-side" aria-labelledby={`tab-${tab}`}>
+        {tab === "brief" && problem ? <BriefPanel brief={problem.brief} /> : tab === "metrics" ? <MetricsPanel /> : body}
+      </div>
     </aside>
   );
 }

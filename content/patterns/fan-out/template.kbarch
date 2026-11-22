@@ -1,0 +1,101 @@
+{
+  "schema_version": 2,
+  "id": "pattern-fan-out",
+  "name": "Fan-out",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "nodejs",
+      "label": "",
+      "position": {
+        "x": 130,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "topic",
+      "kind": "pubsub",
+      "flavour": "google_pubsub",
+      "label": "Events",
+      "position": {
+        "x": 130,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "feed-worker",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Feed updater",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "email-worker",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Email sender",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "feed-cache",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "Feeds",
+      "position": {
+        "x": 130,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "app",
+      "to": "topic",
+      "protocol": "publish"
+    },
+    {
+      "id": "e1",
+      "from": "topic",
+      "to": "feed-worker",
+      "protocol": "consume"
+    },
+    {
+      "id": "e2",
+      "from": "topic",
+      "to": "email-worker",
+      "protocol": "consume"
+    },
+    {
+      "id": "e3",
+      "from": "feed-worker",
+      "to": "feed-cache",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

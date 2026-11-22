@@ -1,0 +1,191 @@
+# ADR 0006: The simulation model (`ka-sim`)
+
+- Status: accepted (M1.1, 2026-11-22)
+
+## Context
+
+The simulator is the product's core: it animates every request and decides every verdict. It must be simple
+enough to explain in a tooltip, rich enough to reward real design moves, fast enough to judge a problem in well
+under two seconds, and **deterministic**: the same design, scenario and seed give byte-identical results on every
+machine.
+
+## Decision
+
+### Inputs and outputs
+- **Pipeline:** `compile(design, registry, scenario, options)` builds an immutable graph with every route
+  precomputed, or returns a lint error (`NoPath`, which the judge reports as Invalid Design).
+- **Engine:** `Engine::new(compiled, seed)` runs it; `Engine: Clone` is the snapshot used for scrubbing.
+- **Results:** `result()` returns a `RunResult`:
+  - per run: counts weighted back to real traffic, measured/response/completion percentiles, error rate,
+    availability, lost and dead-lettered messages, and cost per month;
+  - per node: utilisation, queue, drops, and per-second series;
+  - per system: per-second series.
+
+### Time and events
+- **Time** is integer microseconds.
+- **Ordering:** events live in a binary heap ordered by `(time, sequence)`, so the order is total.
+- **The events:**
+  - arrivals (a Poisson process per source and request type, thinned by the traffic curve);
+  - arrival at a node;
+  - service done;
+  - call answered;
+  - call failed;
+  - client timeout (5 s);
+  - message re-queue (retry backoff);
+  - per-second ticks.
+
+### Routes: the caller rule
+A request type's `route` is a list of steps, `role[:qualifier…][?]`, with `a|b` alternation.
+- **Roles:**
+  - `edge`: DNS, CDN, WAF, LB, gateway, rate limiter;
+  - `compute`: app, microservice, serverless;
+  - `worker`;
+  - `cache`;
+  - `datastore`: SQL, NoSQL, object, search;
+  - `broker`: queue, stream, pub/sub, DLQ;
+  - `external:<name>`.
+- **Qualifiers:** `write` (the cluster primary), `ws` (the client's hop is a WebSocket), and a kind id
+  (`datastore:object`).
+- **Hops, then calls.** Steps before the first caller step are **hops**: any number of edge nodes along
+  HTTP/gRPC/WebSocket edges, or at least one if the step isn't optional. From the entry caller on, the steps are
+  **calls made by that caller, in order**, until a `broker` step.
+- **Brokers:** the caller publishes and is released. The **consumer** on the broker's Consume edge (the next step)
+  becomes the caller of the steps after it. Data stores never call onward.
+- **Cache-aside:** `cache?` is cache-aside. A hit ends the request; a miss falls through to the next data step, and
+  its answer fills the cache. `cache:write` writes the cache as a store, and `cache` without `?` reads it as one.
+- **Alternation:** `compute|datastore:object` lets a CDN's origin be either.
+- **Choosing hops:** routing is compiled once. A BFS finds, per request type, the next hops from every node that
+  can still reach a valid entry, and the call targets of every valid caller. A request type with no complete path
+  is a lint error that names it.
+- **Sources:** client cards share a type's load by their `rps` prop. Scheduler-sourced types start at a scheduler
+  card, which is the first caller.
+
+### Servers
+- **Capacity:**
+  - a card has `servers = instances × concurrency` (the flavour's `SimDefaults` when it has no such prop; ADR 0005),
+    split into **lanes**
+    for NoSQL partitions and SQL/search shards (a key always lands in the same lane, so hot keys make hot shards);
+  - each lane has a bounded queue, and a full queue drops the request.
+- **Service time:** lognormal from the `service_ms` median and a per-kind p99/median ratio. SQL/NoSQL times scale
+  with the payload (`× (1 + payload_kb/64)`), and async work scales with its fanout units.
+- **Held slots:** compute and workers keep their slot until all their calls answer (thread-per-request), so a slow
+  database ties up the app tier. They release it when they publish to a broker, and when the client's 5 s timeout
+  fires (the remaining work is cancelled lazily).
+- **Clusters:** SQL/NoSQL/cache/search cards joined by Replicate edges form a cluster.
+  - The root of the Replicate edges is the primary; the other members follow in id order.
+  - A Query edge to any member reaches the cluster.
+  - Writes go to the primary; reads spread over healthy members.
+  - Failover (M1.5) promotes the next member in id order after `failover_s`.
+- **Network latency per hop:** a protocol base (HTTP 0.5 ms, gRPC/WebSocket 0.3, query 0.4, publish/consume 1.0)
+  plus the zone distance (same AZ +0.2 ms, cross-AZ +1.5, cross-region +70). A response pays its hop chain again
+  on the way back.
+
+### Kinds with special behaviour
+- **Cache and CDN:** keys are ranked by Zipf popularity over the request type's `key_space`.
+  - A key ranked beyond the cache's capacity (`memory_gb / value_kb`) always misses.
+  - Tracked keys (up to 200k ranks) hit if they were filled within the TTL.
+  - Colder keys within capacity hit with the analytic probability `1 − e^(−rate·pmf·TTL)`.
+  - Caches start warm, with staggered ages, unless the scenario says cold.
+  - A CDN has unlimited capacity and serves only `cacheable` types.
+- **Rate limiter:** token buckets per API key. Shed abusive traffic is success; shed legitimate traffic is an error.
+- **Serverless:** a cold start is paid when a request needs a new warm instance.
+- **Brokers:**
+  - a publish is acknowledged after the hop and the broker's median publish latency (`service_ms`);
+  - queues dispatch to any free consumer slot; the reserved slot is the consumer's alone, and the consumer's own calls
+    queue for their servers like any request;
+  - streams cap in-flight messages at `partitions`;
+  - pub/sub pushes one copy per subscriber, and the message completes when all are done.
+  - A failed message is retried with exponential backoff up to `max_retries`, then dead-lettered if a DLQ is wired
+    (`queue → dlq` Publish), otherwise **lost**.
+- **External providers** are scenario entries, not cards. They have a lognormal latency and an optional rate limit;
+  chaos can make one fail (1 s connect timeout) or slow.
+
+### Chaos, health checks, failover, autoscaling (M1.5)
+- **Scheduling.** Chaos events come from the scenario: each starts at `at` and, with `for`, ends `for` seconds later.
+  They are scheduled only when a run has them, so runs without chaos keep their exact event order.
+- **The events:**
+  - **kill:** the card stops answering. Queued work fails now, work in service fails when it ends, and a caller
+    waiting on a dead card fails when the call returns. A cache comes back empty.
+  - **partition:** every card in a Region or AZ (by id or label) is killed for the duration.
+  - **latency:** adds `add_ms` to each service time on the card.
+  - **flush:** empties a cache or CDN. Tracked keys are cleared, and the analytic tail's window restarts at the
+    flush.
+  - **traffic:** multiplies arrivals.
+  - **external:** a provider fails (1 s connect timeout) or slows.
+- **Selectors:** an id, or a kind with a cluster role (the current primary, a replica, or any member). The first in
+  id order, or every match with `all`.
+- **Health checks** run every 2 s; a change is believed after two checks in a row.
+  - Until then, routing still sends requests to a dead card, and they fail. Afterwards, load balancers, callers and
+    replica reads avoid it.
+  - A cache-aside step whose caches are all known to be dead is skipped: a miss, read from the store.
+  - A revived card rejoins after it is seen healthy.
+- **Failover:** when a cluster primary dies, the next live member in id order is promoted after the primary's
+  `failover_s`. Writes fail until then.
+- **Autoscaling:**
+  - every 5 s, each wrapper looks at its cards' mean utilisation since the last tick;
+  - above target, it scales out to bring utilisation back to the target; below half the target, it scales in by
+    one;
+  - each decision applies after `scale_delay_s`, within min and max;
+  - servers (and the sampling stretch) change at runtime;
+  - cost uses the time-averaged instance count.
+
+### Stale reads (M1.7)
+- **Keys are shared across request types:** rank k is the same item for reads and writes.
+- **Writes.** Each tracked key (up to 200k ranks) remembers its last write: a store write, or a `cache:write`.
+- **A read counts once:** a cache hit, or the store read after a miss. It is stale when:
+  - **a replica lags:** it is served by a replica (not the current primary) within that replica's
+    `replication_lag_ms` of the key's last write;
+  - **a cached copy is old:** a cache-aside hit whose copy was filled before the key's last write. Cache-aside
+    doesn't invalidate, and that is the lesson.
+- **Write-through** (`cache:write`) refills the key for every request type, so its readers see the new value.
+- **Untracked keys** (the analytic tail) are never counted stale. This is a documented undercount.
+- **The metric:** `stale_rate` = stale reads / reads, per run. Live frames carry it, the Metrics tab shows it, and the
+  breaking point reports it at the limit. Problems may set `pass.stale_rate`.
+
+### The breaking point (M1.6)
+- **`breaking::find_limit`:**
+  - runs the scenario's mix in 20 s windows at traffic multipliers ×0.25, ×0.375, … (growing ×1.5);
+  - stops at the first window whose p95 passes the target or whose error rate passes the limit;
+  - bisects to within 5%;
+  - reports the last passing rate.
+- **The first failure** is the first card to give way in the first failing window: the earliest second in which a
+  card is at least 95% busy or drops, with ties going to the busiest, then the lowest id.
+- **The ceiling** is ×1024; a design that never fails up to there reports "at least".
+- **Deterministic** per seed (tested).
+- **The Sandbox** uses p95 200 ms and 1% errors; problems will use their own targets.
+
+### Sampling (the scale trick)
+Above `sample_cap = 5000` simulated arrivals per second, only a share `f = cap / rate` of requests is simulated.
+- **Weights:** every count is weighted by `1/f`.
+- **Capacity:** each lane keeps `servers_eff = max(1, round(c·f))` servers, with service times stretched by
+  `servers_eff / (c·f)`, so capacity is preserved exactly.
+- **Floor (review A1):** every lane with `c ≥ 2` keeps at least 4 effective servers:
+  `f = max(cap/rate, max over lanes of min(1, 4/c))`. Single-server lanes (a Redis event loop) are unaffected.
+- **Accuracy rule:** a sampled run must agree with a full unsampled run at peak load. p95 and utilisation must be
+  within ±10%, with the same verdict. If a case fails, its `sample_cap` is raised and recorded. The check runs at
+  every milestone gate; the results are in `docs/sim-stability.md`.
+
+### Cost
+A teaching price model per flavour (`registry::Cost`: per instance-month, per GB-month, per million requests).
+Monthly cost = instances × price + memory × GB price + mean real rps through the card × per-request price. It is
+consistent across designs and not a vendor quote.
+
+### Determinism
+- **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE
+  operations.
+- **Collections:** no `HashMap`/`HashSet` and no wall-clock time. `crates/ka-sim/clippy.toml` bans them all.
+- **Random streams:** every draw comes from a named xoshiro256** stream (`ka_core::rng`): per source, per node, plus
+  one shared stream. Editing one card doesn't reshuffle the others.
+- **Ordering:** floats are summed in a fixed order (no parallel reductions).
+- **Tests:**
+  - goldens pin three designs (`tests/golden/*.json`, regenerated with `KA_UPDATE_GOLDENS=1` only on purpose);
+  - the same seed gives byte-identical JSON;
+  - a cloned engine finishes identically to the original.
+
+## Consequences
+- **Fast:** a 60 s run at 50k rps takes about 0.44 s in release (golden b).
+- **Calibration:** the model's figures live in the registry and `docs/calibration.md` (ADR 0005). Known
+  simplifications (documented for problem authors):
+  - a cache's capacity is per request type;
+  - TTL expiry is per key with no stampede coalescing;
+  - the return path mirrors the forward hops.

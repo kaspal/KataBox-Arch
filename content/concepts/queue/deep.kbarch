@@ -1,0 +1,113 @@
+{
+  "schema_version": 2,
+  "id": "concept-queue-deep",
+  "name": "Distributed Job Scheduler (reference)",
+  "problem_id": "job-scheduler",
+  "nodes": [
+    {
+      "id": "sched",
+      "kind": "scheduler",
+      "flavour": "cron",
+      "label": "Cron",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "interval_s": 1
+      },
+      "group_id": null
+    },
+    {
+      "id": "queue",
+      "kind": "queue",
+      "flavour": "sqs",
+      "label": "Jobs",
+      "position": {
+        "x": 0,
+        "y": 170
+      },
+      "props": {
+        "max_depth": 1000000
+      },
+      "group_id": null
+    },
+    {
+      "id": "workers",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Workers",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": "pool"
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Results",
+      "position": {
+        "x": 0,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "sched",
+      "to": "queue",
+      "protocol": "publish"
+    },
+    {
+      "id": "e1",
+      "from": "queue",
+      "to": "workers",
+      "protocol": "consume"
+    },
+    {
+      "id": "e2",
+      "from": "workers",
+      "to": "db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [
+    {
+      "id": "pool",
+      "kind": "autoscale",
+      "label": "worker pool",
+      "position": {
+        "x": -32,
+        "y": 300
+      },
+      "size": {
+        "w": 272,
+        "h": 136
+      },
+      "parent_id": null,
+      "scaling": {
+        "flavour": "kubernetes_hpa",
+        "props": {
+          "min_instances": 2,
+          "max_instances": 24,
+          "target_util": 60,
+          "scale_delay_s": 10
+        }
+      }
+    }
+  ],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

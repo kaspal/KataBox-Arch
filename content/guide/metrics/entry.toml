@@ -1,0 +1,87 @@
+kind = "metrics"
+one_liner = "Numbers over time that tell you how healthy the system is right now."
+one_liner_es = "Números a lo largo del tiempo que te dicen lo sano que está el sistema ahora mismo."
+
+use_when = [
+  "Any system that runs in production",
+  "You need alerts when latency, errors or saturation climb",
+  "Capacity has to be planned from real usage",
+  "Autoscaling or SLOs need a signal to act on",
+]
+use_when_es = [
+  "Cualquier sistema que funcione en producción",
+  "Necesitas alertas cuando suben la latencia, los errores o la saturación",
+  "La capacidad debe planificarse a partir del uso real",
+  "El autoescalado o los SLO necesitan una señal sobre la que actuar",
+]
+skip_when = [
+  "A throwaway prototype nobody depends on",
+  "You need the detail of a single request (use logs or traces)",
+  "The label would be a user id or another unbounded value",
+]
+skip_when_es = [
+  "Un prototipo desechable del que nadie depende",
+  "Necesitas el detalle de una sola petición (usa logs o trazas)",
+  "La etiqueta sería un id de usuario u otro valor sin límite",
+]
+
+formula = "never on a request path: it adds no latency and drops nothing; the simulator only counts its cost, and a problem may require it"
+formula_es = "nunca está en la ruta de una petición: no añade latencia ni descarta nada; el simulador solo cuenta su coste, y un problema puede exigirlo"
+
+gains = [
+  "Cheap to store, fast to query, good for dashboards",
+  "Alerts catch problems before users report them",
+  "Trends show when to add capacity",
+]
+gains_es = [
+  "Baratas de guardar, rápidas de consultar, buenas para paneles",
+  "Las alertas detectan problemas antes de que los usuarios avisen",
+  "Las tendencias muestran cuándo añadir capacidad",
+]
+costs = [
+  "Aggregates hide the story of one request",
+  "Too many label values blow up storage and memory",
+  "Noisy alerts get ignored",
+]
+costs_es = [
+  "Los agregados ocultan la historia de una petición concreta",
+  "Demasiados valores de etiqueta disparan el almacenamiento y la memoria",
+  "Las alertas ruidosas acaban ignoradas",
+]
+
+works_with = ["logs", "tracing", "app", "autoscale"]
+practice = []
+
+interview_tip = "Name the few signals you would alert on, such as latency, traffic, errors and saturation, and the threshold for each."
+interview_tip_es = "Nombra las pocas señales sobre las que pondrías alertas, como latencia, tráfico, errores y saturación, y el umbral de cada una."
+
+[[sim]]
+cost = "per_instance_month"
+note = "A fixed monthly price for the metrics stack. Retention is a design note and doesn't change the price here."
+note_es = "Un precio mensual fijo por la pila de métricas. La retención es una nota de diseño y aquí no cambia el precio."
+
+[[pitfalls]]
+title = "High-cardinality labels"
+title_es = "Etiquetas de alta cardinalidad"
+body = "A label such as a user id or a full URL creates a new series for every value, and the metrics store runs out of memory."
+body_es = "Una etiqueta como un id de usuario o una URL completa crea una serie nueva por cada valor, y el almacén de métricas se queda sin memoria."
+fix = "Keep labels to small, fixed sets such as route, status and region, and put per-request detail in logs or traces."
+fix_es = "Limita las etiquetas a conjuntos pequeños y fijos como ruta, estado y región, y deja el detalle por petición a los logs o las trazas."
+
+[[pitfalls]]
+title = "Averages that hide the tail"
+title_es = "Medias que ocultan la cola"
+body = "Mean latency looks fine while a small share of users wait many times longer."
+body_es = "La latencia media parece bien mientras una pequeña parte de los usuarios espera muchas veces más."
+fix = "Record histograms and alert on high percentiles, not on the mean."
+fix_es = "Registra histogramas y pon alertas sobre percentiles altos, no sobre la media."
+
+[[sources]]
+flavour = "prometheus_grafana"
+title = "Prometheus documentation"
+url = "https://prometheus.io/docs/"
+
+[[sources]]
+flavour = "prometheus_grafana"
+title = "Grafana documentation"
+url = "https://grafana.com/docs/grafana/latest/"

@@ -38,18 +38,32 @@ export function centre(r: Rect): Pt {
   return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
 }
 
-/** The midpoint of one side of a card. */
-export function sideMidpoint(r: Rect, side: Side): Pt {
+/** A point on one side of a card, `t` along it (0 = left/top end, 1 = right/bottom end). */
+export function sidePoint(r: Rect, side: Side, t: number): Pt {
   switch (side) {
     case "left":
-      return { x: r.x, y: r.y + r.h / 2 };
+      return { x: r.x, y: r.y + r.h * t };
     case "right":
-      return { x: r.x + r.w, y: r.y + r.h / 2 };
+      return { x: r.x + r.w, y: r.y + r.h * t };
     case "top":
-      return { x: r.x + r.w / 2, y: r.y };
+      return { x: r.x + r.w * t, y: r.y };
     case "bottom":
-      return { x: r.x + r.w / 2, y: r.y + r.h };
+      return { x: r.x + r.w * t, y: r.y + r.h };
   }
+}
+
+/** The midpoint of one side of a card. */
+export function sideMidpoint(r: Rect, side: Side): Pt {
+  return sidePoint(r, side, 0.5);
+}
+
+/** Where an edge end sits when several share a side (F1): `slot` of `count`. */
+export type Slot = { slot: number; count: number };
+
+/** Ends sharing a side spread evenly within its middle 70%; a single end stays centred. */
+export function slotPosition(s?: Slot): number {
+  if (!s || s.count <= 1) return 0.5;
+  return 0.15 + (0.7 * (s.slot + 0.5)) / s.count;
 }
 
 /** Which sides face each other: `a`'s side towards `b`, and `b`'s side towards `a`. */
@@ -67,11 +81,12 @@ export function facingSides(a: Rect, b: Rect): { source: Side; target: Side } {
   return dy >= 0 ? { source: "bottom", target: "top" } : { source: "top", target: "bottom" };
 }
 
-/** The curve from card `a` to card `b`. */
-export function routeEdge(a: Rect, b: Rect): Route {
+/** The curve from card `a` to card `b`, its ends at their slots (default: the side
+ * midpoints). */
+export function routeEdge(a: Rect, b: Rect, slots?: { source?: Slot; target?: Slot }): Route {
   const { source, target } = facingSides(a, b);
-  const p0 = sideMidpoint(a, source);
-  const p3 = sideMidpoint(b, target);
+  const p0 = sidePoint(a, source, slotPosition(slots?.source));
+  const p3 = sidePoint(b, target, slotPosition(slots?.target));
   const horizontal = source === "left" || source === "right";
   const gap = horizontal ? Math.abs(p3.x - p0.x) : Math.abs(p3.y - p0.y);
   const k = Math.max(MIN_K, K_FACTOR * gap);

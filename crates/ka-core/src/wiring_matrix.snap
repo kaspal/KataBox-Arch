@@ -280,9 +280,9 @@ autoscale -> waf: ✗ no_rule
 autoscale -> lb: ✗ no_rule
 autoscale -> gateway: ✗ no_rule
 autoscale -> ratelimit: ✗ no_rule
-autoscale -> app: http
-autoscale -> micro: http
-autoscale -> worker: http
+autoscale -> app: ✗ no_rule
+autoscale -> micro: ✗ no_rule
+autoscale -> worker: ✗ no_rule
 autoscale -> serverless: ✗ no_rule
 autoscale -> autoscale: ✗ no_rule
 autoscale -> sql: ✗ no_rule

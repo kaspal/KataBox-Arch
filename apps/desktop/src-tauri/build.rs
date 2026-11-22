@@ -1,8 +1,33 @@
 fn main() {
-    notices(std::path::Path::new(
-        &std::env::var("CARGO_MANIFEST_DIR").expect("manifest dir"),
-    ));
+    let manifest =
+        std::path::PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").expect("manifest dir"));
+    notices(&manifest);
+    content(&manifest);
     tauri_build::build()
+}
+
+/// resources/content.db, built from the repository's content/ with ka-pack: structural
+/// validation only (review A5); `ka-pack validate --run` judges content separately.
+fn content(manifest: &std::path::Path) {
+    let root = manifest.join("../../../content");
+    println!("cargo:rerun-if-changed={}", root.display());
+    let registry = ka_core::registry();
+    let data = match ka_pack::build_content(&root, &registry) {
+        Ok(d) => d,
+        Err(issues) => {
+            let list: Vec<String> = issues.iter().map(|i| format!("  {i}")).collect();
+            panic!(
+                "content/ is invalid (run `cargo run -p ka-pack -- validate`):
+{}",
+                list.join(
+                    "
+"
+                )
+            );
+        }
+    };
+    let out = manifest.join("resources/content.db");
+    ka_pack::write_db(&out, &data).expect("write resources/content.db");
 }
 
 /// The first line of the placeholder notices file.

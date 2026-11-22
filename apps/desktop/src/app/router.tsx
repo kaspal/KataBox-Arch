@@ -10,23 +10,79 @@ import {
 } from "@tanstack/react-router";
 import { Shell } from "@/app/Shell";
 import { Home } from "@/pages/Home";
-import { Guide, Problems, Progress, Samples } from "@/pages/Placeholders";
+import { Progress } from "@/pages/Placeholders";
+import { ProblemsPage } from "@/pages/Problems";
 import { Settings } from "@/pages/Settings";
 
 const rootRoute = createRootRoute({ component: Shell });
 
 const routeTree = rootRoute.addChildren([
   createRoute({ getParentRoute: () => rootRoute, path: "/", component: Home }),
-  createRoute({ getParentRoute: () => rootRoute, path: "/problems", component: Problems }),
+  createRoute({ getParentRoute: () => rootRoute, path: "/problems", component: ProblemsPage }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/problems/$id",
+    component: lazyRouteComponent(() => import("@/solve/ProblemPage"), "ProblemPage"),
+  }),
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/sandbox",
     component: lazyRouteComponent(() => import("@/solve/SandboxPage"), "SandboxPage"),
   }),
-  createRoute({ getParentRoute: () => rootRoute, path: "/guide", component: Guide }),
-  createRoute({ getParentRoute: () => rootRoute, path: "/samples", component: Samples }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/guide",
+    component: lazyRouteComponent(() => import("@/guide/GuideIndex"), "GuideIndex"),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/guide/$kind",
+    // `?section=sim` opens the entry at "In the simulator" (the Inspector's Learn more).
+    validateSearch: (s: Record<string, unknown>): { section?: "sim" } => (s.section === "sim" ? { section: "sim" } : {}),
+    component: lazyRouteComponent(() => import("@/guide/GuideEntryPage"), "GuideEntryPage"),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/decide/$id",
+    component: lazyRouteComponent(() => import("@/guide/Decide"), "DecidePage"),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/glossary",
+    component: lazyRouteComponent(() => import("@/guide/Decide"), "GlossaryPage"),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/patterns",
+    component: lazyRouteComponent(() => import("@/guide/Patterns"), "PatternsIndex"),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/patterns/$id",
+    component: lazyRouteComponent(() => import("@/guide/Patterns"), "PatternPage"),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/samples",
+    component: lazyRouteComponent(() => import("@/tour/SamplesPage"), "SamplesPage"),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/samples/$id",
+    component: lazyRouteComponent(() => import("@/tour/SamplePage"), "SamplePage"),
+  }),
   createRoute({ getParentRoute: () => rootRoute, path: "/progress", component: Progress }),
   createRoute({ getParentRoute: () => rootRoute, path: "/settings", component: Settings }),
+  // Development builds only: the packet layer's frame-rate check (plan M1.4).
+  ...(import.meta.env.DEV
+    ? [
+        createRoute({
+          getParentRoute: () => rootRoute,
+          path: "/dev/perf",
+          component: lazyRouteComponent(() => import("@/pages/DevPerf"), "DevPerf"),
+        }),
+      ]
+    : []),
 ]);
 
 export function createAppRouter(history: RouterHistory = createHashHistory()) {

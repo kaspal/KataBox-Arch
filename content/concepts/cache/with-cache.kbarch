@@ -1,0 +1,89 @@
+{
+  "schema_version": 2,
+  "id": "concept-cache-redis",
+  "name": "Cache: Redis in front",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Visitors",
+      "position": {
+        "x": 130,
+        "y": 0
+      },
+      "props": {
+        "rps": 12000
+      },
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "",
+      "position": {
+        "x": 130,
+        "y": 170
+      },
+      "props": {
+        "instances": 4
+      },
+      "group_id": null
+    },
+    {
+      "id": "cache",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {
+        "memory_gb": 4
+      },
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "app",
+      "to": "cache",
+      "protocol": "query"
+    },
+    {
+      "id": "e2",
+      "from": "app",
+      "to": "db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

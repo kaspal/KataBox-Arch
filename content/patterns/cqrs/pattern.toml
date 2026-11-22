@@ -1,0 +1,56 @@
+id = "cqrs"
+number = 6
+
+title = "CQRS"
+title_es = "CQRS"
+
+one_liner = "Separate the model that takes writes from the model that serves reads."
+one_liner_es = "Separa el modelo que recibe escrituras del modelo que sirve lecturas."
+
+problem = "One data model cannot be good at both: writes need strict rules and normalised tables, while reads want data already shaped for each screen."
+problem_es = "Un único modelo de datos no puede ser bueno en las dos cosas: las escrituras necesitan reglas estrictas y tablas normalizadas, y las lecturas quieren los datos ya preparados para cada pantalla."
+
+use_when = [
+  "Reads and writes have very different shapes or volumes",
+  "Reads need joins or searches the write store does slowly",
+  "Readers can accept a short delay before a write appears",
+]
+use_when_es = [
+  "Lecturas y escrituras tienen formas o volúmenes muy distintos",
+  "Las lecturas necesitan uniones o búsquedas que el almacén de escritura hace despacio",
+  "Los lectores aceptan un breve retraso antes de que aparezca una escritura",
+]
+
+gains = [
+  "Each side uses the store that suits it",
+  "Reads and writes scale apart",
+  "New read views can be built by replaying the events",
+]
+gains_es = [
+  "Cada lado usa el almacén que le conviene",
+  "Lecturas y escrituras escalan por separado",
+  "Se pueden construir vistas de lectura nuevas reproduciendo los eventos",
+]
+
+costs = [
+  "The read side lags behind the write side",
+  "Two models, a stream and projectors to build and keep in step",
+  "Overkill for plain create, read, update and delete screens",
+]
+costs_es = [
+  "El lado de lectura va por detrás del de escritura",
+  "Dos modelos, un stream y proyectores que construir y mantener al día",
+  "Excesivo para pantallas sencillas de crear, leer, actualizar y borrar",
+]
+
+kinds = [
+  "app",
+  "sql",
+  "stream",
+  "worker",
+  "nosql",
+]
+practice = []
+
+in_simulator = "Partly: both sides, the stream and the projector workers are simulated with their own load and latency, but the delay before a write reaches the read model is not counted as a stale read."
+in_simulator_es = "En parte: los dos lados, el stream y los workers proyectores se simulan con su propia carga y latencia, pero el retraso hasta que una escritura llega al modelo de lectura no cuenta como lectura obsoleta."

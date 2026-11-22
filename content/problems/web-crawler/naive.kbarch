@@ -1,0 +1,91 @@
+{
+  "schema_version": 2,
+  "id": "web-crawler-naive",
+  "name": "Web Crawler (first try)",
+  "problem_id": "web-crawler",
+  "nodes": [
+    {
+      "id": "sched",
+      "kind": "scheduler",
+      "flavour": "airflow",
+      "label": "Frontier",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "interval_s": 1
+      },
+      "group_id": null
+    },
+    {
+      "id": "queue",
+      "kind": "queue",
+      "flavour": "sqs",
+      "label": "URLs to crawl",
+      "position": {
+        "x": 0,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "crawlers",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Crawlers",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {
+        "instances": 6,
+        "concurrency": 64,
+        "service_ms": 20
+      },
+      "group_id": null
+    },
+    {
+      "id": "pages",
+      "kind": "nosql",
+      "flavour": "cassandra",
+      "label": "Pages",
+      "position": {
+        "x": 0,
+        "y": 510
+      },
+      "props": {
+        "partitions": 8
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "sched",
+      "to": "queue",
+      "protocol": "publish"
+    },
+    {
+      "id": "e1",
+      "from": "queue",
+      "to": "crawlers",
+      "protocol": "consume"
+    },
+    {
+      "id": "e2",
+      "from": "crawlers",
+      "to": "pages",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

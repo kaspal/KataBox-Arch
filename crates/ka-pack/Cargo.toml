@@ -1,0 +1,23 @@
+[package]
+name = "ka-pack"
+description = "KataBox Arch content packer: validates content/ and builds content.db"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+ka-app.workspace = true
+ka-core.workspace = true
+ka-judge.workspace = true
+ka-sim.workspace = true
+ka-store.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+toml.workspace = true
+tokio = { workspace = true, features = ["rt", "time"] }
+
+[lints]
+workspace = true

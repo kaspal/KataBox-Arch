@@ -1,0 +1,56 @@
+id = "web-crawler"
+number = 9
+set = 1
+difficulty = "medium"
+title = "Web Crawler"
+title_es = "Rastreador web"
+teaches = "A work queue, polite fetching and de-duplication before the expensive step"
+teaches_es = "Una cola de trabajo, descargas educadas y deduplicación antes del paso caro"
+tags = ["queues", "scheduler", "dedup", "external-providers"]
+
+[nfr]
+peak_rps = 800
+p95_ms = 4000
+availability = 0.999
+budget_usd = 2500
+
+[[externals]]
+name = "web"
+median_ms = 250
+p99_ms = 2500
+rate_limit = 1000
+
+[[request_types]]
+id = "fetch"
+name = "Crawl a URL"
+name_es = "Rastrear una URL"
+share = 1.0
+route = ["broker", "worker", "cache?", "external:web", "datastore:write"]
+source = "scheduler"
+key_space = 2_000_000
+key_skew = { zipf = 0.9 }
+measure = "completion"
+
+[[tests]]
+id = "normal"
+name = "Normal crawl"
+name_es = "Un rastreo normal"
+
+[[tests]]
+id = "duplicates"
+name = "A site full of duplicate links"
+name_es = "Un sitio lleno de enlaces duplicados"
+hidden = true
+key_skew_override = { zipf = 1.6 }
+traffic = { flat = 2 }
+
+[[tests]]
+id = "slow-hosts"
+name = "Slow hosts"
+name_es = "Servidores lentos"
+hidden = true
+chaos = [{ external = { name = "web", at = 15, for = 30, add_ms = 1500 } }]
+pass = { p95_ms = 8000 }
+
+[pass]
+error_rate = 0.001

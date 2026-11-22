@@ -1,0 +1,139 @@
+kind = "stream"
+one_liner = "An ordered, durable log of events that many consumers can read at their own pace."
+one_liner_es = "Un registro ordenado y duradero de eventos que muchos consumidores pueden leer a su ritmo."
+
+use_when = [
+  "Several independent systems need the same events",
+  "Order matters within a key, such as one user or one ride",
+  "Consumers must be able to replay past events",
+  "A high, steady volume of small events, like clicks or locations",
+]
+use_when_es = [
+  "Varios sistemas independientes necesitan los mismos eventos",
+  "El orden importa dentro de una clave, como un usuario o un viaje",
+  "Los consumidores deben poder volver a leer eventos pasados",
+  "Un volumen alto y constante de eventos pequeños, como clics o posiciones",
+]
+skip_when = [
+  "You need a simple job queue with one consumer per task",
+  "Each message needs its own retries and acknowledgement",
+  "The volume is low and a queue would do",
+  "Nobody will ever read the history again",
+]
+skip_when_es = [
+  "Necesitas una cola de tareas sencilla con un consumidor por tarea",
+  "Cada mensaje necesita sus propios reintentos y confirmación",
+  "El volumen es bajo y una cola bastaría",
+  "Nadie volverá a leer el historial",
+]
+
+formula = "publish acknowledged after the hop + publish latency; messages in flight to consumers ≤ partitions; a failure retries with doubling backoff, then goes to a wired DLQ or is lost"
+formula_es = "publicación confirmada tras el salto + latencia de publicación; mensajes en curso hacia consumidores ≤ particiones; un fallo reintenta con espera que se duplica, y luego va a una DLQ conectada o se pierde"
+
+gains = [
+  "One write feeds many consumers",
+  "Ordered within a partition, and replayable",
+  "Very high throughput when partitions are spread well",
+]
+gains_es = [
+  "Una escritura alimenta a muchos consumidores",
+  "Ordenado dentro de una partición, y se puede reprocesar",
+  "Rendimiento muy alto cuando las particiones se reparten bien",
+]
+costs = [
+  "Parallelism is capped by the number of partitions",
+  "A hot key makes one partition the bottleneck",
+  "More to operate than a queue: partitions, offsets, retention",
+]
+costs_es = [
+  "El paralelismo está limitado por el número de particiones",
+  "Una clave caliente convierte una partición en el cuello de botella",
+  "Más que operar que una cola: particiones, offsets, retención",
+]
+
+works_with = ["app", "worker", "nosql", "sql", "dlq"]
+practice = ["news-feed"]
+
+interview_tip = "Name the partition key, explain why it keeps order where you need it, and say how many partitions the peak needs."
+interview_tip_es = "Nombra la clave de partición, explica por qué mantiene el orden donde lo necesitas y di cuántas particiones necesita el pico."
+
+[[sim]]
+prop = "partitions"
+note = "The most messages that can be with consumers at once. Workers beyond this count sit idle."
+note_es = "El máximo de mensajes que pueden estar a la vez con los consumidores. Los workers por encima de esta cifra se quedan ociosos."
+
+[[sim]]
+sim = "service_ms"
+note = "How long the broker takes to store a publish before it acknowledges it. A Kinesis put is slower than a Kafka produce."
+note_es = "Lo que tarda el broker en guardar una publicación antes de confirmarla. Un put de Kinesis es más lento que un produce de Kafka."
+
+[[sim]]
+cost = "per_instance_month"
+note = "A fixed monthly price for the stream."
+note_es = "Un precio mensual fijo por el stream."
+
+[[sim]]
+cost = "per_million"
+note = "Plus a price for every million events written."
+note_es = "Más un precio por cada millón de eventos escritos."
+
+[flavours_compared]
+flavours = ["kafka", "kinesis"]
+
+[[flavours_compared.rows]]
+label = "Who runs it"
+label_es = "Quién lo opera"
+cells = ["You, or a hosted service", "AWS, fully managed"]
+cells_es = ["Tú, o un servicio alojado", "AWS, totalmente gestionado"]
+
+[[flavours_compared.rows]]
+label = "Unit of parallelism"
+label_es = "Unidad de paralelismo"
+cells = ["Partitions of a topic", "Shards of a stream"]
+cells_es = ["Particiones de un topic", "Shards de un stream"]
+
+[[flavours_compared.rows]]
+label = "Retention"
+label_es = "Retención"
+cells = ["Set per topic, can be very long", "Short by default, can be extended"]
+cells_es = ["Se fija por topic, puede ser muy larga", "Corta por defecto, se puede ampliar"]
+
+[[flavours_compared.rows]]
+label = "Consumers"
+label_es = "Consumidores"
+cells = ["Consumer groups track their own offsets", "Applications track their position per shard"]
+cells_es = ["Los grupos de consumidores guardan sus offsets", "Las aplicaciones guardan su posición por shard"]
+
+[[pitfalls]]
+title = "Too few partitions"
+title_es = "Muy pocas particiones"
+body = "Only one consumer in a group can work on a partition at a time. Adding workers beyond the partition count does nothing, and the lag keeps growing."
+body_es = "Solo un consumidor de un grupo puede trabajar en una partición a la vez. Añadir workers por encima del número de particiones no sirve de nada, y el retraso sigue creciendo."
+fix = "Size partitions for the peak rate divided by what one consumer can handle, with room to grow."
+fix_es = "Dimensiona las particiones para el pico dividido entre lo que puede asumir un consumidor, con margen para crecer."
+
+[[pitfalls]]
+title = "A hot partition"
+title_es = "Una partición caliente"
+body = "A partition key with one very busy value, such as a celebrity's id, sends most events to one partition while the rest sit idle."
+body_es = "Una clave de partición con un valor muy activo, como el id de un famoso, manda la mayoría de eventos a una partición mientras el resto está ocioso."
+fix = "Pick a key with many evenly used values, or split hot keys with a suffix where order allows."
+fix_es = "Elige una clave con muchos valores usados por igual, o divide las claves calientes con un sufijo donde el orden lo permita."
+
+[[pitfalls]]
+title = "Using a stream as a job queue"
+title_es = "Usar un stream como cola de tareas"
+body = "One slow or failing message holds up the messages behind it in the same partition, because consumers read in order."
+body_es = "Un mensaje lento o que falla retiene a los que vienen detrás en la misma partición, porque los consumidores leen en orden."
+fix = "Use a queue for independent jobs, and keep the stream for ordered events that many systems read."
+fix_es = "Usa una cola para tareas independientes, y deja el stream para eventos ordenados que leen muchos sistemas."
+
+[[sources]]
+flavour = "kafka"
+title = "Apache Kafka documentation"
+url = "https://kafka.apache.org/documentation/"
+
+[[sources]]
+flavour = "kinesis"
+title = "Amazon Kinesis Data Streams documentation"
+url = "https://docs.aws.amazon.com/kinesis/"

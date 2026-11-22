@@ -1,5 +1,6 @@
 // App-wide dialogs that non-React code can await: the unsaved-changes question, and a
 // small notice for errors. Rendered once by the Shell.
+import { useCallback } from "react";
 import { create } from "zustand";
 import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
@@ -96,10 +97,14 @@ export function Notice() {
 }
 
 /** Show an error from a command as a notice, translated by its code. */
+/** Show an error as a notice. Stable across renders, so effects can depend on it. */
 export function useReportError() {
   const { i18n } = useTranslation();
-  return (e: unknown) => {
-    const d = describeError(i18n, e);
-    showNotice(d.summary, d.detail);
-  };
+  return useCallback(
+    (e: unknown) => {
+      const d = describeError(i18n, e);
+      showNotice(d.summary, d.detail);
+    },
+    [i18n],
+  );
 }

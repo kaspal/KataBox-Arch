@@ -1,0 +1,122 @@
+kind = "logs"
+one_liner = "A searchable record of what each service did, event by event."
+one_liner_es = "Un registro con búsqueda de lo que hizo cada servicio, evento a evento."
+
+use_when = [
+  "Any system that runs in production",
+  "You need the details behind an error a metric flagged",
+  "Audits or support need to know what happened to one request",
+  "Many servers make reading files on each machine impractical",
+]
+use_when_es = [
+  "Cualquier sistema que funcione en producción",
+  "Necesitas los detalles de un error que señaló una métrica",
+  "Auditorías o soporte necesitan saber qué pasó con una petición",
+  "Con muchos servidores, leer los ficheros de cada máquina no es práctico",
+]
+skip_when = [
+  "You only need counts or rates (use metrics, far cheaper)",
+  "You need to follow a request across many services (add tracing)",
+  "The data is sensitive and can't be redacted",
+]
+skip_when_es = [
+  "Solo necesitas recuentos o tasas (usa métricas, mucho más baratas)",
+  "Necesitas seguir una petición a través de muchos servicios (añade trazas)",
+  "Los datos son sensibles y no se pueden ocultar",
+]
+
+formula = "never on a request path: it adds no latency and drops nothing; the simulator only counts its cost, and a problem may require it"
+formula_es = "nunca está en la ruta de una petición: no añade latencia ni descarta nada; el simulador solo cuenta su coste, y un problema puede exigirlo"
+
+gains = [
+  "Full detail of each event, searchable in one place",
+  "The fastest way to find why a request failed",
+  "A record for audits and support",
+]
+gains_es = [
+  "Todo el detalle de cada evento, con búsqueda en un solo sitio",
+  "La forma más rápida de saber por qué falló una petición",
+  "Un registro para auditorías y soporte",
+]
+costs = [
+  "Volume grows with traffic, and so does the bill",
+  "Free-text logs are hard to query reliably",
+  "Easy to leak personal data or secrets into them",
+]
+costs_es = [
+  "El volumen crece con el tráfico, y la factura también",
+  "Los logs de texto libre son difíciles de consultar con fiabilidad",
+  "Es fácil que se cuelen datos personales o secretos",
+]
+
+works_with = ["metrics", "tracing", "app", "worker"]
+practice = []
+
+interview_tip = "Say what you log, in what structure, how long you keep it, and how you avoid logging personal data."
+interview_tip_es = "Di qué registras, con qué estructura, cuánto tiempo lo guardas y cómo evitas registrar datos personales."
+
+[[sim]]
+cost = "per_instance_month"
+note = "A fixed monthly price for the log stack. Retention is a design note and doesn't change the price here."
+note_es = "Un precio mensual fijo por la pila de logs. La retención es una nota de diseño y aquí no cambia el precio."
+
+[flavours_compared]
+flavours = ["elk", "loki"]
+
+[[flavours_compared.rows]]
+label = "What it indexes"
+label_es = "Qué indexa"
+cells = ["The full text of every line", "Only the labels; the lines are stored compressed"]
+cells_es = ["El texto completo de cada línea", "Solo las etiquetas; las líneas se guardan comprimidas"]
+
+[[flavours_compared.rows]]
+label = "Parts"
+label_es = "Piezas"
+cells = ["Elasticsearch, Logstash, Kibana", "Loki with Grafana for queries"]
+cells_es = ["Elasticsearch, Logstash, Kibana", "Loki con Grafana para las consultas"]
+
+[[flavours_compared.rows]]
+label = "Storage"
+label_es = "Almacenamiento"
+cells = ["Search index on the cluster's disks", "Chunks in object storage"]
+cells_es = ["Índice de búsqueda en los discos del clúster", "Bloques en almacenamiento de objetos"]
+
+[[flavours_compared.rows]]
+label = "Pick it for"
+label_es = "Elígelo para"
+cells = ["Rich full-text search and analytics", "Cheap storage of large volumes"]
+cells_es = ["Búsqueda de texto completo y análisis potentes", "Almacenamiento barato de grandes volúmenes"]
+
+[[pitfalls]]
+title = "Logging everything at debug level"
+title_es = "Registrarlo todo en nivel debug"
+body = "Every request writes many lines. The log store costs more than the services it watches, and the useful lines drown in noise."
+body_es = "Cada petición escribe muchas líneas. El almacén de logs cuesta más que los servicios que vigila, y las líneas útiles se ahogan en ruido."
+fix = "Log at info in production, sample noisy paths, and keep counts in metrics instead."
+fix_es = "Registra en nivel info en producción, muestrea las rutas ruidosas y deja los recuentos a las métricas."
+
+[[pitfalls]]
+title = "Logs without a request id"
+title_es = "Logs sin id de petición"
+body = "Lines from different services can't be joined, so following one failed request means guessing by timestamps."
+body_es = "Las líneas de distintos servicios no se pueden unir, así que seguir una petición fallida obliga a adivinar por las marcas de tiempo."
+fix = "Write structured logs that carry a request or trace id on every line."
+fix_es = "Escribe logs estructurados que lleven un id de petición o de traza en cada línea."
+
+[[pitfalls]]
+title = "Personal data in logs"
+title_es = "Datos personales en los logs"
+body = "Emails, tokens or card numbers end up in log lines that many people can search and that are kept for weeks."
+body_es = "Correos, tokens o números de tarjeta acaban en líneas de log que mucha gente puede buscar y que se guardan durante semanas."
+fix = "Redact sensitive fields before they are written, and keep retention as short as the need allows."
+fix_es = "Oculta los campos sensibles antes de escribirlos, y deja la retención tan corta como permita la necesidad."
+
+[[sources]]
+flavour = "elk"
+title = "Elastic documentation"
+url = "https://www.elastic.co/docs"
+
+[[sources]]
+flavour = "loki"
+title = "Grafana Loki documentation"
+url = "https://grafana.com/docs/loki/latest/"

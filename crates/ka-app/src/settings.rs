@@ -10,6 +10,8 @@ pub const UI_SETTINGS: &[&str] = &[
     "ui.motion",
     "sandbox.layout",
     "canvas.snap",
+    // Home offered the first-run tour (shown once; M3.3).
+    "tour.offered",
 ];
 
 /// The largest JSON value the UI may store, in bytes.
@@ -27,6 +29,7 @@ mod tests {
     fn window_bounds_is_rust_only() {
         assert!(!ui_may_access(crate::window::WINDOW_BOUNDS_KEY));
         assert!(ui_may_access("theme"));
+        assert!(ui_may_access("tour.offered"));
         assert!(!ui_may_access("theme2"));
         assert!(!ui_may_access(""));
     }

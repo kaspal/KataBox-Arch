@@ -1,13 +1,16 @@
 // An in-memory backend with the same shape as `api`, for UI tests. The registry is the
 // fixture Rust exports (`src/test/fixtures/registry.json`), so tests see the real data.
 import { vi } from "vitest";
-import type { AppError, Design, JsonValue, OpenedDesign, RecentEntry, Registry } from "@/bindings";
-import type { Api } from "@/lib/api";
+import type { AppError, Design, JsonValue, OpenedDesign, ProblemBrief, RecentEntry, Registry, RunControl, SubmissionSummary, SubmitResult } from "@/bindings";
+import { FAKE_BRIEF, FAKE_REFERENCE, fakeJudgement } from "@/test/fakeProblems";
+import { FAKE_SAMPLE, FAKE_SAMPLE_SUMMARY } from "@/test/fakeSamples";
+import { FAKE_FLOW, FAKE_GUIDE, FAKE_PATTERN, FAKE_TEMPLATE, FAKE_TERMS } from "@/test/fakeGuide";
+import type { Api, RunOptions } from "@/lib/api";
 import fixture from "@/test/fixtures/registry.json";
 
 export const REGISTRY = fixture.registry as unknown as Registry;
 
-const UI_SETTINGS = ["theme", "ui_lang", "ui.contrast", "ui.motion", "sandbox.layout", "canvas.snap"];
+const UI_SETTINGS = ["theme", "ui_lang", "ui.contrast", "ui.motion", "sandbox.layout", "canvas.snap", "tour.offered"];
 
 const err = (code: AppError["code"], message = code): AppError => ({ code, message });
 
@@ -21,7 +24,13 @@ export type FakeOptions = {
   /** What the Save As dialog picks (null = cancelled). */
   savePick?: string | null;
   devData?: boolean;
+  /** Make startRun fail with this error code. */
+  runError?: AppError["code"];
+  /** What submitting a design to the fake problem returns. */
+  verdict?: SubmitResult["judgement"]["verdict"];
 };
+
+const FAKE_HINTS = { en: ["Look at the reads.", "Cache them.", "Redis in front of the database."], es: ["Mira las lecturas.", "Cachéalas.", "Redis delante de la base de datos."] };
 
 export function createFakeApi(opts: FakeOptions = {}) {
   const settings = new Map(Object.entries(opts.settings ?? {}));
@@ -31,6 +40,15 @@ export function createFakeApi(opts: FakeOptions = {}) {
   let dirty = false;
   let title = "";
   let closeListener: (() => void) | null = null;
+  let runs = 0;
+  let frameSink: ((f: ArrayBuffer) => void) | null = null;
+  let runControls: RunControl[] = [];
+  let problemState: { status: string | null; best_score: number | null; best_cost: number | null } = { status: null, best_score: null, best_cost: null };
+  let hints = 0;
+  let draft: Design | null = null;
+  let submissionsCount = 0;
+  const submitted: SubmissionSummary[] = [];
+  const read = new Set<string>();
 
   const touch = (path: string, name: string) => {
     recent = [{ path, name, opened_at: 1_700_000_000_000 + recent.length, exists: true }, ...recent.filter((r) => r.path !== path)];
@@ -79,6 +97,130 @@ export function createFakeApi(opts: FakeOptions = {}) {
       return path;
     }),
     validateDesign: vi.fn(async () => []),
+    startRun: vi.fn(async (design: Design, run: RunOptions, onFrame: (f: ArrayBuffer) => void) => {
+      const { chaos, startS } = run;
+      if (opts.runError) throw err(opts.runError);
+      runs += 1;
+      frameSink = onFrame;
+      runControls = [];
+      return {
+        run_id: runs,
+        duration_s: 60,
+        sample_factor: 1,
+        nodes: design.nodes.map((n) => n.id),
+        edges: design.edges.map((e) => e.id),
+        request_types: ["read", "write"],
+        chaos,
+        start_s: startS,
+      };
+    }),
+    controlRun: vi.fn(async (_id: number, control: RunControl) => {
+      runControls.push(control);
+      return null;
+    }),
+    runResult: vi.fn(async () => null),
+    listProblems: vi.fn(async () => [{ ...FAKE_BRIEF.summary, ...problemState }]),
+    problemBrief: vi.fn(async (id: string): Promise<ProblemBrief> => {
+      if (id !== FAKE_BRIEF.summary.id) throw err("not_found");
+      return {
+        ...FAKE_BRIEF,
+        summary: { ...FAKE_BRIEF.summary, ...problemState },
+        hints_unlocked: hints,
+        hints_en: FAKE_HINTS.en.slice(0, hints),
+        hints_es: FAKE_HINTS.es.slice(0, hints),
+        solved: problemState.status === "solved",
+        editorial_en: problemState.status === "solved" ? "## Editorial" : null,
+        editorial_es: problemState.status === "solved" ? "## Editorial" : null,
+        reference: problemState.status === "solved" ? FAKE_REFERENCE : null,
+        reference_point: problemState.status === "solved" ? { cost_usd: 1600, p95_ms: 24.5 } : null,
+        draft,
+      };
+    }),
+    unlockHint: vi.fn(async (_id: string, tier: number) => {
+      hints = Math.max(hints, tier);
+      return null;
+    }),
+    saveDraft: vi.fn(async (_id: string, d: Design) => {
+      draft = structuredClone(d);
+      return null;
+    }),
+    submitDesign: vi.fn(async (id: string): Promise<SubmitResult> => {
+      const judgement = fakeJudgement(id, opts.verdict ?? "accepted");
+      const solved = judgement.verdict === "accepted";
+      const first = solved && problemState.status !== "solved";
+      problemState = { status: solved || problemState.status === "solved" ? "solved" : "attempted", best_score: Math.max(problemState.best_score ?? 0, judgement.score.total), best_cost: null };
+      submitted.unshift({
+        id: ++submissionsCount,
+        problem_id: id,
+        created_at: submissionsCount,
+        verdict: judgement.verdict,
+        score: judgement.score.total,
+        correctness: judgement.score.correctness,
+        cost_score: judgement.score.cost,
+        latency_score: judgement.score.latency,
+        cost_usd: judgement.cost_month,
+        p95_ms: judgement.tests[0].p95_ms,
+      });
+      return { submission_id: submissionsCount, judgement, first_solve: first, best_score: problemState.best_score ?? 0 };
+    }),
+    submissions: vi.fn(async () => [...submitted]),
+    listGuide: vi.fn(async () =>
+      FAKE_GUIDE.map((e) => ({ kind: e.kind, one_liner: e.one_liner, one_liner_es: e.one_liner_es, read: read.has(e.kind) })),
+    ),
+    guidePage: vi.fn(async (kind: string) => {
+      const entry = FAKE_GUIDE.find((e) => e.kind === kind);
+      if (!entry) throw err("not_found");
+      return { entry: structuredClone(entry), md_en: "A cache keeps **hot** data in memory.", md_es: "Una caché guarda datos **calientes** en memoria.", read: read.has(kind) };
+    }),
+    decideFlows: vi.fn(async () => [structuredClone(FAKE_FLOW)]),
+    glossary: vi.fn(async () => structuredClone(FAKE_TERMS)),
+    listPatterns: vi.fn(async () => [
+      { id: FAKE_PATTERN.id, number: 1, title: FAKE_PATTERN.title, title_es: FAKE_PATTERN.title_es, one_liner: FAKE_PATTERN.one_liner, one_liner_es: FAKE_PATTERN.one_liner_es, kinds: FAKE_PATTERN.kinds, template: structuredClone(FAKE_TEMPLATE), read: read.has(`pattern:${FAKE_PATTERN.id}`) },
+    ]),
+    pattern: vi.fn(async (id: string) => {
+      if (id !== FAKE_PATTERN.id) throw err("not_found");
+      return { entry: structuredClone(FAKE_PATTERN), md_en: "Read the **cache** first.", md_es: "Lee primero la **caché**.", template: structuredClone(FAKE_TEMPLATE), read: read.has(`pattern:${id}`) };
+    }),
+    setPatternRead: vi.fn(async (id: string, r: boolean) => {
+      if (r) read.add(`pattern:${id}`);
+      else read.delete(`pattern:${id}`);
+      return null;
+    }),
+    concept: vi.fn(async (kind: string) =>
+      kind === "cache" ? { ...structuredClone(FAKE_SAMPLE), def: { ...structuredClone(FAKE_SAMPLE.def), id: "cache", problem: null, steps: FAKE_SAMPLE.def.steps.slice(0, 1) } } : null,
+    ),
+    setGuideRead: vi.fn(async (kind: string, r: boolean) => {
+      if (r) read.add(kind);
+      else read.delete(kind);
+      return null;
+    }),
+    listSamples: vi.fn(async () => [structuredClone(FAKE_SAMPLE_SUMMARY)]),
+    sample: vi.fn(async (id: string) => {
+      if (id !== FAKE_SAMPLE.def.id) throw err("not_found");
+      return structuredClone(FAKE_SAMPLE);
+    }),
+    progress: vi.fn(async () => ({
+      easy: { total: 1, attempted: problemState.status === "attempted" ? 1 : 0, solved: problemState.status === "solved" ? 1 : 0 },
+      medium: { total: 0, attempted: 0, solved: 0 },
+      hard: { total: 0, attempted: 0, solved: 0 },
+      streak: problemState.status ? 1 : 0,
+      recommended: problemState.status === "solved" ? null : FAKE_BRIEF.summary.id,
+      continue_with: problemState.status === "attempted" ? FAKE_BRIEF.summary.id : null,
+    })),
+    findBreakingPoint: vi.fn(async (design: Design) => {
+      if (opts.runError) throw err(opts.runError);
+      return {
+        limit_rps: 31_250,
+        multiplier: 31.25,
+        base_rps: 1000,
+        beyond_ceiling: false,
+        first_failure: { node: design.nodes[design.nodes.length - 1]?.id ?? "x", reason: "saturated" as const, at_s: 4, utilisation: 0.97 },
+        failing_p95_ms: 480,
+        failing_error_rate: 0.02,
+        stale_rate: 0.012,
+        runs: 14,
+      };
+    }),
     setWindowTitle: vi.fn(async (t: string) => {
       title = t;
       return null;
@@ -105,6 +247,14 @@ export function createFakeApi(opts: FakeOptions = {}) {
     },
     get dirty() {
       return dirty;
+    },
+    /** Push a frame to the live run's channel, as Rust would. */
+    pushFrame: (frame: ArrayBuffer) => frameSink?.(frame),
+    get runs() {
+      return runs;
+    },
+    get runControls() {
+      return runControls;
     },
     /** Simulate the user closing the window (Rust held it back). */
     requestClose: () => closeListener?.(),

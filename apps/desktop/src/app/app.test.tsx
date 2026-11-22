@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import type { Design } from "@/bindings";
@@ -5,6 +7,8 @@ import { setFakeApi, useFakeApi } from "@/test/mockApi";
 import { renderApp } from "@/test/renderApp";
 import { unnamed } from "@/test/a11y";
 import { useEditor } from "@/solve/store";
+import { useRun } from "@/solve/run/runStore";
+import { useTelemetry } from "@/solve/run/telemetry";
 
 vi.mock("@/lib/api", async () => (await import("@/test/mockApi")).apiModule);
 const fake = useFakeApi();
@@ -52,10 +56,10 @@ describe("pages", () => {
   it("later features are disabled with a milestone hint", async () => {
     renderApp("/sandbox");
     await screen.findByTestId("library");
-    expect(screen.getByRole("button", { name: /^Run/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /^Submit/ })).toBeDisabled();
-    expect(screen.getByLabelText("Run: Arrives in M1")).toBeInTheDocument();
     expect(screen.getByLabelText("AI review: Arrives in M4")).toBeInTheDocument();
+    // Run arrived in M1.
+    expect(screen.getByRole("button", { name: "Run" })).toBeEnabled();
   });
 });
 
@@ -95,12 +99,28 @@ describe("library", () => {
     expect(await screen.findByTestId("inspector-node")).toBeInTheDocument();
   });
 
+  it("Autoscaling from the library places a wrapper with its policy, not a card", async () => {
+    const { user } = renderApp("/sandbox");
+    const row = (await screen.findAllByTestId("library-row")).find((r) => r.dataset.kind === "autoscale")!;
+    row.focus();
+    await user.keyboard("{Enter}");
+    await screen.findByTestId("floating-picker");
+    await user.keyboard("{Enter}");
+    await waitFor(() => expect(useEditor.getState().doc.groups).toHaveLength(1));
+    const g = useEditor.getState().doc.groups[0];
+    expect(g.kind).toBe("autoscale");
+    expect(g.scaling).toMatchObject({ flavour: "kubernetes_hpa", props: { min_instances: 2, max_instances: 10 } });
+    expect(useEditor.getState().doc.nodes).toHaveLength(0);
+    expect(await screen.findByText("Scaling policy")).toBeInTheDocument();
+  });
+
   it("the info button opens the quick look", async () => {
     const { user } = renderApp("/sandbox");
     await user.click(await screen.findByRole("button", { name: "About Queue" }));
     const look = await screen.findByTestId("quick-look");
     expect(within(look).getByText("RabbitMQ")).toBeInTheDocument();
-    expect(within(look).getByText(/arrives in M3/)).toBeInTheDocument();
+    // No Guide entry for this kind in the fake backend: the quick look still links to it.
+    expect(await within(look).findByRole("link", { name: "Open in Guide" })).toBeInTheDocument();
   });
 });
 
@@ -123,6 +143,20 @@ describe("inspector", () => {
     await user.clear(service);
     await user.type(service, "4.5{Enter}");
     expect(useEditor.getState().doc.nodes[1].props.service_ms).toBe(4.5);
+  });
+
+  it("tags calibrated defaults and leaves design choices untagged", async () => {
+    act(() => useEditor.getState().load(design, null));
+    act(() => useEditor.getState().setSelection(["a1"]));
+    renderApp("/sandbox");
+    await screen.findByLabelText("Instances");
+    // An app server: concurrency and service time are calibrated, instances is a choice.
+    const tags = screen.getAllByTestId("calibration-tag");
+    expect(tags).toHaveLength(2);
+    expect(tags[0]).toHaveTextContent("ballpark");
+    expect(tags[0]).toHaveAttribute("title", expect.stringMatching(/source is still being confirmed/));
+    expect(screen.getByText(/Tagged defaults are calibrated figures/)).toBeInTheDocument();
+    expect(screen.queryByText(/placeholders until the simulator/)).not.toBeInTheDocument();
   });
 });
 
@@ -213,5 +247,136 @@ describe("settings", () => {
     expect(document.documentElement).toHaveClass("hc");
     expect(fake().api.setSetting).toHaveBeenCalledWith("ui_lang", "es");
     expect(fake().api.setSetting).toHaveBeenCalledWith("ui.contrast", "high");
+  });
+});
+
+describe("live runs", () => {
+  // A frame Rust encoded (see solve/run/frames.test.ts).
+  const frame = () => {
+    const b = readFileSync(resolve(__dirname, "../test/fixtures/frame.kaf"));
+    return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength);
+  };
+
+  it("Run starts the design, the Metrics tab shows the live tiles, Pause pauses", async () => {
+    act(() => useEditor.getState().load(design, null));
+    const { user } = renderApp("/sandbox");
+    await user.click(await screen.findByRole("button", { name: "Run" }));
+    await waitFor(() => expect(fake().api.startRun).toHaveBeenCalledTimes(1));
+    const [sent, options] = vi.mocked(fake().api.startRun).mock.calls[0];
+    expect(sent.nodes.map((n) => n.id)).toEqual(["c1", "a1"]);
+    expect(sent.schema_version).toBe(2);
+    expect(options).toEqual({ preset: "normal", problem: null, speed: 1, chaos: [], startS: 0 });
+    expect(screen.getByRole("tab", { name: "Metrics" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("Run the design to see live metrics.")).toBeInTheDocument();
+    act(() => fake().pushFrame(frame()));
+    expect(await screen.findByTestId("metric-rps")).toHaveTextContent(/req\/s/);
+    expect(screen.getByTestId("metric-p95")).toHaveTextContent(/ms$/);
+    expect(screen.getByTestId("run-clock")).toHaveTextContent("3.0 s of 60 s");
+    await user.click(screen.getByRole("button", { name: "Pause" }));
+    expect(fake().runControls).toEqual(["pause"]);
+    expect(screen.getByRole("button", { name: "Resume" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Stop" }));
+    expect(fake().runControls).toEqual(["pause", "stop"]);
+    expect(useRun.getState().status).toBe("idle");
+  });
+
+  it("editing what the simulator reads restarts the run; moving a card doesn't", async () => {
+    act(() => useEditor.getState().load(design, null));
+    const { user } = renderApp("/sandbox");
+    await user.click(await screen.findByRole("button", { name: "Run" }));
+    await waitFor(() => expect(fake().runs).toBe(1));
+    act(() => fake().pushFrame(frame()));
+    act(() => useEditor.getState().moveItems([{ id: "a1", position: { x: 400, y: 40 } }]));
+    act(() => useEditor.getState().setProp("a1", "instances", 4));
+    // The old metrics stay on screen while the edited design restarts.
+    await waitFor(() => expect(fake().runs).toBe(2), { timeout: 2000 });
+    expect(screen.getByTestId("metric-rps")).toBeInTheDocument();
+    const restarted = vi.mocked(fake().api.startRun).mock.calls[1][0];
+    expect(restarted.nodes[1].props.instances).toBe(4);
+    act(() => useRun.getState().stop());
+  });
+
+  it("cards show their live load; with reduced motion, connections show their throughput instead of packets", async () => {
+    // The app's motion setting (its local mirror is read at start-up).
+    localStorage.setItem("katabox-arch.ui.motion", "reduced");
+    try {
+      act(() => useEditor.getState().load(design, null));
+      const { user } = renderApp("/sandbox");
+      await user.click(await screen.findByRole("button", { name: "Run" }));
+      await waitFor(() => expect(fake().runs).toBe(1));
+      expect(screen.queryByTestId("packet-layer")).not.toBeInTheDocument();
+      act(() => fake().pushFrame(frame()));
+      // The app (frame node 1 → card a1) is busy; health refreshes within 100 ms.
+      const stats = await screen.findAllByTestId("card-stat");
+      expect(stats.map((s) => s.textContent)).toEqual([expect.stringMatching(/^0% busy/), expect.stringMatching(/^\d+% busy/)]);
+      // React Flow draws no edges in jsdom: the chip's number comes from here (checked in the real app).
+      expect(useTelemetry.getState().edgeRates.e1).toBeGreaterThan(0);
+      act(() => useRun.getState().stop());
+      await waitFor(() => expect(screen.queryByTestId("card-stat")).not.toBeInTheDocument());
+    } finally {
+      localStorage.removeItem("katabox-arch.ui.motion");
+      document.documentElement.classList.remove("reduce-motion");
+    }
+  });
+
+  it("the packet layer is on the canvas when motion is allowed", async () => {
+    act(() => useEditor.getState().load(design, null));
+    renderApp("/sandbox");
+    expect(await screen.findByTestId("packet-layer")).toBeInTheDocument();
+  });
+
+  it("Inject kills the selected card at the current moment and the run continues from there", async () => {
+    act(() => useEditor.getState().load(design, null));
+    const { user } = renderApp("/sandbox");
+    await user.click(await screen.findByRole("button", { name: "Run" }));
+    await waitFor(() => expect(fake().runs).toBe(1));
+    act(() => fake().pushFrame(frame()));
+    act(() => useEditor.getState().setSelection(["a1"]));
+    await user.click(screen.getByRole("button", { name: "Inject" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Kill it" }));
+    await waitFor(() => expect(fake().runs).toBe(2));
+    const { chaos, startS } = vi.mocked(fake().api.startRun).mock.calls[1][1];
+    expect(chaos).toEqual([{ kill: { id: "a1", at: 2.999 } }]);
+    expect(startS).toBe(2.999);
+    // The timeline marks it.
+    expect(await screen.findByTestId("chaos-marker")).toHaveAttribute("aria-label", "A card dies at 3.0 s");
+    act(() => useRun.getState().stop());
+  });
+
+  it("the scrubber seeks when released, and the run pauses there", async () => {
+    act(() => useEditor.getState().load(design, null));
+    const { user } = renderApp("/sandbox");
+    await user.click(await screen.findByRole("button", { name: "Run" }));
+    await waitFor(() => expect(fake().runs).toBe(1));
+    act(() => fake().pushFrame(frame()));
+    const scrub = screen.getByRole("slider", { name: "Simulated time" });
+    fireEvent.change(scrub, { target: { value: "42" } });
+    expect(screen.getByTestId("run-clock")).toHaveTextContent("42.0 s of 60 s");
+    fireEvent.pointerUp(scrub);
+    expect(fake().runControls).toEqual([{ seek: 42 }]);
+    expect(useRun.getState().status).toBe("paused");
+    act(() => useRun.getState().stop());
+  });
+
+  it("Find breaking point reports the limit and the first card to give way, and goes stale after an edit", async () => {
+    act(() => useEditor.getState().load(design, null));
+    const { user } = renderApp("/sandbox");
+    await user.click(await screen.findByRole("tab", { name: "Metrics" }));
+    await user.click(screen.getByRole("button", { name: "Find breaking point" }));
+    const result = await screen.findByTestId("breaking-result");
+    expect(result).toHaveTextContent("Holds about 31,250 req/s (31.3× the clients' traffic).");
+    expect(result).toHaveTextContent("API gives way first: every server busy within 5 s of the failing run.");
+    expect(result).toHaveTextContent("At that load, 1.2% of reads are stale.");
+    act(() => useEditor.getState().setProp("a1", "instances", 6));
+    expect(await screen.findByText("The design has changed since; find it again.")).toBeInTheDocument();
+  });
+
+  it("a design with no path reports why instead of running", async () => {
+    setFakeApi({ runError: "no_path" });
+    act(() => useEditor.getState().load(design, null));
+    const { user } = renderApp("/sandbox");
+    await user.click(await screen.findByRole("button", { name: "Run" }));
+    expect(await screen.findByText(/No request can get through this design/)).toBeInTheDocument();
+    expect(useRun.getState().status).toBe("idle");
   });
 });

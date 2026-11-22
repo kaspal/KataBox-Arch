@@ -1,0 +1,61 @@
+id = "flash-sale"
+number = 14
+set = 1
+difficulty = "hard"
+title = "Flash-Sale Ticketing"
+title_es = "Venta flash de entradas"
+teaches = "Queue-based load levelling for a burst; cache the browsing"
+teaches_es = "Nivelar la carga con una cola ante una ráfaga; cachear la navegación"
+tags = ["queues", "cdn", "bursts", "external-providers"]
+
+[nfr]
+peak_rps = 2000
+read_ratio = 0.9
+p95_ms = 100
+availability = 0.999
+budget_usd = 8000
+
+[[externals]]
+name = "payment"
+median_ms = 300
+p99_ms = 1500
+rate_limit = 2000
+
+[[request_types]]
+id = "browse"
+name = "Browse the event page"
+name_es = "Ver la página del evento"
+share = 0.9
+route = ["edge?", "compute|datastore:object"]
+key_space = 200
+key_skew = { zipf = 1.0 }
+cacheable = true
+
+[[request_types]]
+id = "buy"
+name = "Buy a ticket"
+name_es = "Comprar una entrada"
+share = 0.1
+route = ["edge?", "compute", "broker", "worker", "external:payment", "datastore:write"]
+
+[[tests]]
+id = "normal"
+name = "Before the sale"
+name_es = "Antes de la venta"
+
+[[tests]]
+id = "open"
+name = "The sale opens"
+name_es = "Se abre la venta"
+hidden = true
+traffic = { spike = { at = 5, x = 25, for = 10 } }
+
+[[tests]]
+id = "slow-payments"
+name = "The payment provider slows down"
+name_es = "El proveedor de pagos se ralentiza"
+hidden = true
+chaos = [{ external = { name = "payment", at = 10, for = 30, add_ms = 3000 } }]
+
+[pass]
+error_rate = 0.001

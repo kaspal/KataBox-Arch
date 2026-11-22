@@ -6,18 +6,28 @@
 //! - [`wiring`]: which protocol may connect which kinds, as a data table the UI also gets.
 //! - [`validate`]: checks a design against the registry and the wiring table.
 
+pub mod decide;
 pub mod design;
+pub mod detmath;
+pub mod guide;
+pub mod pattern;
+pub mod problem;
 pub mod registry;
+pub mod rng;
+pub mod scenario;
+pub mod story;
 pub mod validate;
 pub mod wiring;
 
 pub use design::{
-    Design, Edge, Group, GroupKind, Node, Note, Point, PropValue, Protocol, SCHEMA_VERSION, Size,
-    Viewport,
+    Design, Edge, Group, GroupKind, Node, Note, Point, PropValue, Protocol, SCHEMA_VERSION,
+    Scaling, Size, Viewport,
 };
 pub use registry::{
-    Category, ComponentKind, Flavour, FlavourSpec, KindSpec, MetaKind, MetaSpec, PropOverride,
-    PropSpec, PropType, Registry, Unit, registry,
+    CALIBRATED_PROPS, CITED, CalibrationRef, CalibrationRow, CalibrationStatus, Category,
+    ComponentKind, Cost, Flavour, FlavourSpec, KindSpec, MetaKind, MetaSpec, Placement,
+    PropOverride, PropSpec, PropType, Registry, SimDefaults, Unit, calibration_rows, flavour_id,
+    registry,
 };
 pub use validate::{DesignIssue, IssueCode, Limits, validate, wire_reason};
 pub use wiring::{KindSet, WiringCell, WiringDenial, WiringReason, WiringRule, WiringTable};

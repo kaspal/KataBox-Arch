@@ -24,7 +24,12 @@
     "add": "Add to canvas",
     "addItem": "Add {{name}}",
     "theme": "Theme",
-    "language": "Language"
+    "language": "Language",
+    "devPerf": "Developer: packet layer frame rate",
+    "guide": "Guide",
+    "guideItem": "Guide: {{name}}",
+    "patterns": "Patterns",
+    "patternItem": "Pattern: {{name}}"
   },
   "theme": {
     "system": "System",
@@ -39,7 +44,8 @@
     "cancel": "Cancel",
     "dismiss": "Dismiss",
     "on": "On",
-    "off": "Off"
+    "off": "Off",
+    "close": "Close"
   },
   "errors": {
     "generic": "Something went wrong.",
@@ -53,7 +59,9 @@
     "invalid_design": "The design breaks a rule (wiring, ids or values), so it was not saved.",
     "setting_not_allowed": "That setting can't be changed from here.",
     "path_not_allowed": "Use Save As or Open to choose a file first.",
-    "internal": "Something went wrong inside the app."
+    "internal": "Something went wrong inside the app.",
+    "no_path": "No request can get through this design. Connect a client to a service.",
+    "content_missing": "The problem catalogue is missing from this installation. Reinstall the app."
   },
   "files": {
     "unsaved": {
@@ -81,7 +89,9 @@
     "run": "Run",
     "aiReview": "AI review",
     "submit": "Submit",
-    "later": "Arrives in {{milestone}}"
+    "later": "Arrives in {{milestone}}",
+    "submitProblem": "Open a problem to submit a design",
+    "judging": "Judging…"
   },
   "canvas": {
     "label": "Canvas",
@@ -90,7 +100,8 @@
     "zone": {
       "region": "Region",
       "az": "Availability zone",
-      "note": "Sticky note"
+      "note": "Sticky note",
+      "autoscale": "Autoscaling group"
     },
     "noteText": "Note text",
     "notePlaceholder": "Double-click to write…",
@@ -103,7 +114,11 @@
     "pickFlavour": "Which {{kind}}?",
     "pickProtocol": "Connect with",
     "snap": "Snap to grid",
-    "snapHint": "Cards snap to an 8 px grid. Hold Alt while dragging to place freely."
+    "snapHint": "Cards snap to an 8 px grid. Hold Alt while dragging to place freely.",
+    "statBusy": "{{util}}% busy",
+    "statQueued": "{{util}}% busy · {{queue}} queued",
+    "statDown": "down",
+    "rate": "{{rate}}/s"
   },
   "wiring": {
     "reason": {
@@ -145,16 +160,21 @@
     "add": "{{name}}: drag onto the canvas or press Enter to add",
     "quickLook": "About {{name}}",
     "flavours": "Flavours",
-    "guideLater": "The full Component Guide entry (what it does, when to use it, its numbers) arrives in M3."
+    "watchFor": "Watch for:",
+    "dragHint": "Drag the item onto the canvas to add it",
+    "openInGuide": "Open in Guide"
   },
   "inspector": {
     "title": "Inspect",
     "metrics": "Metrics",
-    "metricsLater": "Metrics arrive with the simulation (M1)",
     "label": "Label",
     "flavour": "Flavour",
     "props": "Properties",
-    "placeholderNumbers": "Defaults are placeholders until the simulator is calibrated (M1).",
+    "ballpark": "ballpark",
+    "ballparkHint": "A calibrated default: a conservative ballpark whose source is still being confirmed.",
+    "cited": "cited",
+    "citedHint": "A calibrated default taken from a cited source.",
+    "calibrationNote": "Tagged defaults are calibrated figures (see docs/calibration.md). The others are design choices for you to set.",
     "delete": "Delete",
     "zoneHint": "Cards inside a zone move with it. Network latency between zones arrives with the simulation.",
     "protocol": "Protocol",
@@ -170,7 +190,11 @@
     "many_one": "{{count}} item selected",
     "many_other": "{{count}} items selected",
     "range": "Enter a number from {{min}} to {{max}}.",
-    "rangeInt": "Enter a whole number from {{min}} to {{max}}."
+    "rangeInt": "Enter a whole number from {{min}} to {{max}}.",
+    "autoscaleHint": "Compute cards inside this frame scale between the minimum and maximum instances, adding instances when utilisation stays above the target.",
+    "scaling": "Scaling policy",
+    "brief": "Brief",
+    "learnMore": "Learn more"
   },
   "home": {
     "eyebrow": "Your system design desk",
@@ -181,20 +205,23 @@
     "missing": "File not found",
     "openNamed": "Open {{name}}",
     "forget": "Forget",
-    "forgetNamed": "Remove {{name}} from recent designs"
+    "forgetNamed": "Remove {{name}} from recent designs",
+    "practice": "Practice",
+    "continue": "Continue",
+    "recommended": "Recommended next",
+    "streak_one": "{{count}}-day streak",
+    "streak_other": "{{count}}-day streak",
+    "watch": "Watch how it works",
+    "allSamples": "All samples",
+    "tourTitle": "New here? Take the tour",
+    "tourBody": "\"{{title}}\" shows the canvas, a live run and the metrics in about a minute and a half. It stays in Samples.",
+    "tourStart": "Start the tour",
+    "tourLater": "Not now"
   },
   "placeholder": {
     "problems": {
       "title": "Problems arrive in M2",
       "body": "A LeetCode-style list of system design challenges, each judged against hidden traffic tests."
-    },
-    "guide": {
-      "title": "The Component Guide arrives in M3",
-      "body": "An entry and a concept card for every component: what it does, when to use it, and its numbers."
-    },
-    "samples": {
-      "title": "Animated samples arrive in M3",
-      "body": "Five guided designs that show traffic flowing, breaking and recovering."
     },
     "progress": {
       "title": "Nothing to show yet",
@@ -332,6 +359,7 @@
       "read_replicas": "Read replicas",
       "shards": "Shards",
       "replication_lag_ms": "Replication lag",
+      "failover_s": "Failover time",
       "partitions": "Partitions",
       "replication_factor": "Replication factor",
       "consistency": "Consistency",
@@ -368,5 +396,266 @@
     "percent": "%",
     "rps": "req/s",
     "gb": "GB"
+  },
+  "run": {
+    "controls": "Run controls",
+    "preset": "Traffic",
+    "presets": {
+      "normal": "Normal traffic",
+      "spike": "Spike ×4",
+      "kill_node": "Kill a node at 20 s"
+    },
+    "runAgain": "Run again",
+    "starting": "Starting…",
+    "pause": "Pause",
+    "resume": "Resume",
+    "stop": "Stop",
+    "speed": "Speed",
+    "clock": "{{t}} s of {{total}} s",
+    "timeline": "Run timeline",
+    "scrub": "Simulated time",
+    "inject": "Inject",
+    "injectOn": "On {{name}}",
+    "injectSelect": "Select a card to break it",
+    "injectKill": "Kill it",
+    "injectSlow": "Slow it down (+200 ms for 10 s)",
+    "injectFlush": "Flush it (empty the cache)",
+    "injectTraffic": "Triple the traffic for 10 s",
+    "chaos": {
+      "kill": "A card dies at {{at}} s",
+      "latency": "A card slows down at {{at}} s",
+      "partition": "A zone is cut off at {{at}} s",
+      "traffic": "Traffic changes at {{at}} s",
+      "flush": "A cache is emptied at {{at}} s",
+      "external": "A provider fails at {{at}} s"
+    },
+    "test": "Test to run"
+  },
+  "metrics": {
+    "empty": "Run the design to see live metrics.",
+    "p95": "p95 latency",
+    "throughput": "Throughput",
+    "errorRate": "Error rate",
+    "cost": "Cost",
+    "perMonth": "/month",
+    "lastSecond": "Latency, throughput and errors cover the last simulated second; cost is per month at the traffic so far.",
+    "busiest": "Busiest components",
+    "down": "down",
+    "sampled": "Simulating {{pct}}% of requests; counts are scaled back up.",
+    "p95Trend": "p95 latency per second",
+    "stale": "Stale reads",
+    "availability": "Availability"
+  },
+  "breaking": {
+    "title": "Breaking point",
+    "find": "Find breaking point",
+    "finding": "Pushing the traffic up…",
+    "holds": "Holds about {{rps}} req/s ({{x}}× the clients' traffic).",
+    "holdsBeyond": "Holds more than {{rps}} req/s; the search stops there.",
+    "reason": {
+      "saturated": "{{name}} gives way first: every server busy within {{at}} s of the failing run.",
+      "queue_overflow": "{{name}} gives way first: its queue overflows within {{at}} s of the failing run."
+    },
+    "latencyOnly": "Latency gives way first (p95 {{p95}} ms) without any card saturating.",
+    "stale": "The design has changed since; find it again.",
+    "limits": "Breaking means p95 above 200 ms or more than 1% errors, in 20 s runs of growing traffic.",
+    "staleReads": "At that load, {{pct}} of reads are stale."
+  },
+  "problems": {
+    "search": "Search problems",
+    "all": "All",
+    "filterDifficulty": "Difficulty",
+    "filterTopic": "Topic",
+    "difficulty": {
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard"
+    },
+    "status": {
+      "solved": "Solved",
+      "attempted": "Attempted",
+      "new": "Not started"
+    },
+    "best": "Best {{score}}",
+    "random": "Random problem",
+    "continue": "Continue: {{title}}",
+    "none": "No problem matches.",
+    "unavailable": "Problems are unavailable"
+  },
+  "brief": {
+    "teaches": "Teaches: {{what}}",
+    "targets": "Targets",
+    "peak": "Peak traffic",
+    "p95": "p95 latency",
+    "availability": "Availability",
+    "budget": "Budget",
+    "traffic": "Traffic",
+    "externals": "External providers",
+    "externalLatency": "{{median}} ms median, {{p99}} ms p99",
+    "externalLimit": "{{limit}} req/s limit",
+    "tests": "Tests",
+    "hidden": "hidden",
+    "seconds": "{{s}} s",
+    "hints": "Hints",
+    "hint": "Hint {{n}}",
+    "showHint": "Show hint {{n}}",
+    "editorial": "Editorial",
+    "compare": "Compare"
+  },
+  "results": {
+    "title": "Results",
+    "score": "Score",
+    "correctness": "Correctness",
+    "cost": "Cost ({{cost}} vs the reference's {{ref}} a month)",
+    "latency": "Latency headroom",
+    "best": "Your best on this problem: {{score}}",
+    "summary": "{{passed}} of {{total}} tests passed; the design costs {{cost}} a month.",
+    "firstSolve": "Solved! The editorial is now in the Brief tab.",
+    "replay": "Replay at failure",
+    "aiLater": "An AI review that explains these results and challenges the design arrives in M4. It never changes a score.",
+    "verdict": {
+      "accepted": "Accepted",
+      "dropped_requests": "Dropped requests",
+      "slo_breach": "SLO breach",
+      "over_budget": "Over budget",
+      "invalid_design": "Invalid design"
+    },
+    "bottleneck": {
+      "saturated": "{{name}} saturated from {{at}} s.",
+      "queue_overflow": "{{name}} overflowed its queue from {{at}} s.",
+      "down": "{{name}} was down from {{at}} s."
+    },
+    "stuck": "Stuck?"
+  },
+  "compare": {
+    "open": "Compare with reference",
+    "title": "Your design and the reference",
+    "mode": "How to compare",
+    "split": "Side by side",
+    "overlay": "Overlay",
+    "splitHint": "Zooming or panning one side moves both.",
+    "overlayHint": "The reference is drawn faintly behind your design, centred on it.",
+    "yours": "Your design",
+    "reference": "Reference design",
+    "yoursSolid": "Your design: solid",
+    "referenceFaint": "Reference: faint"
+  },
+  "chart": {
+    "yours": "Your accepted submissions",
+    "reference": "Reference",
+    "label": "Cost per month against p95 latency, for your accepted submissions and the reference",
+    "axes": "Across: cost per month. Up: p95 latency on the first test (ms). Lower left is better.",
+    "best": "Your cheapest accepted design: {{cost}} a month at {{p95}} ms p95 ({{n}} accepted).",
+    "referenceAt": "The reference: {{cost}} a month at {{p95}} ms p95.",
+    "empty": "Your accepted submissions will appear here, next to the reference."
+  },
+  "player": {
+    "stepOf": "step {{n}} of {{total}}",
+    "stepTitle": "Step {{n}} · {{title}}",
+    "previous": "Previous",
+    "nextTo": "Next: {{title}}",
+    "end": "The end",
+    "replay": "Replay step",
+    "try": "Try it yourself",
+    "steps": "Steps",
+    "goTo": "Step {{n}}: {{title}}",
+    "before": "Before: {{v}}",
+    "target": "target {{v}}",
+    "ms": "{{v}} ms",
+    "rps": "{{v}} req/s",
+    "metric": {
+      "p95_ms": "p95 latency",
+      "error_rate": "Error rate",
+      "throughput_rps": "Throughput",
+      "cost_month": "Cost per month",
+      "lost": "Messages lost"
+    }
+  },
+  "samples": {
+    "steps_one": "{{count}} step",
+    "steps_other": "{{count}} steps",
+    "tour": "The first-run tour",
+    "unavailable": "Samples are unavailable",
+    "none": "No samples yet",
+    "noneBody": "The app was built without its samples.",
+    "copyName": "{{title}} (my copy)"
+  },
+  "guide": {
+    "title": "Component Guide",
+    "subtitle": "What each component is, what it does, and when to reach for it. {{read}} of {{total}} read.",
+    "search": "Search: cache, fan-out, replication",
+    "searchLabel": "Search the Guide",
+    "startHere": "Start here",
+    "startHereBody": "The six pieces almost every design uses",
+    "read": "Read",
+    "noMatch": "No entry matches.",
+    "unavailable": "The Guide is unavailable",
+    "breadcrumb": "Where you are",
+    "markRead": "Mark as read",
+    "markedRead": "Read",
+    "whatItDoes": "What it does",
+    "useWhen": "Use it when",
+    "skipWhen": "Skip it when",
+    "inSimulator": "In the simulator",
+    "value": "Value",
+    "simNote": "Every number here is the simulator's own default for that product; the Inspector can change it on a card.",
+    "pitfalls": "Common pitfalls",
+    "fix": "Fix:",
+    "seenIn": "Seen in:",
+    "tradeoffs": "Trade-offs",
+    "gains": "What you gain",
+    "costs": "What you pay",
+    "flavoursCompared": "The products compared",
+    "practice": "Practice it",
+    "worksWith": "Works with",
+    "interviewTip": "Interview tip",
+    "sources": "Sources",
+    "sourcesUnchecked": "Vendor documentation to open in your browser. The links haven't been checked yet.",
+    "yes": "yes",
+    "no": "no",
+    "simField": {
+      "servers_per_instance": "Parallel work per node",
+      "service_ms": "Service time",
+      "p99_ratio": "Slow tail (p99 ÷ median)",
+      "queue_per_server": "Queue slots per worker",
+      "failover_s": "Failover time"
+    },
+    "costField": {
+      "per_instance_month": "Price per instance",
+      "per_gb_month": "Price per GB",
+      "per_million": "Price per million requests"
+    },
+    "costUnit": {
+      "per_instance_month": "{{v}} a month",
+      "per_gb_month": "{{v}} per GB a month",
+      "per_million": "{{v}} per million"
+    },
+    "conceptCard": "Concept card",
+    "playConcept_one": "Play the concept card ({{count}} step)",
+    "playConcept_other": "Play the concept card ({{count}} steps)"
+  },
+  "patterns": {
+    "title": "Patterns",
+    "subtitle": "Proven shapes for common problems, ready to drop onto the canvas. {{read}} of {{total}} read.",
+    "unavailable": "The pattern library is unavailable",
+    "insert": "Insert into the Sandbox",
+    "problem": "The problem",
+    "howItWorks": "How it works",
+    "template": "The template",
+    "templateHint": "Insert into the Sandbox adds these cards to the design you are editing, in the middle of the view; one undo removes them.",
+    "builtFrom": "Built from"
+  },
+  "decide": {
+    "title": "Which one do I need?",
+    "answers": "Your answers",
+    "result": "Reach for",
+    "restart": "Start again",
+    "notFound": "No such guide",
+    "notFoundBody": "This decision guide doesn't exist."
+  },
+  "glossary": {
+    "title": "Glossary",
+    "search": "Search the glossary",
+    "see": "See {{name}}."
   }
 }

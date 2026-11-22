@@ -1,0 +1,110 @@
+{
+  "schema_version": 2,
+  "id": "leaderboard-reference",
+  "name": "Game Leaderboard (reference)",
+  "problem_id": "leaderboard",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "mobile",
+      "label": "Players",
+      "position": {
+        "x": 130,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "nginx",
+      "label": "",
+      "position": {
+        "x": 130,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "",
+      "position": {
+        "x": 130,
+        "y": 340
+      },
+      "props": {
+        "instances": 4
+      },
+      "group_id": null
+    },
+    {
+      "id": "board",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "Leaderboard",
+      "position": {
+        "x": 0,
+        "y": 510
+      },
+      "props": {
+        "memory_gb": 1,
+        "ttl_s": 0,
+        "failover_s": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "board-replica",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "Replica",
+      "position": {
+        "x": 260,
+        "y": 510
+      },
+      "props": {
+        "memory_gb": 1,
+        "ttl_s": 0
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "app",
+      "to": "board",
+      "protocol": "query"
+    },
+    {
+      "id": "e3",
+      "from": "board",
+      "to": "board-replica",
+      "protocol": "replicate"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

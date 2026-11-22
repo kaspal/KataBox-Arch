@@ -1,0 +1,130 @@
+{
+  "schema_version": 2,
+  "id": "sample-news-feed-naive",
+  "name": "news-feed: first try",
+  "problem_id": "news-feed",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "mobile",
+      "label": "Readers",
+      "position": {
+        "x": 130,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "nginx",
+      "label": "",
+      "position": {
+        "x": 130,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {
+        "instances": 6
+      },
+      "group_id": null
+    },
+    {
+      "id": "queue",
+      "kind": "queue",
+      "flavour": "rabbitmq",
+      "label": "New posts",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "",
+      "position": {
+        "x": 0,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "fanout",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Fan-out",
+      "position": {
+        "x": 260,
+        "y": 510
+      },
+      "props": {
+        "instances": 4,
+        "service_ms": 2
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "app",
+      "to": "db",
+      "protocol": "query"
+    },
+    {
+      "id": "e3",
+      "from": "app",
+      "to": "queue",
+      "protocol": "publish"
+    },
+    {
+      "id": "e4",
+      "from": "queue",
+      "to": "fanout",
+      "protocol": "consume"
+    },
+    {
+      "id": "e5",
+      "from": "fanout",
+      "to": "db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

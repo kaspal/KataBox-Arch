@@ -1,0 +1,86 @@
+kind = "dlq"
+one_liner = "A side queue that keeps the messages that failed every retry, so none is lost."
+one_liner_es = "Una cola aparte que guarda los mensajes que fallaron todos los reintentos, para que ninguno se pierda."
+
+use_when = [
+  "A consumer calls a provider that can be down for a while",
+  "Losing a message is not acceptable",
+  "Some messages are malformed and will never succeed",
+  "Someone needs to inspect and replay failures later",
+]
+use_when_es = [
+  "Un consumidor llama a un proveedor que puede caerse un rato",
+  "Perder un mensaje no es aceptable",
+  "Algunos mensajes están mal formados y nunca tendrán éxito",
+  "Alguien tiene que revisar y reprocesar los fallos más tarde",
+]
+skip_when = [
+  "Messages are cheap and safe to drop, like live metrics",
+  "There is no queue or stream with retries in the design",
+  "Nobody will ever look at what lands in it",
+]
+skip_when_es = [
+  "Los mensajes son baratos y se pueden descartar sin riesgo, como métricas en vivo",
+  "No hay en el diseño ninguna cola o stream con reintentos",
+  "Nadie va a mirar nunca lo que cae en ella",
+]
+
+formula = "a message that fails all its retries on a queue or stream with a Publish edge to a DLQ counts as dead-lettered, not lost"
+formula_es = "un mensaje que falla todos sus reintentos en una cola o stream con un enlace Publish a una DLQ cuenta como mensaje fallido guardado, no como perdido"
+
+gains = [
+  "No message is lost when retries run out",
+  "Poison messages stop blocking the main queue",
+  "Failures are kept for inspection and replay",
+]
+gains_es = [
+  "Ningún mensaje se pierde cuando se agotan los reintentos",
+  "Los mensajes envenenados dejan de bloquear la cola principal",
+  "Los fallos se guardan para revisarlos y reprocesarlos",
+]
+costs = [
+  "Someone has to watch it and act on what lands there",
+  "Replayed messages arrive late and out of order",
+]
+costs_es = [
+  "Alguien tiene que vigilarla y actuar sobre lo que cae en ella",
+  "Los mensajes reprocesados llegan tarde y fuera de orden",
+]
+
+works_with = ["queue", "stream", "worker", "metrics"]
+practice = ["notifications"]
+
+interview_tip = "Say how many retries happen before a message is dead-lettered, who is alerted, and how messages are replayed."
+interview_tip_es = "Di cuántos reintentos hay antes de apartar un mensaje, a quién se avisa y cómo se reprocesan los mensajes."
+
+[[sim]]
+cost = "per_million"
+note = "Priced only by volume, per million messages. A DLQ that stays empty costs next to nothing."
+note_es = "Se cobra solo por volumen, por millón de mensajes. Una DLQ que sigue vacía apenas cuesta nada."
+
+[[pitfalls]]
+title = "No DLQ behind the retries"
+title_es = "Sin DLQ detrás de los reintentos"
+body = "A provider outage outlasts the retries. Every message that runs out of tries is lost, and the run fails on lost messages even if the error rate looks fine."
+body_es = "Una caída del proveedor dura más que los reintentos. Cada mensaje que agota sus intentos se pierde, y la ejecución falla por mensajes perdidos aunque la tasa de errores parezca bien."
+fix = "Wire the queue to a DLQ with a Publish edge."
+fix_es = "Une la cola a una DLQ con un enlace Publish."
+seen_in = "notifications"
+
+[[pitfalls]]
+title = "A DLQ nobody watches"
+title_es = "Una DLQ que nadie vigila"
+body = "Messages pile up quietly for days, and the retention period runs out before anyone notices."
+body_es = "Los mensajes se acumulan en silencio durante días, y el periodo de retención se agota antes de que nadie se dé cuenta."
+fix = "Alert on the DLQ's depth and keep a tested way to replay its messages."
+fix_es = "Pon una alerta sobre la profundidad de la DLQ y ten una forma probada de reprocesar sus mensajes."
+
+[[sources]]
+flavour = "generic"
+title = "Amazon SQS dead-letter queues"
+url = "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html"
+
+[[sources]]
+flavour = "generic"
+title = "RabbitMQ dead letter exchanges"
+url = "https://www.rabbitmq.com/docs/dlx"

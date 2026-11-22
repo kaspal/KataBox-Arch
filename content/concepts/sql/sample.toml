@@ -1,0 +1,26 @@
+id = "sql"
+number = 4
+title = "SQL Database"
+title_es = "Base de datos SQL"
+summary = "One primary takes the writes; a replica keeps a copy and takes over when the primary dies."
+summary_es = "Una principal recibe las escrituras; una réplica guarda una copia y la sustituye cuando la principal cae."
+
+[[step]]
+snapshot = "single.kbarch"
+title = "One primary, no spare"
+title_es = "Una principal, sin repuesto"
+caption = "At 20 seconds the only database dies. Nothing can take its place, so from then on every request that needs it fails."
+caption_es = "A los 20 segundos cae la única base de datos. Nada puede ocupar su lugar, así que desde entonces falla cada petición que la necesita."
+focus = ["db"]
+run = { preset = "kill_node", start_s = 16 }
+callout = { metric = "error_rate", after = 0.665 }
+
+[[step]]
+snapshot = "replica.kbarch"
+title = "A replica takes over"
+title_es = "Una réplica toma el relevo"
+caption = "The replica receives every change through replication. When the primary dies, it is promoted after its failover time, and only the requests caught in that window fail."
+caption_es = "La réplica recibe cada cambio por replicación. Cuando la principal cae, pasa a ser la principal tras su tiempo de failover, y solo fallan las peticiones atrapadas en ese intervalo."
+focus = ["db", "db-replica"]
+run = { preset = "kill_node", start_s = 16 }
+callout = { metric = "error_rate", before = 0.665, after = 0.0322 }

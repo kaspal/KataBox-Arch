@@ -1,0 +1,120 @@
+kind = "dns"
+one_liner = "Turns a name like example.com into the address of a server."
+one_liner_es = "Convierte un nombre como example.com en la dirección de un servidor."
+
+use_when = [
+  "Users reach you by a domain name",
+  "You want to send users to the nearest region",
+  "You need to move traffic away from a failed region",
+  "You want to show the full path of a request",
+]
+use_when_es = [
+  "Los usuarios te encuentran por un nombre de dominio",
+  "Quieres mandar a cada usuario a la región más cercana",
+  "Necesitas apartar el tráfico de una región caída",
+  "Quieres mostrar el camino completo de una petición",
+]
+skip_when = [
+  "Services talk to each other inside one network",
+  "You are hunting a capacity problem: DNS is not the bottleneck",
+  "You need instant failover, since cached answers linger until their TTL ends",
+]
+skip_when_es = [
+  "Los servicios hablan entre sí dentro de una misma red",
+  "Buscas un problema de capacidad: el DNS no es el cuello de botella",
+  "Necesitas una conmutación inmediata, porque las respuestas cacheadas duran hasta que acaba su TTL",
+]
+
+formula = "time added ≈ one fast lookup per request that passes through; capacity is effectively unlimited, and the record TTL does not change the run"
+formula_es = "tiempo añadido ≈ una consulta rápida por cada petición que pasa; la capacidad es prácticamente ilimitada, y el TTL del registro no cambia la ejecución"
+
+gains = [
+  "A global entry point for a handful of records",
+  "Cheap traffic steering between regions",
+]
+gains_es = [
+  "Un punto de entrada global con un puñado de registros",
+  "Reparto barato del tráfico entre regiones",
+]
+costs = [
+  "Changes spread slowly, because resolvers cache answers",
+  "Priced per query, so the bill follows the traffic",
+]
+costs_es = [
+  "Los cambios se propagan despacio, porque los resolvedores cachean las respuestas",
+  "Se cobra por consulta, así que la factura sigue al tráfico",
+]
+
+works_with = ["client", "cdn", "lb"]
+practice = []
+
+interview_tip = "Mention DNS when you talk about regions and failover, and say how long a stale answer can keep users on a dead address."
+interview_tip_es = "Menciona el DNS cuando hables de regiones y conmutación, y di cuánto tiempo puede una respuesta obsoleta mantener a los usuarios en una dirección caída."
+
+[[sim]]
+sim = "service_ms"
+note = "Time a lookup adds to each request that passes through. Clients cache answers, so this is only the resolver's reply."
+note_es = "Lo que añade una consulta a cada petición que pasa. Los clientes cachean las respuestas, así que es solo la respuesta del resolvedor."
+
+[[sim]]
+sim = "servers_per_instance"
+note = "Lookups answered at once. It is set high because a managed DNS service is not the bottleneck."
+note_es = "Consultas atendidas a la vez. Es alto porque un DNS gestionado no es el cuello de botella."
+
+[[sim]]
+cost = "per_million"
+note = "Managed DNS is priced per query, not per server."
+note_es = "El DNS gestionado se cobra por consulta, no por servidor."
+
+[flavours_compared]
+flavours = ["route53", "cloudflare_dns"]
+
+[[flavours_compared.rows]]
+label = "Run by"
+label_es = "Lo opera"
+cells = ["Amazon Web Services", "Cloudflare"]
+cells_es = ["Amazon Web Services", "Cloudflare"]
+
+[[flavours_compared.rows]]
+label = "Traffic steering"
+label_es = "Reparto del tráfico"
+cells = ["Weighted, latency, geolocation and failover routing", "Proxied records send traffic through Cloudflare's network; load balancing is an add-on"]
+cells_es = ["Enrutado ponderado, por latencia, por geolocalización y de conmutación", "Los registros con proxy pasan el tráfico por la red de Cloudflare; el balanceo es un complemento"]
+
+[[flavours_compared.rows]]
+label = "Health checks"
+label_es = "Comprobaciones de salud"
+cells = ["Built in, and can drive failover", "Through the load balancing add-on"]
+cells_es = ["Integradas, y pueden activar la conmutación", "Con el complemento de balanceo"]
+
+[[flavours_compared.rows]]
+label = "Pick it for"
+label_es = "Elígelo para"
+cells = ["Designs already on AWS", "Sites that also use Cloudflare's CDN or WAF"]
+cells_es = ["Diseños que ya están en AWS", "Sitios que también usan la CDN o el WAF de Cloudflare"]
+
+[[pitfalls]]
+title = "Expecting DNS failover to be instant"
+title_es = "Esperar que la conmutación por DNS sea inmediata"
+body = "Resolvers and clients keep a cached answer until its TTL ends, and some keep it longer. Users go on reaching the dead address for a while."
+body_es = "Los resolvedores y los clientes guardan la respuesta cacheada hasta que acaba su TTL, y algunos más tiempo. Los usuarios siguen llegando a la dirección caída durante un rato."
+fix = "Keep TTLs short on records you plan to fail over, and use a load balancer with health checks for fast failover inside a region."
+fix_es = "Usa TTL cortos en los registros que pienses conmutar, y un balanceador con comprobaciones de salud para conmutar rápido dentro de una región."
+
+[[pitfalls]]
+title = "Very short TTLs everywhere"
+title_es = "TTL muy cortos en todas partes"
+body = "Short TTLs mean more lookups, a higher bill and extra latency for users whose resolver must ask again."
+body_es = "Los TTL cortos traen más consultas, una factura mayor y más latencia para los usuarios cuyo resolvedor tiene que volver a preguntar."
+fix = "Keep short TTLs for records that move, and long ones for records that stay put."
+fix_es = "Deja los TTL cortos para los registros que cambian, y largos para los que no se mueven."
+
+[[sources]]
+flavour = "route53"
+title = "Amazon Route 53 documentation"
+url = "https://docs.aws.amazon.com/route53/"
+
+[[sources]]
+flavour = "cloudflare_dns"
+title = "Cloudflare DNS documentation"
+url = "https://developers.cloudflare.com/dns/"

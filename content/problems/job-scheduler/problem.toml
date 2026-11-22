@@ -1,0 +1,48 @@
+id = "job-scheduler"
+number = 11
+set = 1
+difficulty = "medium"
+title = "Distributed Job Scheduler"
+title_es = "Planificador de tareas distribuido"
+teaches = "A durable queue absorbs bursts; workers scale to drain it"
+teaches_es = "Una cola duradera absorbe las ráfagas; los workers escalan para vaciarla"
+tags = ["queues", "scheduler", "autoscaling", "async"]
+
+[nfr]
+peak_rps = 100
+p95_ms = 10000
+availability = 0.999
+budget_usd = 2500
+
+[[request_types]]
+id = "job"
+name = "Run a scheduled job"
+name_es = "Ejecutar una tarea programada"
+share = 1.0
+route = ["broker", "worker", "datastore:write"]
+source = "scheduler"
+measure = "completion"
+
+[[tests]]
+id = "normal"
+name = "Normal hour"
+name_es = "Una hora normal"
+
+[[tests]]
+id = "workers-lost"
+name = "The worker pool is lost"
+name_es = "Se pierde el grupo de workers"
+hidden = true
+chaos = [{ kill = { kind = "worker", all = true, at = 20, for = 20 } }]
+pass = { p95_ms = 40000 }
+
+[[tests]]
+id = "midnight"
+name = "Midnight"
+name_es = "Medianoche"
+hidden = true
+traffic = { spike = { at = 20, x = 10, for = 10 } }
+pass = { p95_ms = 40000 }
+
+[pass]
+error_rate = 0.001

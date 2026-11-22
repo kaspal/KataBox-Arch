@@ -1,0 +1,47 @@
+id = "flash-sale"
+number = 5
+title = "Flash Sale"
+title_es = "Venta relámpago"
+summary = "When the sale opens, traffic jumps 25 times. A CDN takes the page views and a deep queue levels the orders."
+summary_es = "Cuando se abre la venta, el tráfico se multiplica por 25. Una CDN se queda con las visitas a la página y una cola profunda nivela los pedidos."
+problem = "flash-sale"
+
+[[step]]
+snapshot = "naive.kbarch"
+title = "Before the sale"
+title_es = "Antes de la venta"
+caption = "People browse the event page and a few buy early. Orders go through a RabbitMQ queue to workers that write to PostgreSQL. p95 is about 18 ms."
+caption_es = "La gente mira la página del evento y unos pocos compran pronto. Los pedidos pasan por una cola de RabbitMQ hacia workers que escriben en PostgreSQL. La p95 ronda los 18 ms."
+focus = ["api", "orders", "workers"]
+run = { test = "normal" }
+callout = { metric = "p95_ms", after = 17.5, target = 100 }
+
+[[step]]
+snapshot = "naive.kbarch"
+title = "The sale opens"
+title_es = "Se abre la venta"
+caption = "At 5 seconds traffic jumps 25 times for 10 seconds. Page views and orders all hit the API, the queue fills to its limit, and about 17% of the run's requests fail."
+caption_es = "A los 5 segundos el tráfico se multiplica por 25 durante 10 segundos. Las visitas y los pedidos llegan todos a la API, la cola se llena hasta su límite y falla cerca del 17 % de las peticiones de la ejecución."
+focus = ["api", "orders"]
+run = { test = "open", start_s = 2 }
+callout = { metric = "error_rate", after = 0.174, target = 0.001 }
+
+[[step]]
+snapshot = "reference.kbarch"
+title = "A CDN and a deep queue"
+title_es = "Una CDN y una cola profunda"
+caption = "CloudFront serves the event page from the edge, so page views hardly ever reach the API. SQS holds every order until the workers get to it. Nothing is dropped; buyers just wait a little for confirmation."
+caption_es = "CloudFront sirve la página del evento desde el borde, así que las visitas casi nunca llegan a la API. SQS guarda cada pedido hasta que los workers lo atienden. No se descarta nada; los compradores solo esperan un poco la confirmación."
+focus = ["cdn", "api", "orders"]
+run = { test = "open", start_s = 2 }
+callout = { metric = "error_rate", before = 0.174, after = 0, target = 0.001 }
+
+[[step]]
+snapshot = "reference.kbarch"
+title = "The payment provider slows down"
+title_es = "El proveedor de pagos se ralentiza"
+caption = "From 10 seconds, every payment takes three seconds longer for half a minute. Workers take longer per order, but the queue keeps the orders safe and no request fails."
+caption_es = "Desde el segundo 10, cada pago tarda tres segundos más durante medio minuto. Los workers tardan más por pedido, pero la cola mantiene los pedidos a salvo y no falla ninguna petición."
+focus = ["workers", "orders"]
+run = { test = "slow-payments", start_s = 8 }
+callout = { metric = "error_rate", after = 0, target = 0.001 }

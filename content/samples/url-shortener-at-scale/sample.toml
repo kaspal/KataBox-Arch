@@ -1,0 +1,57 @@
+id = "url-shortener-at-scale"
+number = 2
+title = "URL Shortener at scale"
+title_es = "Acortador de URLs a escala"
+summary = "A link goes viral and the database melts. A cache, more servers and a replica with failover hold the line."
+summary_es = "Un enlace se hace viral y la base de datos se funde. Una caché, más servidores y una réplica con failover aguantan."
+problem = "url-shortener"
+
+[[step]]
+snapshot = "naive.kbarch"
+title = "Every click hits the database"
+title_es = "Cada clic llega a la base de datos"
+caption = "12,000 requests a second, 95% of them redirects. Four App Servers ask PostgreSQL for every short link. On a normal day that works: p95 is about 29 ms, well under the 80 ms target."
+caption_es = "12 000 peticiones por segundo, el 95 % redirecciones. Cuatro App Servers preguntan a PostgreSQL por cada enlace corto. En un día normal funciona: la p95 ronda los 29 ms, muy por debajo del objetivo de 80 ms."
+focus = ["app", "db"]
+run = { test = "normal" }
+callout = { metric = "p95_ms", after = 28.8, target = 80 }
+
+[[step]]
+snapshot = "naive.kbarch"
+title = "A link goes viral"
+title_es = "Un enlace se hace viral"
+caption = "At 20 seconds traffic quadruples for 15 seconds. Every click still lands on the one database, it saturates, App Server threads pile up behind it, and requests start failing: about 39% of the whole run."
+caption_es = "A los 20 segundos el tráfico se cuadruplica durante 15 segundos. Cada clic sigue cayendo en la única base de datos, que se satura; los hilos de los App Servers se acumulan detrás y las peticiones empiezan a fallar: cerca del 39 % de toda la ejecución."
+focus = ["db"]
+run = { test = "viral", start_s = 16 }
+callout = { metric = "error_rate", after = 0.389, target = 0.001 }
+
+[[step]]
+snapshot = "cache.kbarch"
+title = "Put a cache in front"
+title_es = "Pon una caché delante"
+caption = "A few popular links get most of the clicks, so Redis can answer them from memory and PostgreSQL only sees the misses. Errors fall to about 21%, but four App Servers can't carry four times the traffic."
+caption_es = "Unos pocos enlaces populares se llevan la mayoría de los clics, así que Redis los responde desde memoria y PostgreSQL solo ve los fallos de caché. Los errores bajan a cerca del 21 %, pero cuatro App Servers no pueden con cuatro veces el tráfico."
+focus = ["app", "cache"]
+run = { test = "viral", start_s = 16 }
+callout = { metric = "error_rate", before = 0.389, after = 0.212, target = 0.001 }
+
+[[step]]
+snapshot = "reference.kbarch"
+title = "Enough servers for the spike"
+title_es = "Servidores suficientes para el pico"
+caption = "Eight App Servers share the spike, the cache keeps the reads away from the database, and nothing is dropped. This design also adds a replica, for the next surprise."
+caption_es = "Ocho App Servers se reparten el pico, la caché mantiene las lecturas lejos de la base de datos y no se descarta nada. Este diseño también añade una réplica, para la próxima sorpresa."
+focus = ["app", "cache"]
+run = { test = "viral", start_s = 16 }
+callout = { metric = "error_rate", before = 0.212, after = 0, target = 0.001 }
+
+[[step]]
+snapshot = "reference.kbarch"
+title = "The primary dies"
+title_es = "Se cae la principal"
+caption = "At 30 seconds the PostgreSQL primary dies. Health checks notice within a few seconds, and after its failover time the replica is promoted. Only the requests caught in that window fail: about 1% of the run, inside the 2% this test allows."
+caption_es = "A los 30 segundos se cae la PostgreSQL principal. Las comprobaciones de salud lo detectan en pocos segundos y, pasado su tiempo de failover, la réplica pasa a ser la principal. Solo fallan las peticiones atrapadas en ese intervalo: cerca del 1 % de la ejecución, dentro del 2 % que permite esta prueba."
+focus = ["db", "db-replica"]
+run = { test = "primary-dies", start_s = 26 }
+callout = { metric = "error_rate", after = 0.0105, target = 0.02 }

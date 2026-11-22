@@ -1,0 +1,123 @@
+{
+  "schema_version": 2,
+  "id": "sample-chat-reference",
+  "name": "chat: reference",
+  "problem_id": "chat",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "mobile",
+      "label": "Chat apps",
+      "position": {
+        "x": 130,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_nlb",
+      "label": "",
+      "position": {
+        "x": 130,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "gw-a",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Gateway A",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "gw-b",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Gateway B",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "bus",
+      "kind": "pubsub",
+      "flavour": "redis_pubsub",
+      "label": "Message bus",
+      "position": {
+        "x": 130,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "ws"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "gw-a",
+      "protocol": "ws"
+    },
+    {
+      "id": "e2",
+      "from": "lb",
+      "to": "gw-b",
+      "protocol": "ws"
+    },
+    {
+      "id": "e3",
+      "from": "gw-a",
+      "to": "bus",
+      "protocol": "publish"
+    },
+    {
+      "id": "e4",
+      "from": "gw-b",
+      "to": "bus",
+      "protocol": "publish"
+    },
+    {
+      "id": "e5",
+      "from": "bus",
+      "to": "gw-a",
+      "protocol": "consume"
+    },
+    {
+      "id": "e6",
+      "from": "bus",
+      "to": "gw-b",
+      "protocol": "consume"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

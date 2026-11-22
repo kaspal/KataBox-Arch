@@ -1,0 +1,154 @@
+kind = "search"
+one_liner = "An index built for full-text search, prefixes and ranked results."
+one_liner_es = "Un índice pensado para búsqueda de texto completo, prefijos y resultados ordenados por relevancia."
+
+use_when = [
+  "Users search free text and expect the best matches first",
+  "You need typo tolerance, prefixes, filters or facets",
+  "A database LIKE query is too slow or too crude",
+  "Logs or events must be searched across many fields",
+]
+use_when_es = [
+  "Los usuarios buscan texto libre y esperan ver primero las mejores coincidencias",
+  "Necesitas tolerancia a erratas, prefijos, filtros o facetas",
+  "Una consulta LIKE en la base de datos es demasiado lenta o tosca",
+  "Hay que buscar logs o eventos por muchos campos",
+]
+skip_when = [
+  "Lookups are always by an exact key",
+  "The index would be the only copy of the data",
+  "Results must reflect every write the instant it happens",
+]
+skip_when_es = [
+  "Las búsquedas son siempre por una clave exacta",
+  "El índice sería la única copia de los datos",
+  "Los resultados deben reflejar cada escritura en el mismo instante",
+]
+
+formula = "capacity ≈ shards × search threads per shard ÷ service time; each key always lands on the same shard, so a hot query loads one shard"
+formula_es = "capacidad ≈ particiones × hilos de búsqueda por partición ÷ tiempo de servicio; cada clave cae siempre en la misma partición, así que una consulta caliente carga una sola partición"
+
+gains = [
+  "Relevance ranking, prefixes and fuzzy matching out of the box",
+  "Fast queries over large amounts of text",
+  "Read capacity grows with shards and replicas",
+]
+gains_es = [
+  "Ordenación por relevancia, prefijos y coincidencias aproximadas de serie",
+  "Consultas rápidas sobre grandes cantidades de texto",
+  "La capacidad de lectura crece con particiones y réplicas",
+]
+costs = [
+  "A second copy of the data to keep in sync with the source",
+  "New writes show up after a short refresh, not instantly",
+  "Heavy on memory and disk, and tricky to tune",
+]
+costs_es = [
+  "Una segunda copia de los datos que mantener sincronizada con el origen",
+  "Las escrituras nuevas aparecen tras un breve refresco, no al instante",
+  "Exige mucha memoria y disco, y es delicado de ajustar",
+]
+
+works_with = ["cache", "app", "sql", "stream", "worker"]
+practice = ["typeahead"]
+
+interview_tip = "Say how data gets from the source of truth into the index, how stale it may be, and what absorbs the hottest queries."
+interview_tip_es = "Di cómo llegan los datos desde la fuente de verdad al índice, cuánto pueden estar desfasados y qué absorbe las consultas más calientes."
+
+[[sim]]
+prop = "shards"
+note = "Independent slices of the index, each with its own search threads. More shards spread different keys, but never split one hot key."
+note_es = "Trozos independientes del índice, cada uno con sus propios hilos de búsqueda. Más particiones reparten claves distintas, pero nunca dividen una clave caliente."
+
+[[sim]]
+sim = "servers_per_instance"
+note = "Search threads per shard: queries one shard runs at once."
+note_es = "Hilos de búsqueda por partición: consultas que una partición ejecuta a la vez."
+
+[[sim]]
+prop = "service_ms"
+note = "The median time of a simple query on a warm shard."
+note_es = "La mediana de una consulta sencilla en una partición caliente."
+
+[[sim]]
+sim = "queue_per_server"
+note = "Waiting room per search thread. When it is full, new queries are rejected."
+note_es = "Sala de espera por hilo de búsqueda. Cuando se llena, las consultas nuevas se rechazan."
+
+[[sim]]
+sim = "failover_s"
+note = "With a replica card wired by Replicate, how long until it takes over from a dead primary."
+note_es = "Con una tarjeta réplica unida por Replicate, cuánto tarda en sustituir a una principal caída."
+
+[[sim]]
+cost = "per_instance_month"
+note = "A fixed monthly price per card. Each replica card adds the same price."
+note_es = "Un precio mensual fijo por tarjeta. Cada tarjeta réplica suma el mismo precio."
+
+[flavours_compared]
+flavours = ["elasticsearch", "opensearch"]
+
+[[flavours_compared.rows]]
+label = "Origin"
+label_es = "Origen"
+cells = ["Built by Elastic", "A fork of Elasticsearch, now under the Linux Foundation"]
+cells_es = ["Creado por Elastic", "Un fork de Elasticsearch, ahora bajo la Linux Foundation"]
+
+[[flavours_compared.rows]]
+label = "Licence"
+label_es = "Licencia"
+cells = ["Elastic's licences, with an AGPL option", "Apache 2.0"]
+cells_es = ["Licencias de Elastic, con opción AGPL", "Apache 2.0"]
+
+[[flavours_compared.rows]]
+label = "Managed service"
+label_es = "Servicio gestionado"
+cells = ["Elastic Cloud", "Amazon OpenSearch Service"]
+cells_es = ["Elastic Cloud", "Amazon OpenSearch Service"]
+
+[[flavours_compared.rows]]
+label = "Engine"
+label_es = "Motor"
+cells = ["Apache Lucene", "Apache Lucene"]
+cells_es = ["Apache Lucene", "Apache Lucene"]
+
+[[flavours_compared.rows]]
+label = "Pick it for"
+label_es = "Elígelo para"
+cells = ["The Elastic stack and its newest features", "AWS-hosted search with an open licence"]
+cells_es = ["La pila de Elastic y sus funciones más nuevas", "Búsqueda alojada en AWS con licencia abierta"]
+
+[[pitfalls]]
+title = "A hot shard"
+title_es = "Una partición caliente"
+body = "A few popular queries all land on the same shard. It saturates while the others idle, and adding shards spreads other keys but not the hot one."
+body_es = "Unas pocas consultas populares caen todas en la misma partición. Se satura mientras las demás están ociosas, y añadir particiones reparte otras claves pero no la caliente."
+fix = "Put a cache in front for the popular queries, so the index only sees the rare ones."
+fix_es = "Pon una caché delante para las consultas populares, así el índice solo ve las raras."
+seen_in = "typeahead"
+
+[[pitfalls]]
+title = "The index as the source of truth"
+title_es = "El índice como fuente de verdad"
+body = "Data written only to the search index is hard to rebuild after a bad mapping change or a lost cluster."
+body_es = "Los datos escritos solo en el índice de búsqueda son difíciles de reconstruir tras un cambio de mapeo erróneo o la pérdida del clúster."
+fix = "Keep the primary copy in a database and feed the index from it, so you can always reindex."
+fix_es = "Guarda la copia principal en una base de datos y alimenta el índice desde ella, para poder reindexar siempre."
+
+[[pitfalls]]
+title = "Every keystroke hits the index"
+title_es = "Cada pulsación llega al índice"
+body = "Search-as-you-type sends a query per key press. A slow spell in the index, such as a rebuild, then slows every request."
+body_es = "La búsqueda mientras escribes manda una consulta por cada tecla. Un momento lento del índice, como una reconstrucción, ralentiza entonces todas las peticiones."
+fix = "Cache popular prefixes, debounce input on the client, and keep the index off the hot path where you can."
+fix_es = "Cachea los prefijos populares, espera a que el usuario deje de teclear en el cliente, y saca el índice del camino caliente cuando puedas."
+
+[[sources]]
+flavour = "elasticsearch"
+title = "Elasticsearch documentation"
+url = "https://www.elastic.co/docs/"
+
+[[sources]]
+flavour = "opensearch"
+title = "OpenSearch documentation"
+url = "https://docs.opensearch.org/latest/"

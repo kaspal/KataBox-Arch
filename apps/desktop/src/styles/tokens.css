@@ -62,6 +62,13 @@
 
   /* Canvas extras */
   --edge-line: #5d635b;
+  /* Live packets, one colour per request type (marks on the canvas: >= 3:1). */
+  --req-1: #2f6fb5;
+  --req-2: #b2541a;
+  --req-3: #7a4fb0;
+  --req-4: #1f7a72;
+  --req-5: #b0306f;
+  --req-6: #6b6b12;
   --note: #f1e6bd;
   --note-foreground: #26302b;
   --note-border: #d8c78a;
@@ -122,6 +129,12 @@
   --cat-ops-glyph: #ece6d8;
 
   --edge-line: #a4a9a5;
+  --req-1: #7fb2ec;
+  --req-2: #f0a06a;
+  --req-3: #c3a3f0;
+  --req-4: #6fd0c4;
+  --req-5: #f08bbf;
+  --req-6: #cfcf6a;
   --note: #3a3626;
   --note-foreground: #ece6d8;
   --note-border: #5e5638;

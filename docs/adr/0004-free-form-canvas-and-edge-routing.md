@@ -38,3 +38,17 @@ The approved mockups show cards placed anywhere, joined by smooth curves that fo
 ## Consequences
 
 Edge geometry has one implementation, shared by the editor now and the packet animation later. Changing a wiring rule is a data edit in Rust, a reviewed snapshot update (`KA_UPDATE_SNAPSHOTS=1`) and a fixture regeneration. The UI follows automatically.
+
+## Update (M1.0, 2026-11-22)
+
+- **Edge slots (F1).** When several edge ends share a side of a card, they spread along it:
+  `assignSlots` (`solve/geometry/slots.ts`) groups ends by (card, side), orders them by the far
+  end's centre along that side (so neighbours don't cross), and places slot *i* of *n* at
+  `0.15 + 0.7 × (i + 0.5) / n` of the side; a single end stays at the midpoint.
+  `routeEdge(a, b, slots)` takes them, and M1's packet layer uses the same slots.
+- **Autoscaling wrapper (F2).** The `scale_control` rule is gone; Autoscaling is a frame, not a
+  card (ADR 0003, version 2).
+- **Zoom (F5).** New designs open at 100%; "Fit the design" never zooms out past 80%.
+- **Mounting (F6).** React Flow mounts once its panel has a size, and measured sizes re-render the
+  canvas only when they change (a fresh map per report fed React Flow's ResizeObserver back into
+  itself, 60 times a second, whenever zones or notes were on screen).

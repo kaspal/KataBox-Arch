@@ -1,0 +1,54 @@
+id = "rate-limiter"
+number = 3
+set = 1
+difficulty = "easy"
+title = "Rate Limiter"
+title_es = "Limitador de tasa"
+teaches = "Per-key token buckets: stop abuse without blocking real users"
+teaches_es = "Cubetas de tokens por clave: frenar el abuso sin bloquear a usuarios reales"
+tags = ["rate-limiting", "abuse", "api"]
+
+[nfr]
+peak_rps = 3000
+p95_ms = 100
+availability = 0.999
+budget_usd = 1500
+
+[[request_types]]
+id = "api"
+name = "API call"
+name_es = "Llamada a la API"
+share = 0.99
+route = ["edge", "compute", "datastore"]
+api_keys = 50
+
+[[request_types]]
+id = "abuse"
+name = "Calls from one misbehaving key"
+name_es = "Llamadas de una clave abusiva"
+share = 0.01
+route = ["edge", "compute", "datastore"]
+api_keys = 1
+abusive = true
+
+[[tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "abuse"
+name = "One key floods the API"
+name_es = "Una clave inunda la API"
+hidden = true
+type_multipliers = { abuse = 300 }
+
+[[tests]]
+id = "launch"
+name = "Every customer's launch day (×2 for 15 s)"
+name_es = "Día de lanzamiento de todos los clientes (×2 durante 15 s)"
+hidden = true
+traffic = { spike = { at = 20, x = 2, for = 15 } }
+
+[pass]
+error_rate = 0.001

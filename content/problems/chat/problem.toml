@@ -1,0 +1,46 @@
+id = "chat"
+number = 7
+set = 1
+difficulty = "medium"
+title = "Chat"
+title_es = "Chat"
+teaches = "WebSocket gateways behind a load balancer, joined by pub/sub"
+teaches_es = "Gateways de WebSocket tras un balanceador, unidos por pub/sub"
+tags = ["websockets", "pub-sub", "availability"]
+
+[nfr]
+peak_rps = 4000
+p95_ms = 150
+availability = 0.999
+budget_usd = 12000
+
+[[request_types]]
+id = "message"
+name = "Send a message"
+name_es = "Enviar un mensaje"
+share = 1.0
+route = ["edge:ws", "compute", "broker", "compute"]
+measure = "completion"
+
+[[tests]]
+id = "normal"
+name = "Normal evening"
+name_es = "Una tarde normal"
+
+[[tests]]
+id = "gateway-dies"
+name = "A gateway dies"
+name_es = "Se cae un gateway"
+hidden = true
+chaos = [{ kill = { kind = "app", at = 20 } }]
+pass = { error_rate = 0.02, availability = 0.98, p95_ms = 2000 }
+
+[[tests]]
+id = "evening-peak"
+name = "Evening peak"
+name_es = "Pico de la noche"
+hidden = true
+traffic = { spike = { at = 15, x = 3, for = 25 } }
+
+[pass]
+error_rate = 0.001

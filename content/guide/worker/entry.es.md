@@ -1,0 +1,5 @@
+Un **worker** es un proceso en segundo plano que toma trabajos de una cola o de un stream y los ejecuta, fuera de la petición del usuario. La capa web deja el trabajo en la cola, responde "aceptado" al momento, y el worker hace la parte lenta más tarde: transcodificar un vídeo, enviar un correo, corregir un envío.
+
+Así se separan dos tipos de carga. El camino de la petición sigue siendo rápido y barato, y el trabajo lento tiene su propio grupo, que dimensionas por rendimiento y no por tiempo de respuesta. Durante un pico, la cola guarda los trabajos de más y los workers se ponen al día después, así que un minuto de mucha carga significa resultados tardíos en lugar de errores.
+
+En el simulador, una tarjeta Worker es el consumidor en el enlace Consume de un broker. Cada instancia ejecuta un número fijo de trabajos a la vez, cualquier hueco libre toma el siguiente mensaje, y un trabajo conserva su hueco hasta que responden las llamadas que hace. Cuando los trabajos llegan más rápido de lo que el grupo puede ejecutarlos, lo acumulado espera en la cola.

@@ -12,6 +12,9 @@ serde.workspace = true
 serde_json.workspace = true
 specta = { workspace = true, optional = true }
 
+[dev-dependencies]
+toml.workspace = true
+
 [features]
 # TypeScript bindings for the desktop app (tauri-specta).
 specta = ["dep:specta"]

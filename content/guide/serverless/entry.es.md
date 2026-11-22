@@ -1,0 +1,5 @@
+El cómputo **serverless** ejecuta tu código solo cuando llega una petición o un evento. Subes una función o un contenedor, y el proveedor arranca instancias a medida que crece el tráfico y las quita cuando para. Nunca dimensionas una flota, y pagas por las peticiones que sirves en lugar de por máquinas encendidas.
+
+El problema es el arranque. Cuando una petición necesita una instancia que aún no está en marcha, espera a que arranque: un **arranque en frío**, de una fracción de segundo a unos pocos segundos. También hay un techo de peticiones que pueden ejecutarse a la vez. Por encima, el proveedor rechaza las peticiones nuevas en lugar de ponerlas en cola.
+
+En el simulador, una tarjeta Serverless no tiene instancias que configurar. Su capacidad es el límite de concurrencia, y cada petición conserva su hueco hasta que responden sus propias llamadas. Una petición que lleva la concurrencia a un máximo nuevo en la ejecución paga el arranque en frío; después, las instancias siguen calientes. Las peticiones por encima del límite se rechazan casi al momento, y la tarjeta se cobra solo por petición.

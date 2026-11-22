@@ -1,0 +1,119 @@
+{
+  "schema_version": 2,
+  "id": "pattern-cqrs",
+  "name": "CQRS",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "write-api",
+      "kind": "app",
+      "flavour": "nodejs",
+      "label": "Commands",
+      "position": {
+        "x": 130,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "read-api",
+      "kind": "app",
+      "flavour": "nodejs",
+      "label": "Queries",
+      "position": {
+        "x": 390,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "write-db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Write model",
+      "position": {
+        "x": 0,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "events",
+      "kind": "stream",
+      "flavour": "kafka",
+      "label": "Events",
+      "position": {
+        "x": 260,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "read-db",
+      "kind": "nosql",
+      "flavour": "dynamodb",
+      "label": "Read model",
+      "position": {
+        "x": 520,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "projector",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Projector",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "write-api",
+      "to": "write-db",
+      "protocol": "query"
+    },
+    {
+      "id": "e1",
+      "from": "write-api",
+      "to": "events",
+      "protocol": "publish"
+    },
+    {
+      "id": "e2",
+      "from": "events",
+      "to": "projector",
+      "protocol": "consume"
+    },
+    {
+      "id": "e3",
+      "from": "projector",
+      "to": "read-db",
+      "protocol": "query"
+    },
+    {
+      "id": "e4",
+      "from": "read-api",
+      "to": "read-db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

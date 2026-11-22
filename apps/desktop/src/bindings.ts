@@ -110,6 +110,229 @@ async validateDesign(design: Design) : Promise<Result<DesignIssue[], AppError>> 
     else return { status: "error", error: e  as any };
 }
 },
+async startRun(request: StartRun) : Promise<Result<RunInfo, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("start_run", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async controlRun(runId: number, control: RunControl) : Promise<Result<null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("control_run", { runId, control }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async runResult(runId: number) : Promise<Result<RunResult | null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("run_result", { runId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * How much traffic the design holds before it fails, and what fails first (a few seconds of
+ * simulation, off the async runtime).
+ */
+async findBreakingPoint(design: Design) : Promise<Result<BreakingPoint, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("find_breaking_point", { design }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async listProblems() : Promise<Result<ProblemSummary[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_problems") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * A problem's brief: hidden tests by name only, hints up to the unlocked tier.
+ */
+async problemBrief(id: string) : Promise<Result<ProblemBrief, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("problem_brief", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async unlockHint(id: string, tier: number) : Promise<Result<null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("unlock_hint", { id, tier }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async saveDraft(id: string, design: Design) : Promise<Result<null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("save_draft", { id, design }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Judge the design on every test of the problem (off the async runtime), then record it.
+ * `local_day` is the user's date (`YYYY-MM-DD`), for the streak.
+ */
+async submitDesign(id: string, design: Design, localDay: string) : Promise<Result<SubmitResult, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("submit_design", { id, design, localDay }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async submissions(id: string) : Promise<Result<SubmissionSummary[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("submissions", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Solved and attempted per difficulty, the streak (from the user's `today`) and what next.
+ */
+async progress(today: string) : Promise<Result<Progress, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("progress", { today }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * The sample gallery, in order (each with its first step's design for the preview).
+ */
+async listSamples() : Promise<Result<SampleSummary[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_samples") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * One sample for the walkthrough player: its steps and design snapshots.
+ */
+async sample(id: string) : Promise<Result<Sample, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("sample", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * The "Which one do I need?" decision guides, in order.
+ */
+async decideFlows() : Promise<Result<DecideFlow[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("decide_flows") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * The glossary.
+ */
+async glossary() : Promise<Result<GlossaryTerm[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("glossary") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * The pattern library, in order (each with its template for the preview).
+ */
+async listPatterns() : Promise<Result<PatternSummary[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_patterns") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * One pattern: its page and template.
+ */
+async pattern(id: string) : Promise<Result<PatternPage, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("pattern", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Mark a pattern read (or unread).
+ */
+async setPatternRead(id: string, read: boolean) : Promise<Result<null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_pattern_read", { id, read }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * The Component Guide index: every entry's one-liner and read mark.
+ */
+async listGuide() : Promise<Result<GuideSummary[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_guide") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * A component kind's concept card (null until it has one).
+ */
+async concept(kind: ComponentKind) : Promise<Result<Sample | null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("concept", { kind }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * One Guide entry.
+ */
+async guidePage(kind: ComponentKind) : Promise<Result<GuidePage, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("guide_page", { kind }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Mark a Guide entry read (or unread).
+ */
+async setGuideRead(kind: ComponentKind, read: boolean) : Promise<Result<null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_guide_read", { kind, read }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 /**
  * The window title (the webview has no `setTitle` permission).
  */
@@ -208,8 +431,106 @@ export type AppErrorCode =
 /**
  * Anything else, including the app failing to start.
  */
-"internal"
+"internal" | 
+/**
+ * A request can't get through the design (no path from a client to a service).
+ */
+"no_path" | 
+/**
+ * The bundled problem catalogue (content.db) is missing or unreadable.
+ */
+"content_missing"
 export type AppInfo = { version: string; dev_data: boolean }
+export type Bottleneck = { node: string; kind: ComponentKind; from_s: number; utilisation: number; reason: BottleneckReason }
+/**
+ * Why the bottleneck card is the bottleneck.
+ */
+export type BottleneckReason = 
+/**
+ * Every server busy and its queue growing.
+ */
+"saturated" | 
+/**
+ * Its queue full: it dropped requests.
+ */
+"queue_overflow" | 
+/**
+ * It was down (chaos) while requests needed it.
+ */
+"down"
+export type BreakingPoint = { 
+/**
+ * Real requests per second the design holds (the last passing window), and its multiple
+ * of the scenario's own rate.
+ */
+limit_rps: number; multiplier: number; 
+/**
+ * The scenario's own rate (multiplier 1).
+ */
+base_rps: number; 
+/**
+ * It never failed up to the search's ceiling: the limit is at least this.
+ */
+beyond_ceiling: boolean; 
+/**
+ * The first card to give way in the first failing window, if one did (a design can
+ * also fail on latency alone).
+ */
+first_failure: FirstFailure | null; 
+/**
+ * What failed in that window.
+ */
+failing_p95_ms: number; failing_error_rate: number; 
+/**
+ * Stale reads over reads in the last passing window (replica lag, cache-aside).
+ */
+stale_rate: number; 
+/**
+ * Windows simulated.
+ */
+runs: number }
+/**
+ * Where a calibrated default comes from (ADR 0005).
+ */
+export type CalibrationRef = { 
+/**
+ * The row id in `docs/calibration.md`, e.g. `sql.service_ms`.
+ */
+id: string; status: CalibrationStatus }
+export type CalibrationStatus = 
+/**
+ * The figure is taken from the cited source.
+ */
+"cited" | 
+/**
+ * A conservative ballpark; its source still has to be confirmed.
+ */
+"needed"
+/**
+ * "p95 latency: ~~400 ms~~ 18 ms". `before` is this run on the previous step's design;
+ * `after` is this step's. `validate --run` checks both against the simulator.
+ */
+export type Callout = { metric: CalloutMetric; before?: number | null; after: number; 
+/**
+ * The target to show under the number (the problem's p95, say).
+ */
+target?: number | null }
+/**
+ * The number a callout shows. Each is measured over the whole run, like a test result.
+ */
+export type CalloutMetric = "p95_ms" | 
+/**
+ * 0–1.
+ */
+"error_rate" | "throughput_rps" | "cost_month" | 
+/**
+ * Async messages that failed every retry with no dead-letter queue (weighted count).
+ */
+"lost"
+/**
+ * Where the camera looks: a point in flow coordinates, centred in the view, and a zoom.
+ */
+export type Camera = { x: number; y: number; zoom: number }
 /**
  * The five library categories, each with its colour token (`--cat-<id>`).
  */
@@ -235,9 +556,66 @@ export type Category =
  */
 "ops"
 /**
+ * Something going wrong at time `at` (seconds), optionally for `for` seconds.
+ */
+export type ChaosEvent = 
+/**
+ * The card stops answering (a crashed node, a lost cache).
+ */
+{ kill: { target: Selector; at: number; for?: number | null } } | 
+/**
+ * Every request through the card takes `add_ms` longer.
+ */
+{ latency: { target: Selector; add_ms: number; at: number; for?: number | null } } | 
+/**
+ * The zone (Region or AZ label or id) is cut off from the rest.
+ */
+{ partition: { zone: string; at: number; for?: number | null } } | 
+/**
+ * Traffic multiplied by `x`.
+ */
+{ traffic: { x: number; at: number; for?: number | null } } | 
+/**
+ * A cache or CDN is emptied (a restart, a purge).
+ */
+{ flush: { target: Selector; at: number } } | 
+/**
+ * An external provider goes down, or slows by `add_ms`.
+ */
+{ external: { name: string; at: number; for?: number | null; down?: boolean; add_ms?: number } }
+export type CompareRow = { label: string; label_es: string; 
+/**
+ * One cell per compared flavour, in `flavours_compared.flavours` order.
+ */
+cells: string[]; cells_es: string[] }
+/**
  * The 25 component kinds. Ids match the icon ids (`icons.json`).
  */
 export type ComponentKind = "client" | "dns" | "cdn" | "waf" | "lb" | "gateway" | "ratelimit" | "app" | "micro" | "worker" | "serverless" | "autoscale" | "sql" | "nosql" | "cache" | "object" | "search" | "queue" | "stream" | "pubsub" | "dlq" | "scheduler" | "metrics" | "logs" | "tracing"
+/**
+ * A flavour's monthly price: per instance (or per card), per GB of cache memory, and per
+ * million requests through it. Teaching figures, loosely shaped like public list prices
+ * (ADR 0006); the judge compares designs with each other, never with a real bill.
+ */
+export type Cost = { per_instance_month: number; per_gb_month: number; per_million: number }
+export type DecideFlow = { id: string; number: number; title: string; title_es: string; intro: string; intro_es: string; 
+/**
+ * The first question's id.
+ */
+start: string; 
+/**
+ * `[[question]]` tables in the TOML.
+ */
+questions: DecideQuestion[] }
+/**
+ * One answer: it leads to another question, or ends at a component kind.
+ */
+export type DecideOption = { label: string; label_es: string; next?: string | null; result?: ComponentKind | null; 
+/**
+ * Why this answer leads there (shown with a result).
+ */
+why: string; why_es: string }
+export type DecideQuestion = { id: string; text: string; text_es: string; options: DecideOption[] }
 export type Design = { schema_version: number; id: string; name: string; 
 /**
  * The problem this design solves; `None` in the Sandbox.
@@ -252,7 +630,27 @@ export type DesignIssue = { code: IssueCode;
  * The ids involved (cards, edges, zones, notes), or the prop key.
  */
 ids: string[] }
+export type Difficulty = "easy" | "medium" | "hard"
+export type DifficultyCount = { total: number; attempted: number; solved: number }
 export type Edge = { id: string; from: string; to: string; protocol: Protocol }
+export type ExternalBrief = { name: string; median_ms: number; p99_ms: number; rate_limit: number | null }
+/**
+ * Why the first card failed.
+ */
+export type FailureReason = 
+/**
+ * Every server busy.
+ */
+"saturated" | 
+/**
+ * Its queue filled and it dropped requests.
+ */
+"queue_overflow"
+export type FirstFailure = { node: string; reason: FailureReason; 
+/**
+ * Seconds into the first failing window.
+ */
+at_s: number; utilisation: number }
 /**
  * Real-product flavours. A flavour belongs to one kind (`Generic` is shared by kinds with
  * no product choice yet). Vendor names belong to their owners; no logos are used.
@@ -261,16 +659,59 @@ export type Flavour = "generic" | "web" | "mobile" | "route53" | "cloudflare_dns
 /**
  * A flavour of a kind, with the props it changes from the kind's defaults.
  */
-export type FlavourSpec = { flavour: Flavour; overrides: PropOverride[] }
+export type FlavourSpec = { flavour: Flavour; overrides: PropOverride[]; 
+/**
+ * The monthly price model (a teaching model, consistent across flavours; not a quote).
+ */
+cost: Cost; 
+/**
+ * Behaviour without a prop; None for kinds never on a request's path.
+ */
+sim: SimDefaults | null }
+export type FlavoursCompared = { flavours: Flavour[]; rows: CompareRow[] }
+export type GlossaryTerm = { id: string; term: string; term_es: string; definition: string; definition_es: string; 
+/**
+ * A Guide entry that explains it further.
+ */
+see?: ComponentKind | null }
 /**
  * A Region or AZ frame. Membership is by `Node::group_id` / `Group::parent_id`.
  */
 export type Group = { id: string; kind: GroupKind; label: string; position: Point; size: Size; 
 /**
- * An AZ's region, if it sits inside one.
+ * The zone this one sits in: an AZ's region, an autoscaling group's AZ or region.
  */
-parent_id: string | null }
-export type GroupKind = "region" | "az"
+parent_id: string | null; 
+/**
+ * The scaling policy of an Autoscale wrapper (and only of one).
+ */
+scaling?: Scaling | null }
+export type GroupKind = "region" | "az" | 
+/**
+ * An autoscaling group wrapped around compute cards (v2).
+ */
+"autoscale"
+export type GuideEntry = { kind: ComponentKind; 
+/**
+ * "A fast, in-memory copy of the data you read most."
+ */
+one_liner: string; one_liner_es: string; use_when: string[]; use_when_es: string[]; skip_when: string[]; skip_when_es: string[]; sim: SimRow[]; 
+/**
+ * The model in one line ("hit rate ≈ share of reads whose key is in the hot set").
+ */
+formula: string; formula_es: string; flavours_compared?: FlavoursCompared | null; pitfalls: Pitfall[]; gains: string[]; gains_es: string[]; costs: string[]; costs_es: string[]; works_with: ComponentKind[]; 
+/**
+ * Problem ids where this kind is a key move.
+ */
+practice?: string[]; interview_tip: string; interview_tip_es: string; sources: Source[] }
+/**
+ * A whole entry: the structured fields, the prose in both languages and the read mark.
+ */
+export type GuidePage = { entry: GuideEntry; md_en: string; md_es: string; read: boolean }
+/**
+ * An index card: the one-line definition and whether it was read.
+ */
+export type GuideSummary = { kind: ComponentKind; one_liner: string; one_liner_es: string; read: boolean }
 export type IssueCode = 
 /**
  * An id is empty, too long, or uses characters outside `[A-Za-z0-9_-]`.
@@ -303,8 +744,29 @@ export type IssueCode =
 /**
  * A coordinate, size or zoom is NaN, infinite, or not positive where it must be.
  */
-"bad_number" | "too_many_items"
+"bad_number" | "too_many_items" | 
+/**
+ * An Autoscale wrapper without a valid scaling policy, or a policy on another zone.
+ */
+"bad_scaling" | 
+/**
+ * A wrapper kind (Autoscaling) placed as a card.
+ */
+"wrapper_as_card"
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
+export type Judgement = { problem_id: string; 
+/**
+ * Accepted when every test is; otherwise the most severe failing verdict.
+ */
+verdict: Verdict; 
+/**
+ * Why the design is invalid (only for Invalid Design).
+ */
+lint: string[]; tests: TestResult[]; score: Score; 
+/**
+ * The design's monthly cost on the first test, and the reference's.
+ */
+cost_month: number; ref_cost: number }
 /**
  * A set of kinds: any kind in `categories` or `kinds`, minus `except`.
  */
@@ -317,7 +779,11 @@ icon: string;
 /**
  * CSS colour token of the category, e.g. `cat-edge`.
  */
-color_token: string; flavours: FlavourSpec[]; default_flavour: Flavour; props: PropSpec[] }
+color_token: string; flavours: FlavourSpec[]; default_flavour: Flavour; props: PropSpec[]; 
+/**
+ * How the kind sits on the canvas: a card, or a wrapper around cards (Autoscaling).
+ */
+placement: Placement }
 /**
  * Size caps for a design. Sent to the UI with the registry.
  */
@@ -336,6 +802,26 @@ max_note: number }
 export type MetaKind = "region" | "az" | "note"
 export type MetaSpec = { kind: MetaKind; icon: string }
 /**
+ * The non-functional requirements shown in the brief.
+ */
+export type Nfr = { 
+/**
+ * Requests per second at a traffic multiplier of 1.
+ */
+peak_rps: number; 
+/**
+ * Share of reads, for the brief (the request types define the real mix).
+ */
+read_ratio?: number | null; p95_ms: number; 
+/**
+ * 0–1, e.g. 0.999.
+ */
+availability: number; 
+/**
+ * Monthly budget in teaching dollars (ADR 0006).
+ */
+budget_usd: number }
+/**
  * A component card. `position` is the card's top-left corner in canvas coordinates,
  * always absolute (never relative to its zone).
  */
@@ -348,6 +834,19 @@ props: Partial<{ [key in string]: PropValue }>;
  * The innermost zone holding the card, if any.
  */
 group_id: string | null }
+export type NodeResult = { id: string; kind: ComponentKind; 
+/**
+ * Busy time over capacity, 0..=1, over the whole run.
+ */
+utilisation: number; max_queue: number; drops: number; served: number; cost_month: number; 
+/**
+ * Per second: utilisation, queue length (max in the second), drops.
+ */
+util_series: number[]; queue_series: number[]; drop_series: number[]; 
+/**
+ * Seconds (indices) in which the card was down (chaos); omitted when never down.
+ */
+down_seconds: number[] }
 /**
  * A sticky note (hand-written font on the canvas).
  */
@@ -356,9 +855,91 @@ export type Note = { id: string; text: string; position: Point; size: Size }
  * A design read from disk, with the path it came from.
  */
 export type OpenedDesign = { path: string; design: Design }
+/**
+ * What a passing run needs. Unset limits aren't checked.
+ */
+export type PassCriteria = { p95_ms?: number | null; error_rate?: number | null; availability?: number | null; stale_rate?: number | null; 
+/**
+ * Messages that may be lost (usually 0).
+ */
+lost?: number | null }
+export type PatternEntry = { id: string; 
+/**
+ * Library order.
+ */
+number: number; title: string; title_es: string; one_liner: string; one_liner_es: string; 
+/**
+ * The problem it solves, in a sentence or two.
+ */
+problem: string; problem_es: string; use_when: string[]; use_when_es: string[]; gains: string[]; gains_es: string[]; costs: string[]; costs_es: string[]; 
+/**
+ * The kinds that make it up (all of them are in the template).
+ */
+kinds: ComponentKind[]; 
+/**
+ * Problem ids where it is the key move.
+ */
+practice?: string[]; 
+/**
+ * How much of it the simulator shows ("Fully", "Partly: …"): honest about what is modelled.
+ */
+in_simulator: string; in_simulator_es: string }
+export type PatternPage = { entry: PatternEntry; md_en: string; md_es: string; template: Design; read: boolean }
+export type PatternSummary = { id: string; number: number; title: string; title_es: string; one_liner: string; one_liner_es: string; kinds: ComponentKind[]; template: Design; read: boolean }
+export type Percentiles = { p50_ms: number; p95_ms: number; p99_ms: number }
+export type Pitfall = { title: string; title_es: string; body: string; body_es: string; fix: string; fix_es: string; 
+/**
+ * A problem id where a test shows it, if any.
+ */
+seen_in?: string | null }
+/**
+ * How a kind is placed on the canvas.
+ */
+export type Placement = 
+/**
+ * An index card wired with edges.
+ */
+"card" | 
+/**
+ * A resizable frame around compute cards, holding a policy (an autoscaling group).
+ */
+"wrapper"
 export type Point = { x: number; y: number }
+/**
+ * What the Solve page shows. Hidden tests come with their names only; hints only up to the
+ * unlocked tier; the editorial and the reference only once solved.
+ */
+export type ProblemBrief = { summary: ProblemSummary; nfr: Nfr; statement_en: string; statement_es: string; request_types: RequestTypeBrief[]; externals: ExternalBrief[]; tests: TestBrief[]; 
+/**
+ * Unlocked tiers (0–3) and their text.
+ */
+hints_unlocked: number; hints_en: string[]; hints_es: string[]; solved: boolean; editorial_en: string | null; editorial_es: string | null; reference: Design | null; 
+/**
+ * The reference's monthly cost and first-test p95, once solved (the cost vs speed chart).
+ */
+reference_point: ReferencePoint | null; draft: Design | null; runs: number }
+export type ProblemSummary = { id: string; number: number; set: number; difficulty: Difficulty; title_en: string; title_es: string; teaches_en: string; teaches_es: string; tags: string[]; 
+/**
+ * None until a submission; then "attempted" or "solved".
+ */
+status: string | null; best_score: number | null; 
+/**
+ * The cheapest Accepted submission's monthly cost.
+ */
+best_cost: number | null }
+export type ProblemTest = { problem_id: string; test_id: string }
+export type Progress = { easy: DifficultyCount; medium: DifficultyCount; hard: DifficultyCount; streak: number; 
+/**
+ * The next unsolved problem in catalogue order, and the most recently attempted one.
+ */
+recommended: string | null; continue_with: string | null }
 export type PropOverride = { key: string; value: PropValue }
-export type PropSpec = { key: string; ty: PropType; default: PropValue; unit: Unit }
+export type PropSpec = { key: string; ty: PropType; default: PropValue; unit: Unit; 
+/**
+ * Set when the default is a calibrated figure (a row in `docs/calibration.md`); None
+ * for design choices.
+ */
+calibration?: CalibrationRef | null }
 /**
  * A prop's type and allowed range.
  */
@@ -385,15 +966,283 @@ export type Protocol = "http" | "grpc" | "ws" | "query" | "publish" | "consume" 
  * A recent file, and whether it is still on disk.
  */
 export type RecentEntry = { path: string; name: string; opened_at: number; exists: boolean }
+export type ReferencePoint = { cost_usd: number; p95_ms: number }
 /**
  * Everything the editor needs to know about components, sent to the UI once.
  */
 export type Registry = { categories: Category[]; kinds: KindSpec[]; meta: MetaSpec[]; wiring: WiringTable; limits: Limits }
+export type RequestTypeBrief = { id: string; name: string | null; name_es: string | null; share: number }
+export type Role = "primary" | "replica" | "any"
+/**
+ * A control sent to the live run.
+ */
+export type RunControl = "pause" | "resume" | 
+/**
+ * Jump to this simulated second (playback pauses there).
+ */
+{ seek: number } | 
+/**
+ * 0.25, 0.5, 1, 2, 4 or 8.
+ */
+{ speed: number } | "stop"
+/**
+ * What the UI needs to read a run's frames: node and edge indices map to these ids.
+ */
+export type RunInfo = { run_id: number; duration_s: number; 
+/**
+ * The share of requests simulated (1 = all).
+ */
+sample_factor: number; 
+/**
+ * Card ids by frame node index.
+ */
+nodes: string[]; 
+/**
+ * Connection ids by frame edge index.
+ */
+edges: string[]; 
+/**
+ * Request type ids by frame type index.
+ */
+request_types: string[]; 
+/**
+ * The run's chaos (the preset's and any injected), for the timeline's markers.
+ */
+chaos: ChaosEvent[]; 
+/**
+ * Where playback starts (an injection resumes from the moment it was made).
+ */
+start_s: number }
+export type RunResult = { seed: number; duration_s: number; 
+/**
+ * The share of requests simulated (1 = all).
+ */
+sample_factor: number; requests: number; ok: number; errors: number; 
+/**
+ * Abusive requests a rate limiter turned away (success, not errors).
+ */
+shed: number; error_rate: number; availability: number; throughput_rps: number; 
+/**
+ * The latency each request type is measured by (response or completion), merged.
+ */
+latency: Percentiles; response: Percentiles; 
+/**
+ * For request types with async work.
+ */
+completion: Percentiles | null; lost: number; dead_lettered: number; stale_reads: number; stale_rate: number; cost_month: number; per_type: TypeResult[]; nodes: NodeResult[]; 
+/**
+ * One entry per simulated second.
+ */
+series: SecondResult[] }
+/**
+ * One sample for the player: its steps and every snapshot they name.
+ */
+export type Sample = { def: SampleDef; snapshots: Partial<{ [key in string]: Design }> }
+/**
+ * `content/samples/<id>/sample.toml`.
+ */
+export type SampleDef = { id: string; 
+/**
+ * Gallery order.
+ */
+number: number; title: string; title_es: string; summary: string; summary_es: string; 
+/**
+ * The problem whose tests the steps play (`run.test`), if any.
+ */
+problem?: string | null; 
+/**
+ * The first-run tour (offered once from Home).
+ */
+tour?: boolean; 
+/**
+ * `[[step]]` tables in the TOML.
+ */
+steps: StoryStep[] }
+/**
+ * A gallery card: the text, and the first step's design and traffic for the preview.
+ */
+export type SampleSummary = { id: string; number: number; title: string; title_es: string; summary: string; summary_es: string; tour: boolean; steps: number; problem: string | null; preview: Design; preview_run: StepRun | null }
+/**
+ * The traffic presets of the Sandbox's Run menu.
+ */
+export type SandboxPreset = 
+/**
+ * Steady traffic at the clients' rate.
+ */
+"normal" | 
+/**
+ * ×4 traffic from 20 s to 35 s.
+ */
+"spike" | 
+/**
+ * Normal traffic; the busiest data store (or, without one, the busiest service) dies at
+ * 20 s and stays down.
+ */
+"kill_node"
+/**
+ * An autoscaling group's policy: the Autoscaling kind's flavour and props (v2).
+ */
+export type Scaling = { flavour: Flavour; props: Partial<{ [key in string]: PropValue }> }
+export type Score = { correctness: number; cost: number; latency: number; total: number }
+export type SecondResult = { t: number; requests: number; ok: number; errors: number; p95_ms: number }
+/**
+ * Which card(s) a chaos event hits.
+ */
+export type Selector = { id?: string | null; kind?: ComponentKind | null; 
+/**
+ * For data clusters: the current primary, a replica, or any member.
+ */
+role?: Role | null; 
+/**
+ * Every matching card instead of the first (in id order).
+ */
+all?: boolean }
+/**
+ * How a flavour behaves as a server where it has no prop for it (ADR 0005, ADR 0006).
+ */
+export type SimDefaults = { 
+/**
+ * Requests one instance (or one partition/shard) works on at once, when the kind has
+ * no `concurrency` prop.
+ */
+servers_per_instance: number; 
+/**
+ * Median service time when the kind has no `service_ms` prop.
+ */
+service_ms: number; 
+/**
+ * p99 / median of the service time.
+ */
+p99_ratio: number; 
+/**
+ * Waiting slots per server before requests are dropped.
+ */
+queue_per_server: number; 
+/**
+ * Seconds before a replica takes over from a dead primary (data kinds).
+ */
+failover_s: number }
+export type SimRow = (
+/**
+ * A prop key of the kind (its default per flavour, overrides applied).
+ */
+{ prop: string } | 
+/**
+ * A `SimDefaults` field: `servers_per_instance`, `service_ms`, `p99_ratio`,
+ * `queue_per_server`, `failover_s`.
+ */
+{ sim: string } | 
+/**
+ * A `Cost` field: `per_instance_month`, `per_gb_month`, `per_million`.
+ */
+{ cost: string }) & { 
+/**
+ * What the value does in the simulation (no digits: the number comes from the registry).
+ */
+note: string; note_es: string }
 export type Size = { w: number; h: number }
+/**
+ * A vendor page a flavour's figures were (or should be) checked against.
+ */
+export type Source = { flavour: Flavour; title: string; 
+/**
+ * The page. Unchecked links (written without fetching) are `checked = false` and listed
+ * for review; the page says so.
+ */
+url: string; checked?: boolean }
+/**
+ * Start a live Sandbox run. Frames (binary, `KAF1`) stream to the channel the UI created;
+ * they arrive in JavaScript as ArrayBuffers.
+ */
+export type StartRun = { design: Design; preset: SandboxPreset; 
+/**
+ * Run a problem's test instead of the Sandbox preset.
+ */
+problem: ProblemTest | null; speed: number; 
+/**
+ * Chaos the user injected (each at the moment it was injected).
+ */
+chaos: ChaosEvent[]; 
+/**
+ * Where playback starts, in simulated seconds.
+ */
+start_s: number; 
+/**
+ * A `Channel` from `@tauri-apps/api/core`, serialized as its id.
+ */
+on_frame: string }
+/**
+ * The traffic a step plays: a test of the story's problem, or a Sandbox preset
+ * (`normal`, `spike`, `kill_node`) driven by the design's client cards.
+ */
+export type StepRun = { test?: string | null; preset?: string | null; 
+/**
+ * Where the run starts, in simulated seconds (just before the interesting moment).
+ */
+start_s?: number; 
+/**
+ * Playback speed (0.25–8).
+ */
+speed?: number }
+export type StoryStep = { 
+/**
+ * A `.kbarch` file in the story's folder.
+ */
+snapshot: string; title: string; title_es: string; caption: string; caption_es: string; 
+/**
+ * Node ids in the spotlight; the rest dims. Empty: nothing dims.
+ */
+focus?: string[]; 
+/**
+ * None: fit the design (or the focused cards).
+ */
+camera?: Camera | null; run?: StepRun | null; callout?: Callout | null }
+export type SubmissionSummary = { id: number; problem_id: string; created_at: number; verdict: string; score: number; correctness: number; cost_score: number; latency_score: number; cost_usd: number; p95_ms: number }
+export type SubmitResult = { submission_id: number; judgement: Judgement; 
+/**
+ * The problem was solved by this submission for the first time.
+ */
+first_solve: boolean; best_score: number }
+export type TestBrief = { id: string; name: string; name_es: string; hidden: boolean; duration_s: number }
+/**
+ * The result of one test. Hidden tests carry the same numbers, but never their traffic or
+ * chaos: the definition stays in Rust.
+ */
+export type TestResult = { id: string; name: string; name_es: string; hidden: boolean; verdict: Verdict; p95_ms: number; error_rate: number; availability: number; stale_rate: number; lost: number; throughput_rps: number; cost_month: number; 
+/**
+ * The limits this test was held to.
+ */
+limits: PassCriteria; bottleneck: Bottleneck | null; 
+/**
+ * Replay at failure: start the live run of this test here (two seconds before the
+ * bottleneck appears, or at the start).
+ */
+replay_at_s: number | null; seed: number }
+export type TypeResult = { id: string; requests: number; errors: number; latency: Percentiles; response: Percentiles; completion: Percentiles | null }
 /**
  * The unit shown after a prop's value (`units.<unit>` in the UI).
  */
 export type Unit = "none" | "count" | "ms" | "s" | "h" | "days" | "percent" | "rps" | "gb"
+/**
+ * A test's outcome, in the order the checks run: the first that fails is the verdict.
+ */
+export type Verdict = 
+/**
+ * The design can't run the problem (validation, a missing path, a required card).
+ */
+"invalid_design" | 
+/**
+ * Too many errors, or messages lost.
+ */
+"dropped_requests" | 
+/**
+ * p95, availability or stale reads outside the limits.
+ */
+"slo_breach" | 
+/**
+ * Costs more per month than the budget.
+ */
+"over_budget" | "accepted"
 export type Viewport = { x: number; y: number; zoom: number }
 /**
  * Why a pair with no allowed protocol is refused (the first matching denial wins).

@@ -1,0 +1,37 @@
+id = "queue"
+number = 5
+title = "Queue"
+title_es = "Cola"
+summary = "A buffer between work arriving and workers doing it."
+summary_es = "Un amortiguador entre el trabajo que llega y los workers que lo hacen."
+problem = "job-scheduler"
+
+[[step]]
+snapshot = "shallow.kbarch"
+title = "Jobs wait their turn"
+title_es = "Los trabajos esperan su turno"
+caption = "The scheduler publishes jobs to a queue, and workers take them one by one. In a normal hour the workers keep up and the queue stays short."
+caption_es = "El planificador publica trabajos en una cola y los workers los toman uno a uno. En una hora normal los workers dan abasto y la cola se mantiene corta."
+focus = ["queue", "workers"]
+run = { test = "normal" }
+callout = { metric = "lost", after = 0 }
+
+[[step]]
+snapshot = "shallow.kbarch"
+title = "A burst on a shallow queue"
+title_es = "Una ráfaga en una cola poco profunda"
+caption = "At midnight ten times as many jobs arrive. This queue holds only 1,000 messages, so once it is full every new job is thrown away."
+caption_es = "A medianoche llegan diez veces más trabajos. Esta cola solo admite 1000 mensajes, así que en cuanto se llena cada trabajo nuevo se tira."
+focus = ["queue"]
+run = { test = "midnight", start_s = 16 }
+callout = { metric = "lost", after = 7792 }
+
+[[step]]
+snapshot = "deep.kbarch"
+title = "A deep queue absorbs it"
+title_es = "Una cola profunda lo absorbe"
+caption = "A queue deep enough to hold the whole burst keeps every job. The workers finish them later, so jobs wait longer, but none is lost."
+caption_es = "Una cola lo bastante profunda para guardar toda la ráfaga conserva cada trabajo. Los workers los terminan más tarde, así que esperan más, pero no se pierde ninguno."
+focus = ["queue", "workers"]
+run = { test = "midnight", start_s = 16 }
+callout = { metric = "lost", before = 7792, after = 0 }

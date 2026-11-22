@@ -9,6 +9,8 @@ rust-version.workspace = true
 
 [dependencies]
 ka-core.workspace = true
+ka-judge.workspace = true
+ka-sim.workspace = true
 ka-store.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -17,10 +19,11 @@ thiserror.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros"] }
+toml.workspace = true
 
 [features]
 # TypeScript bindings for the desktop app (tauri-specta).
-specta = ["dep:specta", "ka-core/specta", "ka-store/specta"]
+specta = ["dep:specta", "ka-core/specta", "ka-judge/specta", "ka-sim/specta", "ka-store/specta"]
 
 [lints]
 workspace = true

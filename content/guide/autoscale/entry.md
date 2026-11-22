@@ -1,0 +1,5 @@
+**Autoscaling** is not a server of its own. It is a policy that watches a group of servers and changes how many there are: more when they are busy, fewer when they are idle. You choose a target utilisation, a minimum and a maximum, and the policy keeps the group near the target. The point is to pay for the load you have rather than the peak you fear.
+
+It always reacts after the fact. A decision has to wait for the metric to rise, and then for new instances to start, so the first part of any spike lands on the old fleet. Autoscaling works best when the load builds gradually, or when a queue holds the extra work while the group catches up.
+
+In the app, Autoscaling is a zone you draw around App Server, Microservice or Worker cards, with the scaling policy on the zone instead of a card. Every few seconds the simulator measures the cards' mean utilisation. Above the target it scales out in proportion; below half the target it removes one instance. Each change lands after the scale-out delay and stays within the minimum and maximum. All the cards in the zone move together, and the bill uses the average number of instances over the run.

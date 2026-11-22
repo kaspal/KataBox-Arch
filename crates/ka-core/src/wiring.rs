@@ -233,13 +233,7 @@ pub fn table() -> WiringTable {
         },
         // A schedule triggering a job directly.
         rule("scheduled_job", P::Http, only(&[K::Scheduler]), services()),
-        // An autoscaler controls the services it scales.
-        rule(
-            "scale_control",
-            P::Http,
-            only(&[K::Autoscale]),
-            only(&[K::App, K::Micro, K::Worker]),
-        ),
+        // Autoscaling is a wrapper around compute cards (v2), never wired: no rule.
         // Telemetry: anything but a client may ship metrics, logs and traces.
         rule(
             "telemetry",

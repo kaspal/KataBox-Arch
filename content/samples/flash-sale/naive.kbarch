@@ -1,0 +1,126 @@
+{
+  "schema_version": 2,
+  "id": "sample-flash-sale-naive",
+  "name": "flash-sale: first try",
+  "problem_id": "flash-sale",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Fans",
+      "position": {
+        "x": 130,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "",
+      "position": {
+        "x": 130,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Shop servers",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {
+        "instances": 4
+      },
+      "group_id": null
+    },
+    {
+      "id": "orders",
+      "kind": "queue",
+      "flavour": "rabbitmq",
+      "label": "Orders",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {
+        "max_depth": 5000
+      },
+      "group_id": null
+    },
+    {
+      "id": "workers",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Payment workers",
+      "position": {
+        "x": 0,
+        "y": 510
+      },
+      "props": {
+        "instances": 8,
+        "concurrency": 64
+      },
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Tickets",
+      "position": {
+        "x": 260,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "api",
+      "to": "orders",
+      "protocol": "publish"
+    },
+    {
+      "id": "e3",
+      "from": "orders",
+      "to": "workers",
+      "protocol": "consume"
+    },
+    {
+      "id": "e4",
+      "from": "workers",
+      "to": "db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

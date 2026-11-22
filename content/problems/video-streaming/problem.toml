@@ -1,0 +1,57 @@
+id = "video-streaming"
+number = 12
+set = 1
+difficulty = "hard"
+title = "Video Streaming"
+title_es = "Streaming de vídeo"
+teaches = "Serve segments from a CDN; transcode uploads asynchronously"
+teaches_es = "Servir los segmentos desde una CDN; transcodificar las subidas de forma asíncrona"
+tags = ["cdn", "object-storage", "async", "queues"]
+
+[nfr]
+peak_rps = 4000
+read_ratio = 0.99
+p95_ms = 80
+availability = 0.999
+budget_usd = 15000
+
+[[request_types]]
+id = "segment"
+name = "Play a video segment"
+name_es = "Reproducir un segmento de vídeo"
+share = 0.99
+route = ["edge?", "compute|datastore:object"]
+key_space = 500_000
+key_skew = { zipf = 1.1 }
+cacheable = true
+
+[[request_types]]
+id = "upload"
+name = "Upload a video"
+name_es = "Subir un vídeo"
+share = 0.01
+route = ["edge?", "compute", "datastore:write", "broker", "worker", "datastore:write"]
+payload_kb = 64
+
+[[tests]]
+id = "normal"
+name = "Normal evening"
+name_es = "Una tarde normal"
+
+[[tests]]
+id = "premiere"
+name = "A season premiere"
+name_es = "El estreno de una temporada"
+hidden = true
+traffic = { spike = { at = 15, x = 10, for = 20 } }
+key_skew_override = { zipf = 1.4 }
+
+[[tests]]
+id = "uploads"
+name = "Everyone uploads at once"
+name_es = "Todos suben a la vez"
+hidden = true
+type_multipliers = { upload = 6 }
+
+[pass]
+error_rate = 0.001

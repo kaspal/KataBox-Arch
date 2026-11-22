@@ -1,0 +1,21 @@
+# Determinism (ADR 0006): no hash-ordered collections, no wall-clock time, and no platform
+# libm float functions in the simulator. Use BTreeMap/Vec, simulated time, and
+# ka_core::detmath instead. (The bench example allows Instant explicitly.)
+disallowed-types = [
+    { path = "std::collections::HashMap", reason = "iteration order is random: use BTreeMap or Vec" },
+    { path = "std::collections::HashSet", reason = "iteration order is random: use BTreeSet or Vec" },
+    { path = "std::hash::RandomState", reason = "random seeds break determinism" },
+    { path = "std::time::Instant", reason = "the simulator runs on simulated time only" },
+    { path = "std::time::SystemTime", reason = "the simulator runs on simulated time only" },
+]
+disallowed-methods = [
+    { path = "f64::ln", reason = "platform libm: use ka_core::detmath::ln" },
+    { path = "f64::exp", reason = "platform libm: use ka_core::detmath::exp" },
+    { path = "f64::powf", reason = "platform libm: use ka_core::detmath::powf" },
+    { path = "f64::powi", reason = "use repeated multiplication or detmath::powf" },
+    { path = "f64::sin", reason = "platform libm" },
+    { path = "f64::cos", reason = "platform libm" },
+    { path = "f64::exp2", reason = "platform libm" },
+    { path = "f64::log10", reason = "platform libm" },
+    { path = "f64::log2", reason = "platform libm" },
+]

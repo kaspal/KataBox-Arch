@@ -1,0 +1,109 @@
+kind = "client"
+one_liner = "The users and devices that send requests to your system."
+one_liner_es = "Los usuarios y dispositivos que envían peticiones a tu sistema."
+
+use_when = [
+  "Every design: traffic has to start somewhere",
+  "You want to set the load by hand in the Sandbox",
+  "Web and mobile users reach the system by different paths",
+  "You want to show where requests enter the system",
+]
+use_when_es = [
+  "En todo diseño: el tráfico tiene que empezar en algún sitio",
+  "Quieres fijar la carga a mano en el Sandbox",
+  "Los usuarios web y móviles llegan al sistema por caminos distintos",
+  "Quieres mostrar por dónde entran las peticiones al sistema",
+]
+skip_when = [
+  "The work is started by a timer, not by users (use a Scheduler)",
+  "The traffic is between your own services, inside the system",
+  "Messages arrive from a queue or stream you already drew",
+]
+skip_when_es = [
+  "El trabajo lo arranca un temporizador, no los usuarios (usa un Planificador)",
+  "El tráfico va entre tus propios servicios, dentro del sistema",
+  "Los mensajes llegan de una cola o un stream que ya has dibujado",
+]
+
+formula = "load from a client card = total load × its rps ÷ the rps of all client cards that can serve the request (in the Sandbox the total is that sum; in a problem it comes from the scenario)"
+formula_es = "carga de una tarjeta de cliente = carga total × sus rps ÷ los rps de todas las tarjetas de cliente que pueden servir la petición (en el Sandbox el total es esa suma; en un problema lo fija el escenario)"
+
+gains = [
+  "Makes the entry point of the design explicit",
+  "Lets you try any load by hand in the Sandbox",
+]
+gains_es = [
+  "Deja claro por dónde entra el tráfico al diseño",
+  "Te deja probar cualquier carga a mano en el Sandbox",
+]
+costs = [
+  "Every request type it sends must reach a component that can serve it, or the design is invalid",
+  "Each extra wire from a client splits its traffic between the paths",
+]
+costs_es = [
+  "Cada tipo de petición que envía debe llegar a un componente que pueda servirla, o el diseño no es válido",
+  "Cada cable de más desde un cliente reparte su tráfico entre los caminos",
+]
+
+works_with = ["dns", "cdn", "lb", "gateway"]
+practice = []
+
+interview_tip = "Start by naming the clients, how many there are and what they ask for most; those numbers drive the rest of the design."
+interview_tip_es = "Empieza por nombrar los clientes, cuántos son y qué piden más; esos números guían el resto del diseño."
+
+[[sim]]
+prop = "rps"
+note = "Requests per second this card sends in the Sandbox. In a problem the scenario sets the load, and this value only sets each client's share of it."
+note_es = "Peticiones por segundo que envía esta tarjeta en el Sandbox. En un problema la carga la fija el escenario, y este valor solo decide la parte de cada cliente."
+
+[flavours_compared]
+flavours = ["web", "mobile"]
+
+[[flavours_compared.rows]]
+label = "Runs in"
+label_es = "Se ejecuta en"
+cells = ["A browser", "An app installed on the phone"]
+cells_es = ["Un navegador", "Una app instalada en el móvil"]
+
+[[flavours_compared.rows]]
+label = "New versions"
+label_es = "Versiones nuevas"
+cells = ["Load on the next page visit", "Arrive when users update, so old versions stay in use"]
+cells_es = ["Se cargan en la siguiente visita", "Llegan cuando el usuario actualiza, así que las antiguas siguen en uso"]
+
+[[flavours_compared.rows]]
+label = "Network"
+label_es = "Red"
+cells = ["Usually a steady connection", "Often slow, and drops or changes network"]
+cells_es = ["Normalmente una conexión estable", "A menudo lenta, y se corta o cambia de red"]
+
+[[pitfalls]]
+title = "Two entry points split the traffic"
+title_es = "Dos puntos de entrada reparten el tráfico"
+body = "A client wired to both a CDN and a Load Balancer sends part of its requests down each path, so many of them skip the cache."
+body_es = "Un cliente conectado a la vez a una CDN y a un Balanceador de carga manda parte de sus peticiones por cada camino, así que muchas se saltan la caché."
+fix = "Wire the client to one entry point and let that component forward the rest."
+fix_es = "Conecta el cliente a un solo punto de entrada y deja que ese componente reenvíe el resto."
+
+[[pitfalls]]
+title = "Sizing for the average day"
+title_es = "Dimensionar para el día medio"
+body = "Real traffic comes in bursts and daily peaks. A design sized for the average queues and fails at the busy hour."
+body_es = "El tráfico real llega a ráfagas y con picos diarios. Un diseño pensado para la media se encola y falla en la hora punta."
+fix = "Size for the peak the problem gives, and check the breaking point for headroom."
+fix_es = "Dimensiona para el pico que da el problema, y mira el punto de ruptura para ver el margen."
+
+[[sources]]
+flavour = "web"
+title = "MDN Web Docs"
+url = "https://developer.mozilla.org/"
+
+[[sources]]
+flavour = "mobile"
+title = "Android Developers"
+url = "https://developer.android.com/"
+
+[[sources]]
+flavour = "mobile"
+title = "Apple Developer Documentation"
+url = "https://developer.apple.com/documentation/"

@@ -110,6 +110,23 @@
     transform: none;
   }
 }
+/* An overloaded card shakes slightly during a live run (never with reduced motion). */
+@keyframes kb-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-1.5px); }
+  75% { transform: translateX(1.5px); }
+}
+.kb-overloaded {
+  animation: kb-shake 0.25s ease-in-out infinite;
+}
+.reduce-motion .kb-overloaded {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kb-overloaded {
+    animation: none;
+  }
+}
 .kb-canvas .react-flow__handle {
   width: 10px;
   height: 10px;
@@ -123,6 +140,25 @@
 .kb-canvas .react-flow__node.selected .react-flow__handle,
 .kb-canvas.connecting .react-flow__handle {
   opacity: 1;
+}
+/* A read-only view (Compare, the player): nothing reacts to the pointer except the pane,
+   so dragging anywhere pans and nothing can be edited or selected. */
+.kb-readonly .react-flow__node,
+.kb-readonly .react-flow__edge,
+.kb-readonly .react-flow__edgelabel-renderer * {
+  pointer-events: none !important;
+}
+.kb-readonly .react-flow__handle {
+  display: none;
+}
+/* The player's spotlight: what isn't in focus fades back. */
+.kb-readonly .kb-dim {
+  opacity: 0.28;
+  transition: opacity 300ms var(--ease-out);
+}
+.kb-readonly .react-flow__node,
+.kb-readonly .react-flow__edge {
+  transition: opacity 300ms var(--ease-out);
 }
 .kb-canvas .react-flow__minimap {
   background: var(--card);

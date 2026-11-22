@@ -1,0 +1,26 @@
+id = "cache"
+number = 3
+title = "Cache"
+title_es = "Caché"
+summary = "Popular reads answered from memory, so the database sees only the misses."
+summary_es = "Las lecturas populares se responden desde memoria, así que la base de datos solo ve los fallos."
+
+[[step]]
+snapshot = "no-cache.kbarch"
+title = "Every read goes to the database"
+title_es = "Cada lectura va a la base de datos"
+caption = "12,000 requests a second, mostly reads of a few popular items. Each one is a query to PostgreSQL."
+caption_es = "12 000 peticiones por segundo, casi todas lecturas de unos pocos elementos populares. Cada una es una consulta a PostgreSQL."
+focus = ["db"]
+run = { preset = "normal" }
+callout = { metric = "p95_ms", after = 27.1 }
+
+[[step]]
+snapshot = "with-cache.kbarch"
+title = "Hits come from memory"
+title_es = "Los aciertos salen de memoria"
+caption = "Redis keeps the popular items in memory. A hit skips the database, and the dots that end at Redis never reach PostgreSQL. Here the App Servers set most of the time, so p95 falls a little; the database's load falls a lot."
+caption_es = "Redis guarda en memoria los elementos populares. Un acierto se salta la base de datos, y los puntos que terminan en Redis nunca llegan a PostgreSQL. Aquí los App Servers marcan casi todo el tiempo, así que la p95 baja un poco; la carga de la base de datos baja mucho."
+focus = ["cache", "db"]
+run = { preset = "normal" }
+callout = { metric = "p95_ms", before = 27.1, after = 19.8 }

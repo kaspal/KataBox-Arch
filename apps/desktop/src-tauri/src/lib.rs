@@ -15,10 +15,19 @@ mod window_state;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use ka_app::{App, AppError, AppErrorCode, AppInfo, AppPaths, OpenedDesign, RecentEntry};
+use ka_app::guide::{GuidePage, GuideSummary};
+use ka_app::live::FrameSink;
+use ka_app::patterns::{PatternPage, PatternSummary};
+use ka_app::problems::{ProblemBrief, ProblemSummary, Progress, SubmitResult};
+use ka_app::samples::{Sample, SampleSummary};
+use ka_app::{
+    App, AppError, AppErrorCode, AppInfo, AppPaths, OpenedDesign, ProblemTest, RecentEntry,
+    RunControl, RunInfo, RunRequest, SandboxPreset,
+};
 use ka_core::{Design, DesignIssue, Registry};
 use serde_json::Value;
-use tauri::{Emitter, Manager, State, WebviewWindow, WindowEvent};
+use tauri::ipc::{Channel, InvokeResponseBody, JavaScriptChannelId};
+use tauri::{Emitter, Manager, State, Webview, WebviewWindow, WindowEvent};
 
 type Res<T> = Result<T, AppError>;
 
@@ -157,6 +166,233 @@ async fn pick_file(app: tauri::AppHandle, save_as: Option<String>) -> Res<Option
         .transpose()
 }
 
+// --- Live runs ------------------------------------------------------------------------
+
+/// Start a live Sandbox run. Frames (binary, `KAF1`) stream to the channel the UI created;
+/// they arrive in JavaScript as ArrayBuffers.
+#[derive(serde::Deserialize, specta::Type)]
+struct StartRun {
+    design: Design,
+    preset: SandboxPreset,
+    /// Run a problem's test instead of the Sandbox preset.
+    problem: Option<ProblemTest>,
+    speed: f64,
+    /// Chaos the user injected (each at the moment it was injected).
+    chaos: Vec<ka_core::scenario::ChaosEvent>,
+    /// Where playback starts, in simulated seconds.
+    start_s: f64,
+    /// A `Channel` from `@tauri-apps/api/core`, serialized as its id.
+    #[specta(type = String)]
+    on_frame: JavaScriptChannelId,
+}
+
+/// Sends frames over a Tauri channel as raw bytes (never JSON per packet).
+struct ChannelSink(Channel<InvokeResponseBody>);
+
+impl FrameSink for ChannelSink {
+    fn send(&mut self, frame: Vec<u8>) -> bool {
+        self.0.send(InvokeResponseBody::Raw(frame)).is_ok()
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn start_run(
+    webview: Webview,
+    state: State<'_, AppState>,
+    request: StartRun,
+) -> Res<RunInfo> {
+    let sink = ChannelSink(request.on_frame.channel_on(webview));
+    let app = state.app()?;
+    if let Some(p) = &request.problem {
+        app.record_problem_run(&p.problem_id).await?;
+    }
+    app.start_run(
+        &request.design,
+        RunRequest {
+            preset: request.preset,
+            problem: request.problem,
+            speed: request.speed,
+            chaos: request.chaos,
+            start_s: request.start_s,
+        },
+        sink,
+    )
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn control_run(state: State<'_, AppState>, run_id: u32, control: RunControl) -> Res<()> {
+    state.app()?.control_run(run_id, control)
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn run_result(state: State<'_, AppState>, run_id: u32) -> Res<Option<ka_sim::RunResult>> {
+    state.app()?.run_result(run_id)
+}
+
+/// How much traffic the design holds before it fails, and what fails first (a few seconds of
+/// simulation, off the async runtime).
+#[tauri::command]
+#[specta::specta]
+async fn find_breaking_point(
+    state: State<'_, AppState>,
+    design: Design,
+) -> Res<ka_sim::BreakingPoint> {
+    let registry = state.app()?.registry().clone();
+    tauri::async_runtime::spawn_blocking(move || ka_app::breaking_point(&design, &registry))
+        .await
+        .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?
+}
+
+// --- Problems -------------------------------------------------------------------------
+
+#[tauri::command]
+#[specta::specta]
+async fn list_problems(state: State<'_, AppState>) -> Res<Vec<ProblemSummary>> {
+    state.app()?.list_problems().await
+}
+
+/// The Component Guide index: every entry's one-liner and read mark.
+#[tauri::command]
+#[specta::specta]
+async fn list_guide(state: State<'_, AppState>) -> Res<Vec<GuideSummary>> {
+    state.app()?.list_guide().await
+}
+
+/// One Guide entry.
+#[tauri::command]
+#[specta::specta]
+async fn guide_page(state: State<'_, AppState>, kind: ka_core::ComponentKind) -> Res<GuidePage> {
+    state.app()?.guide_page(kind).await
+}
+
+/// Mark a Guide entry read (or unread).
+#[tauri::command]
+#[specta::specta]
+async fn set_guide_read(
+    state: State<'_, AppState>,
+    kind: ka_core::ComponentKind,
+    read: bool,
+) -> Res<()> {
+    state.app()?.set_guide_read(kind, read).await
+}
+
+/// The "Which one do I need?" decision guides, in order.
+#[tauri::command]
+#[specta::specta]
+async fn decide_flows(state: State<'_, AppState>) -> Res<Vec<ka_core::decide::DecideFlow>> {
+    state.app()?.decide_flows().await
+}
+
+/// The glossary.
+#[tauri::command]
+#[specta::specta]
+async fn glossary(state: State<'_, AppState>) -> Res<Vec<ka_core::decide::GlossaryTerm>> {
+    state.app()?.glossary().await
+}
+
+/// The pattern library, in order (each with its template for the preview).
+#[tauri::command]
+#[specta::specta]
+async fn list_patterns(state: State<'_, AppState>) -> Res<Vec<PatternSummary>> {
+    state.app()?.list_patterns().await
+}
+
+/// One pattern: its page and template.
+#[tauri::command]
+#[specta::specta]
+async fn pattern(state: State<'_, AppState>, id: String) -> Res<PatternPage> {
+    state.app()?.pattern(&id).await
+}
+
+/// Mark a pattern read (or unread).
+#[tauri::command]
+#[specta::specta]
+async fn set_pattern_read(state: State<'_, AppState>, id: String, read: bool) -> Res<()> {
+    state.app()?.set_pattern_read(&id, read).await
+}
+
+/// A component kind's concept card (null until it has one).
+#[tauri::command]
+#[specta::specta]
+async fn concept(state: State<'_, AppState>, kind: ka_core::ComponentKind) -> Res<Option<Sample>> {
+    state.app()?.concept(kind).await
+}
+
+/// The sample gallery, in order (each with its first step's design for the preview).
+#[tauri::command]
+#[specta::specta]
+async fn list_samples(state: State<'_, AppState>) -> Res<Vec<SampleSummary>> {
+    state.app()?.list_samples().await
+}
+
+/// One sample for the walkthrough player: its steps and design snapshots.
+#[tauri::command]
+#[specta::specta]
+async fn sample(state: State<'_, AppState>, id: String) -> Res<Sample> {
+    state.app()?.sample(&id).await
+}
+
+/// A problem's brief: hidden tests by name only, hints up to the unlocked tier.
+#[tauri::command]
+#[specta::specta]
+async fn problem_brief(state: State<'_, AppState>, id: String) -> Res<ProblemBrief> {
+    state.app()?.problem_brief(&id).await
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn unlock_hint(state: State<'_, AppState>, id: String, tier: i64) -> Res<()> {
+    state.app()?.unlock_hint(&id, tier).await
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn save_draft(state: State<'_, AppState>, id: String, design: Design) -> Res<()> {
+    state.app()?.save_draft(&id, &design).await
+}
+
+/// Judge the design on every test of the problem (off the async runtime), then record it.
+/// `local_day` is the user's date (`YYYY-MM-DD`), for the streak.
+#[tauri::command]
+#[specta::specta]
+async fn submit_design(
+    state: State<'_, AppState>,
+    id: String,
+    design: Design,
+    local_day: String,
+) -> Res<SubmitResult> {
+    let app = state.app()?;
+    let (problem, ref_cost) = app.problem_for_judging(&id).await?;
+    let registry = app.registry().clone();
+    let judged = design.clone();
+    let judgement = tauri::async_runtime::spawn_blocking(move || {
+        ka_app::problems::judge_design(&problem, &judged, &registry, ref_cost)
+    })
+    .await
+    .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    app.record_submission(&design, judgement, &local_day).await
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn submissions(
+    state: State<'_, AppState>,
+    id: String,
+) -> Res<Vec<ka_store::SubmissionSummary>> {
+    state.app()?.submissions(&id).await
+}
+
+/// Solved and attempted per difficulty, the streak (from the user's `today`) and what next.
+#[tauri::command]
+#[specta::specta]
+async fn progress(state: State<'_, AppState>, today: String) -> Res<Progress> {
+    state.app()?.progress(&today).await
+}
+
 // --- Window ---------------------------------------------------------------------------
 
 /// The window title (the webview has no `setTitle` permission).
@@ -218,6 +454,28 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         save_design,
         save_design_as,
         validate_design,
+        start_run,
+        control_run,
+        run_result,
+        find_breaking_point,
+        list_problems,
+        problem_brief,
+        unlock_hint,
+        save_draft,
+        submit_design,
+        submissions,
+        progress,
+        list_samples,
+        sample,
+        decide_flows,
+        glossary,
+        list_patterns,
+        pattern,
+        set_pattern_read,
+        list_guide,
+        concept,
+        guide_page,
+        set_guide_read,
         set_window_title,
         set_dirty,
         confirm_close,
@@ -256,12 +514,26 @@ fn export_bindings_from(builder: &tauri_specta::Builder<tauri::Wry>) {
 pub fn export_registry_fixture() {
     let registry = ka_core::registry();
     let matrix = registry.wiring.matrix();
-    let fixture = serde_json::json!({ "registry": registry, "matrix": matrix });
+    let fixture = serde_json::json!({
+        "registry": registry,
+        "matrix": matrix,
+        "schema_version": ka_core::SCHEMA_VERSION,
+    });
     let mut text = serde_json::to_string_pretty(&fixture).expect("serialize the registry fixture");
     text.push('\n');
     let path = std::path::Path::new(REGISTRY_FIXTURE);
     std::fs::create_dir_all(path.parent().expect("fixtures folder")).expect("create fixtures/");
     std::fs::write(path, text).expect("write the registry fixture");
+}
+
+const FRAME_FIXTURE: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../src/test/fixtures/frame.kaf"
+);
+
+/// Write a live-run frame Rust encoded, for the UI decoder's test only.
+pub fn export_frame_fixture() {
+    std::fs::write(FRAME_FIXTURE, ka_app::live::fixture_frame()).expect("write the frame fixture");
 }
 
 /// Debug builds keep their data in `<identifier>-dev` folders, so development and testing
@@ -281,9 +553,15 @@ fn open_app(handle: &tauri::AppHandle) -> Res<App> {
         .path()
         .app_data_dir()
         .map_err(|e| AppError::new(AppErrorCode::Internal, format!("app data folder: {e}")))?;
+    // content.db is a bundled resource (built from content/ by build.rs).
+    let content_db = handle
+        .path()
+        .resolve("content.db", tauri::path::BaseDirectory::Resource)
+        .ok();
     let paths = AppPaths {
         user_db: data_folder(dir).join("user.db"),
         dev_data: cfg!(debug_assertions),
+        content_db,
     };
     tauri::async_runtime::block_on(App::open(paths))
 }
@@ -295,6 +573,7 @@ pub fn run_app() {
     {
         export_bindings_from(&builder);
         export_registry_fixture();
+        export_frame_fixture();
     }
 
     let app = tauri::Builder::default()

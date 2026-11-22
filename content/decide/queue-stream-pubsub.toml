@@ -1,0 +1,43 @@
+id = "queue-stream-pubsub"
+number = 2
+title = "Queue, stream or pub/sub?"
+title_es = "¿Cola, stream o pub/sub?"
+intro = "All three move messages from one part of the system to another without making the sender wait. They differ in who gets each message and whether it is kept."
+intro_es = "Los tres llevan mensajes de una parte del sistema a otra sin hacer esperar a quien envía. Se diferencian en quién recibe cada mensaje y en si se guarda."
+start = "who"
+
+[[question]]
+id = "who"
+text = "Who needs each message?"
+text_es = "¿Quién necesita cada mensaje?"
+options = [
+  { label = "One worker should handle it", label_es = "Debe procesarlo un solo worker", next = "task", why = "One consumer per message points to a queue or a partitioned stream.", why_es = "Un consumidor por mensaje apunta a una cola o a un stream con particiones." },
+  { label = "Several different services each need a copy", label_es = "Varios servicios distintos necesitan una copia cada uno", next = "replay", why = "Many readers of the same message point to a stream or pub/sub.", why_es = "Muchos lectores del mismo mensaje apuntan a un stream o a pub/sub." },
+]
+
+[[question]]
+id = "task"
+text = "What is a message, here?"
+text_es = "¿Qué es aquí un mensaje?"
+options = [
+  { label = "A job that may fail and must be retried on its own", label_es = "Un trabajo que puede fallar y hay que reintentar por separado", result = "queue", why = "A queue gives each message its own acknowledgement and retries, and turns bursts into a backlog the workers drain. Add a dead-letter queue for the ones that keep failing.", why_es = "Una cola da a cada mensaje su propia confirmación y sus reintentos, y convierte las ráfagas en una cola pendiente que los workers vacían. Añade una cola de mensajes fallidos para los que siguen fallando." },
+  { label = "One of a high, steady flow of small events that must stay in order per key", label_es = "Uno de un flujo alto y constante de eventos pequeños que deben mantener el orden por clave", result = "stream", why = "A stream keeps order within a partition and handles a high volume. Choose the partition key so that order holds where you need it.", why_es = "Un stream mantiene el orden dentro de una partición y aguanta un volumen alto. Elige la clave de partición para que el orden se cumpla donde lo necesitas." },
+]
+
+[[question]]
+id = "replay"
+text = "Will a reader need to re-read old messages, or catch up after being down?"
+text_es = "¿Necesitará algún lector volver a leer mensajes antiguos, o ponerse al día tras una caída?"
+options = [
+  { label = "Yes, history matters", label_es = "Sí, el historial importa", result = "stream", why = "A stream keeps a durable log. Each reader tracks its own position and can go back or catch up at its own pace.", why_es = "Un stream guarda un registro duradero. Cada lector lleva su propia posición y puede volver atrás o ponerse al día a su ritmo." },
+  { label = "No, only new messages matter", label_es = "No, solo importan los mensajes nuevos", next = "live", why = "Without replay, a lighter option may do.", why_es = "Sin necesidad de releer, puede bastar una opción más ligera." },
+]
+
+[[question]]
+id = "live"
+text = "Must every subscriber hear about each message right away?"
+text_es = "¿Debe enterarse cada suscriptor de cada mensaje al momento?"
+options = [
+  { label = "Yes, for example chat servers passing messages to each other", label_es = "Sí, por ejemplo servidores de chat que se pasan mensajes", result = "pubsub", why = "Pub/sub pushes a copy to every subscriber, and the publisher does not need to know who listens. The load multiplies by the number of subscribers.", why_es = "Pub/sub envía una copia a cada suscriptor, y quien publica no necesita saber quién escucha. La carga se multiplica por el número de suscriptores." },
+  { label = "No, some subscribers are slow and must not lose messages in a burst", label_es = "No, algunos suscriptores son lentos y no deben perder mensajes en una ráfaga", result = "stream", why = "Pub/sub buffers little or nothing. A stream holds the messages, so a slow reader falls behind without losing them.", why_es = "Pub/sub guarda poco o nada. Un stream conserva los mensajes, así que un lector lento se retrasa sin perderlos." },
+]

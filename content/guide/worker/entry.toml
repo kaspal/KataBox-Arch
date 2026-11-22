@@ -1,0 +1,149 @@
+kind = "worker"
+one_liner = "A pool of background processes that take jobs from a queue and run them."
+one_liner_es = "Un grupo de procesos en segundo plano que toman trabajos de una cola y los ejecutan."
+
+use_when = [
+  "The work takes far longer than a user should wait for a page",
+  "The caller only needs to know the job was accepted",
+  "Bursts of jobs can be done a little later instead of right away",
+  "The work calls a slow or unreliable provider that needs retries",
+]
+use_when_es = [
+  "El trabajo tarda mucho más de lo que un usuario debería esperar por una página",
+  "Al que llama le basta con saber que el trabajo se aceptó",
+  "Los picos de trabajos pueden hacerse un poco más tarde en lugar de al momento",
+  "El trabajo llama a un proveedor lento o poco fiable que necesita reintentos",
+]
+skip_when = [
+  "The user needs the result in the same response",
+  "The work is a quick read or write that fits in the request",
+  "Jobs must run in a strict global order and nobody has planned for it",
+]
+skip_when_es = [
+  "El usuario necesita el resultado en la misma respuesta",
+  "El trabajo es una lectura o escritura rápida que cabe en la petición",
+  "Los trabajos deben ejecutarse en un orden global estricto y nadie lo ha previsto",
+]
+
+formula = "drain rate ≈ instances × concurrency ÷ job time; while jobs arrive faster than that, the backlog in the queue grows"
+formula_es = "ritmo de vaciado ≈ instancias × concurrencia ÷ tiempo por trabajo; mientras los trabajos lleguen más rápido, la cola acumulada crece"
+
+gains = [
+  "Fast responses: the request returns once the job is queued",
+  "Bursts are absorbed by the queue instead of failing",
+  "Slow work scales separately from the web tier",
+]
+gains_es = [
+  "Respuestas rápidas: la petición vuelve en cuanto el trabajo está en la cola",
+  "La cola absorbe los picos en lugar de que fallen",
+  "El trabajo lento escala aparte de la capa web",
+]
+costs = [
+  "Results arrive later, so the user needs a way to find out when it is done",
+  "Jobs can run twice after a retry, so they must be safe to repeat",
+  "One more pool to size, watch and scale",
+]
+costs_es = [
+  "Los resultados llegan más tarde, así que el usuario necesita una forma de saber cuándo está listo",
+  "Un trabajo puede ejecutarse dos veces tras un reintento, así que debe poder repetirse sin daño",
+  "Un grupo más que dimensionar, vigilar y escalar",
+]
+
+works_with = ["queue", "stream", "autoscale", "dlq", "sql"]
+practice = ["job-scheduler", "online-judge", "notifications", "video-streaming", "news-feed"]
+
+interview_tip = "Say what the user sees while the job runs, how many workers you need at peak, and what happens to a job that keeps failing."
+interview_tip_es = "Di qué ve el usuario mientras el trabajo se ejecuta, cuántos workers necesitas en el pico y qué pasa con un trabajo que no deja de fallar."
+
+[[sim]]
+prop = "instances"
+note = "Worker machines. More of them drain the queue faster and cost more each month."
+note_es = "Máquinas worker. Más máquinas vacían la cola más rápido y cuestan más al mes."
+
+[[sim]]
+prop = "concurrency"
+note = "Jobs one instance runs at once. A job keeps its slot until its own calls have answered."
+note_es = "Trabajos que una instancia ejecuta a la vez. Un trabajo conserva su hueco hasta que responden sus propias llamadas."
+
+[[sim]]
+prop = "service_ms"
+note = "The median time of one job's own work, not counting its calls. Fan-out jobs take longer per unit of work."
+note_es = "La mediana del trabajo propio de un trabajo, sin contar sus llamadas. Los trabajos con reparto tardan más por cada unidad de trabajo."
+
+[[sim]]
+sim = "p99_ratio"
+note = "How much slower the slowest jobs are than the median."
+note_es = "Cuánto más lentos son los trabajos más lentos que la mediana."
+
+[[sim]]
+cost = "per_instance_month"
+note = "Priced per instance, busy or idle. An Autoscaling zone bills the average count."
+note_es = "Se cobra por instancia, esté ocupada o no. Una zona de Autoescalado cobra el número medio."
+
+[flavours_compared]
+flavours = ["celery", "sidekiq"]
+
+[[flavours_compared.rows]]
+label = "Language"
+label_es = "Lenguaje"
+cells = ["Python", "Ruby"]
+cells_es = ["Python", "Ruby"]
+
+[[flavours_compared.rows]]
+label = "Broker"
+label_es = "Broker"
+cells = ["RabbitMQ, Redis, Amazon SQS and others", "Redis"]
+cells_es = ["RabbitMQ, Redis, Amazon SQS y otros", "Redis"]
+
+[[flavours_compared.rows]]
+label = "Runs jobs in"
+label_es = "Ejecuta los trabajos en"
+cells = ["Processes by default; threads or green threads as options", "Threads in one process"]
+cells_es = ["Procesos por defecto; hilos o hilos ligeros como opción", "Hilos dentro de un proceso"]
+
+[[flavours_compared.rows]]
+label = "Retries"
+label_es = "Reintentos"
+cells = ["Opt-in per task", "Automatic, with growing delays"]
+cells_es = ["Opcionales, por tarea", "Automáticos, con esperas crecientes"]
+
+[[flavours_compared.rows]]
+label = "Pick it for"
+label_es = "Elígelo para"
+cells = ["Python and Django back ends", "Ruby on Rails apps"]
+cells_es = ["Back ends en Python y Django", "Aplicaciones Ruby on Rails"]
+
+[[pitfalls]]
+title = "Too few workers for the peak"
+title_es = "Muy pocos workers para el pico"
+body = "Jobs arrive faster than the pool can run them. Nothing fails at first, but the backlog grows every second and completion times climb."
+body_es = "Los trabajos llegan más rápido de lo que el grupo puede ejecutarlos. Al principio nada falla, pero la cola acumulada crece cada segundo y los tiempos de finalización suben."
+fix = "Size the pool for the peak, or wrap it in an Autoscaling zone with a maximum high enough for the burst."
+fix_es = "Dimensiona el grupo para el pico, o mételo en una zona de Autoescalado con un máximo suficiente para el pico."
+seen_in = "online-judge"
+
+[[pitfalls]]
+title = "Jobs that are not safe to repeat"
+title_es = "Trabajos que no se pueden repetir"
+body = "A worker crashes after doing the work but before acknowledging it, so the job runs again: a second charge, a second email."
+body_es = "Un worker cae después de hacer el trabajo pero antes de confirmarlo, así que el trabajo se ejecuta otra vez: un segundo cobro, un segundo correo."
+fix = "Make jobs idempotent: give each one a key and skip work already recorded under it."
+fix_es = "Haz los trabajos idempotentes: dale a cada uno una clave y sáltate el trabajo ya registrado con ella."
+
+[[pitfalls]]
+title = "Workers that overwhelm the database"
+title_es = "Workers que desbordan la base de datos"
+body = "Adding workers drains the queue faster, but every job also writes somewhere. Past a point the database becomes the bottleneck and jobs wait on it while holding their slots."
+body_es = "Añadir workers vacía la cola más rápido, pero cada trabajo también escribe en algún sitio. A partir de cierto punto la base de datos se convierte en el cuello de botella y los trabajos la esperan sin soltar su hueco."
+fix = "Check the store's capacity when you scale the pool, batch the writes, or cap the number of workers."
+fix_es = "Comprueba la capacidad del almacén cuando escales el grupo, agrupa las escrituras o limita el número de workers."
+
+[[sources]]
+flavour = "celery"
+title = "Celery documentation"
+url = "https://docs.celeryq.dev/en/stable/"
+
+[[sources]]
+flavour = "sidekiq"
+title = "Sidekiq wiki"
+url = "https://github.com/sidekiq/sidekiq/wiki"

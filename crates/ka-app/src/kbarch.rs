@@ -72,11 +72,151 @@ pub fn parse(bytes: &[u8], registry: &Registry) -> Result<Design> {
 
 /// Bring an older file up to [`SCHEMA_VERSION`]. Each future format change adds a step
 /// here (and a test with a file of the old version).
-fn migrate(value: Value, version: u64) -> Result<Value> {
-    match version {
-        1 => Ok(value),
+fn migrate(mut value: Value, version: u64) -> Result<Value> {
+    let mut at = version;
+    if at == 1 {
+        value = v1_to_v2(value);
+        at = 2;
+    }
+    match at {
+        2 => Ok(value),
         v => Err(invalid_file(format!("unknown schema_version {v}"))),
     }
+}
+
+/// Props removed from the registry in v2, by kind: SQL read replicas are cards now, and
+/// a CDN's hit rate is computed from its TTL and the traffic's key skew.
+const REMOVED_IN_V2: &[(&str, &str)] = &[("sql", "read_replicas"), ("cdn", "hit_rate")];
+
+/// The card size the canvas draws, for sizing migrated autoscaling wrappers.
+const CARD: (f64, f64) = (208.0, 64.0);
+const WRAP_PAD: f64 = 32.0;
+
+/// v1 → v2 (ADR 0003, ADR 0004 F2):
+/// - each Autoscaling card becomes an Autoscale wrapper around the compute cards it was
+///   wired to (or a default frame at its own position), keeping its flavour and props;
+///   its edges are dropped, and the wrapped cards join the wrapper;
+/// - the props removed in v2 are dropped.
+///
+/// Works on the raw JSON, so anything unexpected is left for the strict parse to refuse.
+fn v1_to_v2(mut value: Value) -> Value {
+    let num = |v: &Value, k: &str| v.get(k).and_then(Value::as_f64).unwrap_or(0.0);
+    let Some(obj) = value.as_object_mut() else {
+        return value;
+    };
+    obj.insert("schema_version".into(), Value::from(2));
+
+    let nodes = obj
+        .get("nodes")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let edges = obj
+        .get("edges")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let is_autoscale = |n: &Value| n.get("kind").and_then(Value::as_str) == Some("autoscale");
+    let scalers: Vec<&Value> = nodes.iter().filter(|n| is_autoscale(n)).collect();
+    let id_of = |v: &Value| {
+        v.get("id")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_owned()
+    };
+    let scaler_ids: Vec<String> = scalers.iter().map(|n| id_of(n)).collect();
+
+    let mut new_groups = Vec::new();
+    let mut joins: Vec<(String, String)> = Vec::new(); // (card id, wrapper id)
+    for s in &scalers {
+        let sid = id_of(s);
+        let targets: Vec<&Value> = edges
+            .iter()
+            .filter(|e| e.get("from").and_then(Value::as_str) == Some(sid.as_str()))
+            .filter_map(|e| e.get("to").and_then(Value::as_str))
+            .filter_map(|to| nodes.iter().find(|n| id_of(n) == to && !is_autoscale(n)))
+            .collect();
+        let pos = s.get("position").cloned().unwrap_or(Value::Null);
+        let (position, size) = if targets.is_empty() {
+            (pos.clone(), serde_json::json!({ "w": 360, "h": 240 }))
+        } else {
+            let xs = targets.iter().map(|t| num(&t["position"], "x"));
+            let ys = targets.iter().map(|t| num(&t["position"], "y"));
+            let (x0, y0) = (
+                xs.clone().fold(f64::INFINITY, f64::min),
+                ys.clone().fold(f64::INFINITY, f64::min),
+            );
+            let (x1, y1) = (
+                xs.fold(f64::NEG_INFINITY, f64::max) + CARD.0,
+                ys.fold(f64::NEG_INFINITY, f64::max) + CARD.1,
+            );
+            (
+                serde_json::json!({ "x": x0 - WRAP_PAD, "y": y0 - WRAP_PAD }),
+                serde_json::json!({ "w": x1 - x0 + 2.0 * WRAP_PAD, "h": y1 - y0 + 2.0 * WRAP_PAD }),
+            )
+        };
+        let parent = targets
+            .first()
+            .and_then(|t| t.get("group_id").cloned())
+            .or_else(|| s.get("group_id").cloned())
+            .unwrap_or(Value::Null);
+        for t in &targets {
+            joins.push((id_of(t), sid.clone()));
+        }
+        new_groups.push(serde_json::json!({
+            "id": sid,
+            "kind": "autoscale",
+            "label": s.get("label").cloned().unwrap_or(Value::from("")),
+            "position": position,
+            "size": size,
+            "parent_id": parent,
+            "scaling": {
+                "flavour": s.get("flavour").cloned().unwrap_or(Value::Null),
+                "props": s.get("props").cloned().unwrap_or(serde_json::json!({})),
+            },
+        }));
+    }
+
+    let kept_nodes: Vec<Value> = nodes
+        .into_iter()
+        .filter(|n| !is_autoscale(n))
+        .map(|mut n| {
+            let id = id_of(&n);
+            let kind = n
+                .get("kind")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_owned();
+            if let Some(props) = n.get_mut("props").and_then(Value::as_object_mut) {
+                for (k, prop) in REMOVED_IN_V2 {
+                    if *k == kind {
+                        props.remove(*prop);
+                    }
+                }
+            }
+            if let Some((_, wrapper)) = joins.iter().find(|(card, _)| *card == id) {
+                n["group_id"] = Value::from(wrapper.clone());
+            }
+            n
+        })
+        .collect();
+    let kept_edges: Vec<Value> = edges
+        .into_iter()
+        .filter(|e| {
+            let touches = |k: &str| {
+                e.get(k)
+                    .and_then(Value::as_str)
+                    .is_some_and(|id| scaler_ids.iter().any(|s| s == id))
+            };
+            !touches("from") && !touches("to")
+        })
+        .collect();
+    obj.insert("nodes".into(), Value::from(kept_nodes));
+    obj.insert("edges".into(), Value::from(kept_edges));
+    if let Some(groups) = obj.get_mut("groups").and_then(Value::as_array_mut) {
+        groups.extend(new_groups);
+    }
+    value
 }
 
 /// The bytes written for a design: validated, pretty JSON, a final newline. The same
@@ -194,6 +334,7 @@ pub(crate) mod tests {
             position: Point { x: 280.0, y: 60.0 },
             size: Size { w: 760.0, h: 520.0 },
             parent_id: None,
+            scaling: None,
         });
         d.groups.push(Group {
             id: "az-1".into(),
@@ -202,6 +343,7 @@ pub(crate) mod tests {
             position: Point { x: 300.0, y: 100.0 },
             size: Size { w: 400.0, h: 300.0 },
             parent_id: Some("region-1".into()),
+            scaling: None,
         });
         d.nodes.push(node(
             "client-1",
@@ -377,6 +519,103 @@ pub(crate) mod tests {
         );
         assert!(!path.exists());
         assert!(!temp_path(&path).exists());
+    }
+
+    /// A v1 file as M0 wrote it: an Autoscaling card wired to two app servers, an SQL card
+    /// with read replicas and a CDN with a hit rate.
+    fn v1_file() -> Value {
+        serde_json::json!({
+            "schema_version": 1, "id": "d1", "name": "Old", "problem_id": null,
+            "nodes": [
+                { "id": "app-1", "kind": "app", "flavour": "go", "label": "", "position": { "x": 100, "y": 100 },
+                  "props": {}, "group_id": "az-1" },
+                { "id": "app-2", "kind": "app", "flavour": "go", "label": "", "position": { "x": 400, "y": 100 },
+                  "props": {}, "group_id": "az-1" },
+                { "id": "hpa", "kind": "autoscale", "flavour": "kubernetes_hpa", "label": "web tier",
+                  "position": { "x": 250, "y": 300 }, "props": { "max_instances": 8 }, "group_id": null },
+                { "id": "db", "kind": "sql", "flavour": "postgresql", "label": "", "position": { "x": 250, "y": 500 },
+                  "props": { "read_replicas": 2, "shards": 1 }, "group_id": null },
+                { "id": "cdn", "kind": "cdn", "flavour": "fastly", "label": "", "position": { "x": 0, "y": 0 },
+                  "props": { "hit_rate": 90, "ttl_s": 60 }, "group_id": null }
+            ],
+            "edges": [
+                { "id": "e1", "from": "hpa", "to": "app-1", "protocol": "http" },
+                { "id": "e2", "from": "hpa", "to": "app-2", "protocol": "http" },
+                { "id": "e3", "from": "app-1", "to": "db", "protocol": "query" }
+            ],
+            "groups": [
+                { "id": "az-1", "kind": "az", "label": "AZ a", "position": { "x": 0, "y": 0 },
+                  "size": { "w": 800, "h": 400 }, "parent_id": null }
+            ],
+            "notes": [],
+            "viewport": { "x": 0, "y": 0, "zoom": 1 }
+        })
+    }
+
+    #[test]
+    fn v1_autoscaling_cards_become_wrappers_around_what_they_scaled() {
+        let d = parse(v1_file().to_string().as_bytes(), &registry()).unwrap();
+        assert_eq!(d.schema_version, SCHEMA_VERSION);
+        assert!(d.nodes.iter().all(|n| n.kind != ComponentKind::Autoscale));
+        assert_eq!(
+            d.edges.iter().map(|e| e.id.as_str()).collect::<Vec<_>>(),
+            ["e3"]
+        );
+        let w = d
+            .groups
+            .iter()
+            .find(|g| g.id == "hpa")
+            .expect("the wrapper");
+        assert_eq!(w.kind, GroupKind::Autoscale);
+        assert_eq!(w.label, "web tier");
+        assert_eq!(w.parent_id.as_deref(), Some("az-1"));
+        let s = w.scaling.as_ref().unwrap();
+        assert_eq!(s.flavour, Flavour::KubernetesHpa);
+        assert_eq!(s.props.get("max_instances"), Some(&PropValue::Number(8.0)));
+        // The frame wraps both apps with padding; both joined it.
+        assert_eq!(
+            (w.position.x, w.position.y),
+            (100.0 - WRAP_PAD, 100.0 - WRAP_PAD)
+        );
+        assert_eq!(
+            (w.size.w, w.size.h),
+            (300.0 + CARD.0 + 2.0 * WRAP_PAD, CARD.1 + 2.0 * WRAP_PAD)
+        );
+        assert!(
+            d.nodes
+                .iter()
+                .filter(|n| n.kind == ComponentKind::App)
+                .all(|n| n.group_id.as_deref() == Some("hpa"))
+        );
+        // Re-saving writes v2, which reads back identically.
+        let bytes = to_bytes(&d, &registry()).unwrap();
+        assert_eq!(parse(&bytes, &registry()).unwrap(), d);
+    }
+
+    #[test]
+    fn an_unwired_v1_autoscaler_becomes_a_frame_at_its_position() {
+        let mut v = v1_file();
+        v["edges"] = serde_json::json!([]);
+        let d = parse(v.to_string().as_bytes(), &registry()).unwrap();
+        let w = d.groups.iter().find(|g| g.id == "hpa").unwrap();
+        assert_eq!((w.position.x, w.position.y), (250.0, 300.0));
+        assert_eq!(w.parent_id, None);
+    }
+
+    #[test]
+    fn v2_drops_sql_read_replicas() {
+        let d = parse(v1_file().to_string().as_bytes(), &registry()).unwrap();
+        let db = d.nodes.iter().find(|n| n.id == "db").unwrap();
+        assert!(!db.props.contains_key("read_replicas"));
+        assert_eq!(db.props.get("shards"), Some(&PropValue::Number(1.0)));
+    }
+
+    #[test]
+    fn v2_drops_cdn_hit_rate() {
+        let d = parse(v1_file().to_string().as_bytes(), &registry()).unwrap();
+        let cdn = d.nodes.iter().find(|n| n.id == "cdn").unwrap();
+        assert!(!cdn.props.contains_key("hit_rate"));
+        assert_eq!(cdn.props.get("ttl_s"), Some(&PropValue::Number(60.0)));
     }
 
     #[test]

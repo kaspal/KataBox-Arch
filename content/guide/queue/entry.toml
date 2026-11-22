@@ -1,0 +1,151 @@
+kind = "queue"
+one_liner = "A buffer that holds work until a consumer is free to do it."
+one_liner_es = "Un búfer que guarda el trabajo hasta que un consumidor está libre para hacerlo."
+
+use_when = [
+  "The caller doesn't need the result to answer the user",
+  "Traffic comes in bursts that the workers can't take at once",
+  "The work is slow or calls an unreliable provider",
+  "Each message should be handled by exactly one consumer",
+]
+use_when_es = [
+  "Quien llama no necesita el resultado para responder al usuario",
+  "El tráfico llega en ráfagas que los workers no pueden asumir de golpe",
+  "El trabajo es lento o llama a un proveedor poco fiable",
+  "Cada mensaje debe procesarlo un solo consumidor",
+]
+skip_when = [
+  "The user is waiting for the answer in the same request",
+  "Many independent consumers each need every message",
+  "Consumers must re-read old messages later",
+  "The work is fast and the load is steady",
+]
+skip_when_es = [
+  "El usuario espera la respuesta en la misma petición",
+  "Muchos consumidores independientes necesitan cada mensaje",
+  "Los consumidores tienen que volver a leer mensajes antiguos",
+  "El trabajo es rápido y la carga es estable",
+]
+
+formula = "publish acknowledged after the hop + publish latency; the message waits (up to max depth, else dropped) for any free consumer slot; a failure retries with doubling backoff up to max retries, then goes to a wired DLQ or is lost"
+formula_es = "publicación confirmada tras el salto + latencia de publicación; el mensaje espera (hasta la profundidad máxima, si no se descarta) a un hueco libre de consumidor; un fallo reintenta con espera que se duplica hasta el máximo de reintentos, y luego va a una DLQ conectada o se pierde"
+
+gains = [
+  "The caller answers fast and is released at once",
+  "Bursts become a backlog instead of errors",
+  "Failed work is retried without the user noticing",
+]
+gains_es = [
+  "Quien llama responde rápido y queda libre al momento",
+  "Las ráfagas se convierten en una cola pendiente en lugar de errores",
+  "El trabajo fallido se reintenta sin que el usuario lo note",
+]
+costs = [
+  "The work finishes later, and the user can't see when",
+  "A backlog can grow without limit if consumers are too few",
+  "Messages can arrive twice, so consumers must be idempotent",
+]
+costs_es = [
+  "El trabajo termina más tarde, y el usuario no ve cuándo",
+  "La cola pendiente puede crecer sin límite si hay pocos consumidores",
+  "Los mensajes pueden llegar dos veces, así que los consumidores deben ser idempotentes",
+]
+
+works_with = ["app", "worker", "dlq", "scheduler", "autoscale"]
+practice = ["flash-sale", "job-scheduler", "notifications", "online-judge", "video-streaming", "web-crawler"]
+
+interview_tip = "Say who publishes, who consumes, how many retries there are, and where a message goes when it keeps failing."
+interview_tip_es = "Di quién publica, quién consume, cuántos reintentos hay y adónde va un mensaje que sigue fallando."
+
+[[sim]]
+prop = "max_depth"
+note = "Messages the queue holds while they wait. A publish to a full queue is dropped and the caller gets an error."
+note_es = "Mensajes que la cola guarda mientras esperan. Una publicación en una cola llena se descarta y quien llama recibe un error."
+
+[[sim]]
+prop = "max_retries"
+note = "How many times a failed message is tried again, each wait twice the last. Then it goes to a wired DLQ, or is lost."
+note_es = "Cuántas veces se vuelve a intentar un mensaje fallido, cada espera el doble que la anterior. Luego va a una DLQ conectada, o se pierde."
+
+[[sim]]
+sim = "service_ms"
+note = "How long the broker takes to store a publish before it acknowledges it. SQS answers over HTTPS, so it is slower."
+note_es = "Lo que tarda el broker en guardar una publicación antes de confirmarla. SQS responde por HTTPS, así que es más lento."
+
+[[sim]]
+cost = "per_instance_month"
+note = "A fixed monthly price for the broker."
+note_es = "Un precio mensual fijo por el broker."
+
+[[sim]]
+cost = "per_million"
+note = "Plus a price for every million messages it accepts."
+note_es = "Más un precio por cada millón de mensajes que acepta."
+
+[flavours_compared]
+flavours = ["rabbitmq", "sqs"]
+
+[[flavours_compared.rows]]
+label = "Who runs it"
+label_es = "Quién lo opera"
+cells = ["You, or a hosted service", "AWS, fully managed"]
+cells_es = ["Tú, o un servicio alojado", "AWS, totalmente gestionado"]
+
+[[flavours_compared.rows]]
+label = "Protocol"
+label_es = "Protocolo"
+cells = ["AMQP and others", "An HTTPS API"]
+cells_es = ["AMQP y otros", "Una API HTTPS"]
+
+[[flavours_compared.rows]]
+label = "Delivery"
+label_es = "Entrega"
+cells = ["The broker pushes to consumers", "Consumers poll for messages"]
+cells_es = ["El broker empuja a los consumidores", "Los consumidores sondean en busca de mensajes"]
+
+[[flavours_compared.rows]]
+label = "Routing"
+label_es = "Enrutado"
+cells = ["Exchanges route messages to queues by rules", "None: you send to a named queue"]
+cells_es = ["Los exchanges enrutan mensajes a colas según reglas", "Ninguno: envías a una cola con nombre"]
+
+[[flavours_compared.rows]]
+label = "Dead-lettering"
+label_es = "Mensajes fallidos"
+cells = ["Dead-letter exchanges", "A redrive policy to another queue"]
+cells_es = ["Exchanges de mensajes fallidos", "Una política de redrive hacia otra cola"]
+
+[[pitfalls]]
+title = "Too few consumers"
+title_es = "Muy pocos consumidores"
+body = "Messages arrive faster than the workers finish them. The backlog grows, completion time climbs, and in the end the queue is full and publishes fail."
+body_es = "Los mensajes llegan más rápido de lo que los workers los terminan. La cola pendiente crece, el tiempo de finalización sube y al final la cola se llena y las publicaciones fallan."
+fix = "Add worker instances or concurrency until they drain faster than the peak rate, or autoscale them."
+fix_es = "Añade instancias o concurrencia a los workers hasta que vacíen más rápido que el pico, o autoescálalos."
+
+[[pitfalls]]
+title = "Retries with nowhere to go"
+title_es = "Reintentos sin destino"
+body = "A provider is down for longer than the retries last. Every message runs out of retries and, with no dead-letter queue, it is lost for good."
+body_es = "Un proveedor cae durante más tiempo del que duran los reintentos. Cada mensaje agota sus reintentos y, sin cola de mensajes fallidos, se pierde para siempre."
+fix = "Wire a DLQ to the queue so exhausted messages are kept and can be replayed."
+fix_es = "Conecta una DLQ a la cola para que los mensajes agotados se guarden y puedan reprocesarse."
+seen_in = "notifications"
+
+[[pitfalls]]
+title = "Duplicate work"
+title_es = "Trabajo duplicado"
+body = "A consumer finishes the work but crashes before it acknowledges. The message becomes visible again and a second consumer does it twice."
+body_es = "Un consumidor termina el trabajo pero cae antes de confirmarlo. El mensaje vuelve a ser visible y un segundo consumidor lo hace dos veces."
+fix = "Make consumers idempotent, for example with a key stored per message, and set the visibility timeout above the slowest job."
+fix_es = "Haz los consumidores idempotentes, por ejemplo con una clave guardada por mensaje, y pon el tiempo de visibilidad por encima de la tarea más lenta."
+
+[[sources]]
+flavour = "rabbitmq"
+title = "RabbitMQ documentation"
+url = "https://www.rabbitmq.com/docs"
+
+[[sources]]
+flavour = "sqs"
+title = "Amazon SQS documentation"
+url = "https://docs.aws.amazon.com/sqs/"

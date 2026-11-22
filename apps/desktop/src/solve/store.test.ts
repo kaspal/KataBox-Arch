@@ -34,7 +34,7 @@ describe("editor store", () => {
     s().addEdge(a, b, "http");
     s().addNote({ x: 0, y: 200 });
     const design = toDesign(s());
-    expect(design.schema_version).toBe(1);
+    expect(design.schema_version).toBe(2);
     expect(fromDesign(design)).toEqual(s().doc);
     s().load(design, "C:/d.kbarch");
     expect(isDirty()).toBe(false);
@@ -156,5 +156,31 @@ describe("icons", () => {
     expect(icons.filter((i) => !GLYPHS[i])).toEqual([]);
     const kindGlyphs = REGISTRY.kinds.map((k) => GLYPHS[k.icon]);
     expect(new Set(kindGlyphs).size).toBe(25);
+  });
+});
+
+describe("autoscaling wrappers (F2)", () => {
+  const policy = { flavour: "kubernetes_hpa" as const, props: { min_instances: 2, max_instances: 8 } };
+
+  it("compute cards join the wrapper; other cards join the zone around it", () => {
+    const az = s().addGroup("az", { x: 0, y: 0 }); // 360 × 260
+    const asg = s().addGroup("autoscale", { x: 20, y: 20 }, policy); // 300 × 160
+    const app = s().addNode(REGISTRY, "app", "go", { x: 40, y: 40 });
+    const db = s().addNode(REGISTRY, "sql", "postgresql", { x: 40, y: 60 });
+    const g = s().doc.groups.find((x) => x.id === asg)!;
+    expect(g.parent_id).toBe(az);
+    expect(g.scaling).toEqual(policy);
+    expect(s().doc.nodes.find((n) => n.id === app)!.group_id).toBe(asg);
+    expect(s().doc.nodes.find((n) => n.id === db)!.group_id).toBe(az);
+    // Wrappers draw after zones.
+    expect(s().doc.groups.map((x) => x.kind)).toEqual(["az", "autoscale"]);
+  });
+
+  it("only wrappers carry a policy, and it can be edited", () => {
+    const region = s().addGroup("region", { x: 0, y: 0 }, policy);
+    expect(s().doc.groups.find((x) => x.id === region)!.scaling).toBeUndefined();
+    const asg = s().addGroup("autoscale", { x: 900, y: 0 }, policy);
+    s().updateScaling(asg, { ...policy, props: { ...policy.props, max_instances: 20 } });
+    expect(s().doc.groups.find((x) => x.id === asg)!.scaling!.props.max_instances).toBe(20);
   });
 });

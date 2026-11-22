@@ -1,0 +1,57 @@
+id = "fan-out"
+number = 3
+
+title = "Fan-out"
+title_es = "Fan-out"
+
+one_liner = "Publish an event once and let every interested service receive its own copy."
+one_liner_es = "Publica un evento una vez y deja que cada servicio interesado reciba su propia copia."
+
+problem = "One action has to trigger work in several places, and doing it all inside the request makes it slow and fragile."
+problem_es = "Una acción tiene que disparar trabajo en varios sitios, y hacerlo todo dentro de la petición la vuelve lenta y frágil."
+
+use_when = [
+  "Several independent consumers react to the same event",
+  "The caller does not need to wait for the follow-up work",
+  "New consumers will be added over time",
+]
+use_when_es = [
+  "Varios consumidores independientes reaccionan al mismo evento",
+  "Quien llama no necesita esperar al trabajo posterior",
+  "Se irán añadiendo consumidores con el tiempo",
+]
+
+gains = [
+  "The request returns as soon as the event is published",
+  "Each consumer scales and fails on its own",
+  "Adding a consumer needs no change to the publisher",
+]
+gains_es = [
+  "La petición vuelve en cuanto se publica el evento",
+  "Cada consumidor escala y falla por su cuenta",
+  "Añadir un consumidor no exige cambiar al publicador",
+]
+
+costs = [
+  "Work multiplies: one event becomes one job per subscriber",
+  "Consumers finish at different times, so the system is only eventually consistent",
+  "Tracing one action across many consumers is harder",
+]
+costs_es = [
+  "El trabajo se multiplica: un evento se convierte en un trabajo por suscriptor",
+  "Los consumidores terminan en momentos distintos, así que el sistema solo es consistente a la larga",
+  "Seguir una acción a través de muchos consumidores es más difícil",
+]
+
+kinds = [
+  "app",
+  "pubsub",
+  "worker",
+]
+practice = [
+  "news-feed",
+  "chat",
+]
+
+in_simulator = "Mostly: pub/sub sends one copy to every subscriber and the message completes when all are done; where a problem has a fan-out size, the work per message grows with it. Ordering and duplicate delivery are not modelled."
+in_simulator_es = "Casi todo: el pub/sub envía una copia a cada suscriptor y el mensaje termina cuando acaban todos; si un problema tiene un tamaño de fan-out, el trabajo por mensaje crece con él. El orden y la entrega duplicada no se modelan."

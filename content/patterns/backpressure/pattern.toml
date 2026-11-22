@@ -1,0 +1,57 @@
+id = "backpressure"
+number = 9
+
+title = "Backpressure"
+title_es = "Contrapresión"
+
+one_liner = "When a stage falls behind, push back on the stage before it instead of piling up work."
+one_liner_es = "Cuando una etapa se queda atrás, frena a la anterior en lugar de acumular trabajo."
+
+problem = "Work arrives faster than a stage can finish it, and unbounded buffers grow until latency is huge or the process runs out of memory."
+problem_es = "El trabajo llega más rápido de lo que una etapa puede terminarlo, y los búferes sin límite crecen hasta que la latencia es enorme o el proceso se queda sin memoria."
+
+use_when = [
+  "Producers can outrun consumers, even for a short time",
+  "Queues or buffers sit between stages",
+  "Refusing or delaying work is safer than accepting it all",
+]
+use_when_es = [
+  "Los productores pueden ir más rápido que los consumidores, aunque sea un rato",
+  "Hay colas o búferes entre etapas",
+  "Rechazar o retrasar trabajo es más seguro que aceptarlo todo",
+]
+
+gains = [
+  "Memory and queue depth stay bounded",
+  "Overload shows up early and clearly, at the edge",
+  "Work already accepted still finishes in reasonable time",
+]
+gains_es = [
+  "La memoria y la profundidad de las colas se mantienen acotadas",
+  "La sobrecarga aparece pronto y con claridad, en el borde",
+  "El trabajo ya aceptado sigue terminando en un tiempo razonable",
+]
+
+costs = [
+  "Some requests are refused or delayed at peak",
+  "Producers need retry logic that waits and backs off",
+  "Bounds must be chosen with care: too small refuses good bursts, too large hides trouble",
+]
+costs_es = [
+  "Algunas peticiones se rechazan o se retrasan en el pico",
+  "Los productores necesitan reintentos que esperen y se espacien",
+  "Los límites se eligen con cuidado: muy pequeños rechazan ráfagas buenas, muy grandes esconden problemas",
+]
+
+kinds = [
+  "app",
+  "queue",
+  "worker",
+]
+practice = [
+  "flash-sale",
+  "job-scheduler",
+]
+
+in_simulator = "Partly: every queue is bounded, a full broker or server queue refuses new work, and slow workers make the queue grow; but producers never slow down on their own, so the push back shows as drops and errors."
+in_simulator_es = "En parte: cada cola tiene límite, una cola de broker o de servidor llena rechaza trabajo nuevo y los workers lentos hacen crecer la cola; pero los productores nunca frenan por su cuenta, así que la contrapresión se ve como descartes y errores."

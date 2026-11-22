@@ -1,7 +1,7 @@
 // The free-form canvas (ADR 0004): React Flow drawing the editor store. Cards go
 // anywhere (8 px snapping, Alt to place freely), edges are curves that follow, wiring is
 // checked against Rust's rule table as you drag, and everything works from the keyboard.
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Background,
   BackgroundVariant,
@@ -28,17 +28,45 @@ import { CanvasContext, useCanvas } from "@/solve/context";
 import { ConnectionLine } from "@/solve/edges/ConnectionLine";
 import { CurvedEdge, type CurvedFlowEdge } from "@/solve/edges/CurvedEdge";
 import { FloatingPicker } from "@/solve/FloatingPicker";
+import { assignSlots } from "@/solve/geometry/slots";
 import { cycle, nearestInDirection, type Direction, type Placed } from "@/solve/keyboardWiring";
 import { registerCanvasAdd, type AddRequest } from "@/solve/bridge";
 import { ComponentCard, type CardFlowNode } from "@/solve/nodes/ComponentCard";
+import { PacketLayer } from "@/solve/run/PacketLayer";
 import { NoteNode, type NoteFlowNode } from "@/solve/nodes/NoteNode";
 import { ZoneNode, type ZoneFlowNode } from "@/solve/nodes/ZoneNode";
-import { flavourName, kindName, kindSpec } from "@/solve/registry";
+import { defaultProps, flavourName, kindName, kindSpec } from "@/solve/registry";
 import { CARD_H, CARD_W, NOTE_SIZE, ZONE_SIZE, useEditor } from "@/solve/store";
 import { checkWire, makeWiring } from "@/solve/wiring";
 
 export const KIND_MIME = "application/x-katabox-arch-item";
 export const GRID = 8;
+/** "Fit the design" never zooms out past this: card text stays readable (F5). */
+export const FIT_MIN_ZOOM = 0.8;
+
+/** True once `el` has a size. React Flow warns when it mounts in a 0×0 box (F6), which
+ * happens for a moment while the resizable panels measure themselves. */
+function useHasSize(ref: React.RefObject<HTMLElement | null>): boolean {
+  const [ready, setReady] = useState(false);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const check = () => el.clientWidth > 0 && el.clientHeight > 0;
+    if (check()) {
+      setReady(true);
+      return;
+    }
+    const ro = new ResizeObserver(() => {
+      if (check()) {
+        setReady(true);
+        ro.disconnect();
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+  return ready;
+}
 
 const nodeTypes: NodeTypes = { component: ComponentCard, zone: ZoneNode, note: NoteNode };
 const edgeTypes: EdgeTypes = { curved: CurvedEdge };
@@ -101,6 +129,7 @@ function CanvasInner() {
   const [connect, setConnect] = useState<{ from: string; target: string | null } | null>(null);
   const [announce, setAnnounce] = useState("");
   const snapping = snap && !alt;
+  const sized = useHasSize(wrapper);
 
   // --- What React Flow draws -------------------------------------------------------
   const selected = useMemo(() => new Set(selection), [selection]);
@@ -115,6 +144,7 @@ function CanvasInner() {
       position: g.position,
       data: { group: g },
       width: g.size.w,
+      measured: { width: g.size.w, height: g.size.h },
       height: g.size.h,
       style: { width: g.size.w, height: g.size.h },
       className: "kb-zone",
@@ -129,6 +159,7 @@ function CanvasInner() {
       position: n.position,
       data: { note: n, maxLength: registry.limits.max_note },
       width: n.size.w,
+      measured: { width: n.size.w, height: n.size.h },
       height: n.size.h,
       style: { width: n.size.w, height: n.size.h },
       selected: selected.has(n.id),
@@ -156,6 +187,17 @@ function CanvasInner() {
     return [...zones, ...notes, ...cards];
   }, [doc, selected, connect, connectCheck, registry, t, measured]);
 
+  // Edges sharing a side of a card spread into slots, from the cards' live boxes (F1).
+  const slots = useMemo(() => {
+    const rects = new Map(
+      doc.nodes.map((n) => {
+        const m = measured.get(n.id);
+        return [n.id, { x: n.position.x, y: n.position.y, w: m?.width ?? CARD_W, h: m?.height ?? CARD_H }];
+      }),
+    );
+    return assignSlots(doc.edges, rects);
+  }, [doc.nodes, doc.edges, measured]);
+
   const edges = useMemo<CurvedFlowEdge[]>(
     () =>
       doc.edges.map((e) => ({
@@ -163,10 +205,10 @@ function CanvasInner() {
         source: e.from,
         target: e.to,
         type: "curved",
-        data: { protocol: e.protocol },
+        data: { protocol: e.protocol, slots: slots.get(e.id) },
         selected: selected.has(e.id),
       })),
-    [doc.edges, selected],
+    [doc.edges, selected, slots],
   );
 
   // --- Changes from React Flow ----------------------------------------------------
@@ -181,8 +223,13 @@ function CanvasInner() {
         if (c.type === "position" && c.position) {
           moves.push({ id: c.id, position: { x: c.position.x, y: c.position.y } });
         } else if (c.type === "dimensions" && c.dimensions) {
-          sizes.current.set(c.id, { w: c.dimensions.width, h: c.dimensions.height });
-          sized = true;
+          // Only a real change re-renders: a fresh map on every report feeds React Flow's
+          // ResizeObserver back into itself (a loop, 60 times a second, with zones on screen).
+          const prev = sizes.current.get(c.id);
+          if (!prev || prev.w !== c.dimensions.width || prev.h !== c.dimensions.height) {
+            sizes.current.set(c.id, { w: c.dimensions.width, h: c.dimensions.height });
+            sized = true;
+          }
           if (c.setAttributes) {
             const size = { w: c.dimensions.width, h: c.dimensions.height };
             if (s.doc.groups.some((g) => g.id === c.id)) s.updateGroup(c.id, { size });
@@ -251,16 +298,30 @@ function CanvasInner() {
     [snapping],
   );
 
+  /** A card, or for a wrapper kind (Autoscaling) a frame holding its policy. */
+  const placeKind = useCallback(
+    (kind: ComponentKind, flavour: Flavour, centre: Point) => {
+      const spec = kindSpec(registry, kind);
+      if (spec.placement === "wrapper") {
+        store().addGroup("autoscale", placeAt(centre, ZONE_SIZE.autoscale), { flavour, props: defaultProps(spec, flavour) });
+      } else {
+        store().addNode(registry, kind, flavour, placeAt(centre, { w: CARD_W, h: CARD_H }));
+      }
+    },
+    [placeAt, registry, store],
+  );
+
   const add = useCallback(
     (req: AddRequest, at?: { flow: Point; local: Point }) => {
       const where = at ?? viewportCentre();
       const s = store();
-      if ("kind" in req) {
+      if ("pattern" in req) {
+        s.insertDesign(req.pattern, where.flow);
+      } else if ("kind" in req) {
         if (req.pick) {
           setPicker({ type: "flavour", kind: req.kind, at: where.flow, screen: where.local });
         } else {
-          const spec = kindSpec(registry, req.kind);
-          s.addNode(registry, req.kind, spec.default_flavour, placeAt(where.flow, { w: CARD_W, h: CARD_H }));
+          placeKind(req.kind, kindSpec(registry, req.kind).default_flavour, where.flow);
         }
       } else if (req.meta === "note") {
         s.addNote(placeAt(where.flow, NOTE_SIZE));
@@ -268,10 +329,13 @@ function CanvasInner() {
         s.addGroup(req.meta, placeAt(where.flow, ZONE_SIZE[req.meta]));
       }
     },
-    [placeAt, registry, store, viewportCentre],
+    [placeAt, placeKind, registry, store, viewportCentre],
   );
 
-  useEffect(() => registerCanvasAdd((req) => add(req)), [add]);
+  // Take add requests (palette, patterns) only once React Flow has its viewport: before
+  // that, screen-to-flow conversion is wrong and inserted items land off screen.
+  const [rfReady, setRfReady] = useState(false);
+  useEffect(() => (rfReady ? registerCanvasAdd((req) => add(req)) : undefined), [add, rfReady]);
 
   // --- Drag and drop from the library ----------------------------------------------
   const onDragOver = (e: React.DragEvent) => {
@@ -401,7 +465,7 @@ function CanvasInner() {
   // --- Picker results --------------------------------------------------------------
   const pickFlavour = (p: Extract<Picker, { type: "flavour" }>, flavour: Flavour) => {
     setPicker(null);
-    store().addNode(registry, p.kind, flavour, placeAt(p.at, { w: CARD_W, h: CARD_H }));
+    placeKind(p.kind, flavour, p.at);
     wrapper.current?.focus();
   };
   const pickProtocol = (p: Extract<Picker, { type: "protocol" }>, protocol: Protocol) => {
@@ -421,12 +485,14 @@ function CanvasInner() {
       tabIndex={-1}
       data-testid="canvas"
     >
+      {sized && (
       <ReactFlow<FlowNode, CurvedFlowEdge>
         key={doc.id}
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
+        onInit={() => setRfReady(true)}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeDragStart={beginDrag}
@@ -449,6 +515,7 @@ function CanvasInner() {
         maxZoom={2.5}
       >
         <Background variant={BackgroundVariant.Dots} gap={16} size={1.3} color="var(--canvas-dot)" bgColor="var(--canvas)" />
+        <PacketLayer />
         <MiniMap
           pannable
           zoomable
@@ -469,6 +536,7 @@ function CanvasInner() {
         />
         <ZoomControls />
       </ReactFlow>
+      )}
 
       {picker?.type === "flavour" && (
         <FloatingPicker
@@ -537,7 +605,7 @@ function ZoomControls() {
             size="icon"
             className={btn}
             aria-label={t("canvas.fit")}
-            onClick={() => void rf.fitView({ padding: 0.2, duration: 200 })}
+            onClick={() => void rf.fitView({ padding: 0.2, duration: 200, minZoom: FIT_MIN_ZOOM })}
           >
             <Maximize aria-hidden className="size-4" />
           </Button>

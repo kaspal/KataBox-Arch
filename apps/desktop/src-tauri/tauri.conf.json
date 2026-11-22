@@ -42,7 +42,8 @@
       "icons/icon.ico"
     ],
     "resources": {
-      "resources/THIRD_PARTY_NOTICES.txt": "THIRD_PARTY_NOTICES.txt"
+      "resources/THIRD_PARTY_NOTICES.txt": "THIRD_PARTY_NOTICES.txt",
+      "resources/content.db": "content.db"
     },
     "category": "Education",
     "shortDescription": "Offline system design practice: build, simulate and grade architectures",

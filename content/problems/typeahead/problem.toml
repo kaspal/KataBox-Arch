@@ -1,0 +1,48 @@
+id = "typeahead"
+number = 10
+set = 1
+difficulty = "medium"
+title = "Typeahead"
+title_es = "Autocompletado"
+teaches = "Cache popular prefixes in front of a search index"
+teaches_es = "Cachear los prefijos populares delante de un índice de búsqueda"
+tags = ["search", "caching", "latency"]
+
+[nfr]
+peak_rps = 6000
+p95_ms = 60
+availability = 0.999
+budget_usd = 3000
+
+[[request_types]]
+id = "keystroke"
+name = "Suggestions for a prefix"
+name_es = "Sugerencias para un prefijo"
+share = 1.0
+route = ["edge?", "compute", "cache?", "datastore:search"]
+key_space = 200_000
+key_skew = { zipf = 1.1 }
+cacheable = true
+
+[[tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "trending"
+name = "Everyone types the same thing"
+name_es = "Todos escriben lo mismo"
+hidden = true
+traffic = { spike = { at = 20, x = 3, for = 20 } }
+key_skew_override = { zipf = 1.5 }
+
+[[tests]]
+id = "reindex"
+name = "The index rebuilds"
+name_es = "El índice se reconstruye"
+hidden = true
+chaos = [{ latency = { kind = "search", all = true, add_ms = 200, at = 10, for = 40 } }]
+
+[pass]
+error_rate = 0.001

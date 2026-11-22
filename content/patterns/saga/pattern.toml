@@ -1,0 +1,54 @@
+id = "saga"
+number = 5
+
+title = "Saga"
+title_es = "Saga"
+
+one_liner = "A long transaction split into local steps, each with an action that undoes it."
+one_liner_es = "Una transacción larga dividida en pasos locales, cada uno con una acción que lo deshace."
+
+problem = "A business operation spans several services, each with its own database, and there is no single transaction that covers them all."
+problem_es = "Una operación de negocio abarca varios servicios, cada uno con su propia base de datos, y no hay una sola transacción que los cubra todos."
+
+use_when = [
+  "One operation changes data owned by several services",
+  "A step can fail after earlier steps have committed",
+  "Every step has a sensible way to be undone",
+]
+use_when_es = [
+  "Una operación cambia datos de varios servicios",
+  "Un paso puede fallar después de que los anteriores se hayan confirmado",
+  "Cada paso tiene una forma razonable de deshacerse",
+]
+
+gains = [
+  "No locks held across services while the operation runs",
+  "Each service keeps its own database and its own transactions",
+  "Failures end in a known, consistent state",
+]
+gains_es = [
+  "No se mantienen bloqueos entre servicios mientras dura la operación",
+  "Cada servicio conserva su propia base de datos y sus propias transacciones",
+  "Los fallos terminan en un estado conocido y consistente",
+]
+
+costs = [
+  "Others can see the half-finished state between steps",
+  "Writing and testing a compensation for every step is real work",
+  "Steps and compensations must be safe to retry",
+]
+costs_es = [
+  "Otros pueden ver el estado a medio terminar entre pasos",
+  "Escribir y probar una compensación para cada paso es trabajo de verdad",
+  "Los pasos y las compensaciones deben poder reintentarse sin riesgo",
+]
+
+kinds = [
+  "app",
+  "micro",
+  "sql",
+]
+practice = []
+
+in_simulator = "Not simulated: the calls are simulated like any other requests, but the engine has no compensations and no saga state; the template shows where the orchestrator and its log go."
+in_simulator_es = "No se simula: las llamadas se simulan como cualquier otra petición, pero el motor no tiene compensaciones ni estado de saga; la plantilla muestra dónde van el orquestador y su registro."

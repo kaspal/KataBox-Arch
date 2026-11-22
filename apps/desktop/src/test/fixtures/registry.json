@@ -2172,26 +2172,20 @@
     },
     {
       "from": "autoscale",
-      "protocols": [
-        "http"
-      ],
-      "reason": null,
+      "protocols": [],
+      "reason": "no_rule",
       "to": "app"
     },
     {
       "from": "autoscale",
-      "protocols": [
-        "http"
-      ],
-      "reason": null,
+      "protocols": [],
+      "reason": "no_rule",
       "to": "micro"
     },
     {
       "from": "autoscale",
-      "protocols": [
-        "http"
-      ],
-      "reason": null,
+      "protocols": [],
+      "reason": "no_rule",
       "to": "worker"
     },
     {
@@ -4393,18 +4387,32 @@
         "default_flavour": "web",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.0
+            },
             "flavour": "web",
-            "overrides": []
+            "overrides": [],
+            "sim": null
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.0
+            },
             "flavour": "mobile",
-            "overrides": []
+            "overrides": [],
+            "sim": null
           }
         ],
         "icon": "client",
         "kind": "client",
+        "placement": "card",
         "props": [
           {
+            "calibration": null,
             "default": 1000,
             "key": "rps",
             "ty": {
@@ -4423,18 +4431,44 @@
         "default_flavour": "route53",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.4
+            },
             "flavour": "route53",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 0.2
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.4
+            },
             "flavour": "cloudflare_dns",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 0.2
+            }
           }
         ],
         "icon": "dns",
         "kind": "dns",
+        "placement": "card",
         "props": [
           {
+            "calibration": null,
             "default": 300,
             "key": "ttl_s",
             "ty": {
@@ -4453,33 +4487,60 @@
         "default_flavour": "cloudfront",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.75
+            },
             "flavour": "cloudfront",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 100000.0,
+              "service_ms": 2.0
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.75
+            },
             "flavour": "cloudflare_cdn",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 100000.0,
+              "service_ms": 2.0
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.75
+            },
             "flavour": "fastly",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 100000.0,
+              "service_ms": 2.0
+            }
           }
         ],
         "icon": "cdn",
         "kind": "cdn",
+        "placement": "card",
         "props": [
           {
-            "default": 80,
-            "key": "hit_rate",
-            "ty": {
-              "max": 100.0,
-              "min": 0.0,
-              "step": 1.0,
-              "type": "float"
-            },
-            "unit": "percent"
-          },
-          {
+            "calibration": null,
             "default": 3600,
             "key": "ttl_s",
             "ty": {
@@ -4498,18 +4559,44 @@
         "default_flavour": "aws_waf",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 20.0,
+              "per_million": 0.6
+            },
             "flavour": "aws_waf",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 2000.0,
+              "service_ms": 1.0
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 20.0,
+              "per_million": 0.6
+            },
             "flavour": "cloudflare_waf",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 2000.0,
+              "service_ms": 1.0
+            }
           }
         ],
         "icon": "waf",
         "kind": "waf",
+        "placement": "card",
         "props": [
           {
+            "calibration": null,
             "default": 1,
             "key": "instances",
             "ty": {
@@ -4521,12 +4608,16 @@
             "unit": "count"
           },
           {
+            "calibration": {
+              "id": "waf.service_ms",
+              "status": "needed"
+            },
             "default": 1,
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -4539,31 +4630,81 @@
         "default_flavour": "nginx",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 25.0,
+              "per_million": 0.0
+            },
             "flavour": "nginx",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 0.5
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 25.0,
+              "per_million": 0.0
+            },
             "flavour": "haproxy",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 0.5
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 25.0,
+              "per_million": 0.0
+            },
             "flavour": "aws_alb",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 0.5
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 25.0,
+              "per_million": 0.0
+            },
             "flavour": "aws_nlb",
             "overrides": [
               {
                 "key": "service_ms",
                 "value": 0.2
               }
-            ]
+            ],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 0.5
+            }
           }
         ],
         "icon": "lb",
         "kind": "lb",
+        "placement": "card",
         "props": [
           {
+            "calibration": null,
             "default": 1,
             "key": "instances",
             "ty": {
@@ -4575,6 +4716,7 @@
             "unit": "count"
           },
           {
+            "calibration": null,
             "default": "round_robin",
             "key": "algorithm",
             "ty": {
@@ -4588,12 +4730,16 @@
             "unit": "none"
           },
           {
+            "calibration": {
+              "id": "lb.service_ms",
+              "status": "needed"
+            },
             "default": 0.5,
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -4606,18 +4752,44 @@
         "default_flavour": "kong",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 60.0,
+              "per_million": 1.0
+            },
             "flavour": "kong",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 256.0,
+              "service_ms": 2.0
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 60.0,
+              "per_million": 1.0
+            },
             "flavour": "aws_api_gateway",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 256.0,
+              "service_ms": 2.0
+            }
           }
         ],
         "icon": "gateway",
         "kind": "gateway",
+        "placement": "card",
         "props": [
           {
+            "calibration": null,
             "default": 2,
             "key": "instances",
             "ty": {
@@ -4629,6 +4801,10 @@
             "unit": "count"
           },
           {
+            "calibration": {
+              "id": "gateway.concurrency",
+              "status": "needed"
+            },
             "default": 256,
             "key": "concurrency",
             "ty": {
@@ -4640,12 +4816,16 @@
             "unit": "count"
           },
           {
+            "calibration": {
+              "id": "gateway.service_ms",
+              "status": "needed"
+            },
             "default": 2,
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -4658,18 +4838,44 @@
         "default_flavour": "envoy",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 30.0,
+              "per_million": 0.0
+            },
             "flavour": "envoy",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 0.3
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 30.0,
+              "per_million": 0.0
+            },
             "flavour": "redis_token_bucket",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 0.3
+            }
           }
         ],
         "icon": "ratelimit",
         "kind": "ratelimit",
+        "placement": "card",
         "props": [
           {
+            "calibration": null,
             "default": 1000,
             "key": "limit_rps",
             "ty": {
@@ -4681,6 +4887,7 @@
             "unit": "rps"
           },
           {
+            "calibration": null,
             "default": 100,
             "key": "burst",
             "ty": {
@@ -4699,36 +4906,90 @@
         "default_flavour": "nodejs",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_million": 0.0
+            },
             "flavour": "nodejs",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 64.0,
+              "service_ms": 10.0
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_million": 0.0
+            },
             "flavour": "spring_boot",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 64.0,
+              "service_ms": 10.0
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_million": 0.0
+            },
             "flavour": "go",
             "overrides": [
               {
                 "key": "service_ms",
                 "value": 5
               }
-            ]
+            ],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 64.0,
+              "service_ms": 10.0
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_million": 0.0
+            },
             "flavour": "django",
             "overrides": [
               {
                 "key": "service_ms",
                 "value": 20
+              },
+              {
+                "key": "concurrency",
+                "value": 9
               }
-            ]
+            ],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 64.0,
+              "service_ms": 10.0
+            }
           }
         ],
         "icon": "app",
         "kind": "app",
+        "placement": "card",
         "props": [
           {
+            "calibration": null,
             "default": 2,
             "key": "instances",
             "ty": {
@@ -4740,6 +5001,10 @@
             "unit": "count"
           },
           {
+            "calibration": {
+              "id": "app.concurrency",
+              "status": "needed"
+            },
             "default": 64,
             "key": "concurrency",
             "ty": {
@@ -4751,12 +5016,16 @@
             "unit": "count"
           },
           {
+            "calibration": {
+              "id": "app.service_ms",
+              "status": "needed"
+            },
             "default": 10,
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -4769,14 +5038,28 @@
         "default_flavour": "generic",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_million": 0.0
+            },
             "flavour": "generic",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 64.0,
+              "service_ms": 10.0
+            }
           }
         ],
         "icon": "micro",
         "kind": "micro",
+        "placement": "card",
         "props": [
           {
+            "calibration": null,
             "default": 2,
             "key": "instances",
             "ty": {
@@ -4788,6 +5071,10 @@
             "unit": "count"
           },
           {
+            "calibration": {
+              "id": "micro.concurrency",
+              "status": "needed"
+            },
             "default": 64,
             "key": "concurrency",
             "ty": {
@@ -4799,12 +5086,16 @@
             "unit": "count"
           },
           {
+            "calibration": {
+              "id": "micro.service_ms",
+              "status": "needed"
+            },
             "default": 10,
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -4817,18 +5108,49 @@
         "default_flavour": "celery",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_million": 0.0
+            },
             "flavour": "celery",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 8.0,
+              "service_ms": 100.0
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_million": 0.0
+            },
             "flavour": "sidekiq",
-            "overrides": []
+            "overrides": [
+              {
+                "key": "concurrency",
+                "value": 5
+              }
+            ],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 8.0,
+              "service_ms": 100.0
+            }
           }
         ],
         "icon": "worker",
         "kind": "worker",
+        "placement": "card",
         "props": [
           {
+            "calibration": null,
             "default": 2,
             "key": "instances",
             "ty": {
@@ -4840,6 +5162,10 @@
             "unit": "count"
           },
           {
+            "calibration": {
+              "id": "worker.concurrency",
+              "status": "needed"
+            },
             "default": 8,
             "key": "concurrency",
             "ty": {
@@ -4851,12 +5177,16 @@
             "unit": "count"
           },
           {
+            "calibration": {
+              "id": "worker.service_ms",
+              "status": "needed"
+            },
             "default": 100,
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -4869,23 +5199,56 @@
         "default_flavour": "aws_lambda",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.5
+            },
             "flavour": "aws_lambda",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 0.0,
+              "servers_per_instance": 1.0,
+              "service_ms": 20.0
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.5
+            },
             "flavour": "cloud_run",
             "overrides": [
               {
                 "key": "cold_start_ms",
                 "value": 500
+              },
+              {
+                "key": "concurrency_limit",
+                "value": 8000
               }
-            ]
+            ],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 0.0,
+              "servers_per_instance": 1.0,
+              "service_ms": 20.0
+            }
           }
         ],
         "icon": "serverless",
         "kind": "serverless",
+        "placement": "card",
         "props": [
           {
+            "calibration": {
+              "id": "serverless.concurrency_limit",
+              "status": "needed"
+            },
             "default": 1000,
             "key": "concurrency_limit",
             "ty": {
@@ -4897,6 +5260,10 @@
             "unit": "count"
           },
           {
+            "calibration": {
+              "id": "serverless.cold_start_ms",
+              "status": "needed"
+            },
             "default": 250,
             "key": "cold_start_ms",
             "ty": {
@@ -4908,12 +5275,16 @@
             "unit": "ms"
           },
           {
+            "calibration": {
+              "id": "serverless.service_ms",
+              "status": "needed"
+            },
             "default": 20,
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -4926,18 +5297,32 @@
         "default_flavour": "kubernetes_hpa",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.0
+            },
             "flavour": "kubernetes_hpa",
-            "overrides": []
+            "overrides": [],
+            "sim": null
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.0
+            },
             "flavour": "aws_asg",
-            "overrides": []
+            "overrides": [],
+            "sim": null
           }
         ],
         "icon": "autoscale",
         "kind": "autoscale",
+        "placement": "wrapper",
         "props": [
           {
+            "calibration": null,
             "default": 2,
             "key": "min_instances",
             "ty": {
@@ -4949,6 +5334,7 @@
             "unit": "count"
           },
           {
+            "calibration": null,
             "default": 10,
             "key": "max_instances",
             "ty": {
@@ -4960,6 +5346,7 @@
             "unit": "count"
           },
           {
+            "calibration": null,
             "default": 60,
             "key": "target_util",
             "ty": {
@@ -4971,6 +5358,7 @@
             "unit": "percent"
           },
           {
+            "calibration": null,
             "default": 60,
             "key": "scale_delay_s",
             "ty": {
@@ -4989,29 +5377,49 @@
         "default_flavour": "postgresql",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 350.0,
+              "per_million": 0.0
+            },
             "flavour": "postgresql",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 30.0,
+              "p99_ratio": 5.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 100.0,
+              "service_ms": 5.0
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 350.0,
+              "per_million": 0.0
+            },
             "flavour": "mysql",
-            "overrides": []
+            "overrides": [
+              {
+                "key": "concurrency",
+                "value": 151
+              }
+            ],
+            "sim": {
+              "failover_s": 30.0,
+              "p99_ratio": 5.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 100.0,
+              "service_ms": 5.0
+            }
           }
         ],
         "icon": "sql",
         "kind": "sql",
+        "placement": "card",
         "props": [
           {
-            "default": 0,
-            "key": "read_replicas",
-            "ty": {
-              "max": 15.0,
-              "min": 0.0,
-              "step": 1.0,
-              "type": "int"
-            },
-            "unit": "count"
-          },
-          {
+            "calibration": null,
             "default": 1,
             "key": "shards",
             "ty": {
@@ -5023,6 +5431,10 @@
             "unit": "count"
           },
           {
+            "calibration": {
+              "id": "sql.concurrency",
+              "status": "needed"
+            },
             "default": 100,
             "key": "concurrency",
             "ty": {
@@ -5034,17 +5446,25 @@
             "unit": "count"
           },
           {
+            "calibration": {
+              "id": "sql.service_ms",
+              "status": "needed"
+            },
             "default": 5,
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
           },
           {
+            "calibration": {
+              "id": "sql.replication_lag_ms",
+              "status": "needed"
+            },
             "default": 50,
             "key": "replication_lag_ms",
             "ty": {
@@ -5054,6 +5474,21 @@
               "type": "float"
             },
             "unit": "ms"
+          },
+          {
+            "calibration": {
+              "id": "sql.failover_s",
+              "status": "needed"
+            },
+            "default": 30,
+            "key": "failover_s",
+            "ty": {
+              "max": 600.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "s"
           }
         ]
       },
@@ -5063,22 +5498,60 @@
         "default_flavour": "dynamodb",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 120.0,
+              "per_million": 0.5
+            },
             "flavour": "dynamodb",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 5.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 8.0,
+              "service_ms": 3.0
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 120.0,
+              "per_million": 0.5
+            },
             "flavour": "cassandra",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 5.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 32.0,
+              "service_ms": 3.0
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 120.0,
+              "per_million": 0.5
+            },
             "flavour": "mongodb",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 5.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 32.0,
+              "service_ms": 3.0
+            }
           }
         ],
         "icon": "nosql",
         "kind": "nosql",
+        "placement": "card",
         "props": [
           {
+            "calibration": null,
             "default": 4,
             "key": "partitions",
             "ty": {
@@ -5090,6 +5563,7 @@
             "unit": "count"
           },
           {
+            "calibration": null,
             "default": 3,
             "key": "replication_factor",
             "ty": {
@@ -5101,6 +5575,7 @@
             "unit": "count"
           },
           {
+            "calibration": null,
             "default": "eventual",
             "key": "consistency",
             "ty": {
@@ -5113,12 +5588,16 @@
             "unit": "none"
           },
           {
+            "calibration": {
+              "id": "nosql.service_ms",
+              "status": "needed"
+            },
             "default": 3,
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -5131,18 +5610,44 @@
         "default_flavour": "redis",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 18.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.0
+            },
             "flavour": "redis",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 15.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 512.0,
+              "servers_per_instance": 1.0,
+              "service_ms": 0.01
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 18.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.0
+            },
             "flavour": "memcached",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 15.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 512.0,
+              "servers_per_instance": 4.0,
+              "service_ms": 0.01
+            }
           }
         ],
         "icon": "cache",
         "kind": "cache",
+        "placement": "card",
         "props": [
           {
+            "calibration": null,
             "default": 2,
             "key": "memory_gb",
             "ty": {
@@ -5154,6 +5659,7 @@
             "unit": "gb"
           },
           {
+            "calibration": null,
             "default": 300,
             "key": "ttl_s",
             "ty": {
@@ -5165,6 +5671,7 @@
             "unit": "s"
           },
           {
+            "calibration": null,
             "default": "lru",
             "key": "eviction",
             "ty": {
@@ -5178,6 +5685,7 @@
             "unit": "none"
           },
           {
+            "calibration": null,
             "default": false,
             "key": "persistence",
             "ty": {
@@ -5186,15 +5694,34 @@
             "unit": "none"
           },
           {
-            "default": 0.5,
+            "calibration": {
+              "id": "cache.service_ms",
+              "status": "needed"
+            },
+            "default": 0.01,
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
+          },
+          {
+            "calibration": {
+              "id": "cache.failover_s",
+              "status": "needed"
+            },
+            "default": 15,
+            "key": "failover_s",
+            "ty": {
+              "max": 600.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "s"
           }
         ]
       },
@@ -5204,24 +5731,53 @@
         "default_flavour": "s3",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 1.0
+            },
             "flavour": "s3",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 1000.0,
+              "service_ms": 50.0
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 1.0
+            },
             "flavour": "gcs",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 1000.0,
+              "service_ms": 50.0
+            }
           }
         ],
         "icon": "object",
         "kind": "object",
+        "placement": "card",
         "props": [
           {
+            "calibration": {
+              "id": "object.service_ms",
+              "status": "needed"
+            },
             "default": 50,
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -5234,18 +5790,44 @@
         "default_flavour": "elasticsearch",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 250.0,
+              "per_million": 0.0
+            },
             "flavour": "elasticsearch",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 10.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 77.0,
+              "servers_per_instance": 13.0,
+              "service_ms": 20.0
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 250.0,
+              "per_million": 0.0
+            },
             "flavour": "opensearch",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 10.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 77.0,
+              "servers_per_instance": 13.0,
+              "service_ms": 20.0
+            }
           }
         ],
         "icon": "search",
         "kind": "search",
+        "placement": "card",
         "props": [
           {
+            "calibration": null,
             "default": 2,
             "key": "shards",
             "ty": {
@@ -5257,6 +5839,7 @@
             "unit": "count"
           },
           {
+            "calibration": null,
             "default": 1,
             "key": "replicas",
             "ty": {
@@ -5268,12 +5851,16 @@
             "unit": "count"
           },
           {
+            "calibration": {
+              "id": "search.service_ms",
+              "status": "needed"
+            },
             "default": 20,
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -5286,18 +5873,44 @@
         "default_flavour": "rabbitmq",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 40.0,
+              "per_million": 0.4
+            },
             "flavour": "rabbitmq",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 2.0
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 40.0,
+              "per_million": 0.4
+            },
             "flavour": "sqs",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 10.0
+            }
           }
         ],
         "icon": "queue",
         "kind": "queue",
+        "placement": "card",
         "props": [
           {
+            "calibration": null,
             "default": 100000,
             "key": "max_depth",
             "ty": {
@@ -5309,6 +5922,10 @@
             "unit": "count"
           },
           {
+            "calibration": {
+              "id": "queue.visibility_timeout_s",
+              "status": "needed"
+            },
             "default": 30,
             "key": "visibility_timeout_s",
             "ty": {
@@ -5320,6 +5937,7 @@
             "unit": "s"
           },
           {
+            "calibration": null,
             "default": 3,
             "key": "max_retries",
             "ty": {
@@ -5338,18 +5956,44 @@
         "default_flavour": "kafka",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 15.0,
+              "per_million": 0.2
+            },
             "flavour": "kafka",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 3.0
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 15.0,
+              "per_million": 0.2
+            },
             "flavour": "kinesis",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 15.0
+            }
           }
         ],
         "icon": "stream",
         "kind": "stream",
+        "placement": "card",
         "props": [
           {
+            "calibration": null,
             "default": 6,
             "key": "partitions",
             "ty": {
@@ -5361,6 +6005,7 @@
             "unit": "count"
           },
           {
+            "calibration": null,
             "default": 168,
             "key": "retention_h",
             "ty": {
@@ -5379,28 +6024,69 @@
         "default_flavour": "google_pubsub",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.5
+            },
             "flavour": "google_pubsub",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 5.0
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.5
+            },
             "flavour": "sns",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 5.0
+            }
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.5
+            },
             "flavour": "redis_pubsub",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 5.0
+            }
           }
         ],
         "icon": "pubsub",
         "kind": "pubsub",
+        "placement": "card",
         "props": [
           {
+            "calibration": {
+              "id": "pubsub.service_ms",
+              "status": "needed"
+            },
             "default": 5,
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -5413,14 +6099,28 @@
         "default_flavour": "generic",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.4
+            },
             "flavour": "generic",
-            "overrides": []
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 2.0
+            }
           }
         ],
         "icon": "dlq",
         "kind": "dlq",
+        "placement": "card",
         "props": [
           {
+            "calibration": null,
             "default": 4,
             "key": "retention_days",
             "ty": {
@@ -5439,18 +6139,32 @@
         "default_flavour": "cron",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 20.0,
+              "per_million": 0.0
+            },
             "flavour": "cron",
-            "overrides": []
+            "overrides": [],
+            "sim": null
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 20.0,
+              "per_million": 0.0
+            },
             "flavour": "airflow",
-            "overrides": []
+            "overrides": [],
+            "sim": null
           }
         ],
         "icon": "scheduler",
         "kind": "scheduler",
+        "placement": "card",
         "props": [
           {
+            "calibration": null,
             "default": 60,
             "key": "interval_s",
             "ty": {
@@ -5469,14 +6183,22 @@
         "default_flavour": "prometheus_grafana",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 100.0,
+              "per_million": 0.0
+            },
             "flavour": "prometheus_grafana",
-            "overrides": []
+            "overrides": [],
+            "sim": null
           }
         ],
         "icon": "metrics",
         "kind": "metrics",
+        "placement": "card",
         "props": [
           {
+            "calibration": null,
             "default": 15,
             "key": "retention_days",
             "ty": {
@@ -5495,18 +6217,32 @@
         "default_flavour": "elk",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 150.0,
+              "per_million": 0.0
+            },
             "flavour": "elk",
-            "overrides": []
+            "overrides": [],
+            "sim": null
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 150.0,
+              "per_million": 0.0
+            },
             "flavour": "loki",
-            "overrides": []
+            "overrides": [],
+            "sim": null
           }
         ],
         "icon": "logs",
         "kind": "logs",
+        "placement": "card",
         "props": [
           {
+            "calibration": null,
             "default": 7,
             "key": "retention_days",
             "ty": {
@@ -5525,14 +6261,22 @@
         "default_flavour": "jaeger",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 80.0,
+              "per_million": 0.0
+            },
             "flavour": "jaeger",
-            "overrides": []
+            "overrides": [],
+            "sim": null
           }
         ],
         "icon": "tracing",
         "kind": "tracing",
+        "placement": "card",
         "props": [
           {
+            "calibration": null,
             "default": 10,
             "key": "sample_rate",
             "ty": {
@@ -6004,27 +6748,6 @@
         },
         {
           "from": {
-            "categories": [],
-            "except": [],
-            "kinds": [
-              "autoscale"
-            ]
-          },
-          "id": "scale_control",
-          "protocol": "http",
-          "same_kind": false,
-          "to": {
-            "categories": [],
-            "except": [],
-            "kinds": [
-              "app",
-              "micro",
-              "worker"
-            ]
-          }
-        },
-        {
-          "from": {
             "categories": [
               "edge",
               "compute",
@@ -6049,5 +6772,6 @@
         }
       ]
     }
-  }
+  },
+  "schema_version": 2
 }

@@ -1,0 +1,132 @@
+kind = "gateway"
+one_liner = "One front door for your APIs: routing, authentication and policies in one place."
+one_liner_es = "Una sola puerta para tus API: enrutado, autenticación y políticas en un mismo sitio."
+
+use_when = [
+  "Many services sit behind one public API",
+  "Every call needs the same authentication and logging",
+  "You publish an API to outside developers, with keys and plans",
+  "You need to version or reshape requests at the edge",
+]
+use_when_es = [
+  "Muchos servicios están detrás de una única API pública",
+  "Cada llamada necesita la misma autenticación y el mismo registro",
+  "Publicas una API para desarrolladores externos, con claves y planes",
+  "Necesitas versionar o transformar peticiones en el borde",
+]
+skip_when = [
+  "One app serves everything, and a load balancer is enough",
+  "The latency budget is very tight",
+  "The traffic is internal, from service to service",
+]
+skip_when_es = [
+  "Una sola aplicación lo sirve todo, y basta con un balanceador",
+  "El margen de latencia es muy justo",
+  "El tráfico es interno, de servicio a servicio",
+]
+
+formula = "capacity = instances × concurrency; each request adds the gateway's processing time before it moves on"
+formula_es = "capacidad = instancias × concurrencia; cada petición suma el tiempo de proceso del gateway antes de seguir"
+
+gains = [
+  "Cross-cutting concerns live in one place",
+  "Clients see one stable API while the services behind it change",
+]
+gains_es = [
+  "Las funciones transversales viven en un solo sitio",
+  "Los clientes ven una API estable mientras cambian los servicios de detrás",
+]
+costs = [
+  "Extra processing time on every call",
+  "Priced per instance and per request",
+  "Can become a bottleneck if sized too small",
+]
+costs_es = [
+  "Tiempo de proceso extra en cada llamada",
+  "Se cobra por instancia y por petición",
+  "Puede convertirse en cuello de botella si se queda corto",
+]
+
+works_with = ["micro", "app", "lb", "ratelimit", "serverless"]
+practice = []
+
+interview_tip = "List what the gateway does (authentication, routing, quotas, logging) and keep business logic out of it."
+interview_tip_es = "Enumera lo que hace el gateway (autenticación, enrutado, cuotas, registro) y deja fuera la lógica de negocio."
+
+[[sim]]
+prop = "instances"
+note = "More instances, more requests handled at once."
+note_es = "Más instancias, más peticiones atendidas a la vez."
+
+[[sim]]
+prop = "concurrency"
+note = "Requests one instance works on at once. Beyond that they queue, and a full queue drops them."
+note_es = "Peticiones que una instancia atiende a la vez. Por encima se encolan, y una cola llena las descarta."
+
+[[sim]]
+prop = "service_ms"
+note = "Authentication, routing and plugins on each request."
+note_es = "Autenticación, enrutado y plugins en cada petición."
+
+[[sim]]
+cost = "per_instance_month"
+note = "Each instance has a monthly price."
+note_es = "Cada instancia tiene un precio mensual."
+
+[[sim]]
+cost = "per_million"
+note = "Every request through the gateway adds to the bill."
+note_es = "Cada petición que pasa por el gateway suma a la factura."
+
+[flavours_compared]
+flavours = ["kong", "aws_api_gateway"]
+
+[[flavours_compared.rows]]
+label = "Run by"
+label_es = "Lo opera"
+cells = ["You (open source, built on NGINX)", "AWS, fully managed"]
+cells_es = ["Tú (código abierto, sobre NGINX)", "AWS, totalmente gestionado"]
+
+[[flavours_compared.rows]]
+label = "Extend with"
+label_es = "Se amplía con"
+cells = ["Plugins", "Lambda authorisers and AWS integrations"]
+cells_es = ["Plugins", "Autorizadores Lambda e integraciones con AWS"]
+
+[[flavours_compared.rows]]
+label = "Traffic"
+label_es = "Tráfico"
+cells = ["HTTP, gRPC and WebSocket", "REST, HTTP and WebSocket APIs"]
+cells_es = ["HTTP, gRPC y WebSocket", "API REST, HTTP y WebSocket"]
+
+[[flavours_compared.rows]]
+label = "Pick it for"
+label_es = "Elígelo para"
+cells = ["Any cloud or your own servers", "Serverless back ends on AWS"]
+cells_es = ["Cualquier nube o tus propios servidores", "Back ends serverless en AWS"]
+
+[[pitfalls]]
+title = "A gateway sized too small"
+title_es = "Un gateway que se queda corto"
+body = "Each instance handles a limited number of requests at once. Under a spike, requests queue at the gateway even while the services behind it are idle."
+body_es = "Cada instancia atiende un número limitado de peticiones a la vez. En un pico, las peticiones se encolan en el gateway aunque los servicios de detrás estén ociosos."
+fix = "Size instances and concurrency for the peak, like any other tier, and check its utilisation after a run."
+fix_es = "Dimensiona instancias y concurrencia para el pico, como cualquier otra capa, y mira su utilización después de una ejecución."
+
+[[pitfalls]]
+title = "Business logic in the gateway"
+title_es = "Lógica de negocio en el gateway"
+body = "Product rules hidden in gateway plugins are hard to test, and every change risks every API at once."
+body_es = "Las reglas de producto escondidas en plugins del gateway son difíciles de probar, y cada cambio pone en riesgo todas las API a la vez."
+fix = "Keep the gateway to cross-cutting concerns, and put product rules in the services."
+fix_es = "Limita el gateway a funciones transversales, y pon las reglas de producto en los servicios."
+
+[[sources]]
+flavour = "kong"
+title = "Kong Gateway documentation"
+url = "https://docs.konghq.com/gateway/latest/"
+
+[[sources]]
+flavour = "aws_api_gateway"
+title = "Amazon API Gateway documentation"
+url = "https://docs.aws.amazon.com/apigateway/"
