@@ -149,6 +149,9 @@ function Entry({ page, registry }: { page: GuidePage; registry: Registry }) {
               snapshots: concept.data.snapshots,
             }}
             registry={registry}
+            onLastStep={() => {
+              void api.setConceptPlayed(e.kind).then(() => qc.invalidateQueries({ queryKey: queryKeys.paths }));
+            }}
             header={
               <>
                 <h2 className="font-display text-xl font-semibold">{t("guide.conceptCard")}</h2>

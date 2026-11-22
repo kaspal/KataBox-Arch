@@ -21,6 +21,7 @@ import {
   type EstimateCheck,
   type EstimateStatus,
   type FlawSummary,
+  type PathView,
   type PatternPage,
   type PatternSummary,
   type Sample,
@@ -132,6 +133,10 @@ export const api = {
   estimateStatuses: (): Promise<EstimateStatus[]> => call(commands.estimateStatuses()),
   /** The Find-the-flaw drills (each opens as the problem `flaw--<id>`). */
   listFlaws: (): Promise<FlawSummary[]> => call(commands.listFlaws()),
+  /** The learning paths, each item with its progress. */
+  learningPaths: (): Promise<PathView[]> => call(commands.learningPaths()),
+  /** A concept card was played to its end. */
+  setConceptPlayed: (kind: ComponentKind): Promise<void> => call(commands.setConceptPlayed(kind)).then(() => undefined),
   /** The pattern library, in order, each with its template. */
   listPatterns: (): Promise<PatternSummary[]> => call(commands.listPatterns()),
   pattern: (id: string): Promise<PatternPage> => call(commands.pattern(id)),

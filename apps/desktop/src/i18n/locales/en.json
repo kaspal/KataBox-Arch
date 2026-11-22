@@ -211,6 +211,7 @@
     "practice": "Practice",
     "continue": "Continue",
     "recommended": "Recommended next",
+    "onPath": "{{name}} · {{done}} of {{total}} done",
     "streak_one": "{{count}}-day streak",
     "streak_other": "{{count}}-day streak",
     "watch": "Watch how it works",
@@ -669,6 +670,25 @@
     "title": "Glossary",
     "search": "Search the glossary",
     "see": "See {{name}}."
+  },
+  "paths": {
+    "title": "Learning paths",
+    "intro": "Five ordered tracks through the Guide, concept cards, patterns, problems and drills. Progress comes from what you have already done. Follow a path and Home suggests its next step.",
+    "follow": "Follow this path",
+    "following": "Following",
+    "progress": "{{done}} of {{total}} done",
+    "progressLabel": "Progress on {{name}}",
+    "done": "Done",
+    "todo": "Not yet",
+    "item": {
+      "guide": "Read: {{name}}",
+      "concept": "Watch: the {{name}} concept card",
+      "pattern": "Pattern: {{name}}",
+      "problem": "Solve: {{name}}",
+      "estimate": "Estimate: {{name}}",
+      "flaw": "Find the flaw: {{name}}",
+      "quiz": "Quiz: {{name}}"
+    }
   },
   "flaws": {
     "title": "Find the flaw",

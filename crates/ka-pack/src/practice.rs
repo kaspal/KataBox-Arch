@@ -22,6 +22,90 @@ pub struct Practice {
     pub estimation: Vec<(String, Vec<DrillDef>)>,
     /// Find-the-flaw drills (`flaws/<id>/`), in folder order.
     pub flaws: Vec<crate::flaws::FlawDir>,
+    /// Learning paths (`paths.toml`), in file order.
+    pub paths: Vec<ka_core::paths::PathDef>,
+    /// What a path may point at: the concept cards and patterns that exist (folder names).
+    pub concept_ids: BTreeSet<String>,
+    pub pattern_ids: BTreeSet<String>,
+}
+
+fn folder_names(dir: &Path) -> BTreeSet<String> {
+    std::fs::read_dir(dir)
+        .map(|r| {
+            r.filter_map(|e| e.ok())
+                .filter(|e| e.path().is_dir())
+                .filter_map(|e| e.file_name().to_str().map(str::to_owned))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+pub fn load_paths(root: &Path) -> Result<Vec<ka_core::paths::PathDef>, Vec<Issue>> {
+    let path = root.join("paths.toml");
+    if !path.exists() {
+        return Ok(Vec::new());
+    }
+    let text =
+        std::fs::read_to_string(&path).map_err(|e| vec![issue("paths.toml", e.to_string())])?;
+    let file: ka_core::paths::PathFile =
+        toml::from_str(&text).map_err(|e| vec![issue("paths.toml", e.to_string())])?;
+    Ok(file.path)
+}
+
+/// Every item names something that exists; ids, numbers and text are sound.
+pub fn validate_paths(p: &Practice, problems: &[ProblemDir], registry: &Registry) -> Vec<Issue> {
+    use ka_core::paths::{PathItemKind as K, parse_item};
+    let mut issues = Vec::new();
+    let kind_exists = |k: &str| registry.kinds.iter().any(|s| s.kind.id() == k);
+    let problem_exists = |id: &str| problems.iter().any(|x| x.def.id == id);
+    let mut ids = BTreeSet::new();
+    let mut numbers = BTreeSet::new();
+    for path in &p.paths {
+        let mut bad = |m: String| issues.push(issue("paths.toml", format!("`{}`: {m}", path.id)));
+        if !kebab(&path.id) || !ids.insert(path.id.clone()) {
+            bad("ids must be kebab-case and unique".into());
+        }
+        if !numbers.insert(path.number) {
+            bad(format!("number {} is used twice", path.number));
+        }
+        for (name, text) in [
+            ("title", &path.title),
+            ("title_es", &path.title_es),
+            ("blurb", &path.blurb),
+            ("blurb_es", &path.blurb_es),
+        ] {
+            if text.trim().is_empty() || text.contains(TODO_MARKER) {
+                bad(format!("`{name}` is empty or unfinished"));
+            }
+        }
+        if path.items.len() < 3 {
+            bad("a path needs at least three items".into());
+        }
+        let mut seen = BTreeSet::new();
+        for item in &path.items {
+            if !seen.insert(item.clone()) {
+                bad(format!("`{item}` appears twice"));
+            }
+            let ok = match parse_item(item) {
+                None => false,
+                Some((K::Guide, k)) => kind_exists(k),
+                Some((K::Concept, k)) => p.concept_ids.contains(k),
+                Some((K::Pattern, id)) => p.pattern_ids.contains(id),
+                Some((K::Problem, id)) => problem_exists(id),
+                Some((K::Estimate, id)) => p.estimation.iter().any(|(pid, _)| pid == id),
+                Some((K::Flaw, id)) => p.flaws.iter().any(|f| f.def.id == id),
+                Some((K::Quiz, target)) => match target.split_once(':') {
+                    Some(("guide", k)) => kind_exists(k),
+                    Some(("pattern", id)) => p.pattern_ids.contains(id),
+                    _ => false,
+                },
+            };
+            if !ok {
+                bad(format!("`{item}` doesn't name anything that exists"));
+            }
+        }
+    }
+    issues
 }
 
 fn kebab(id: &str) -> bool {
@@ -223,6 +307,9 @@ pub fn load_practice(root: &Path, registry: &Registry) -> Result<Practice, Vec<I
         numbers: load_numbers(root)?,
         estimation: load_estimation(root)?,
         flaws: crate::flaws::load_flaws(root, registry)?,
+        paths: load_paths(root)?,
+        concept_ids: folder_names(&root.join("concepts")),
+        pattern_ids: folder_names(&root.join("patterns")),
     })
 }
 
@@ -230,6 +317,7 @@ pub fn validate_practice(p: &Practice, problems: &[ProblemDir], registry: &Regis
     let mut issues = validate_numbers(&p.numbers);
     issues.extend(validate_estimation(&p.estimation, problems));
     issues.extend(crate::flaws::validate_flaws(&p.flaws, registry));
+    issues.extend(validate_paths(p, problems, registry));
     issues
 }
 
@@ -289,6 +377,13 @@ pub fn practice_docs(p: &Practice, registry: &Registry) -> Result<Vec<DocRow>, S
             json: serde_json::to_string(&set).map_err(|e| e.to_string())?,
         });
     }
+    for path in &p.paths {
+        rows.push(DocRow {
+            kind: "path".into(),
+            id: path.id.clone(),
+            json: serde_json::to_string(path).map_err(|e| e.to_string())?,
+        });
+    }
     for f in &p.flaws {
         let doc = crate::flaws::flaw_doc(f, registry)?;
         rows.push(DocRow {
@@ -304,10 +399,11 @@ pub fn practice_docs(p: &Practice, registry: &Registry) -> Result<Vec<DocRow>, S
 pub fn summary(p: &Practice) -> String {
     let drills: usize = p.estimation.iter().map(|(_, d)| d.len()).sum();
     format!(
-        "{} number(s), {drills} estimation drill(s) for {} problem(s), {} flaw drill(s) valid",
+        "{} number(s), {drills} estimation drill(s) for {} problem(s), {} flaw drill(s), {} learning path(s) valid",
         p.numbers.len(),
         p.estimation.len(),
-        p.flaws.len()
+        p.flaws.len(),
+        p.paths.len()
     )
 }
 

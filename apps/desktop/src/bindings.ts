@@ -312,6 +312,28 @@ async listFlaws() : Promise<Result<FlawSummary[], AppError>> {
 }
 },
 /**
+ * The learning paths with each item's progress (M5.4).
+ */
+async learningPaths() : Promise<Result<PathView[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("learning_paths") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * A concept card was played to its end (a learning-path item).
+ */
+async setConceptPlayed(kind: ComponentKind) : Promise<Result<null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_concept_played", { kind }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * The pattern library, in order (each with its template for the preview).
  */
 async listPatterns() : Promise<Result<PatternSummary[], AppError>> {
@@ -973,6 +995,17 @@ p99_ms?: number | null; error_rate?: number | null; availability?: number | null
  * Messages that may be lost (usually 0).
  */
 lost?: number | null }
+/**
+ * One step of a path as the UI shows it.
+ */
+export type PathItem = { kind: PathItemKind; target: string; 
+/**
+ * Content titles (patterns, problems, drills); Guide and concept items are named by
+ * the UI from the component kind.
+ */
+title: string | null; title_es: string | null; done: boolean }
+export type PathItemKind = "guide" | "concept" | "pattern" | "problem" | "estimate" | "flaw" | "quiz"
+export type PathView = { id: string; number: number; title: string; title_es: string; blurb: string; blurb_es: string; items: PathItem[] }
 export type PatternEntry = { id: string; 
 /**
  * Library order.

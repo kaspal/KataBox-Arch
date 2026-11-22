@@ -12,6 +12,8 @@ pub const UI_SETTINGS: &[&str] = &[
     "canvas.snap",
     // Home offered the first-run tour (shown once; M3.3).
     "tour.offered",
+    // The learning path the user follows (M5.4): Home's "Recommended next" comes from it.
+    "paths.active",
 ];
 
 /// The largest JSON value the UI may store, in bytes.

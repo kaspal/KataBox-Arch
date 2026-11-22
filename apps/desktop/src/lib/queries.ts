@@ -18,6 +18,7 @@ export const queryKeys = {
   sample: (id: string) => ["sample", id] as const,
   estimateStatuses: ["estimate-statuses"] as const,
   flaws: ["flaws"] as const,
+  paths: ["paths"] as const,
 };
 
 export function useAppInfo() {
@@ -64,6 +65,10 @@ export function useNumbers() {
 /** Every estimation drill (content: never changes while the app runs). */
 export function useDrills() {
   return useQuery({ queryKey: ["drills"], queryFn: () => api.drills(), staleTime: Infinity });
+}
+
+export function usePaths() {
+  return useQuery({ queryKey: queryKeys.paths, queryFn: api.learningPaths });
 }
 
 export function useFlaws() {

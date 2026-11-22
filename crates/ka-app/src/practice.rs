@@ -4,6 +4,7 @@
 use ka_core::estimate::{Drill, DrillSet, EstimateCheck};
 use ka_core::flaw::{FlawDoc, FlawSummary, flaw_problem_id};
 use ka_core::numbers::NumberFigure;
+use ka_core::paths::{PathDef, PathItem, PathItemKind, PathView, parse_item};
 use ka_store::EstimateStatus;
 
 use crate::{App, AppError, AppErrorCode, Result};
@@ -152,6 +153,113 @@ impl App {
             ref_cost: doc.ref_cost,
             ref_p95_ms: doc.ref_p95_ms,
         })
+    }
+
+    /// Record that a concept card was played to its end (a learning-path item).
+    pub async fn set_concept_played(&self, kind: ka_core::ComponentKind) -> Result<()> {
+        self.user
+            .set_read("concept", kind.id(), true)
+            .await
+            .map_err(AppError::from)
+    }
+
+    /// The learning paths in order, each item marked done from what the user has already
+    /// done: Guide entries, patterns and concept cards read or played; problems and flaw
+    /// drills solved; a problem's estimation drills all answered within their band.
+    pub async fn paths(&self) -> Result<Vec<PathView>> {
+        let rows = self.content()?.docs("path").await.map_err(AppError::from)?;
+        let mut defs = rows
+            .iter()
+            .map(|r| serde_json::from_str::<PathDef>(&r.json).map_err(bad_content))
+            .collect::<Result<Vec<_>>>()?;
+        defs.sort_by_key(|p| p.number);
+        let read =
+            |kind: &'static str| async move { self.user.reads(kind).await.map_err(AppError::from) };
+        let guides = read("guide").await?;
+        let patterns_read = read("pattern").await?;
+        let concepts = read("concept").await?;
+        let quizzes = read("quiz").await?;
+        let statuses = self.user.problem_statuses().await.map_err(AppError::from)?;
+        let solved = |pid: &str| {
+            statuses
+                .iter()
+                .any(|s| s.problem_id == pid && s.status == "solved")
+        };
+        let estimates = self.estimate_statuses().await?;
+        let sets = self.drill_sets().await?;
+        let problems = self.content()?.problems().await.map_err(AppError::from)?;
+        let patterns = self.list_patterns().await?;
+        let flaws = self.list_flaws().await?;
+        let problem_title = |id: &str| {
+            problems
+                .iter()
+                .find(|p| p.id == id)
+                .map(|p| (p.title_en.clone(), p.title_es.clone()))
+        };
+        Ok(defs
+            .into_iter()
+            .map(|d| {
+                let items = d
+                    .items
+                    .iter()
+                    .filter_map(|item| {
+                        let (kind, target) = parse_item(item)?;
+                        let (title, done) = match kind {
+                            PathItemKind::Guide => (None, guides.iter().any(|g| g == target)),
+                            PathItemKind::Concept => (None, concepts.iter().any(|c| c == target)),
+                            PathItemKind::Pattern => (
+                                patterns
+                                    .iter()
+                                    .find(|p| p.id == target)
+                                    .map(|p| (p.title.clone(), p.title_es.clone())),
+                                patterns_read.iter().any(|p| p == target),
+                            ),
+                            PathItemKind::Problem => (problem_title(target), solved(target)),
+                            PathItemKind::Estimate => {
+                                let all = sets
+                                    .iter()
+                                    .find(|s| s.problem_id == target)
+                                    .map(|s| {
+                                        s.drills.iter().map(|x| x.id.clone()).collect::<Vec<_>>()
+                                    })
+                                    .unwrap_or_default();
+                                let done = !all.is_empty()
+                                    && all.iter().all(|id| {
+                                        estimates.iter().any(|e| {
+                                            e.problem_id == target && &e.drill_id == id && e.done
+                                        })
+                                    });
+                                (problem_title(target), done)
+                            }
+                            PathItemKind::Flaw => (
+                                flaws
+                                    .iter()
+                                    .find(|f| f.id == target)
+                                    .map(|f| (f.title.clone(), f.title_es.clone())),
+                                solved(&flaw_problem_id(target)),
+                            ),
+                            PathItemKind::Quiz => (None, quizzes.iter().any(|q| q == target)),
+                        };
+                        Some(PathItem {
+                            kind,
+                            target: target.to_owned(),
+                            title: title.as_ref().map(|t| t.0.clone()),
+                            title_es: title.map(|t| t.1),
+                            done,
+                        })
+                    })
+                    .collect();
+                PathView {
+                    id: d.id,
+                    number: d.number,
+                    title: d.title,
+                    title_es: d.title_es,
+                    blurb: d.blurb,
+                    blurb_es: d.blurb_es,
+                    items,
+                }
+            })
+            .collect())
     }
 
     /// The Find-the-flaw drills in order, each marked solved or not.
@@ -407,5 +515,46 @@ error_rate = 0.01
         // A drill never shows in the problem list or as "Continue".
         assert!(app.list_problems().await.unwrap().is_empty());
         assert!(app.problem_brief("flaw--nope").await.is_err());
+    }
+
+    #[tokio::test]
+    async fn path_progress_comes_from_what_was_done() {
+        let path = PathDef {
+            id: "foundations".into(),
+            number: 1,
+            title: "F".into(),
+            title_es: "F".into(),
+            blurb: "b".into(),
+            blurb_es: "b".into(),
+            items: vec![
+                "guide:cache".into(),
+                "concept:cache".into(),
+                "guide:lb".into(),
+                "flaw:tiny".into(),
+            ],
+        };
+        let app = app_with(
+            &temp_dir("paths"),
+            vec![ka_store::DocRow {
+                kind: "path".into(),
+                id: "foundations".into(),
+                json: serde_json::to_string(&path).unwrap(),
+            }],
+        )
+        .await;
+        app.set_guide_read(ka_core::ComponentKind::Cache, true)
+            .await
+            .unwrap();
+        app.set_concept_played(ka_core::ComponentKind::Cache)
+            .await
+            .unwrap();
+        let views = app.paths().await.unwrap();
+        let done: Vec<bool> = views[0].items.iter().map(|i| i.done).collect();
+        assert_eq!(done, [true, true, false, false]);
+        assert_eq!(views[0].items[3].kind, PathItemKind::Flaw);
+        assert_eq!(
+            views[0].items[3].title, None,
+            "a flaw that isn't in the content"
+        );
     }
 }

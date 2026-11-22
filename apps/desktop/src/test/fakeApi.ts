@@ -1,7 +1,7 @@
 // An in-memory backend with the same shape as `api`, for UI tests. The registry is the
 // fixture Rust exports (`src/test/fixtures/registry.json`), so tests see the real data.
 import { vi } from "vitest";
-import type { FlawSummary, AppError, Design, JsonValue, OpenedDesign, ProblemBrief, RecentEntry, Registry, RunControl, SubmissionSummary, SubmitResult } from "@/bindings";
+import type { FlawSummary, PathView, AppError, Design, JsonValue, OpenedDesign, ProblemBrief, RecentEntry, Registry, RunControl, SubmissionSummary, SubmitResult } from "@/bindings";
 import { FAKE_BRIEF, FAKE_REFERENCE, fakeJudgement } from "@/test/fakeProblems";
 import { FAKE_SAMPLE, FAKE_SAMPLE_SUMMARY } from "@/test/fakeSamples";
 import { FAKE_DRILLS, FAKE_FLOW, FAKE_GUIDE, FAKE_NUMBERS, FAKE_PATTERN, FAKE_TEMPLATE, FAKE_TERMS } from "@/test/fakeGuide";
@@ -10,7 +10,7 @@ import fixture from "@/test/fixtures/registry.json";
 
 export const REGISTRY = fixture.registry as unknown as Registry;
 
-const UI_SETTINGS = ["theme", "ui_lang", "ui.contrast", "ui.motion", "sandbox.layout", "canvas.snap", "tour.offered"];
+const UI_SETTINGS = ["theme", "ui_lang", "ui.contrast", "ui.motion", "sandbox.layout", "canvas.snap", "tour.offered", "paths.active"];
 
 const err = (code: AppError["code"], message = code): AppError => ({ code, message });
 
@@ -190,6 +190,23 @@ export function createFakeApi(opts: FakeOptions = {}) {
       estimates.set(key, { tries: s.tries + 1, done: s.done || ok });
       return { ok, closeness, answer, solution: "{daily} ÷ 86,400 = {answer}", solution_es: "{daily} ÷ 86 400 = {answer}", inputs: d.inputs } as const;
     }),
+    learningPaths: vi.fn(async (): Promise<PathView[]> => [
+      {
+        id: "foundations",
+        number: 1,
+        title: "Foundations",
+        title_es: "Fundamentos",
+        blurb: "The pieces almost every design uses.",
+        blurb_es: "Las piezas que usa casi cualquier diseño.",
+        items: [
+          { kind: "guide", target: "cache", title: null, title_es: null, done: read.has("cache") },
+          { kind: "problem", target: "url-shortener", title: "URL Shortener", title_es: "Acortador de URLs", done: false },
+          { kind: "flaw", target: "cache-no-ttl", title: "A cache that never forgets", title_es: "Una caché que nunca olvida", done: false },
+        ],
+      },
+      { id: "async-systems", number: 2, title: "Async systems", title_es: "Sistemas asíncronos", blurb: "Queues.", blurb_es: "Colas.", items: [{ kind: "guide", target: "queue", title: null, title_es: null, done: false }] },
+    ]),
+    setConceptPlayed: vi.fn(async () => {}),
     listFlaws: vi.fn(async (): Promise<FlawSummary[]> => [
       { id: "cache-no-ttl", number: 1, title: "A cache that never forgets", title_es: "Una caché que nunca olvida", kinds: ["cache"], solved: false },
       { id: "single-primary", number: 2, title: "One database, no plan B", title_es: "Una base de datos, sin plan B", kinds: ["sql"], solved: true },

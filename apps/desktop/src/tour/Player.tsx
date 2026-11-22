@@ -209,6 +209,7 @@ export function Player({
   registry,
   onTry,
   header,
+  onLastStep,
 }: {
   story: Story;
   registry: Registry;
@@ -216,6 +217,8 @@ export function Player({
   onTry?: (design: Design) => void;
   /** Left of the step counter (a back link and the title). */
   header?: React.ReactNode;
+  /** Called once when the viewer reaches the last step (a concept card counts as played). */
+  onLastStep?: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const report = useReportError();
@@ -235,6 +238,13 @@ export function Player({
   }, []);
   const last = story.steps.length - 1;
   const title = (s: StoryStep) => (es ? s.title_es : s.title);
+  const reachedEnd = useRef(false);
+  useEffect(() => {
+    if (index === last && !reachedEnd.current) {
+      reachedEnd.current = true;
+      onLastStep?.();
+    }
+  }, [index, last, onLastStep]);
 
   // Live telemetry for the cards while the player is open. On the way out the run stops and
   // the run settings the steps changed (preset, test, speed) go back to what they were.

@@ -340,6 +340,20 @@ async fn list_flaws(state: State<'_, AppState>) -> Res<Vec<ka_core::flaw::FlawSu
     state.app()?.list_flaws().await
 }
 
+/// The learning paths with each item's progress (M5.4).
+#[tauri::command]
+#[specta::specta]
+async fn learning_paths(state: State<'_, AppState>) -> Res<Vec<ka_core::paths::PathView>> {
+    state.app()?.paths().await
+}
+
+/// A concept card was played to its end (a learning-path item).
+#[tauri::command]
+#[specta::specta]
+async fn set_concept_played(state: State<'_, AppState>, kind: ka_core::ComponentKind) -> Res<()> {
+    state.app()?.set_concept_played(kind).await
+}
+
 /// The pattern library, in order (each with its template for the preview).
 #[tauri::command]
 #[specta::specta]
@@ -520,6 +534,8 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         check_estimate,
         estimate_statuses,
         list_flaws,
+        learning_paths,
+        set_concept_played,
         list_patterns,
         pattern,
         set_pattern_read,
