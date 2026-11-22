@@ -29,6 +29,22 @@ impl App {
         }
     }
 
+    /// KataBox Learn topics and problems related to an Arch page (`guide:<kind>`,
+    /// `pattern:<id>`, `problem:<id>`), titles only (M6.7). Empty when there are none.
+    pub async fn katabox_links(
+        &self,
+        target: &str,
+    ) -> Result<Vec<ka_core::crosslinks::KataboxLink>> {
+        match self
+            .content()?
+            .doc("crosslinks", target)
+            .await
+            .map_err(AppError::from)?
+        {
+            Some(row) => serde_json::from_str(&row.json).map_err(bad_content),
+            None => Ok(Vec::new()),
+        }
+    }
     async fn drill_sets(&self) -> Result<Vec<DrillSet>> {
         let rows = self
             .content()?

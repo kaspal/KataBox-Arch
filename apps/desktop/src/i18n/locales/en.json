@@ -812,5 +812,13 @@
     "copyMermaid": "Copy as Mermaid",
     "saveMermaid": "Save as Mermaid…",
     "copied": "Mermaid diagram copied."
+  },
+  "katabox": {
+    "title": "Related in KataBox",
+    "kind": {
+      "learn": "Learn topic",
+      "problem": "Problem"
+    },
+    "hint": "The algorithms behind this page, to practise in KataBox."
   }
 }

@@ -477,6 +477,17 @@ async confirmClose() : Promise<Result<null, AppError>> {
 }
 },
 /**
+ * KataBox practice related to an Arch page (M6.7): titles only.
+ */
+async kataboxLinks(target: string) : Promise<Result<KataboxLink[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("katabox_links", { target }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * A design as Mermaid text (for Copy). `names`: kind, protocol and group names in the
  * user's language.
  */
@@ -1004,6 +1015,18 @@ lint: string[]; tests: TestResult[]; score: Score;
  * The design's monthly cost on the first test, and the reference's.
  */
 cost_month: number; ref_cost: number }
+/**
+ * What a KataBox target is.
+ */
+export type KataboxKind = "learn" | "problem"
+/**
+ * A resolved link, as the UI shows it.
+ */
+export type KataboxLink = { kind: KataboxKind; 
+/**
+ * `<subject>/<topic>` for Learn, the problem id for problems.
+ */
+id: string; title: string; title_es: string }
 /**
  * A set of kinds: any kind in `categories` or `kinds`, minus `except`.
  */

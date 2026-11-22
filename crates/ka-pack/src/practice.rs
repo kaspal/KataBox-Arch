@@ -27,6 +27,9 @@ pub struct Practice {
     /// What a path may point at: the concept cards and patterns that exist (folder names).
     pub concept_ids: BTreeSet<String>,
     pub pattern_ids: BTreeSet<String>,
+    /// KataBox cross-links (M6.7): the snapshot of KataBox ids, and the links.
+    pub katabox: ka_core::crosslinks::KataboxIds,
+    pub crosslinks: Vec<ka_core::crosslinks::LinkDef>,
 }
 
 fn folder_names(dir: &Path) -> BTreeSet<String> {
@@ -302,8 +305,71 @@ pub fn validate_estimation(
     issues
 }
 
+/// A TOML file under the content root, or its default when absent.
+fn optional_toml<T: serde::de::DeserializeOwned + Default>(
+    root: &Path,
+    name: &str,
+) -> Result<T, Vec<Issue>> {
+    let path = root.join(name);
+    if !path.exists() {
+        return Ok(T::default());
+    }
+    let text = std::fs::read_to_string(&path).map_err(|e| vec![issue(name, e.to_string())])?;
+    toml::from_str(&text).map_err(|e| vec![issue(name, e.to_string())])
+}
+
+/// Every link starts at a page that exists, once, and resolves in the KataBox snapshot.
+pub fn validate_crosslinks(
+    p: &Practice,
+    problems: &[ProblemDir],
+    registry: &Registry,
+) -> Vec<Issue> {
+    let mut issues = Vec::new();
+    let mut seen = BTreeSet::new();
+    for l in &p.crosslinks {
+        let at = "crosslinks.toml";
+        let exists = match l.from.split_once(':') {
+            Some(("guide", k)) => registry.kinds.iter().any(|s| s.kind.id() == k),
+            Some(("pattern", id)) => p.pattern_ids.contains(id),
+            Some(("problem", id)) => problems.iter().any(|x| x.def.id == id),
+            _ => false,
+        };
+        if !exists {
+            issues.push(issue(
+                at,
+                format!("{}: no such Guide entry, pattern or problem", l.from),
+            ));
+        }
+        if !seen.insert(l.from.as_str()) {
+            issues.push(issue(at, format!("{}: linked twice", l.from)));
+        }
+        if l.to.is_empty() {
+            issues.push(issue(at, format!("{}: no targets", l.from)));
+        }
+        let mut targets = BTreeSet::new();
+        for t in &l.to {
+            if p.katabox.resolve(t).is_none() {
+                issues.push(issue(
+                    at,
+                    format!("{}: {t} is not in katabox-ids.toml", l.from),
+                ));
+            }
+            if !targets.insert(t.as_str()) {
+                issues.push(issue(at, format!("{}: {t} twice", l.from)));
+            }
+        }
+    }
+    if !p.crosslinks.is_empty() && p.katabox.katabox_commit.trim().is_empty() {
+        issues.push(issue("katabox-ids.toml", "katabox_commit is missing"));
+    }
+    issues
+}
+
 pub fn load_practice(root: &Path, registry: &Registry) -> Result<Practice, Vec<Issue>> {
+    let links: ka_core::crosslinks::CrosslinkFile = optional_toml(root, "crosslinks.toml")?;
     Ok(Practice {
+        katabox: optional_toml(root, "katabox-ids.toml")?,
+        crosslinks: links.link,
         numbers: load_numbers(root)?,
         estimation: load_estimation(root)?,
         flaws: crate::flaws::load_flaws(root, registry)?,
@@ -318,6 +384,7 @@ pub fn validate_practice(p: &Practice, problems: &[ProblemDir], registry: &Regis
     issues.extend(validate_estimation(&p.estimation, problems));
     issues.extend(crate::flaws::validate_flaws(&p.flaws, registry));
     issues.extend(validate_paths(p, problems, registry));
+    issues.extend(validate_crosslinks(p, problems, registry));
     issues
 }
 
@@ -384,6 +451,14 @@ pub fn practice_docs(p: &Practice, registry: &Registry) -> Result<Vec<DocRow>, S
             json: serde_json::to_string(path).map_err(|e| e.to_string())?,
         });
     }
+    for l in &p.crosslinks {
+        let links: Vec<_> = l.to.iter().filter_map(|t| p.katabox.resolve(t)).collect();
+        rows.push(DocRow {
+            kind: "crosslinks".into(),
+            id: l.from.clone(),
+            json: serde_json::to_string(&links).map_err(|e| e.to_string())?,
+        });
+    }
     for f in &p.flaws {
         let doc = crate::flaws::flaw_doc(f, registry)?;
         rows.push(DocRow {
@@ -399,17 +474,46 @@ pub fn practice_docs(p: &Practice, registry: &Registry) -> Result<Vec<DocRow>, S
 pub fn summary(p: &Practice) -> String {
     let drills: usize = p.estimation.iter().map(|(_, d)| d.len()).sum();
     format!(
-        "{} number(s), {drills} estimation drill(s) for {} problem(s), {} flaw drill(s), {} learning path(s) valid",
+        "{} number(s), {drills} estimation drill(s) for {} problem(s), {} flaw drill(s), {} learning path(s), {} KataBox link(s) valid",
         p.numbers.len(),
         p.estimation.len(),
         p.flaws.len(),
-        p.paths.len()
+        p.paths.len(),
+        p.crosslinks.len()
     )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn crosslinks_must_start_at_a_real_page_and_resolve() {
+        let p = Practice {
+            pattern_ids: ["cache-aside".to_string()].into(),
+            katabox: toml::from_str(
+                "katabox_commit = \"abc\"\n[[learn]]\nid = \"linear/lru-cache\"\ntitle = \"LRU\"\ntitle_es = \"LRU\"\n",
+            )
+            .unwrap(),
+            crosslinks: vec![
+                ka_core::crosslinks::LinkDef { from: "guide:cache".into(), to: vec!["learn:linear/lru-cache".into()] },
+                ka_core::crosslinks::LinkDef { from: "pattern:cache-aside".into(), to: vec!["learn:linear/lru-cache".into()] },
+                ka_core::crosslinks::LinkDef { from: "guide:teleport".into(), to: vec!["learn:x/y".into()] },
+                ka_core::crosslinks::LinkDef { from: "guide:cache".into(), to: vec![] },
+            ],
+            ..Practice::default()
+        };
+        let text: Vec<String> = validate_crosslinks(&p, &[], &ka_core::registry())
+            .iter()
+            .map(ToString::to_string)
+            .collect();
+        let has = |s: &str| text.iter().any(|t| t.contains(s));
+        assert!(has("guide:teleport: no such Guide entry"), "{text:#?}");
+        assert!(has("learn:x/y is not in katabox-ids.toml"), "{text:#?}");
+        assert!(has("guide:cache: linked twice"), "{text:#?}");
+        assert!(has("guide:cache: no targets"), "{text:#?}");
+        assert_eq!(text.len(), 4, "{text:#?}");
+    }
     use ka_core::numbers::NumberGroup;
 
     fn fig(id: &str) -> NumberFigure {

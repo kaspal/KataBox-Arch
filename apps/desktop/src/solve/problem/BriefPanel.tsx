@@ -8,6 +8,7 @@ import { Calculator, ChevronDown, Lightbulb, Lock, Ruler } from "lucide-react";
 import type { ProblemBrief } from "@/bindings";
 import { useReportError } from "@/app/dialogs";
 import { Markdown } from "@/components/Markdown";
+import { RelatedInKatabox } from "@/guide/RelatedInKatabox";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { queryKeys, useDrills, useEstimateStatuses, useSubmissions } from "@/lib/queries";
@@ -134,6 +135,7 @@ export function BriefPanel({ brief }: { brief: ProblemBrief }) {
           ))}
         </ul>
       </Section>
+      <RelatedInKatabox target={`problem:${p.id}`} />
       <Section title={t("brief.hints")}>
         {hints.map((h, i) => (
           <div key={i} className="rounded-md border bg-card p-3" data-testid="hint">

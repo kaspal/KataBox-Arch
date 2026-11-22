@@ -147,6 +147,16 @@ async fn validate_design(state: State<'_, AppState>, design: Design) -> Res<Vec<
     Ok(state.app()?.validate(&design))
 }
 
+/// KataBox practice related to an Arch page (M6.7): titles only.
+#[tauri::command]
+#[specta::specta]
+async fn katabox_links(
+    state: State<'_, AppState>,
+    target: String,
+) -> Res<Vec<ka_core::crosslinks::KataboxLink>> {
+    state.app()?.katabox_links(&target).await
+}
+
 // --- Mermaid export (M6.6) ---------------------------------------------------------------
 
 /// A design as Mermaid text (for Copy). `names`: kind, protocol and group names in the
@@ -677,6 +687,7 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         set_window_title,
         set_dirty,
         confirm_close,
+        katabox_links,
         mermaid_text,
         save_mermaid,
         preview_pack,

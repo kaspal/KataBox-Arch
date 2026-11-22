@@ -6,6 +6,7 @@
 //! - [`wiring`]: which protocol may connect which kinds, as a data table the UI also gets.
 //! - [`validate`]: checks a design against the registry and the wiring table.
 
+pub mod crosslinks;
 pub mod decide;
 pub mod design;
 pub mod detmath;

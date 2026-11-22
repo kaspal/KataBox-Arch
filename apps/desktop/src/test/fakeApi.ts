@@ -312,6 +312,11 @@ export function createFakeApi(opts: FakeOptions = {}) {
       return null;
     }),
     confirmClose: vi.fn(async () => null),
+    kataboxLinks: vi.fn(async (target: string) =>
+      target === "guide:cache" || target === "problem:url-shortener"
+        ? [{ kind: "learn" as const, id: "linear/lru-cache", title: "LRU cache", title_es: "Caché LRU" }, { kind: "problem" as const, id: "league-rank", title: "League Rank", title_es: "Clasificación de la liga" }]
+        : [],
+    ),
     mermaidText: vi.fn(async () => "flowchart LR\n"),
     saveMermaid: vi.fn(async (_d: Design, _n: Record<string, string>, name: string) => `C:/exports/${name}`),
     previewPack: vi.fn(async () => {

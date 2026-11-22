@@ -43,6 +43,7 @@ import {
   type RunInfo,
   type RunResult,
   type SandboxPreset,
+  KataboxLink,
   PackInfo,
   PackPreview,
 } from "@/bindings";
@@ -145,6 +146,8 @@ export const api = {
   answerQuiz: (questionId: string, choice: number, today: string): Promise<QuizResult> => call(commands.answerQuiz(questionId, choice, today)),
   /** Today's review questions (at most 10), in review order. */
   reviewsDue: (today: string): Promise<QuizItem[]> => call(commands.reviewsDue(today)),
+  // KataBox practice related to an Arch page (M6.7): `guide:<kind>`, `pattern:<id>`, `problem:<id>`.
+  kataboxLinks: (target: string): Promise<KataboxLink[]> => call(commands.kataboxLinks(target)),
   // Mermaid export (M6.6): names are kind, protocol and group names in the user's language.
   mermaidText: (design: Design, names: Record<string, string>): Promise<string> => commands.mermaidText(design, names),
   saveMermaid: (design: Design, names: Record<string, string>, suggestedName: string): Promise<string | null> =>

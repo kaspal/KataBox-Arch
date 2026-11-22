@@ -1,0 +1,96 @@
+# Related practice in KataBox (M6.7): an Arch page (guide:<kind>, pattern:<id>, problem:<id>)
+# and the KataBox Learn topics (learn:<subject>/<topic>) and problems (problem:<id>) that
+# drill the algorithm behind it. Shown as titles only (no deep link yet: see
+# docs/katabox-crosslinks-proposal.md). Every id must resolve in katabox-ids.toml.
+
+[[link]]
+from = "guide:cache"
+to = ["learn:linear/lru-cache", "learn:hashing/separate-chaining"]
+
+[[link]]
+from = "guide:ratelimit"
+to = ["learn:searching/sliding-window", "learn:linear/queue-ring-buffer"]
+
+[[link]]
+from = "guide:queue"
+to = ["learn:linear/queue-ring-buffer", "problem:print-queue"]
+
+[[link]]
+from = "guide:sql"
+to = ["learn:trees/b-tree-insert", "learn:databases/join-algorithms", "learn:databases/group-by"]
+
+[[link]]
+from = "guide:nosql"
+to = ["learn:hashing/bloom-filter", "learn:hashing/separate-chaining"]
+
+[[link]]
+from = "guide:search"
+to = ["learn:trees/trie", "learn:strings/suffix-array"]
+
+[[link]]
+from = "guide:scheduler"
+to = ["learn:graphs/topological-sort", "learn:trees/binary-heap"]
+
+[[link]]
+from = "pattern:cache-aside"
+to = ["learn:linear/lru-cache"]
+
+[[link]]
+from = "pattern:rate-limiting"
+to = ["learn:searching/sliding-window"]
+
+[[link]]
+from = "problem:typeahead"
+to = ["learn:trees/trie", "problem:catalog-prefixes"]
+
+[[link]]
+from = "problem:leaderboard"
+to = ["learn:trees/binary-heap", "learn:trees/fenwick-tree", "problem:league-rank", "problem:score-ranks"]
+
+[[link]]
+from = "problem:ride-sharing"
+to = ["learn:graphs/dijkstra", "learn:grid-pathfinding/a-star", "problem:nearest-stalls", "problem:cheapest-route"]
+
+[[link]]
+from = "problem:job-scheduler"
+to = ["learn:graphs/topological-sort", "problem:deadline-jobs", "problem:print-queue"]
+
+[[link]]
+from = "problem:web-crawler"
+to = ["learn:graphs/bfs", "learn:hashing/bloom-filter"]
+
+[[link]]
+from = "problem:url-shortener"
+to = ["learn:hashing/separate-chaining"]
+
+[[link]]
+from = "problem:news-feed"
+to = ["learn:sorting/merge-sort", "problem:two-queues-merge"]
+
+[[link]]
+from = "problem:rate-limiter"
+to = ["learn:searching/sliding-window"]
+
+[[link]]
+from = "problem:page-view-counter"
+to = ["learn:databases/group-by", "problem:orders-per-day"]
+
+[[link]]
+from = "problem:ad-clicks"
+to = ["learn:databases/window-functions", "learn:searching/sliding-window"]
+
+[[link]]
+from = "problem:exchange"
+to = ["learn:trees/binary-heap", "problem:median-heights"]
+
+[[link]]
+from = "problem:file-sync"
+to = ["learn:hashing/rolling-hash", "learn:strings/rabin-karp"]
+
+[[link]]
+from = "problem:collab-docs"
+to = ["learn:dynamic-programming/edit-distance", "learn:dynamic-programming/lcs"]
+
+[[link]]
+from = "problem:region-outage"
+to = ["learn:graphs/bridges-articulation"]
