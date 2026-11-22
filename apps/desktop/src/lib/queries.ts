@@ -55,6 +55,10 @@ export function useGlossary() {
   return useQuery({ queryKey: ["glossary"], queryFn: api.glossary, staleTime: Infinity });
 }
 
+export function useNumbers() {
+  return useQuery({ queryKey: ["numbers"], queryFn: api.numbers, staleTime: Infinity });
+}
+
 export function usePatterns() {
   return useQuery({ queryKey: ["patterns"], queryFn: api.listPatterns });
 }

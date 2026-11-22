@@ -8,6 +8,7 @@ pub mod guide;
 pub mod kbarch;
 pub mod live;
 pub mod patterns;
+pub mod practice;
 pub mod problems;
 mod runs;
 pub mod samples;

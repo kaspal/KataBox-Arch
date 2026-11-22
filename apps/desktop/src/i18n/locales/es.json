@@ -491,6 +491,7 @@
   },
   "brief": {
     "teaches": "Enseña: {{what}}",
+    "numbers": "Chuleta de números",
     "targets": "Objetivos",
     "peak": "Tráfico pico",
     "p95": "Latencia p95",
@@ -665,5 +666,24 @@
     "title": "Glosario",
     "search": "Buscar en el glosario",
     "see": "Ver {{name}}."
+  },
+  "numbers": {
+    "title": "Chuleta de números",
+    "search": "Buscar en los números",
+    "intro": "Velocidades y tamaños aproximados para estimaciones rápidas: órdenes de magnitud, no benchmarks. Las cifras marcadas como «simulador» son las que usa el simulador, así que tus estimaciones y sus ejecuciones coinciden.",
+    "group": {
+      "memory": "Memoria",
+      "storage": "Almacenamiento y bases de datos",
+      "network": "Red",
+      "servers": "Servidores y servicios",
+      "sizes": "Tamaños",
+      "time": "Tiempo y tráfico"
+    },
+    "source": {
+      "cited": "Fuente: {{host}}",
+      "needed": "Fuente por comprobar (sugerida: {{host}})",
+      "arithmetic": "Aritmética",
+      "simulator": "La cifra del propio simulador"
+    }
   }
 }

@@ -2,7 +2,7 @@
 //!
 //! ```text
 //! ka-pack new <id>                       scaffold content/problems/<id>/ (with TODO markers)
-//! ka-pack validate [--run] [--problems a,b] [--kind problems|samples|guide] [--content DIR]
+//! ka-pack validate [--run] [--problems a,b] [--kind problems|samples|guide|practice] [--content DIR]
 //! ka-pack build --out FILE [--content DIR]
 //! ```
 //!
@@ -19,7 +19,7 @@ use ka_pack::{
 
 const USAGE: &str = "usage:
   ka-pack new <id>
-  ka-pack validate [--run [--verbose]] [--problems a,b] [--kind problems|samples|guide] [--content DIR]
+  ka-pack validate [--run [--verbose]] [--problems a,b] [--kind problems|samples|guide|practice] [--content DIR]
   ka-pack build --out FILE [--content DIR]
   ka-pack migrate [--content DIR]   rewrite every .kbarch in the current format";
 
@@ -114,9 +114,9 @@ fn main() -> ExitCode {
         "validate" => {
             let kind = args.kind.as_deref();
             if let Some(k) = kind
-                && !["problems", "samples", "guide"].contains(&k)
+                && !["problems", "samples", "guide", "practice"].contains(&k)
             {
-                eprintln!("--kind {k}: one of problems, samples, guide");
+                eprintln!("--kind {k}: one of problems, samples, guide, practice");
                 return ExitCode::FAILURE;
             }
             let mut problems = match load_problems(&args.content, &registry) {
@@ -186,6 +186,25 @@ fn main() -> ExitCode {
                 }
                 Ok(guide.len())
             };
+            // Practice content (numbers, drills, paths): structural, plus `--run` for drills.
+            let check_practice = |problems: &[ka_pack::ProblemDir]| -> Result<String, ExitCode> {
+                let practice = ka_pack::practice::load_practice(&args.content, &registry)
+                    .map_err(|i| report(&i))?;
+                let issues = ka_pack::practice::validate_practice(&practice, problems, &registry);
+                if !issues.is_empty() {
+                    return Err(report(&issues));
+                }
+                Ok(ka_pack::practice::summary(&practice))
+            };
+            if kind == Some("practice") {
+                return match check_practice(&problems) {
+                    Ok(line) => {
+                        println!("{line}");
+                        ExitCode::SUCCESS
+                    }
+                    Err(code) => code,
+                };
+            }
             if kind == Some("guide") {
                 return match check_guide(&problems) {
                     Ok(n) => {
@@ -217,6 +236,10 @@ fn main() -> ExitCode {
                     Ok(n) => n,
                     Err(code) => return code,
                 };
+                match check_practice(&problems) {
+                    Ok(line) => println!("{line}"),
+                    Err(code) => return code,
+                }
                 (Some(s), Some(g))
             } else {
                 (None, None)

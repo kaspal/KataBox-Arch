@@ -294,6 +294,13 @@ async fn glossary(state: State<'_, AppState>) -> Res<Vec<ka_core::decide::Glossa
     state.app()?.glossary().await
 }
 
+/// The numbers cheat sheet (M5.1).
+#[tauri::command]
+#[specta::specta]
+async fn numbers(state: State<'_, AppState>) -> Res<Vec<ka_core::numbers::NumberFigure>> {
+    state.app()?.numbers().await
+}
+
 /// The pattern library, in order (each with its template for the preview).
 #[tauri::command]
 #[specta::specta]
@@ -469,6 +476,7 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         sample,
         decide_flows,
         glossary,
+        numbers,
         list_patterns,
         pattern,
         set_pattern_read,

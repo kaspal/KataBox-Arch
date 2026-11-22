@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
-import { Lightbulb, Lock } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Calculator, Lightbulb, Lock } from "lucide-react";
 import type { ProblemBrief } from "@/bindings";
 import { useReportError } from "@/app/dialogs";
 import { Markdown } from "@/components/Markdown";
@@ -79,6 +80,10 @@ export function BriefPanel({ brief }: { brief: ProblemBrief }) {
           <Stat label={t("brief.availability")} value={`≥ ${pct.format(brief.nfr.availability)}`} />
           <Stat label={t("brief.budget")} value={`${usd.format(brief.nfr.budget_usd)}${t("metrics.perMonth")}`} />
         </div>
+        <Link to="/numbers" className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary underline-offset-4 hover:underline" data-testid="numbers-link">
+          <Calculator aria-hidden className="size-3.5" />
+          {t("brief.numbers")}
+        </Link>
       </Section>
       <Section title={t("brief.traffic")}>
         <ul className="space-y-1 text-sm">

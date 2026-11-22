@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { BookOpen, FilePlus2, FileText, FolderOpen, Gauge, Languages, Monitor, Moon, Save, SaveAll, Sun } from "lucide-react";
+import { BookOpen, Calculator, FilePlus2, FileText, FolderOpen, Gauge, Languages, Monitor, Moon, Save, SaveAll, Sun } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -68,6 +68,10 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
               {t(item.labelKey)}
             </CommandItem>
           ))}
+          <CommandItem value={`page ${t("numbers.title")}`} onSelect={() => run(() => void navigate({ to: "/numbers" }))}>
+            <Calculator aria-hidden />
+            {t("numbers.title")}
+          </CommandItem>
           {import.meta.env.DEV && (
             <CommandItem value={`page ${t("palette.devPerf")}`} onSelect={() => run(() => void navigate({ to: "/dev/perf" }))}>
               <Gauge aria-hidden />

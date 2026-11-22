@@ -16,6 +16,7 @@ import {
   type GuideSummary,
   type DecideFlow,
   type GlossaryTerm,
+  type NumberFigure,
   type PatternPage,
   type PatternSummary,
   type Sample,
@@ -117,6 +118,8 @@ export const api = {
   /** The "Which one do I need?" decision guides, in order. */
   decideFlows: (): Promise<DecideFlow[]> => call(commands.decideFlows()),
   glossary: (): Promise<GlossaryTerm[]> => call(commands.glossary()),
+  /** The numbers cheat sheet, in sheet order. */
+  numbers: (): Promise<NumberFigure[]> => call(commands.numbers()),
   /** The pattern library, in order, each with its template. */
   listPatterns: (): Promise<PatternSummary[]> => call(commands.listPatterns()),
   pattern: (id: string): Promise<PatternPage> => call(commands.pattern(id)),

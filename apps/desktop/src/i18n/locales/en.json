@@ -491,6 +491,7 @@
   },
   "brief": {
     "teaches": "Teaches: {{what}}",
+    "numbers": "Numbers cheat sheet",
     "targets": "Targets",
     "peak": "Peak traffic",
     "p95": "p95 latency",
@@ -665,5 +666,24 @@
     "title": "Glossary",
     "search": "Search the glossary",
     "see": "See {{name}}."
+  },
+  "numbers": {
+    "title": "Numbers cheat sheet",
+    "search": "Search the numbers",
+    "intro": "Rough speeds and sizes for back-of-the-envelope estimates: orders of magnitude, not benchmarks. Figures marked \"simulator\" are the ones the simulator uses, so your estimates and its runs agree.",
+    "group": {
+      "memory": "Memory",
+      "storage": "Storage and databases",
+      "network": "Network",
+      "servers": "Servers and services",
+      "sizes": "Sizes",
+      "time": "Time and traffic"
+    },
+    "source": {
+      "cited": "Source: {{host}}",
+      "needed": "Source to be checked (suggested: {{host}})",
+      "arithmetic": "Arithmetic",
+      "simulator": "The simulator's own figure"
+    }
   }
 }

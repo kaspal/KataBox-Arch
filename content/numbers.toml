@@ -1,0 +1,357 @@
+# The numbers cheat sheet (M5.1): rough speeds and sizes for back-of-the-envelope estimates.
+# Orders of magnitude, not benchmarks. Sources: a URL; `needed: <URL>` until checked;
+# `arithmetic` for a derived constant; `simulator` for a figure read from the registry's
+# calibration (docs/calibration.md), so estimates and the simulator agree.
+
+# --- Memory -----------------------------------------------------------------------------------
+
+[[figure]]
+id = "l1-cache"
+group = "memory"
+label = "L1 cache reference"
+label_es = "Acceso a la caché L1"
+value = 1
+unit = "ns"
+note = "The CPU's own cache: about a nanosecond. Everything else is slower than this."
+note_es = "La caché propia de la CPU: alrededor de un nanosegundo. Todo lo demás es más lento."
+source = "needed: https://colin-scott.github.io/personal_website/research/interactive_latency.html"
+
+[[figure]]
+id = "memory-reference"
+group = "memory"
+label = "Main memory reference"
+label_es = "Acceso a memoria principal"
+value = 100
+unit = "ns"
+note = "Reading RAM is about a hundred times slower than the L1 cache, and still far faster than any disk."
+note_es = "Leer la RAM es unas cien veces más lento que la caché L1, y aun así mucho más rápido que cualquier disco."
+source = "needed: https://colin-scott.github.io/personal_website/research/interactive_latency.html"
+
+[[figure]]
+id = "memory-read-1mb"
+group = "memory"
+label = "Read 1 MB sequentially from memory"
+label_es = "Leer 1 MB seguido de memoria"
+value = 10
+unit = "us"
+note = "Streaming through RAM is fast: a megabyte in about ten microseconds on current machines."
+note_es = "Recorrer la RAM es rápido: un megabyte en unos diez microsegundos en máquinas actuales."
+source = "needed: https://colin-scott.github.io/personal_website/research/interactive_latency.html"
+
+[[figure]]
+id = "redis-get"
+group = "memory"
+label = "A Redis GET, served from memory"
+label_es = "Un GET de Redis, servido desde memoria"
+value = 0.01
+unit = "ms"
+note = "One Redis process answers about 100,000 simple commands a second. The network round trip to it costs more than the command."
+note_es = "Un proceso de Redis responde unos 100 000 comandos simples por segundo. El viaje de red hasta él cuesta más que el comando."
+source = "https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/benchmarks/"
+
+# --- Storage ----------------------------------------------------------------------------------
+
+[[figure]]
+id = "ssd-random-read"
+group = "storage"
+label = "SSD random read"
+label_es = "Lectura aleatoria en SSD"
+value = 100
+unit = "us"
+note = "A 4 KB read from an NVMe SSD: about a tenth of a millisecond, a thousand times slower than RAM."
+note_es = "Una lectura de 4 KB en un SSD NVMe: una décima de milisegundo, mil veces más lento que la RAM."
+source = "needed: https://colin-scott.github.io/personal_website/research/interactive_latency.html"
+
+[[figure]]
+id = "ssd-read-1mb"
+group = "storage"
+label = "Read 1 MB sequentially from SSD"
+label_es = "Leer 1 MB seguido de un SSD"
+value = 0.5
+unit = "ms"
+note = "Sequential reads from an SSD run at a few gigabytes a second."
+note_es = "Las lecturas seguidas de un SSD van a unos pocos gigabytes por segundo."
+source = "needed: https://colin-scott.github.io/personal_website/research/interactive_latency.html"
+
+[[figure]]
+id = "disk-seek"
+group = "storage"
+label = "Hard disk seek"
+label_es = "Búsqueda en disco duro"
+value = 10
+unit = "ms"
+note = "A spinning disk has to move its head: about ten milliseconds per random read. Avoid random reads on it."
+note_es = "Un disco giratorio tiene que mover el cabezal: unos diez milisegundos por lectura aleatoria. Evita leer al azar en él."
+source = "needed: https://colin-scott.github.io/personal_website/research/interactive_latency.html"
+
+[[figure]]
+id = "sql-query"
+group = "storage"
+label = "A small indexed SQL query"
+label_es = "Una consulta SQL pequeña con índice"
+value = 5
+unit = "ms"
+note = "The simulator's median for a PostgreSQL or MySQL read or write by key, including the database's own work."
+note_es = "La mediana del simulador para una lectura o escritura por clave en PostgreSQL o MySQL, con el trabajo de la base de datos incluido."
+source = "simulator"
+
+[[figure]]
+id = "object-get"
+group = "storage"
+label = "An object storage GET"
+label_es = "Un GET a almacenamiento de objetos"
+value = 50
+unit = "ms"
+note = "S3 and similar stores answer in tens of milliseconds: fine for blobs, too slow for every request's hot path."
+note_es = "S3 y almacenes parecidos responden en decenas de milisegundos: bien para blobs, demasiado lento para la ruta caliente de cada petición."
+source = "simulator"
+
+# --- Network ----------------------------------------------------------------------------------
+
+[[figure]]
+id = "rtt-same-az"
+group = "network"
+label = "Round trip within one availability zone"
+label_es = "Ida y vuelta dentro de una zona de disponibilidad"
+value = 0.5
+unit = "ms"
+note = "Two servers in the same data center talk in well under a millisecond."
+note_es = "Dos servidores del mismo centro de datos se hablan en mucho menos de un milisegundo."
+source = "needed: https://docs.aws.amazon.com/whitepapers/latest/aws-fault-isolation-boundaries/availability-zones.html"
+
+[[figure]]
+id = "rtt-cross-az"
+group = "network"
+label = "Round trip between availability zones"
+label_es = "Ida y vuelta entre zonas de disponibilidad"
+value = 1.5
+unit = "ms"
+note = "Zones in one region are a few kilometres apart: about a millisecond or two. The simulator adds the same between zones."
+note_es = "Las zonas de una región están a pocos kilómetros: uno o dos milisegundos. El simulador suma lo mismo entre zonas."
+source = "needed: https://docs.aws.amazon.com/whitepapers/latest/aws-fault-isolation-boundaries/availability-zones.html"
+
+[[figure]]
+id = "rtt-cross-region"
+group = "network"
+label = "Round trip between regions on one continent"
+label_es = "Ida y vuelta entre regiones de un continente"
+value = 70
+unit = "ms"
+note = "Light in fibre covers about 200 km per millisecond, each way. A US coast-to-coast round trip is around 70 ms, as in the simulator."
+note_es = "La luz en fibra recorre unos 200 km por milisegundo, en cada sentido. Una ida y vuelta de costa a costa en EE. UU. ronda los 70 ms, como en el simulador."
+source = "needed: https://www.cloudping.co/"
+
+[[figure]]
+id = "rtt-intercontinental"
+group = "network"
+label = "Round trip across an ocean"
+label_es = "Ida y vuelta a través de un océano"
+value = 150
+unit = "ms"
+note = "Europe to the US west coast, or the US to Asia: well over 100 ms. No design trick makes light faster."
+note_es = "De Europa a la costa oeste de EE. UU., o de EE. UU. a Asia: bastante más de 100 ms. Ningún truco de diseño hace la luz más rápida."
+source = "needed: https://www.cloudping.co/"
+
+[[figure]]
+id = "nic-bandwidth"
+group = "network"
+label = "A server's network link"
+label_es = "El enlace de red de un servidor"
+value = 10
+unit = "Gbps"
+note = "A common server network card: 10 gigabits a second, about 1.25 gigabytes a second at best."
+note_es = "Una tarjeta de red de servidor habitual: 10 gigabits por segundo, como mucho unos 1,25 gigabytes por segundo."
+source = "needed: https://aws.amazon.com/ec2/instance-types/"
+
+[[figure]]
+id = "send-1mb-1gbps"
+group = "network"
+label = "Send 1 MB over a 1 Gbps link"
+label_es = "Enviar 1 MB por un enlace de 1 Gbps"
+value = 8
+unit = "ms"
+note = "Eight megabits at a gigabit a second: 8 ms of pure transfer, before any round trips."
+note_es = "Ocho megabits a un gigabit por segundo: 8 ms de transferencia pura, antes de cualquier ida y vuelta."
+source = "arithmetic"
+
+# --- Servers ----------------------------------------------------------------------------------
+
+[[figure]]
+id = "app-go-rps"
+group = "servers"
+label = "One Go app server instance"
+label_es = "Una instancia de servidor de aplicaciones en Go"
+value = 12800
+unit = "rps"
+note = "In the simulator: 64 requests in parallel at about 5 ms each. Real services vary widely with the work per request."
+note_es = "En el simulador: 64 peticiones en paralelo a unos 5 ms cada una. Los servicios reales varían mucho según el trabajo por petición."
+source = "simulator"
+
+[[figure]]
+id = "app-node-rps"
+group = "servers"
+label = "One Node.js or Spring Boot instance"
+label_es = "Una instancia de Node.js o Spring Boot"
+value = 6400
+unit = "rps"
+note = "In the simulator: 64 in parallel at about 10 ms each."
+note_es = "En el simulador: 64 en paralelo a unos 10 ms cada una."
+source = "simulator"
+
+[[figure]]
+id = "app-django-rps"
+group = "servers"
+label = "One Django instance"
+label_es = "Una instancia de Django"
+value = 450
+unit = "rps"
+note = "In the simulator: 9 worker processes at about 20 ms each. Fewer, slower workers per instance than the others."
+note_es = "En el simulador: 9 procesos worker a unos 20 ms cada uno. Menos workers, y más lentos, por instancia que los demás."
+source = "simulator"
+
+[[figure]]
+id = "postgres-connections"
+group = "servers"
+label = "PostgreSQL default connections"
+label_es = "Conexiones por defecto de PostgreSQL"
+value = 100
+unit = "count"
+note = "max_connections defaults to 100. At about 5 ms a query that is roughly 20,000 simple queries a second per server."
+note_es = "max_connections vale 100 por defecto. A unos 5 ms por consulta son unas 20 000 consultas simples por segundo por servidor."
+source = "https://www.postgresql.org/docs/current/runtime-config-connection.html"
+
+[[figure]]
+id = "dynamodb-partition"
+group = "servers"
+label = "DynamoDB reads per partition"
+label_es = "Lecturas de DynamoDB por partición"
+value = 3000
+unit = "rps"
+note = "A partition serves up to 3,000 reads or 1,000 writes a second. A hot key is limited to one partition."
+note_es = "Una partición sirve hasta 3000 lecturas o 1000 escrituras por segundo. Una clave caliente se limita a una partición."
+source = "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html"
+
+[[figure]]
+id = "s3-prefix"
+group = "servers"
+label = "S3 GETs per prefix"
+label_es = "GET de S3 por prefijo"
+value = 11000
+unit = "rps"
+note = "At least 11,000 GET or 3,500 PUT requests a second per prefix, and S3 adds prefixes as load grows."
+note_es = "Al menos 11 000 GET o 3500 PUT por segundo por prefijo, y S3 añade prefijos a medida que crece la carga."
+source = "https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html"
+
+[[figure]]
+id = "lambda-concurrency"
+group = "servers"
+label = "Lambda concurrent executions per account"
+label_es = "Ejecuciones simultáneas de Lambda por cuenta"
+value = 1000
+unit = "count"
+note = "The default limit per region. At 20 ms a call, about 50,000 calls a second; beyond the limit calls are throttled."
+note_es = "El límite por defecto por región. A 20 ms por llamada, unas 50 000 llamadas por segundo; por encima del límite se limitan."
+source = "https://docs.aws.amazon.com/lambda/latest/dg/lambda-concurrency.html"
+
+[[figure]]
+id = "kafka-partition"
+group = "servers"
+label = "Throughput of one Kafka partition"
+label_es = "Rendimiento de una partición de Kafka"
+value = 10
+unit = "MB/s"
+note = "A planning figure: a partition handles roughly ten megabytes a second. Partitions also cap how many consumers work in parallel."
+note_es = "Una cifra de planificación: una partición maneja unos diez megabytes por segundo. Las particiones también limitan cuántos consumidores trabajan en paralelo."
+source = "needed: https://www.confluent.io/blog/how-choose-number-topics-partitions-kafka-cluster/"
+
+# --- Sizes ------------------------------------------------------------------------------------
+
+[[figure]]
+id = "uuid"
+group = "sizes"
+label = "A UUID"
+label_es = "Un UUID"
+value = 16
+unit = "B"
+note = "128 bits. As text it takes 36 characters."
+note_es = "128 bits. Como texto ocupa 36 caracteres."
+source = "arithmetic"
+
+[[figure]]
+id = "url"
+group = "sizes"
+label = "A typical URL"
+label_es = "Una URL típica"
+value = 100
+unit = "B"
+note = "Most links fit in about a hundred bytes; a short link's record with its metadata is a few hundred."
+note_es = "La mayoría de los enlaces caben en unos cien bytes; el registro de un enlace corto con sus metadatos ocupa unos cientos."
+source = "needed: https://developer.mozilla.org/en-US/docs/Learn_web_development/Howto/Web_mechanics/What_is_a_URL"
+
+[[figure]]
+id = "photo"
+group = "sizes"
+label = "A phone photo"
+label_es = "Una foto de móvil"
+value = 3
+unit = "MB"
+note = "A compressed photo: a few megabytes. A thumbnail of it is a few tens of kilobytes."
+note_es = "Una foto comprimida: unos pocos megabytes. Su miniatura ocupa unas decenas de kilobytes."
+source = "needed: https://en.wikipedia.org/wiki/JPEG"
+
+[[figure]]
+id = "video-minute"
+group = "sizes"
+label = "One minute of 1080p video"
+label_es = "Un minuto de vídeo 1080p"
+value = 40
+unit = "MB"
+note = "At about 5 megabits a second, a minute of HD video is around 40 MB. Streams store several bitrates of each."
+note_es = "A unos 5 megabits por segundo, un minuto de vídeo HD ronda los 40 MB. Los servicios de streaming guardan varias calidades de cada uno."
+source = "arithmetic"
+
+# --- Time -------------------------------------------------------------------------------------
+
+[[figure]]
+id = "seconds-per-day"
+group = "time"
+label = "Seconds in a day"
+label_es = "Segundos en un día"
+value = 86400
+unit = "count"
+note = "Round it to 100,000 for quick estimates: a million requests a day is about 12 a second on average."
+note_es = "Redondéalo a 100 000 para estimar rápido: un millón de peticiones al día son unas 12 por segundo de media."
+source = "arithmetic"
+
+[[figure]]
+id = "seconds-per-month"
+group = "time"
+label = "Seconds in a month"
+label_es = "Segundos en un mes"
+value = 2629746
+unit = "count"
+note = "About 2.6 million. One request a second all month is about 2.6 million requests."
+note_es = "Unos 2,6 millones. Una petición por segundo durante todo el mes son unos 2,6 millones de peticiones."
+source = "arithmetic"
+
+[[figure]]
+id = "seconds-per-year"
+group = "time"
+label = "Seconds in a year"
+label_es = "Segundos en un año"
+value = 31556952
+unit = "count"
+note = "About 31.5 million: handy for storage per year at a given write rate."
+note_es = "Unos 31,5 millones: útil para calcular el almacenamiento anual a un ritmo de escritura dado."
+source = "arithmetic"
+
+[[figure]]
+id = "peak-factor"
+group = "time"
+label = "Peak traffic over the daily average"
+label_es = "Tráfico pico sobre la media diaria"
+value = 3
+unit = "count"
+note = "A rule of thumb: the busiest hour runs at two to three times the day's average. Size for the peak, not the average."
+note_es = "Una regla práctica: la hora más ocupada va a dos o tres veces la media del día. Dimensiona para el pico, no para la media."
+source = "needed: https://sre.google/sre-book/handling-overload/"

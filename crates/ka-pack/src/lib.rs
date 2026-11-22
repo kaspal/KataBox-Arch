@@ -13,6 +13,7 @@ pub mod decide;
 pub mod guide;
 pub mod migrate;
 pub mod patterns;
+pub mod practice;
 pub mod problems;
 pub mod run;
 pub mod samples;
@@ -100,7 +101,9 @@ pub fn build_content(
     let patterns = patterns::load_patterns(root, registry)?;
     let flows = decide::load_decide(root)?;
     let glossary = decide::load_glossary(root)?;
+    let practice = practice::load_practice(root, registry)?;
     let mut issues = validate_problems(&problems, registry);
+    issues.extend(practice::validate_practice(&practice, &problems, registry));
     issues.extend(validate_samples(&samples, &problems, registry));
     issues.extend(validate_guide(&guide, &problems, registry));
     issues.extend(validate_concepts(&concepts, &problems, registry));
@@ -164,6 +167,7 @@ pub fn build_content(
             .map(guide::guide_row)
             .collect::<Result<_, _>>()
             .map_err(|m| vec![issue("guide", m)])?,
+        docs: practice::practice_docs(&practice).map_err(|m| vec![issue("practice", m)])?,
     })
 }
 

@@ -257,6 +257,17 @@ async glossary() : Promise<Result<GlossaryTerm[], AppError>> {
 }
 },
 /**
+ * The numbers cheat sheet (M5.1).
+ */
+async numbers() : Promise<Result<NumberFigure[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("numbers") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * The pattern library, in order (each with its template for the preview).
  */
 async listPatterns() : Promise<Result<PatternSummary[], AppError>> {
@@ -857,6 +868,11 @@ down_seconds: number[] }
  * A sticky note (hand-written font on the canvas).
  */
 export type Note = { id: string; text: string; position: Point; size: Size }
+export type NumberFigure = { id: string; group: NumberGroup; label: string; label_es: string; value: number; unit: string; note: string; note_es: string; source: string }
+/**
+ * The sheet's sections, in display order.
+ */
+export type NumberGroup = "memory" | "storage" | "network" | "servers" | "sizes" | "time"
 /**
  * A design read from disk, with the path it came from.
  */

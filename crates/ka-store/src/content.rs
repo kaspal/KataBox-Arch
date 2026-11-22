@@ -1,8 +1,12 @@
-//! `content.db`: the read-only catalogue the app ships (problems now; Guide, patterns,
-//! samples, concept cards, decision guides and the glossary from M3). `ka-pack build` writes
-//! it from `content/`; the app only reads it. Schema 1, recorded in `PRAGMA user_version`;
-//! a newer file is refused. Structured parts are JSON strings, so this crate doesn't depend on
-//! the content types (`ka-core::problem`).
+//! `content.db`: the read-only catalogue the app ships (problems; Guide, patterns, samples,
+//! concept cards, decision guides and the glossary from M3; the practice content from M5).
+//! `ka-pack build` writes it from `content/`; the app only reads it. The schema version is
+//! recorded in `PRAGMA user_version`; any other version is refused. Structured parts are
+//! JSON strings, so this crate doesn't depend on the content types (`ka-core::problem`).
+//!
+//! - **Schema 2 (M5.1):** a generic `docs (kind, id, json)` table for the practice content
+//!   (`numbers`, then estimation drills, flaw drills, learning paths, cross-links), so each
+//!   new content type adds rows, not a schema.
 
 use std::path::Path;
 
@@ -12,7 +16,7 @@ use sqlx::{Connection, Row, SqliteConnection};
 
 use crate::{Result, StoreError};
 
-pub const CONTENT_SCHEMA: i64 = 1;
+pub const CONTENT_SCHEMA: i64 = 2;
 
 const SCHEMA_SQL: &str = r#"
 CREATE TABLE meta (
@@ -71,6 +75,12 @@ CREATE TABLE decide (
 CREATE TABLE glossary (
   id    TEXT PRIMARY KEY,
   entry TEXT NOT NULL
+);
+CREATE TABLE docs (
+  kind TEXT NOT NULL,
+  id   TEXT NOT NULL,
+  json TEXT NOT NULL,
+  PRIMARY KEY (kind, id)
 );
 "#;
 
@@ -131,6 +141,15 @@ pub struct JsonRow {
     pub json: String,
 }
 
+/// One practice document (schema 2): its kind (`numbers`, `estimation`, `flaw`, `path`,
+/// `crosslinks`), id and JSON.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DocRow {
+    pub kind: String,
+    pub id: String,
+    pub json: String,
+}
+
 /// A pattern: the entry as JSON, the prose, and the template as `.kbarch` JSON.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PatternRow {
@@ -159,6 +178,7 @@ pub struct ContentData {
     pub patterns: Vec<PatternRow>,
     pub decide: Vec<JsonRow>,
     pub glossary: Vec<JsonRow>,
+    pub docs: Vec<DocRow>,
 }
 
 /// Write a fresh `content.db` at `path` (replacing any file there).
@@ -233,6 +253,14 @@ pub async fn write_content(path: &Path, data: &ContentData) -> Result<()> {
         sqlx::query("INSERT INTO glossary (id, entry) VALUES (?, ?)")
             .bind(&g.id)
             .bind(&g.json)
+            .execute(&mut *tx)
+            .await?;
+    }
+    for d in &data.docs {
+        sqlx::query("INSERT INTO docs (kind, id, json) VALUES (?, ?, ?)")
+            .bind(&d.kind)
+            .bind(&d.id)
+            .bind(&d.json)
             .execute(&mut *tx)
             .await?;
     }
@@ -464,9 +492,35 @@ impl ContentDb {
         row.as_ref().map(guide_row).transpose()
     }
 
+    /// Every practice document of one kind, by id.
+    pub async fn docs(&self, kind: &str) -> Result<Vec<DocRow>> {
+        let rows = sqlx::query("SELECT kind, id, json FROM docs WHERE kind = ? ORDER BY id")
+            .bind(kind)
+            .fetch_all(&self.pool)
+            .await?;
+        rows.iter().map(doc_row).collect()
+    }
+
+    pub async fn doc(&self, kind: &str, id: &str) -> Result<Option<DocRow>> {
+        let row = sqlx::query("SELECT kind, id, json FROM docs WHERE kind = ? AND id = ?")
+            .bind(kind)
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
+        row.as_ref().map(doc_row).transpose()
+    }
+
     pub async fn close(&self) {
         self.pool.close().await;
     }
+}
+
+fn doc_row(r: &sqlx::sqlite::SqliteRow) -> Result<DocRow> {
+    Ok(DocRow {
+        kind: r.try_get("kind")?,
+        id: r.try_get("id")?,
+        json: r.try_get("json")?,
+    })
 }
 
 fn guide_row(r: &sqlx::sqlite::SqliteRow) -> Result<GuideRow> {
@@ -563,6 +617,23 @@ mod tests {
                 md_es: "Cómo".into(),
                 template: "{}".into(),
             }],
+            docs: vec![
+                DocRow {
+                    kind: "numbers".into(),
+                    id: "sheet".into(),
+                    json: "[1]".into(),
+                },
+                DocRow {
+                    kind: "flaw".into(),
+                    id: "b".into(),
+                    json: "{\"b\":1}".into(),
+                },
+                DocRow {
+                    kind: "flaw".into(),
+                    id: "a".into(),
+                    json: "{\"a\":1}".into(),
+                },
+            ],
         };
         write_content(&path, &data).await.unwrap();
         // Rewriting replaces the file.
@@ -595,6 +666,17 @@ mod tests {
         assert_eq!(db.patterns().await.unwrap()[0].md_es, "Cómo");
         assert_eq!(db.decide().await.unwrap()[0].id, "sql-or-nosql");
         assert_eq!(db.glossary().await.unwrap()[0].json, "{\"t\":1}");
+        let flaws = db.docs("flaw").await.unwrap();
+        assert_eq!(
+            flaws.iter().map(|d| d.id.as_str()).collect::<Vec<_>>(),
+            ["a", "b"]
+        );
+        assert_eq!(
+            db.doc("numbers", "sheet").await.unwrap().unwrap().json,
+            "[1]"
+        );
+        assert_eq!(db.doc("numbers", "nope").await.unwrap(), None);
+        assert!(db.docs("path").await.unwrap().is_empty());
         db.close().await;
     }
 
@@ -605,7 +687,7 @@ mod tests {
         {
             let opts = SqliteConnectOptions::new().filename(&path);
             let mut conn = SqliteConnection::connect_with(&opts).await.unwrap();
-            sqlx::raw_sql("PRAGMA user_version = 2")
+            sqlx::raw_sql(&format!("PRAGMA user_version = {}", CONTENT_SCHEMA + 1))
                 .execute(&mut conn)
                 .await
                 .unwrap();
@@ -613,7 +695,7 @@ mod tests {
         }
         assert!(matches!(
             ContentDb::open(&path).await.unwrap_err(),
-            StoreError::NewerSchema { found: 2, .. }
+            StoreError::NewerSchema { found, .. } if found == CONTENT_SCHEMA + 1
         ));
     }
 }

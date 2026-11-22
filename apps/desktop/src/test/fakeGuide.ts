@@ -1,5 +1,5 @@
 // Two Guide entries for UI tests (the shapes Rust sends: ka-app guide.rs).
-import type { DecideFlow, Design, GlossaryTerm, GuideEntry, PatternEntry } from "@/bindings";
+import type { DecideFlow, Design, GlossaryTerm, GuideEntry, NumberFigure, PatternEntry } from "@/bindings";
 
 export const FAKE_CACHE: GuideEntry = {
   kind: "cache",
@@ -123,3 +123,9 @@ export const FAKE_TEMPLATE: Design = {
   notes: [],
   viewport: { x: 0, y: 0, zoom: 1 },
 };
+
+export const FAKE_NUMBERS: NumberFigure[] = [
+  { id: "memory-reference", group: "memory", label: "Main memory reference", label_es: "Acceso a memoria principal", value: 100, unit: "ns", note: "RAM is fast.", note_es: "La RAM es rápida.", source: "needed: https://example.org/latency" },
+  { id: "rtt-cross-az", group: "network", label: "Round trip between zones", label_es: "Ida y vuelta entre zonas", value: 1.5, unit: "ms", note: "A millisecond or two.", note_es: "Uno o dos milisegundos.", source: "simulator" },
+  { id: "app-go-rps", group: "servers", label: "One Go instance", label_es: "Una instancia en Go", value: 12800, unit: "rps", note: "In the simulator.", note_es: "En el simulador.", source: "https://www.postgresql.org/docs/" },
+];

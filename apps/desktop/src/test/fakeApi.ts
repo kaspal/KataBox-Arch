@@ -4,7 +4,7 @@ import { vi } from "vitest";
 import type { AppError, Design, JsonValue, OpenedDesign, ProblemBrief, RecentEntry, Registry, RunControl, SubmissionSummary, SubmitResult } from "@/bindings";
 import { FAKE_BRIEF, FAKE_REFERENCE, fakeJudgement } from "@/test/fakeProblems";
 import { FAKE_SAMPLE, FAKE_SAMPLE_SUMMARY } from "@/test/fakeSamples";
-import { FAKE_FLOW, FAKE_GUIDE, FAKE_PATTERN, FAKE_TEMPLATE, FAKE_TERMS } from "@/test/fakeGuide";
+import { FAKE_FLOW, FAKE_GUIDE, FAKE_NUMBERS, FAKE_PATTERN, FAKE_TEMPLATE, FAKE_TERMS } from "@/test/fakeGuide";
 import type { Api, RunOptions } from "@/lib/api";
 import fixture from "@/test/fixtures/registry.json";
 
@@ -174,6 +174,7 @@ export function createFakeApi(opts: FakeOptions = {}) {
     }),
     decideFlows: vi.fn(async () => [structuredClone(FAKE_FLOW)]),
     glossary: vi.fn(async () => structuredClone(FAKE_TERMS)),
+    numbers: vi.fn(async () => structuredClone(FAKE_NUMBERS)),
     listPatterns: vi.fn(async () => [
       { id: FAKE_PATTERN.id, number: 1, title: FAKE_PATTERN.title, title_es: FAKE_PATTERN.title_es, one_liner: FAKE_PATTERN.one_liner, one_liner_es: FAKE_PATTERN.one_liner_es, kinds: FAKE_PATTERN.kinds, template: structuredClone(FAKE_TEMPLATE), read: read.has(`pattern:${FAKE_PATTERN.id}`) },
     ]),

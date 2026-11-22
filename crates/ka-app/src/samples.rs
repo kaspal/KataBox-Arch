@@ -179,6 +179,7 @@ run = { preset = "normal" }
                 patterns: vec![],
                 decide: vec![],
                 glossary: vec![],
+                docs: vec![],
             },
         )
         .await
