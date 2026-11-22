@@ -100,6 +100,35 @@ A request type's `route` is a list of steps, `role[:qualifier…][?]`, with `a|b
 - **External providers** are scenario entries, not cards. They have a lognormal latency and an optional rate limit;
   chaos can make one fail (1 s connect timeout) or slow.
 
+### Chaos, health checks, failover, autoscaling (M1.5)
+- **Scheduling.** Chaos events come from the scenario: each starts at `at` and, with `for`, ends `for` seconds later.
+  They are scheduled only when a run has them, so runs without chaos keep their exact event order.
+- **The events:**
+  - **kill:** the card stops answering. Queued work fails now, work in service fails when it ends, and a caller
+    waiting on a dead card fails when the call returns. A cache comes back empty.
+  - **partition:** every card in a Region or AZ (by id or label) is killed for the duration.
+  - **latency:** adds `add_ms` to each service time on the card.
+  - **flush:** empties a cache or CDN. Tracked keys are cleared, and the analytic tail's window restarts at the
+    flush.
+  - **traffic:** multiplies arrivals.
+  - **external:** a provider fails (1 s connect timeout) or slows.
+- **Selectors:** an id, or a kind with a cluster role (the current primary, a replica, or any member). The first in
+  id order, or every match with `all`.
+- **Health checks** run every 2 s; a change is believed after two checks in a row.
+  - Until then, routing still sends requests to a dead card, and they fail. Afterwards, load balancers, callers and
+    replica reads avoid it.
+  - A cache-aside step whose caches are all known to be dead is skipped: a miss, read from the store.
+  - A revived card rejoins after it is seen healthy.
+- **Failover:** when a cluster primary dies, the next live member in id order is promoted after the primary's
+  `failover_s`. Writes fail until then.
+- **Autoscaling:**
+  - every 5 s, each wrapper looks at its cards' mean utilisation since the last tick;
+  - above target, it scales out to bring utilisation back to the target; below half the target, it scales in by
+    one;
+  - each decision applies after `scale_delay_s`, within min and max;
+  - servers (and the sampling stretch) change at runtime;
+  - cost uses the time-averaged instance count.
+
 ### Sampling (the scale trick)
 Above `sample_cap = 5000` simulated arrivals per second, only a share `f = cap / rate` of requests is simulated.
 - **Weights:** every count is weighted by `1/f`.

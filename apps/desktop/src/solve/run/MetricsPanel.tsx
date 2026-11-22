@@ -5,6 +5,7 @@ import { flavourName } from "@/solve/registry";
 import { useEditor } from "@/solve/store";
 import { NODE_DOWN } from "@/solve/run/frames";
 import { useRun } from "@/solve/run/runStore";
+import { Sparkline } from "@/solve/run/Sparkline";
 
 function Tile({ label, value, unit, testId }: { label: string; value: string; unit?: string; testId: string }) {
   return (
@@ -22,6 +23,7 @@ export function MetricsPanel() {
   const { t, i18n } = useTranslation();
   const frame = useRun((s) => s.frame);
   const info = useRun((s) => s.info);
+  const series = useRun((s) => s.series);
   const nodes = useEditor((s) => s.doc.nodes);
   if (!frame) {
     return <p className="text-sm text-muted-foreground">{t("metrics.empty")}</p>;
@@ -47,6 +49,12 @@ export function MetricsPanel() {
         <Tile label={t("metrics.cost")} value={usd.format(frame.costMonth)} unit={t("metrics.perMonth")} testId="metric-cost" />
       </div>
       <p className="text-xs text-muted-foreground">{t("metrics.lastSecond")}</p>
+      {series.length > 1 && (
+        <section className="space-y-1">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("metrics.p95Trend")}</h3>
+          <Sparkline xs={series.map((p) => p.t)} ys={series.map((p) => p.p95Ms)} label={t("metrics.p95Trend")} testId="p95-sparkline" />
+        </section>
+      )}
       {busiest.length > 0 && (
         <section className="space-y-2">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("metrics.busiest")}</h3>

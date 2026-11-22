@@ -21,6 +21,17 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
     requests show a cross.
   - Each card shows how busy it is and its queue, as text and a coloured bar; overloaded cards shake.
   - With reduced motion, connections show their requests per second instead of moving dots.
+  - **A timeline under the canvas:** play/pause, the clock, a scrubber that jumps to any moment, the speed, and a
+    marker for each failure.
+  - **Inject** breaks the selected card at the current moment (kill it, slow it down, empty a cache) or triples the
+    traffic. The run continues from there.
+  - **A "Kill a node at 20 s" traffic preset.**
+  - The Metrics tab plots p95 latency per second.
+  - **The simulation models failures:**
+    - dead cards are noticed by health checks after a few seconds;
+    - databases fail over to a replica;
+    - a dead cache turns into misses;
+    - autoscaling groups add and remove instances as load changes.
 
 ### Changed
 - Design files are format version 2. Version 1 files still open: an Autoscaling card becomes a

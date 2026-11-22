@@ -7,6 +7,7 @@ import {
   commands,
   type AppError,
   type AppInfo,
+  type ChaosEvent,
   type Design,
   type DesignIssue,
   type JsonValue,
@@ -53,11 +54,18 @@ export const api = {
   validateDesign: (design: Design): Promise<DesignIssue[]> => call(commands.validateDesign(design)),
 
   /** Start a live Sandbox run; `onFrame` receives each binary frame (`solve/run/frames.ts`). */
-  startRun: (design: Design, preset: SandboxPreset, speed: number, onFrame: (frame: ArrayBuffer) => void): Promise<RunInfo> => {
+  startRun: (
+    design: Design,
+    preset: SandboxPreset,
+    speed: number,
+    chaos: ChaosEvent[],
+    startS: number,
+    onFrame: (frame: ArrayBuffer) => void,
+  ): Promise<RunInfo> => {
     const channel = new Channel<unknown>();
     channel.onmessage = (data) => onFrame(toArrayBuffer(data));
     // The channel serializes to its id; the bindings type that field as a string.
-    return call(commands.startRun({ design, preset, speed, on_frame: channel as unknown as string }));
+    return call(commands.startRun({ design, preset, speed, chaos, start_s: startS, on_frame: channel as unknown as string }));
   },
   controlRun: (runId: number, control: RunControl): Promise<null> => call(commands.controlRun(runId, control)),
   runResult: (runId: number): Promise<RunResult | null> => call(commands.runResult(runId)),

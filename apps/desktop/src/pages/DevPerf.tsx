@@ -78,7 +78,7 @@ function Bench({ registry }: { registry: Registry }) {
     useEditor.getState().load(d, null);
     useRun.setState({
       status: "playing",
-      info: { run_id: 0, duration_s: 600, sample_factor: 1, nodes: d.nodes.map((n) => n.id), edges: d.edges.map((e) => e.id), request_types: ["a", "b", "c"] },
+      info: { run_id: 0, duration_s: 600, sample_factor: 1, nodes: d.nodes.map((n) => n.id), edges: d.edges.map((e) => e.id), request_types: ["a", "b", "c"], chaos: [], start_s: 0 },
     });
     const stopTelemetry = startTelemetry();
     let seq = 0;

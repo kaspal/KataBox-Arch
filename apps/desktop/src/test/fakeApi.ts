@@ -1,7 +1,7 @@
 // An in-memory backend with the same shape as `api`, for UI tests. The registry is the
 // fixture Rust exports (`src/test/fixtures/registry.json`), so tests see the real data.
 import { vi } from "vitest";
-import type { AppError, Design, JsonValue, OpenedDesign, RecentEntry, Registry, RunControl, SandboxPreset } from "@/bindings";
+import type { AppError, ChaosEvent, Design, JsonValue, OpenedDesign, RecentEntry, Registry, RunControl, SandboxPreset } from "@/bindings";
 import type { Api } from "@/lib/api";
 import fixture from "@/test/fixtures/registry.json";
 
@@ -84,7 +84,7 @@ export function createFakeApi(opts: FakeOptions = {}) {
       return path;
     }),
     validateDesign: vi.fn(async () => []),
-    startRun: vi.fn(async (design: Design, _preset: SandboxPreset, _speed: number, onFrame: (f: ArrayBuffer) => void) => {
+    startRun: vi.fn(async (design: Design, _preset: SandboxPreset, _speed: number, chaos: ChaosEvent[], startS: number, onFrame: (f: ArrayBuffer) => void) => {
       if (opts.runError) throw err(opts.runError);
       runs += 1;
       frameSink = onFrame;
@@ -96,6 +96,8 @@ export function createFakeApi(opts: FakeOptions = {}) {
         nodes: design.nodes.map((n) => n.id),
         edges: design.edges.map((e) => e.id),
         request_types: ["read", "write"],
+        chaos,
+        start_s: startS,
       };
     }),
     controlRun: vi.fn(async (_id: number, control: RunControl) => {

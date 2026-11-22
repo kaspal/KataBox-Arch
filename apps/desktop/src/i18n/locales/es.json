@@ -387,15 +387,33 @@
     "preset": "Tráfico",
     "presets": {
       "normal": "Tráfico normal",
-      "spike": "Pico ×4"
+      "spike": "Pico ×4",
+      "kill_node": "Matar un nodo a los 20 s"
     },
     "runAgain": "Ejecutar de nuevo",
     "starting": "Iniciando…",
     "pause": "Pausar",
     "resume": "Continuar",
-    "stop": "Detener la ejecución",
+    "stop": "Detener",
     "speed": "Velocidad",
-    "clock": "{{t}} s de {{total}} s"
+    "clock": "{{t}} s de {{total}} s",
+    "timeline": "Línea de tiempo de la ejecución",
+    "scrub": "Tiempo simulado",
+    "inject": "Inyectar",
+    "injectOn": "Sobre {{name}}",
+    "injectSelect": "Selecciona una tarjeta para romperla",
+    "injectKill": "Matarla",
+    "injectSlow": "Ralentizarla (+200 ms durante 10 s)",
+    "injectFlush": "Vaciarla (vaciar la caché)",
+    "injectTraffic": "Triplicar el tráfico durante 10 s",
+    "chaos": {
+      "kill": "Una tarjeta muere a los {{at}} s",
+      "latency": "Una tarjeta se ralentiza a los {{at}} s",
+      "partition": "Una zona queda aislada a los {{at}} s",
+      "traffic": "El tráfico cambia a los {{at}} s",
+      "flush": "Una caché se vacía a los {{at}} s",
+      "external": "Un proveedor falla a los {{at}} s"
+    }
   },
   "metrics": {
     "empty": "Ejecuta el diseño para ver métricas en vivo.",
@@ -407,6 +425,7 @@
     "lastSecond": "Latencia, rendimiento y errores cubren el último segundo simulado; el coste es mensual con el tráfico visto hasta ahora.",
     "busiest": "Componentes más ocupados",
     "down": "caído",
-    "sampled": "Se simula el {{pct}} % de las solicitudes; los recuentos se escalan de vuelta."
+    "sampled": "Se simula el {{pct}} % de las solicitudes; los recuentos se escalan de vuelta.",
+    "p95Trend": "Latencia p95 por segundo"
   }
 }

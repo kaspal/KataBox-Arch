@@ -18,7 +18,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use ka_app::live::FrameSink;
 use ka_app::{
     App, AppError, AppErrorCode, AppInfo, AppPaths, OpenedDesign, RecentEntry, RunControl, RunInfo,
-    SandboxPreset,
+    RunRequest, SandboxPreset,
 };
 use ka_core::{Design, DesignIssue, Registry};
 use serde_json::Value;
@@ -171,6 +171,10 @@ struct StartRun {
     design: Design,
     preset: SandboxPreset,
     speed: f64,
+    /// Chaos the user injected (each at the moment it was injected).
+    chaos: Vec<ka_core::scenario::ChaosEvent>,
+    /// Where playback starts, in simulated seconds.
+    start_s: f64,
     /// A `Channel` from `@tauri-apps/api/core`, serialized as its id.
     #[specta(type = String)]
     on_frame: JavaScriptChannelId,
@@ -193,9 +197,16 @@ async fn start_run(
     request: StartRun,
 ) -> Res<RunInfo> {
     let sink = ChannelSink(request.on_frame.channel_on(webview));
-    state
-        .app()?
-        .start_run(&request.design, request.preset, request.speed, sink)
+    state.app()?.start_run(
+        &request.design,
+        RunRequest {
+            preset: request.preset,
+            speed: request.speed,
+            chaos: request.chaos,
+            start_s: request.start_s,
+        },
+        sink,
+    )
 }
 
 #[tauri::command]

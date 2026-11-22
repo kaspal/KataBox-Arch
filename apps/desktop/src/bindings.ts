@@ -280,6 +280,34 @@ export type Category =
  */
 "ops"
 /**
+ * Something going wrong at time `at` (seconds), optionally for `for` seconds.
+ */
+export type ChaosEvent = 
+/**
+ * The card stops answering (a crashed node, a lost cache).
+ */
+{ kill: { target: Selector; at: number; for?: number | null } } | 
+/**
+ * Every request through the card takes `add_ms` longer.
+ */
+{ latency: { target: Selector; add_ms: number; at: number; for?: number | null } } | 
+/**
+ * The zone (Region or AZ label or id) is cut off from the rest.
+ */
+{ partition: { zone: string; at: number; for?: number | null } } | 
+/**
+ * Traffic multiplied by `x`.
+ */
+{ traffic: { x: number; at: number; for?: number | null } } | 
+/**
+ * A cache or CDN is emptied (a restart, a purge).
+ */
+{ flush: { target: Selector; at: number } } | 
+/**
+ * An external provider goes down, or slows by `add_ms`.
+ */
+{ external: { name: string; at: number; for?: number | null; down?: boolean; add_ms?: number } }
+/**
  * The 25 component kinds. Ids match the icon ids (`icons.json`).
  */
 export type ComponentKind = "client" | "dns" | "cdn" | "waf" | "lb" | "gateway" | "ratelimit" | "app" | "micro" | "worker" | "serverless" | "autoscale" | "sql" | "nosql" | "cache" | "object" | "search" | "queue" | "stream" | "pubsub" | "dlq" | "scheduler" | "metrics" | "logs" | "tracing"
@@ -495,6 +523,7 @@ export type RecentEntry = { path: string; name: string; opened_at: number; exist
  * Everything the editor needs to know about components, sent to the UI once.
  */
 export type Registry = { categories: Category[]; kinds: KindSpec[]; meta: MetaSpec[]; wiring: WiringTable; limits: Limits }
+export type Role = "primary" | "replica" | "any"
 /**
  * A control sent to the live run.
  */
@@ -526,7 +555,15 @@ edges: string[];
 /**
  * Request type ids by frame type index.
  */
-request_types: string[] }
+request_types: string[]; 
+/**
+ * The run's chaos (the preset's and any injected), for the timeline's markers.
+ */
+chaos: ChaosEvent[]; 
+/**
+ * Where playback starts (an injection resumes from the moment it was made).
+ */
+start_s: number }
 export type RunResult = { seed: number; duration_s: number; 
 /**
  * The share of requests simulated (1 = all).
@@ -549,7 +586,7 @@ completion: Percentiles | null; lost: number; dead_lettered: number; stale_reads
  */
 series: SecondResult[] }
 /**
- * The traffic presets of the Sandbox's Run menu. (Killing a node arrives with chaos, M1.5.)
+ * The traffic presets of the Sandbox's Run menu.
  */
 export type SandboxPreset = 
 /**
@@ -559,12 +596,29 @@ export type SandboxPreset =
 /**
  * ×4 traffic from 20 s to 35 s.
  */
-"spike"
+"spike" | 
+/**
+ * Normal traffic; the busiest data store (or, without one, the busiest service) dies at
+ * 20 s and stays down.
+ */
+"kill_node"
 /**
  * An autoscaling group's policy: the Autoscaling kind's flavour and props (v2).
  */
 export type Scaling = { flavour: Flavour; props: Partial<{ [key in string]: PropValue }> }
 export type SecondResult = { t: number; requests: number; ok: number; errors: number; p95_ms: number }
+/**
+ * Which card(s) a chaos event hits.
+ */
+export type Selector = { id?: string | null; kind?: ComponentKind | null; 
+/**
+ * For data clusters: the current primary, a replica, or any member.
+ */
+role?: Role | null; 
+/**
+ * Every matching card instead of the first (in id order).
+ */
+all?: boolean }
 /**
  * How a flavour behaves as a server where it has no prop for it (ADR 0005, ADR 0006).
  */
@@ -596,6 +650,14 @@ export type Size = { w: number; h: number }
  * they arrive in JavaScript as ArrayBuffers.
  */
 export type StartRun = { design: Design; preset: SandboxPreset; speed: number; 
+/**
+ * Chaos the user injected (each at the moment it was injected).
+ */
+chaos: ChaosEvent[]; 
+/**
+ * Where playback starts, in simulated seconds.
+ */
+start_s: number; 
 /**
  * A `Channel` from `@tauri-apps/api/core`, serialized as its id.
  */

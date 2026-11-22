@@ -58,8 +58,28 @@ pause, speed, seek. And it needs that without turning thousands of packets a sec
   design supports:
   - reads: `edge? → compute → cache? → datastore`, then `… → cache`, then `edge? → compute`;
   - writes: `… → datastore:write`, then `edge? → compute`.
-- **Presets:** Normal, and Spike ×4 (from 20 s to 35 s), over 60 s.
-- **Kill a node** arrives with chaos in M1.5.
+- **Presets** (60 s each):
+  - Normal;
+  - Spike ×4 (from 20 s to 35 s);
+  - Kill a node: at 20 s the busiest data store dies (else the busiest service), chosen by utilisation in a short
+    deterministic pre-run.
+
+### Timeline and injected chaos (M1.5)
+- **The timeline under the canvas:**
+  - play/pause and the clock;
+  - a scrubber, which seeks on release and pauses there;
+  - a diamond for each chaos event;
+  - the speed.
+- **Injecting chaos.** Inject (kill, slow down, flush the selected card, or triple the traffic) adds the event at
+  the current moment and starts a fresh run with the same seed, its chaos list grown. Playback resumes from that
+  moment: `start_s` seeks there first. So injected chaos is as deterministic as a problem's, and replays the same
+  way.
+- **Editing during a run** keeps the injected chaos.
+- **Wire shape.** On the wire, a chaos event's selector is flattened (`{"kill": {"id": "db", "at": 12}}`, as in
+  problem files). The generated TS binding types it as a nested `target`, because specta doesn't render serde's
+  flatten, so the UI builds events only in `solve/run/chaos.ts`.
+- **The end of a run.** At the run's length the remaining requests are drained at once, and the clock stops at the
+  run's length.
 
 ### Editing during a run (plan ★13)
 - **What restarts a run.** An edit to anything the simulator reads restarts the run from 0, with the same seed and

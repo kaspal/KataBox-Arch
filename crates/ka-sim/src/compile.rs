@@ -111,6 +111,24 @@ pub struct CSource {
     pub rate: f64,
 }
 
+/// A Region or AZ, for partitions (`ChaosEvent::Partition` names its id or label).
+#[derive(Debug, Clone)]
+pub struct Zone {
+    pub id: String,
+    pub label: String,
+}
+
+/// An autoscaling wrapper: the compute cards inside it and its policy.
+#[derive(Debug, Clone)]
+pub struct ScaleGroup {
+    pub members: Vec<u32>,
+    pub min: f64,
+    pub max: f64,
+    /// Target utilisation, 0–1.
+    pub target: f64,
+    pub delay_us: u64,
+}
+
 #[derive(Debug, Clone)]
 pub struct Compiled {
     pub nodes: Vec<CNode>,
@@ -128,6 +146,9 @@ pub struct Compiled {
     pub weight: f64,
     pub scenario: Scenario,
     pub duration_us: u64,
+    /// Zones by group index (CNode::az / region point here).
+    pub zones: Vec<Zone>,
+    pub scaling: Vec<ScaleGroup>,
 }
 
 const SYNC: [Protocol; 3] = [Protocol::Http, Protocol::Grpc, Protocol::Ws];
@@ -254,6 +275,53 @@ pub fn compile(
         }
     }
     let n_nodes = nodes.len();
+
+    // --- Autoscaling wrappers ------------------------------------------------------------
+    let autoscale = registry.kind(ComponentKind::Autoscale);
+    let mut scaling = Vec::new();
+    for g in design
+        .groups
+        .iter()
+        .filter(|g| g.kind == GroupKind::Autoscale)
+    {
+        let Some(policy) = &g.scaling else { continue };
+        let num = |key: &str, fallback: f64| match policy.props.get(key) {
+            Some(ka_core::PropValue::Number(v)) => *v,
+            _ => match autoscale.prop(key).map(|p| &p.default) {
+                Some(ka_core::PropValue::Number(v)) => *v,
+                _ => fallback,
+            },
+        };
+        let members: Vec<u32> = design
+            .nodes
+            .iter()
+            .filter(|n| n.group_id.as_deref() == Some(g.id.as_str()))
+            .filter_map(|n| index.get(n.id.as_str()).copied())
+            .filter(|i| {
+                nodes[*i as usize].spec.role == Role::Compute
+                    || nodes[*i as usize].spec.role == Role::Worker
+            })
+            .collect();
+        if members.is_empty() {
+            continue;
+        }
+        let min = num("min_instances", 1.0).max(1.0);
+        let max = num("max_instances", min).max(min);
+        for &m in &members {
+            let spec = &mut nodes[m as usize].spec;
+            let start = spec.instances.clamp(min, max);
+            spec.servers *= start / spec.instances;
+            spec.queue_cap *= start / spec.instances;
+            spec.instances = start;
+        }
+        scaling.push(ScaleGroup {
+            members,
+            min,
+            max,
+            target: (num("target_util", 60.0) / 100.0).clamp(0.05, 0.99),
+            delay_us: (num("scale_delay_s", 60.0).max(0.0) * 1e6) as u64,
+        });
+    }
     let kind = |i: u32| nodes[i as usize].kind;
 
     // --- Data clusters (Replicate edges within one data kind) ---------------------------
@@ -454,6 +522,15 @@ pub fn compile(
         weight: 1.0 / sample,
         scenario: scenario.clone(),
         duration_us: (scenario.duration_s * 1e6) as u64,
+        zones: design
+            .groups
+            .iter()
+            .map(|g| Zone {
+                id: g.id.clone(),
+                label: g.label.clone(),
+            })
+            .collect(),
+        scaling,
     })
 }
 

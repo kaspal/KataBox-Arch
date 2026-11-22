@@ -261,10 +261,10 @@ describe("live runs", () => {
     const { user } = renderApp("/sandbox");
     await user.click(await screen.findByRole("button", { name: "Run" }));
     await waitFor(() => expect(fake().api.startRun).toHaveBeenCalledTimes(1));
-    const [sent, preset, speed] = vi.mocked(fake().api.startRun).mock.calls[0];
+    const [sent, preset, speed, chaos, startS] = vi.mocked(fake().api.startRun).mock.calls[0];
     expect(sent.nodes.map((n) => n.id)).toEqual(["c1", "a1"]);
     expect(sent.schema_version).toBe(2);
-    expect([preset, speed]).toEqual(["normal", 1]);
+    expect([preset, speed, chaos, startS]).toEqual(["normal", 1, [], 0]);
     expect(screen.getByRole("tab", { name: "Metrics" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText("Run the design to see live metrics.")).toBeInTheDocument();
     act(() => fake().pushFrame(frame()));
@@ -274,7 +274,7 @@ describe("live runs", () => {
     await user.click(screen.getByRole("button", { name: "Pause" }));
     expect(fake().runControls).toEqual(["pause"]);
     expect(screen.getByRole("button", { name: "Resume" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Stop the run" }));
+    await user.click(screen.getByRole("button", { name: "Stop" }));
     expect(fake().runControls).toEqual(["pause", "stop"]);
     expect(useRun.getState().status).toBe("idle");
   });
@@ -322,6 +322,39 @@ describe("live runs", () => {
     act(() => useEditor.getState().load(design, null));
     renderApp("/sandbox");
     expect(await screen.findByTestId("packet-layer")).toBeInTheDocument();
+  });
+
+  it("Inject kills the selected card at the current moment and the run continues from there", async () => {
+    act(() => useEditor.getState().load(design, null));
+    const { user } = renderApp("/sandbox");
+    await user.click(await screen.findByRole("button", { name: "Run" }));
+    await waitFor(() => expect(fake().runs).toBe(1));
+    act(() => fake().pushFrame(frame()));
+    act(() => useEditor.getState().setSelection(["a1"]));
+    await user.click(screen.getByRole("button", { name: "Inject" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Kill it" }));
+    await waitFor(() => expect(fake().runs).toBe(2));
+    const [, , , chaos, startS] = vi.mocked(fake().api.startRun).mock.calls[1];
+    expect(chaos).toEqual([{ kill: { id: "a1", at: 2.999 } }]);
+    expect(startS).toBe(2.999);
+    // The timeline marks it.
+    expect(await screen.findByTestId("chaos-marker")).toHaveAttribute("aria-label", "A card dies at 3.0 s");
+    act(() => useRun.getState().stop());
+  });
+
+  it("the scrubber seeks when released, and the run pauses there", async () => {
+    act(() => useEditor.getState().load(design, null));
+    const { user } = renderApp("/sandbox");
+    await user.click(await screen.findByRole("button", { name: "Run" }));
+    await waitFor(() => expect(fake().runs).toBe(1));
+    act(() => fake().pushFrame(frame()));
+    const scrub = screen.getByRole("slider", { name: "Simulated time" });
+    fireEvent.change(scrub, { target: { value: "42" } });
+    expect(screen.getByTestId("run-clock")).toHaveTextContent("42.0 s of 60 s");
+    fireEvent.pointerUp(scrub);
+    expect(fake().runControls).toEqual([{ seek: 42 }]);
+    expect(useRun.getState().status).toBe("paused");
+    act(() => useRun.getState().stop());
   });
 
   it("a design with no path reports why instead of running", async () => {

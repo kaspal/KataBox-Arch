@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 /// How long a Sandbox run lasts, in simulated seconds.
 pub const SANDBOX_DURATION_S: f64 = 60.0;
 
-/// The traffic presets of the Sandbox's Run menu. (Killing a node arrives with chaos, M1.5.)
+/// The traffic presets of the Sandbox's Run menu.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 #[serde(rename_all = "snake_case")]
@@ -18,7 +18,13 @@ pub enum SandboxPreset {
     Normal,
     /// ×4 traffic from 20 s to 35 s.
     Spike,
+    /// Normal traffic; the busiest data store (or, without one, the busiest service) dies at
+    /// 20 s and stays down.
+    KillNode,
 }
+
+/// When the Kill a node preset strikes.
+pub const KILL_AT_S: f64 = 20.0;
 
 /// The read routes to try, most complete first: the first that has a path through the
 /// design is used.
@@ -44,7 +50,7 @@ fn request_type(id: &str, share: f64, route: &[&str]) -> serde_json::Value {
 
 fn scenario(types: Vec<serde_json::Value>, preset: SandboxPreset) -> Scenario {
     let traffic = match preset {
-        SandboxPreset::Normal => serde_json::json!({ "flat": 1.0 }),
+        SandboxPreset::Normal | SandboxPreset::KillNode => serde_json::json!({ "flat": 1.0 }),
         SandboxPreset::Spike => {
             serde_json::json!({ "spike": { "at": 20.0, "x": 4.0, "for": 15.0 } })
         }
@@ -87,13 +93,49 @@ pub fn sandbox_scenario(
         .find(|r| fits("write", r).is_ok())
         .copied()
         .unwrap_or(read);
-    Ok(scenario(
+    let mut s = scenario(
         vec![
             request_type("read", 0.9, read),
             request_type("write", 0.1, write),
         ],
         preset,
-    ))
+    );
+    if preset == SandboxPreset::KillNode
+        && let Some(id) = busiest(design, registry, &s)
+    {
+        s.chaos.push(ka_core::scenario::ChaosEvent::Kill {
+            target: ka_core::scenario::Selector {
+                id: Some(id),
+                ..Default::default()
+            },
+            at: KILL_AT_S,
+            for_s: None,
+        });
+    }
+    Ok(s)
+}
+
+/// The card the Kill a node preset takes down: the busiest data store over a short normal
+/// run (deterministic), else the busiest service.
+fn busiest(design: &Design, registry: &Registry, s: &Scenario) -> Option<String> {
+    let mut probe = s.clone();
+    probe.duration_s = 10.0;
+    probe.chaos.clear();
+    let r = ka_sim::simulate(design, registry, &probe, 1, &SimOptions::default()).ok()?;
+    let pick = |pred: &dyn Fn(ka_core::ComponentKind) -> bool| {
+        r.nodes
+            .iter()
+            .filter(|n| pred(n.kind))
+            .max_by(|a, b| {
+                a.utilisation
+                    .total_cmp(&b.utilisation)
+                    .then(b.id.cmp(&a.id))
+            })
+            .map(|n| n.id.clone())
+    };
+    use ka_core::ComponentKind as K;
+    pick(&|k| matches!(k, K::Sql | K::Nosql | K::Cache | K::Object | K::Search))
+        .or_else(|| pick(&|k| matches!(k, K::App | K::Micro | K::Serverless | K::Worker)))
 }
 
 #[cfg(test)]
@@ -171,6 +213,34 @@ mod tests {
         let s = sandbox_scenario(&d, &registry(), SandboxPreset::Spike).unwrap();
         assert_eq!(routes(&s), vec![vec!["edge?", "compute"]; 2]);
         assert!(s.traffic.peak() > 3.9);
+    }
+
+    #[test]
+    fn kill_a_node_takes_down_the_busiest_data_store_at_20_s() {
+        let d = design(
+            vec![
+                node("c", K::Client, Flavour::Web),
+                node("a", K::App, Flavour::Go),
+                node("r", K::Cache, Flavour::Redis),
+                node("db", K::Sql, Flavour::Postgresql),
+            ],
+            vec![
+                edge("e1", "c", "a", Protocol::Http),
+                edge("e2", "a", "r", Protocol::Query),
+                edge("e3", "a", "db", Protocol::Query),
+            ],
+        );
+        let s = sandbox_scenario(&d, &registry(), SandboxPreset::KillNode).unwrap();
+        assert_eq!(s.chaos.len(), 1);
+        match &s.chaos[0] {
+            ka_core::scenario::ChaosEvent::Kill { target, at, for_s } => {
+                assert_eq!(*at, KILL_AT_S);
+                assert!(for_s.is_none());
+                // By utilisation: a 0.01 ms cache barely works; the database is busier.
+                assert_eq!(target.id.as_deref(), Some("db"));
+            }
+            other => panic!("{other:?}"),
+        }
     }
 
     #[test]

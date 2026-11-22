@@ -146,10 +146,14 @@ impl LiveCore {
         self.engine.advance_to(t);
     }
 
-    /// Advance by `dt_us` simulated µs (0 while paused) and encode a frame.
+    /// Advance by `dt_us` simulated µs (0 while paused) and encode a frame. Reaching the
+    /// end of the run drains the last requests at once (no one watches the drain).
     pub fn step(&mut self, dt_us: u64, playing: bool, speed: f64) -> Vec<u8> {
         let target = self.engine.now_us() + dt_us;
         self.advance(target);
+        if dt_us > 0 && self.engine.now_us() >= self.engine.duration_us() {
+            self.engine.run();
+        }
         self.frame(playing, speed)
     }
 
@@ -192,7 +196,8 @@ impl LiveCore {
             } | if finished { FLAG_FINISHED } else { 0 },
         );
         out.extend_from_slice(&self.frame_no.to_le_bytes());
-        out.extend_from_slice(&((snap.t_us / 1000) as u32).to_le_bytes());
+        let shown_us = snap.t_us.min(self.engine.duration_us());
+        out.extend_from_slice(&((shown_us / 1000) as u32).to_le_bytes());
         out.extend_from_slice(&((window_us / 1000).min(u64::from(u16::MAX)) as u16).to_le_bytes());
         let (p95, rps, err) = match &snap.last_second {
             Some(s) => {
@@ -623,6 +628,16 @@ mod tests {
         let f = c.step(0, false, 1.0);
         assert_eq!(f[5], 0, "paused");
         assert_eq!(u32_at(&f, 10), 42_000);
+    }
+
+    #[test]
+    fn reaching_the_end_drains_at_once_and_shows_the_run_length() {
+        let mut c = core(2);
+        c.seek(59_900_000);
+        let f = c.step(200_000, true, 1.0);
+        assert!(c.finished());
+        assert_eq!(f[5], FLAG_FINISHED);
+        assert_eq!(u32_at(&f, 10), 60_000, "time stops at the run's length");
     }
 
     #[test]

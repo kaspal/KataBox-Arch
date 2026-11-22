@@ -18,7 +18,7 @@ pub mod route;
 
 use std::sync::Arc;
 
-pub use compile::{Compiled, SAMPLE_CAP_RPS, SimError, SimOptions, compile};
+pub use compile::{Compiled, SAMPLE_CAP_RPS, ScaleGroup, SimError, SimOptions, Zone, compile};
 pub use engine::{Engine, NodeSnap, Packet, Snapshot};
 pub use result::{NodeResult, Percentiles, RunResult, SecondResult, TypeResult};
 

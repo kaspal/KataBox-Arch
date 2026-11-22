@@ -29,6 +29,7 @@ import { displayName, useFileActions } from "@/solve/files";
 import { InspectorPanel } from "@/solve/InspectorPanel";
 import { LibraryPanel } from "@/solve/LibraryPanel";
 import { RunControls } from "@/solve/run/RunControls";
+import { Timeline } from "@/solve/run/Timeline";
 import { isActive, simKey, useRun } from "@/solve/run/runStore";
 import { startTelemetry } from "@/solve/run/telemetry";
 import { redo, toDesign, undo, useDirty, useEditor } from "@/solve/store";
@@ -215,8 +216,11 @@ function Workspace({ registry }: { registry: Registry }) {
       </ResizablePanel>
       <ResizableHandle />
       <ResizablePanel id="canvas" defaultSize="58" minSize="30">
-        <section aria-label={t("canvas.label")} className="h-full">
-          <Canvas registry={registry} />
+        <section aria-label={t("canvas.label")} className="flex h-full flex-col">
+          <div className="min-h-0 flex-1">
+            <Canvas registry={registry} />
+          </div>
+          <Timeline />
         </section>
       </ResizablePanel>
       <ResizableHandle />

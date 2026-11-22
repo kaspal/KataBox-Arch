@@ -29,14 +29,48 @@ const MONTH_S: f64 = 2_629_746.0;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Ev {
     Gen(u32),
-    Arrive { r: u32, node: u32 },
-    SvcDone { r: u32, node: u32, lane: u16 },
-    CallBack { r: u32 },
-    CallFail { r: u32 },
-    Timeout { r: u32 },
-    Requeue { r: u32 },
+    Arrive {
+        r: u32,
+        node: u32,
+    },
+    SvcDone {
+        r: u32,
+        node: u32,
+        lane: u16,
+    },
+    CallBack {
+        r: u32,
+    },
+    CallFail {
+        r: u32,
+    },
+    Timeout {
+        r: u32,
+    },
+    Requeue {
+        r: u32,
+    },
     Second(u32),
+    /// Chaos event `i` starts / ends (only scheduled when the scenario has chaos).
+    Chaos(u16),
+    ChaosEnd(u16),
+    /// Health checks every 2 s: routing learns about dead (and revived) cards.
+    Health,
+    /// A data cluster promotes a replica if its primary is still down.
+    Failover(u32),
+    /// Autoscaling: evaluate every 5 s; apply a decision after the policy delay.
+    ScaleTick,
+    ScaleApply {
+        group: u32,
+        instances: u32,
+    },
 }
+
+/// Health checks run every 2 s; a change is believed after two checks in a row.
+const HEALTH_EVERY_US: u64 = 2_000_000;
+const HEALTH_CHECKS: u8 = 2;
+/// Autoscaling evaluates the mean utilisation of its cards every 5 s.
+const SCALE_EVERY_US: u64 = 5_000_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct Sched {
@@ -101,6 +135,19 @@ struct Lane {
 struct NodeRt {
     lanes: Vec<Lane>,
     down: bool,
+    /// What health checks have concluded (routing avoids these); lags `down`.
+    known_down: bool,
+    checks: u8,
+    /// Simulated servers per lane and the service-time stretch (sampling), at runtime:
+    /// autoscaling changes them.
+    lane_servers: u32,
+    stretch: f64,
+    /// Instances now, and their time integral (cost of autoscaled cards).
+    instances: f64,
+    inst_integral: f64,
+    inst_since: u64,
+    /// Busy integral at the last autoscaling tick.
+    scale_busy: f64,
     add_us: u64,
     served: f64,
     drops: f64,
@@ -119,6 +166,8 @@ struct NodeRt {
 struct CacheRt {
     /// Per request type: the last fill time per tracked key rank (i64::MIN: never).
     fills: Vec<Vec<i64>>,
+    /// When the cache was last emptied (a flush, or coming back after a kill).
+    flushed_at: Option<u64>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -191,6 +240,10 @@ pub struct Engine {
     max_mult: Vec<f64>,
     /// Forward hops recorded for the packet layer (live runs only; never read back).
     trace: Option<Vec<Packet>>,
+    /// The cards each chaos event hit (resolved when it starts).
+    chaos_targets: Vec<Vec<u32>>,
+    /// Autoscaling: a decision waiting for its delay, per group.
+    scale_pending: Vec<bool>,
 }
 
 /// One forward hop of a simulated request, for the live packet layer.
@@ -244,8 +297,11 @@ impl Engine {
                 ..Default::default()
             })
             .collect();
-        for n in &mut nodes {
+        for (n, cn) in nodes.iter_mut().zip(&c.nodes) {
             n.util_series.reserve(nsec);
+            n.lane_servers = cn.lane_servers;
+            n.stretch = cn.service_stretch;
+            n.instances = cn.spec.instances;
         }
         let chaos_traffic = c
             .scenario
@@ -302,6 +358,7 @@ impl Engine {
                 .map(|n| {
                     matches!(n.kind, ComponentKind::Cache | ComponentKind::Cdn).then(|| CacheRt {
                         fills: vec![Vec::new(); c.types.len()],
+                        flushed_at: None,
                     })
                 })
                 .collect(),
@@ -328,6 +385,8 @@ impl Engine {
             reads: 0.0,
             max_mult,
             trace: None,
+            chaos_targets: vec![Vec::new(); c.scenario.chaos.len()],
+            scale_pending: vec![false; c.scaling.len()],
             nodes,
             c,
         };
@@ -339,6 +398,32 @@ impl Engine {
         }
         for sec in 1..=nsec as u32 {
             e.push(u64::from(sec) * 1_000_000, Ev::Second(sec));
+        }
+        // Chaos, health checks and autoscaling only when the run needs them, so runs without
+        // them keep their event order (goldens).
+        let chaos: Vec<(u64, u16)> =
+            e.c.scenario
+                .chaos
+                .iter()
+                .enumerate()
+                .map(|(i, ev)| ((ev.at().max(0.0) * 1e6) as u64, i as u16))
+                .collect();
+        for (t, i) in chaos {
+            e.push(t, Ev::Chaos(i));
+        }
+        if !e.c.scenario.chaos.is_empty() || !e.c.scaling.is_empty() {
+            let mut t = HEALTH_EVERY_US;
+            while t <= e.c.duration_us + DRAIN_US {
+                e.push(t, Ev::Health);
+                t += HEALTH_EVERY_US;
+            }
+        }
+        if !e.c.scaling.is_empty() {
+            let mut t = SCALE_EVERY_US;
+            while t <= e.c.duration_us {
+                e.push(t, Ev::ScaleTick);
+                t += SCALE_EVERY_US;
+            }
         }
         e
     }
@@ -392,7 +477,8 @@ impl Engine {
             .nodes
             .iter()
             .zip(&self.nodes)
-            .map(|(n, rt)| {
+            .enumerate()
+            .map(|(i, (n, rt))| {
                 let mut busy_us = 0.0;
                 let mut queue = 0usize;
                 for l in &rt.lanes {
@@ -400,12 +486,12 @@ impl Engine {
                         + f64::from(l.busy) * now.saturating_sub(l.busy_since) as f64;
                     queue += l.queue.len();
                 }
-                cost_month += n.cost.per_instance_month * n.spec.instances.max(1.0)
+                cost_month += n.cost.per_instance_month * self.mean_instances(i).max(1.0)
                     + n.cost.per_gb_month * n.spec.memory_gb
                     + n.cost.per_million * (rt.served / elapsed_s) * MONTH_S / 1e6;
                 NodeSnap {
                     busy_us,
-                    servers: f64::from(n.lane_servers) * f64::from(n.spec.lanes),
+                    servers: f64::from(rt.lane_servers) * f64::from(n.spec.lanes),
                     queue: queue as f64 * c.weight,
                     down: rt.down,
                 }
@@ -471,6 +557,12 @@ impl Engine {
                 self.reqs[r as usize].pending -= 1;
                 self.on_timeout(r);
             }
+            Ev::Chaos(i) => self.chaos_start(i),
+            Ev::ChaosEnd(i) => self.chaos_end(i),
+            Ev::Health => self.health_check(),
+            Ev::Failover(cl) => self.failover(cl),
+            Ev::ScaleTick => self.scale_tick(),
+            Ev::ScaleApply { group, instances } => self.scale_apply(group, f64::from(instances)),
             Ev::Requeue { r } => {
                 self.reqs[r as usize].pending -= 1;
                 let b = self.reqs[r as usize].broker;
@@ -594,7 +686,7 @@ impl Engine {
         let live: Vec<u32> = cands
             .iter()
             .copied()
-            .filter(|c| !self.nodes[*c as usize].down)
+            .filter(|c| !self.nodes[*c as usize].known_down)
             .collect();
         let list: &[u32] = if live.is_empty() { cands } else { &live };
         if list.is_empty() {
@@ -723,7 +815,7 @@ impl Engine {
             self.start_service(r, node, lane);
             return;
         }
-        let cap = self.c.nodes[node as usize].lane_servers;
+        let cap = self.nodes[node as usize].lane_servers;
         if self.nodes[node as usize].lanes[lane as usize].busy < cap {
             self.set_busy(node, lane, 1);
             self.start_service(r, node, lane);
@@ -759,7 +851,7 @@ impl Engine {
             median *= q.units;
         }
         let ratio = n.spec.p99_ratio;
-        let stretch = n.service_stretch;
+        let stretch = self.nodes[node as usize].stretch;
         let cold = n.spec.cold_start_ms;
         let draw = self.rng_svc[node as usize].lognormal(median, ratio);
         let mut us = draw * 1000.0 * stretch;
@@ -781,7 +873,7 @@ impl Engine {
     /// Free a slot and start the next queued request on it.
     fn release(&mut self, node: u32, lane: u16) {
         self.set_busy(node, lane, -1);
-        let cap = self.c.nodes[node as usize].lane_servers;
+        let cap = self.nodes[node as usize].lane_servers;
         while self.nodes[node as usize].lanes[lane as usize].busy < cap {
             let Some(next) = self.nodes[node as usize].lanes[lane as usize]
                 .queue
@@ -821,6 +913,12 @@ impl Engine {
         if self.reqs[r as usize].dead {
             self.release(node, lane);
             self.maybe_free(r);
+            return;
+        }
+        if self.nodes[node as usize].down {
+            // The card died while working on it.
+            self.release(node, lane);
+            self.fail(r);
             return;
         }
         if holds {
@@ -894,6 +992,19 @@ impl Engine {
             }
             let def = &self.c.types[ty].route.segments[seg].calls[step];
             let (writes, aside) = (def.writes(), def.is_cache_aside());
+            // Callers avoid targets health checks have found dead. A cache-aside read whose
+            // caches are all known dead is skipped: the app treats it as a miss and reads
+            // the store (which then takes the full load).
+            let live: Vec<Target> = targets
+                .iter()
+                .copied()
+                .filter(|t| self.target_alive(*t))
+                .collect();
+            if live.is_empty() && aside {
+                self.reqs[r as usize].step += 1;
+                continue;
+            }
+            let targets = if live.is_empty() { targets } else { live };
             let pick = {
                 let rt = &mut self.nodes[caller as usize];
                 rt.rr = rt.rr.wrapping_add(1);
@@ -920,6 +1031,18 @@ impl Engine {
         }
     }
 
+    /// Does routing believe this call target is up?
+    fn target_alive(&self, t: Target) -> bool {
+        match t {
+            Target::Node(n) => !self.nodes[n as usize].known_down,
+            Target::Cluster(cl) => self.c.clusters[cl as usize]
+                .members
+                .iter()
+                .any(|m| !self.nodes[*m as usize].known_down),
+            Target::External(_) => true,
+        }
+    }
+
     fn cluster_member(&mut self, cl: u32, write: bool) -> u32 {
         let primary = self.cluster_primary[cl as usize];
         if write {
@@ -929,7 +1052,7 @@ impl Engine {
         let live: Vec<u32> = members
             .iter()
             .copied()
-            .filter(|m| !self.nodes[*m as usize].down)
+            .filter(|m| !self.nodes[*m as usize].known_down)
             .collect();
         if live.is_empty() {
             return primary;
@@ -973,6 +1096,12 @@ impl Engine {
     fn on_callback(&mut self, r: u32) {
         if self.reqs[r as usize].dead {
             self.maybe_free(r);
+            return;
+        }
+        let caller = self.reqs[r as usize].caller;
+        if caller != NONE && self.nodes[caller as usize].down {
+            // The caller died while waiting: its request is lost with it.
+            self.fail(r);
             return;
         }
         self.reqs[r as usize].step += 1;
@@ -1138,6 +1267,9 @@ impl Engine {
         } else {
             u32::MAX
         };
+        if self.nodes[b as usize].down {
+            return;
+        }
         while let Some(&r) = self.brokers[b as usize].queue.front() {
             if self.c.nodes[b as usize].kind == ComponentKind::Stream
                 && self.brokers[b as usize].in_flight >= cap
@@ -1155,7 +1287,7 @@ impl Engine {
             for k in 0..n {
                 let c = consumers[(start + k) % n];
                 let rt = &self.nodes[c as usize];
-                if !rt.down && rt.lanes[0].busy < self.c.nodes[c as usize].lane_servers {
+                if !rt.down && rt.lanes[0].busy < rt.lane_servers {
                     chosen = Some(c);
                     self.nodes[b as usize].rr = start + k + 1;
                     break;
@@ -1391,7 +1523,14 @@ impl Engine {
         } else {
             1.0 / t.def.key_space as f64
         };
-        let window = (ttl.min(3_600_000_000) as f64) / 1e6;
+        let mut window_us = ttl.min(3_600_000_000);
+        if let Some(at) = self.caches[node as usize]
+            .as_ref()
+            .and_then(|c| c.flushed_at)
+        {
+            window_us = window_us.min(self.now.saturating_sub(at));
+        }
+        let window = window_us as f64 / 1e6;
         let p = 1.0 - detmath::exp(-t.rate * pmf * window);
         self.rng_misc.uniform() < p
     }
@@ -1484,9 +1623,7 @@ impl Engine {
                 l.busy_since = now;
                 integral += l.busy_integral;
             }
-            let cap = f64::from(self.c.nodes[i].lane_servers)
-                * f64::from(self.c.nodes[i].spec.lanes)
-                * 1e6;
+            let cap = f64::from(rt.lane_servers) * f64::from(self.c.nodes[i].spec.lanes) * 1e6;
             rt.util_series
                 .push(((integral - rt.last_integral) / cap).clamp(0.0, 1.0));
             rt.last_integral = integral;
@@ -1535,11 +1672,12 @@ impl Engine {
             .nodes
             .iter()
             .zip(&self.nodes)
-            .map(|(n, rt)| {
+            .enumerate()
+            .map(|(i, (n, rt))| {
                 let secs = rt.util_series.len().max(1) as f64;
                 let utilisation = rt.util_series.iter().sum::<f64>() / secs;
                 let per_s = rt.served / dur;
-                let cost = n.cost.per_instance_month * n.spec.instances.max(1.0)
+                let cost = n.cost.per_instance_month * self.mean_instances(i).max(1.0)
                     + n.cost.per_gb_month * n.spec.memory_gb
                     + n.cost.per_million * per_s * MONTH_S / 1e6;
                 cost_total += cost;
@@ -1595,6 +1733,349 @@ impl Engine {
             per_type,
             nodes,
             series,
+        }
+    }
+}
+
+// --- Chaos, health checks, failover, autoscaling (M1.5) ------------------------------------
+
+impl Engine {
+    /// The cards a selector names now: by id, or by kind and cluster role; the first in id
+    /// order unless `all`.
+    fn resolve(&self, sel: &ka_core::scenario::Selector) -> Vec<u32> {
+        use ka_core::scenario::Role as R;
+        let mut hits: Vec<u32> = (0..self.c.nodes.len() as u32)
+            .filter(|&i| {
+                let n = &self.c.nodes[i as usize];
+                if let Some(id) = &sel.id {
+                    return &n.id == id;
+                }
+                if sel.kind.is_some_and(|k| k != n.kind) {
+                    return false;
+                }
+                let primary = match self.c.cluster_of[i as usize] {
+                    Some(cl) => self.cluster_primary[cl as usize] == i,
+                    None => true,
+                };
+                match sel.role {
+                    Some(R::Primary) => primary,
+                    Some(R::Replica) => !primary,
+                    Some(R::Any) | None => true,
+                }
+            })
+            .collect();
+        hits.sort_by(|a, b| {
+            self.c.nodes[*a as usize]
+                .id
+                .cmp(&self.c.nodes[*b as usize].id)
+        });
+        if !sel.all {
+            hits.truncate(1);
+        }
+        hits
+    }
+
+    fn in_zone(&self, node: u32, zone: &str) -> bool {
+        let n = &self.c.nodes[node as usize];
+        [n.az, n.region].into_iter().flatten().any(|z| {
+            let z = &self.c.zones[z as usize];
+            z.id == zone || z.label == zone
+        })
+    }
+
+    fn chaos_start(&mut self, i: u16) {
+        use ka_core::scenario::ChaosEvent as C;
+        let ev = self.c.scenario.chaos[i as usize].clone();
+        let mut targets = Vec::new();
+        let mut for_s = None;
+        match &ev {
+            C::Kill {
+                target, for_s: f, ..
+            } => {
+                targets = self.resolve(target);
+                for &n in &targets {
+                    self.kill(n);
+                }
+                for_s = *f;
+            }
+            C::Partition { zone, for_s: f, .. } => {
+                targets = (0..self.c.nodes.len() as u32)
+                    .filter(|&n| self.in_zone(n, zone))
+                    .collect();
+                for &n in &targets {
+                    self.kill(n);
+                }
+                for_s = *f;
+            }
+            C::Latency {
+                target,
+                add_ms,
+                for_s: f,
+                ..
+            } => {
+                targets = self.resolve(target);
+                let add = (add_ms.max(0.0) * 1000.0) as u64;
+                for &n in &targets {
+                    self.nodes[n as usize].add_us += add;
+                }
+                for_s = *f;
+            }
+            C::Flush { target, .. } => {
+                for n in self.resolve(target) {
+                    self.flush(n);
+                }
+            }
+            C::External {
+                name,
+                for_s: f,
+                down,
+                add_ms,
+                ..
+            } => {
+                if let Some(x) = self.c.externals.iter().position(|x| &x.name == name) {
+                    let ext = &mut self.externals[x];
+                    ext.down |= *down;
+                    ext.add_ms += add_ms.max(0.0);
+                }
+                for_s = *f;
+            }
+            // Traffic is read from the scenario when arrivals are generated.
+            C::Traffic { .. } => {}
+        }
+        self.chaos_targets[i as usize] = targets;
+        if let Some(f) = for_s {
+            let end = self.now + (f.max(0.0) * 1e6) as u64;
+            self.push(end, Ev::ChaosEnd(i));
+        }
+    }
+
+    fn chaos_end(&mut self, i: u16) {
+        use ka_core::scenario::ChaosEvent as C;
+        let ev = self.c.scenario.chaos[i as usize].clone();
+        let targets = std::mem::take(&mut self.chaos_targets[i as usize]);
+        match &ev {
+            C::Kill { .. } | C::Partition { .. } => {
+                for n in targets {
+                    self.revive(n);
+                }
+            }
+            C::Latency { add_ms, .. } => {
+                let add = (add_ms.max(0.0) * 1000.0) as u64;
+                for n in targets {
+                    let rt = &mut self.nodes[n as usize];
+                    rt.add_us = rt.add_us.saturating_sub(add);
+                }
+            }
+            C::External {
+                name, down, add_ms, ..
+            } => {
+                if let Some(x) = self.c.externals.iter().position(|x| &x.name == name) {
+                    let ext = &mut self.externals[x];
+                    if *down {
+                        ext.down = false;
+                    }
+                    ext.add_ms = (ext.add_ms - add_ms.max(0.0)).max(0.0);
+                }
+            }
+            C::Flush { .. } | C::Traffic { .. } => {}
+        }
+    }
+
+    /// A card stops answering: queued work fails now, work in service fails when it ends,
+    /// callers waiting on it fail when their call comes back. A cluster primary fails over
+    /// after its `failover_s`.
+    fn kill(&mut self, n: u32) {
+        if self.nodes[n as usize].down {
+            return;
+        }
+        self.nodes[n as usize].down = true;
+        let queued: Vec<u32> = self.nodes[n as usize]
+            .lanes
+            .iter_mut()
+            .flat_map(|l| std::mem::take(&mut l.queue))
+            .collect();
+        for r in queued {
+            self.reqs[r as usize].pending -= 1;
+            if self.reqs[r as usize].dead {
+                self.maybe_free(r);
+            } else {
+                self.fail(r);
+            }
+        }
+        if let Some(cl) = self.c.cluster_of[n as usize]
+            && self.cluster_primary[cl as usize] == n
+            && self.c.clusters[cl as usize].members.len() > 1
+        {
+            let after = (self.c.nodes[n as usize].spec.failover_s.max(0.0) * 1e6) as u64;
+            self.push(self.now + after, Ev::Failover(cl));
+        }
+    }
+
+    /// A card comes back. A cache comes back empty.
+    fn revive(&mut self, n: u32) {
+        if !self.nodes[n as usize].down {
+            return;
+        }
+        self.nodes[n as usize].down = false;
+        if self.caches[n as usize].is_some() {
+            self.flush(n);
+        }
+        for b in self.c.feeds[n as usize].clone() {
+            self.try_dispatch(b);
+        }
+        if matches!(
+            self.c.nodes[n as usize].kind,
+            ComponentKind::Queue
+                | ComponentKind::Stream
+                | ComponentKind::Pubsub
+                | ComponentKind::Dlq
+        ) {
+            self.try_dispatch(n);
+        }
+    }
+
+    fn flush(&mut self, n: u32) {
+        let now = self.now;
+        if let Some(cache) = self.caches[n as usize].as_mut() {
+            for f in &mut cache.fills {
+                f.clear();
+            }
+            cache.flushed_at = Some(now);
+        }
+    }
+
+    /// Health checks: a card whose state differs from what routing believes for two checks
+    /// in a row is believed (dead cards leave rotation 2-4 s after dying).
+    fn health_check(&mut self) {
+        for rt in &mut self.nodes {
+            if rt.down != rt.known_down {
+                rt.checks += 1;
+                if rt.checks >= HEALTH_CHECKS {
+                    rt.known_down = rt.down;
+                    rt.checks = 0;
+                }
+            } else {
+                rt.checks = 0;
+            }
+        }
+    }
+
+    /// Promote the next healthy member (id order after the old primary) if the primary is
+    /// still down.
+    fn failover(&mut self, cl: u32) {
+        let primary = self.cluster_primary[cl as usize];
+        if !self.nodes[primary as usize].down {
+            return;
+        }
+        let members = &self.c.clusters[cl as usize].members;
+        let at = members.iter().position(|&m| m == primary).unwrap_or(0);
+        let next = (1..members.len())
+            .map(|k| members[(at + k) % members.len()])
+            .find(|&m| !self.nodes[m as usize].down);
+        if let Some(m) = next {
+            self.cluster_primary[cl as usize] = m;
+        }
+    }
+
+    fn mean_instances(&self, i: usize) -> f64 {
+        let rt = &self.nodes[i];
+        if !self
+            .c
+            .scaling
+            .iter()
+            .any(|g| g.members.contains(&(i as u32)))
+            || self.now == 0
+        {
+            return self.c.nodes[i].spec.instances;
+        }
+        (rt.inst_integral + rt.instances * self.now.saturating_sub(rt.inst_since) as f64)
+            / self.now as f64
+    }
+
+    /// Every 5 s: mean utilisation of each group's cards since the last tick. Above target,
+    /// scale out to bring it back to target; below half the target, scale in by one. Each
+    /// decision takes effect after the policy delay.
+    fn scale_tick(&mut self) {
+        let now = self.now;
+        for g in 0..self.c.scaling.len() {
+            let group = self.c.scaling[g].clone();
+            let (mut busy, mut cap) = (0.0, 0.0);
+            for &m in &group.members {
+                let rt = &mut self.nodes[m as usize];
+                let mut integral = 0.0;
+                for l in &rt.lanes {
+                    integral += l.busy_integral
+                        + f64::from(l.busy) * now.saturating_sub(l.busy_since) as f64;
+                }
+                busy += integral - rt.scale_busy;
+                rt.scale_busy = integral;
+                cap += f64::from(rt.lane_servers)
+                    * f64::from(self.c.nodes[m as usize].spec.lanes)
+                    * SCALE_EVERY_US as f64;
+            }
+            if self.scale_pending[g] || cap <= 0.0 {
+                continue;
+            }
+            let util = busy / cap;
+            let inst = self.nodes[group.members[0] as usize].instances;
+            let want = if util > group.target {
+                (inst * util / group.target).ceil().min(group.max)
+            } else if util < group.target / 2.0 {
+                (inst - 1.0).max(group.min)
+            } else {
+                inst
+            };
+            if want != inst {
+                self.scale_pending[g] = true;
+                self.push(
+                    now + group.delay_us,
+                    Ev::ScaleApply {
+                        group: g as u32,
+                        instances: want as u32,
+                    },
+                );
+            }
+        }
+    }
+
+    fn scale_apply(&mut self, g: u32, instances: f64) {
+        self.scale_pending[g as usize] = false;
+        let now = self.now;
+        let sample = self.c.sample;
+        for m in self.c.scaling[g as usize].members.clone() {
+            let n = &self.c.nodes[m as usize];
+            let per_instance = n.spec.servers / n.spec.instances / f64::from(n.spec.lanes);
+            let scaled = per_instance * instances * sample;
+            let eff = scaled.round().max(1.0);
+            let rt = &mut self.nodes[m as usize];
+            rt.inst_integral += rt.instances * now.saturating_sub(rt.inst_since) as f64;
+            rt.inst_since = now;
+            rt.instances = instances;
+            rt.lane_servers = eff as u32;
+            rt.stretch = eff / scaled;
+            // More servers: start queued work on them.
+            for lane in 0..rt.lanes.len() as u16 {
+                self.fill_free_servers(m, lane);
+            }
+        }
+    }
+
+    fn fill_free_servers(&mut self, node: u32, lane: u16) {
+        let cap = self.nodes[node as usize].lane_servers;
+        while self.nodes[node as usize].lanes[lane as usize].busy < cap {
+            let Some(next) = self.nodes[node as usize].lanes[lane as usize]
+                .queue
+                .pop_front()
+            else {
+                break;
+            };
+            self.reqs[next as usize].pending -= 1;
+            if self.reqs[next as usize].dead {
+                self.maybe_free(next);
+                continue;
+            }
+            self.set_busy(node, lane, 1);
+            self.start_service(next, node, lane);
         }
     }
 }

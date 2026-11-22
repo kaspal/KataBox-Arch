@@ -387,15 +387,33 @@
     "preset": "Traffic",
     "presets": {
       "normal": "Normal traffic",
-      "spike": "Spike ×4"
+      "spike": "Spike ×4",
+      "kill_node": "Kill a node at 20 s"
     },
     "runAgain": "Run again",
     "starting": "Starting…",
     "pause": "Pause",
     "resume": "Resume",
-    "stop": "Stop the run",
+    "stop": "Stop",
     "speed": "Speed",
-    "clock": "{{t}} s of {{total}} s"
+    "clock": "{{t}} s of {{total}} s",
+    "timeline": "Run timeline",
+    "scrub": "Simulated time",
+    "inject": "Inject",
+    "injectOn": "On {{name}}",
+    "injectSelect": "Select a card to break it",
+    "injectKill": "Kill it",
+    "injectSlow": "Slow it down (+200 ms for 10 s)",
+    "injectFlush": "Flush it (empty the cache)",
+    "injectTraffic": "Triple the traffic for 10 s",
+    "chaos": {
+      "kill": "A card dies at {{at}} s",
+      "latency": "A card slows down at {{at}} s",
+      "partition": "A zone is cut off at {{at}} s",
+      "traffic": "Traffic changes at {{at}} s",
+      "flush": "A cache is emptied at {{at}} s",
+      "external": "A provider fails at {{at}} s"
+    }
   },
   "metrics": {
     "empty": "Run the design to see live metrics.",
@@ -407,6 +425,7 @@
     "lastSecond": "Latency, throughput and errors cover the last simulated second; cost is per month at the traffic so far.",
     "busiest": "Busiest components",
     "down": "down",
-    "sampled": "Simulating {{pct}}% of requests; counts are scaled back up."
+    "sampled": "Simulating {{pct}}% of requests; counts are scaled back up.",
+    "p95Trend": "p95 latency per second"
   }
 }
