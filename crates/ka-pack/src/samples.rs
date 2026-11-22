@@ -113,12 +113,14 @@ fn preset(name: &str) -> Option<SandboxPreset> {
 const NOMINAL_PLAYER: (f64, f64) = (960.0, 540.0);
 const CAPTION_H: f64 = 160.0;
 const FRAME_MARGIN: f64 = 48.0;
+/// The metric tile's column, kept clear when a step has a callout (review F6).
+const CALLOUT_W: f64 = 256.0;
 const CARD: (f64, f64) = (208.0, 64.0);
 /// Below this zoom the focused cards' text is too small to read.
 pub const MIN_FOCUS_ZOOM: f64 = 0.35;
 
 /// The zoom at which a step's focused cards (else every card) fit the nominal player.
-fn focus_zoom(focus: &[String], design: &ka_core::Design) -> Option<f64> {
+fn focus_zoom(focus: &[String], design: &ka_core::Design, callout: bool) -> Option<f64> {
     let lit: Vec<&ka_core::Node> = design
         .nodes
         .iter()
@@ -143,7 +145,7 @@ fn focus_zoom(focus: &[String], design: &ka_core::Design) -> Option<f64> {
         .iter()
         .map(|n| n.position.y + CARD.1)
         .fold(f64::NEG_INFINITY, f64::max);
-    let w = NOMINAL_PLAYER.0 - 2.0 * FRAME_MARGIN;
+    let w = NOMINAL_PLAYER.0 - if callout { CALLOUT_W } else { 0.0 } - 2.0 * FRAME_MARGIN;
     let h = NOMINAL_PLAYER.1 - CAPTION_H - 2.0 * FRAME_MARGIN;
     Some((w / (x1 - x0)).min(h / (y1 - y0)).min(1.0))
 }
@@ -241,7 +243,7 @@ pub fn validate_samples(
                     )));
                 }
             }
-            if let Some(zoom) = focus_zoom(&step.focus, design)
+            if let Some(zoom) = focus_zoom(&step.focus, design, step.callout.is_some())
                 && zoom < MIN_FOCUS_ZOOM
             {
                 issues.push(here(format!(
@@ -488,11 +490,13 @@ mod tests {
             card("b", 400.0, 0.0),
             card("far", 4000.0, 0.0),
         ];
-        let near = focus_zoom(&["a".into(), "b".into()], &d).unwrap();
+        let near = focus_zoom(&["a".into(), "b".into()], &d, false).unwrap();
         assert!((MIN_FOCUS_ZOOM..=1.0).contains(&near), "{near}");
-        let far = focus_zoom(&["a".into(), "far".into()], &d).unwrap();
+        let far = focus_zoom(&["a".into(), "far".into()], &d, false).unwrap();
+        // A step with a metric tile has less room, so the same cards fit smaller (F6).
+        assert!(focus_zoom(&["a".into(), "far".into()], &d, true).unwrap() < far);
         assert!(far < MIN_FOCUS_ZOOM, "{far}");
         // No focus: the whole design.
-        assert_eq!(focus_zoom(&[], &d), Some(far));
+        assert_eq!(focus_zoom(&[], &d, false), Some(far));
     }
 }

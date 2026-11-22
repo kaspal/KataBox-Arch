@@ -54,6 +54,16 @@ function useSize(ref: React.RefObject<HTMLElement | null>) {
 export const CAPTION_H = 160;
 /** Space kept between the focused cards and the edge of the view. */
 export const FRAME_MARGIN = 48;
+/** The metric tile's column on the right (w-56 plus its 16 px inset on both sides). */
+export const CALLOUT_W = 256;
+
+/**
+ * The part of the player's canvas nothing covers (review F6): above the step card's band,
+ * and left of the metric tile when the step has one. The header sits above the canvas.
+ */
+export function visibleArea(size: { w: number; h: number }, callout: boolean): { w: number; h: number } {
+  return { w: Math.max(1, size.w - (callout ? CALLOUT_W : 0)), h: Math.max(1, size.h - CAPTION_H) };
+}
 
 /** The box a step must show: its focused cards, else the whole design. */
 export function focusBox(step: StoryStep, design: Design): Box | null {
@@ -68,8 +78,9 @@ export function focusBox(step: StoryStep, design: Design): Box | null {
 }
 
 type Area = { w: number; h: number };
-/** Breathing room every visible card keeps from the view's edge. */
-const EDGE = 12;
+/** Breathing room every visible card keeps from the view's edge: the full margin, so an
+ * unfocused card is never left hard against the edge either (review F6). */
+const EDGE = FRAME_MARGIN;
 
 /** Cards the view cuts through: partly inside, partly outside. */
 function cutCards(design: Design, v: Viewport, area: Area) {
@@ -137,7 +148,7 @@ function union(a: Box, cards: Design["nodes"]): Box {
  *   if no slide clears every card, the framed box grows to take in the cut ones.
  */
 export function stepViewport(step: StoryStep, design: Design, size: { w: number; h: number }): Viewport {
-  const area = { w: size.w, h: Math.max(1, size.h - CAPTION_H) };
+  const area = visibleArea(size, !!step.callout);
   let box = focusBox(step, design);
   if (!box) return fitBox(null, area);
   const frame = (b: Box, camera: boolean): Viewport => {

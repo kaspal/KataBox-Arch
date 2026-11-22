@@ -4,6 +4,7 @@
     "kind": "sample",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "gw",
@@ -33,6 +34,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "gw"
@@ -61,6 +63,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "gw-a",
@@ -102,6 +105,7 @@
     "kind": "sample",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "api",
@@ -142,6 +146,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "api",
@@ -181,6 +186,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "cdn",
@@ -231,6 +237,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "workers",
@@ -286,6 +293,7 @@
     "kind": "sample",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [],
         "nodes": [
@@ -302,6 +310,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "app"
@@ -320,6 +329,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "lb",
@@ -350,6 +360,7 @@
         ]
       },
       {
+        "callout": false,
         "camera": null,
         "focus": [],
         "nodes": [
@@ -382,6 +393,7 @@
     "kind": "sample",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "app",
@@ -421,6 +433,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "db"
@@ -459,6 +472,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "stream",
@@ -509,6 +523,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "app",
@@ -565,6 +580,7 @@
     "kind": "sample",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "app",
@@ -594,6 +610,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "db"
@@ -622,6 +639,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "app",
@@ -656,6 +674,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "app",
@@ -695,6 +714,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "db",
@@ -740,6 +760,7 @@
     "kind": "concept",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "app"
@@ -763,6 +784,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "app",
@@ -793,6 +815,7 @@
     "kind": "concept",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "judges"
@@ -831,6 +854,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "judges"
@@ -875,6 +899,7 @@
     "kind": "concept",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "db"
@@ -898,6 +923,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "cache",
@@ -933,6 +959,7 @@
     "kind": "concept",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "app"
@@ -961,6 +988,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "cdn"
@@ -1005,6 +1033,7 @@
     "kind": "concept",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "queue",
@@ -1034,6 +1063,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "queue",
@@ -1074,6 +1104,7 @@
     "kind": "concept",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "lb"
@@ -1112,6 +1143,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "lb"
@@ -1156,6 +1188,7 @@
     "kind": "concept",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "app"
@@ -1174,6 +1207,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "lb",
@@ -1204,6 +1238,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "lb"
@@ -1238,6 +1273,7 @@
     "kind": "concept",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "db"
@@ -1271,6 +1307,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "locations"
@@ -1310,6 +1347,7 @@
     "kind": "concept",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "db"
@@ -1338,6 +1376,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "blobs",
@@ -1378,6 +1417,7 @@
     "kind": "concept",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "gw",
@@ -1407,6 +1447,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "gw-a",
@@ -1448,6 +1489,7 @@
     "kind": "concept",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "queue",
@@ -1477,6 +1519,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "queue"
@@ -1505,6 +1548,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "queue",
@@ -1540,6 +1584,7 @@
     "kind": "concept",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "app"
@@ -1568,6 +1613,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "limiter"
@@ -1602,6 +1648,7 @@
     "kind": "concept",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "sched",
@@ -1631,6 +1678,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "sched",
@@ -1667,6 +1715,7 @@
     "kind": "concept",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "index"
@@ -1695,6 +1744,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "prefixes",
@@ -1735,6 +1785,7 @@
     "kind": "concept",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "app"
@@ -1773,6 +1824,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "app"
@@ -1817,6 +1869,7 @@
     "kind": "concept",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "db"
@@ -1840,6 +1893,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "db",
@@ -1875,6 +1929,7 @@
     "kind": "concept",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "queue",
@@ -1914,6 +1969,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "queue"
@@ -1958,6 +2014,7 @@
     "kind": "concept",
     "steps": [
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "queue",
@@ -1997,6 +2054,7 @@
         ]
       },
       {
+        "callout": true,
         "camera": null,
         "focus": [
           "judges"

@@ -30,12 +30,13 @@ fn stories() -> Value {
                 .map(|step| {
                     let d = &s.snapshots[&step.snapshot];
                     json!({
-                        "focus": step.focus,
-                        "camera": step.camera,
-                        "nodes": d.nodes.iter().map(|n| json!({
-                            "id": n.id, "x": n.position.x, "y": n.position.y,
-                        })).collect::<Vec<_>>(),
-                    })
+                            "focus": step.focus,
+                            "camera": step.camera,
+                    "callout": step.callout.is_some(),
+                            "nodes": d.nodes.iter().map(|n| json!({
+                                "id": n.id, "x": n.position.x, "y": n.position.y,
+                            })).collect::<Vec<_>>(),
+                        })
                 })
                 .collect();
             out.push(json!({ "kind": kind, "id": s.def.id, "steps": steps }));
