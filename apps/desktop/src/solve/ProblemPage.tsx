@@ -48,12 +48,15 @@ export function ProblemPage() {
   const loaded = useRef<string | null>(null);
   const es = i18n.language.startsWith("es");
 
-  // Load the editor once per problem: the saved draft, or an empty design for it.
+  // Load the editor once per problem: a design for this problem already open (from a file, or
+  // left from earlier) stays; otherwise the saved draft, or an empty design for it.
   useEffect(() => {
     const b = brief.data;
     if (!b || loaded.current === id) return;
     loaded.current = id;
-    useEditor.getState().load(b.draft ?? freshDesign(id, es ? b.summary.title_es : b.summary.title_en), null);
+    if (useEditor.getState().doc.problem_id !== id) {
+      useEditor.getState().load(b.draft ?? freshDesign(id, es ? b.summary.title_es : b.summary.title_en), null);
+    }
     const first = b.tests.find((x) => !x.hidden) ?? b.tests[0];
     useRun.getState().setProblemTest(first ? { problem_id: id, test_id: first.id } : null);
   }, [brief.data, id, es]);

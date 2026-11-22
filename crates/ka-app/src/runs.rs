@@ -129,11 +129,11 @@ impl App {
             ));
         }
         // The scenario, its seed, and the chaos the timeline may show.
-        let (mut scenario, seed, mut shown) = match &problem {
+        let (mut scenario, seed, mut shown, opts) = match &problem {
             None => {
                 let s = sandbox_scenario(design, &self.registry, preset).map_err(sim_error)?;
                 let shown = s.chaos.clone();
-                (s, SANDBOX_SEED, shown)
+                (s, SANDBOX_SEED, shown, SimOptions::default())
             }
             Some(pt) => {
                 let def = self.problem_def(&pt.problem_id).await?;
@@ -147,15 +147,19 @@ impl App {
                 } else {
                     s.chaos.clone()
                 };
-                (s, ka_judge::test_seed(&def.id, &test.id), shown)
+                // The judged run's seed and options: a replay is that run.
+                (
+                    s,
+                    ka_judge::test_seed(&def.id, &test.id),
+                    shown,
+                    ka_judge::options(&def),
+                )
             }
         };
         scenario.chaos.extend(chaos.iter().cloned());
         shown.extend(chaos);
-        let compiled = Arc::new(
-            compile(design, &self.registry, &scenario, &SimOptions::default())
-                .map_err(sim_error)?,
-        );
+        let compiled =
+            Arc::new(compile(design, &self.registry, &scenario, &opts).map_err(sim_error)?);
         let info = RunInfo {
             run_id: self.next_run.fetch_add(1, Ordering::Relaxed),
             duration_s: scenario.duration_s,

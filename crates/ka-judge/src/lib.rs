@@ -250,12 +250,23 @@ pub fn run_test(
     design: &Design,
     registry: &Registry,
 ) -> Result<RunResult, SimError> {
+    run_test_with(problem, test, design, registry, &options(problem))
+}
+
+/// `run_test` with explicit simulator options (the accuracy check runs unsampled).
+pub fn run_test_with(
+    problem: &ProblemDef,
+    test: &TestDef,
+    design: &Design,
+    registry: &Registry,
+    opts: &SimOptions,
+) -> Result<RunResult, SimError> {
     ka_sim::simulate(
         design,
         registry,
         &problem.scenario(test),
         test_seed(&problem.id, &test.id),
-        &SimOptions::default(),
+        opts,
     )
 }
 
@@ -266,6 +277,26 @@ pub fn judge(
     design: &Design,
     registry: &Registry,
     ref_cost: f64,
+) -> Judgement {
+    judge_with(problem, design, registry, ref_cost, &options(problem))
+}
+
+/// The simulator options for a problem: its own `sample_cap` if it sets one (review A1).
+pub fn options(problem: &ProblemDef) -> SimOptions {
+    match problem.sample_cap {
+        Some(cap) => SimOptions { sample_cap: cap },
+        None => SimOptions::default(),
+    }
+}
+
+/// `judge` with explicit simulator options (review A1: the gate's accuracy check judges every
+/// Set 1 design sampled and unsampled and expects the same verdicts).
+pub fn judge_with(
+    problem: &ProblemDef,
+    design: &Design,
+    registry: &Registry,
+    ref_cost: f64,
+    opts: &SimOptions,
 ) -> Judgement {
     let lint = lint(problem, design, registry);
     let invalid = |t: &TestDef| TestResult {
@@ -301,7 +332,7 @@ pub fn judge(
     let runs: Vec<Result<RunResult, SimError>> = problem
         .tests
         .iter()
-        .map(|t| run_test(problem, t, design, registry))
+        .map(|t| run_test_with(problem, t, design, registry, opts))
         .collect();
     // Budget and the cost score use the first test's steady cost.
     let cost = runs

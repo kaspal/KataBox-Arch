@@ -7,6 +7,8 @@ title_es = "Feed de noticias"
 teaches = "Fan-out on write: precompute feeds asynchronously, read them from a cache"
 teaches_es = "Fan-out en escritura: precalcular los feeds de forma asíncrona y leerlos de una caché"
 tags = ["fan-out", "async", "caching", "queues"]
+# The A1 accuracy check: sampling at 5,000 changed the naive design's verdict near saturation.
+sample_cap = 10000
 
 [nfr]
 peak_rps = 10000

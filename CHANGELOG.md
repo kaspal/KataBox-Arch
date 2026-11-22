@@ -47,6 +47,9 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
     test's numbers, the bottleneck of a failing test, and "Replay at failure", which plays that test from just
     before it broke.
   - **Home** shows the problem to continue, the recommended next one, and your streak.
+  - **Opening a design file made for a problem** opens it on that problem's page.
+  - **Set 1:** 15 problems, from URL Shortener to Online Judge, each with a statement, hints and an editorial in
+    English and Spanish.
 
 ### Changed
 - Design files are format version 2. Version 1 files still open: an Autoscaling card becomes a

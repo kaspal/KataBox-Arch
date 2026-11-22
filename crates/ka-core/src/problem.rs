@@ -91,6 +91,10 @@ pub struct ProblemDef {
     pub externals: Vec<External>,
     pub tests: Vec<TestDef>,
     pub pass: PassCriteria,
+    /// Simulated arrivals per second above which the simulator samples (ADR 0006). Set only
+    /// where the review A1 accuracy check showed sampling changes a verdict.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sample_cap: Option<f64>,
 }
 
 impl ProblemDef {

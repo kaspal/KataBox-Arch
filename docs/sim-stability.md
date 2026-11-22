@@ -26,6 +26,18 @@ cargo test -p ka-sim --release --test sim --test stability -- --ignored --nocapt
 - **Earlier (M1.1):** golden b at 50k was +6.1% p95 and −6% cache utilisation. The M1.2 calibration (Redis at 0.01
   ms) took the cache out of saturation.
 
+## Set 1 designs, sampled vs full (M2.8)
+
+`cargo test -p ka-pack --release --test accuracy -- --ignored --nocapture` judges every Set 1 reference and naive
+design twice: with the problem's sample cap, and with no sampling. Review A1 asks for the same verdict on every test
+and, on passing tests, a p95 within 10%.
+
+- **First run:** one disagreement. News Feed's naive design on "Normal day" was an SLO breach sampled (p95 155 ms)
+  but Accepted in full (p95 84 ms). It sits next to its target, where sampling's small pessimism (fewer, faster
+  servers) tips it over.
+- **The fix:** News Feed sets `sample_cap = 10000`; nothing else changed.
+- **After the fix:** all 15 problems agree on every test, and the worst p95 gap is 6.1%.
+
 ## Determinism (M1.8)
 
 100 runs of seed 42 give byte-identical `RunResult` JSON for every golden: a (5,504 bytes), b at 12k (10,289 bytes)

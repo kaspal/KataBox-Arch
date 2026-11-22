@@ -1,12 +1,25 @@
 import { describe, expect, it, vi } from "vitest";
+import type { Design } from "@/bindings";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { setFakeApi, useFakeApi } from "@/test/mockApi";
 import { renderApp } from "@/test/renderApp";
 import { unnamed } from "@/test/a11y";
 import { useEditor } from "@/solve/store";
-import { useRun } from "@/solve/run/runStore";
+import { isActive, useRun } from "@/solve/run/runStore";
 
 vi.mock("@/lib/api", async () => (await import("@/test/mockApi")).apiModule);
+
+const FAKE_DESIGN: Design = {
+  schema_version: 2,
+  id: "d1",
+  name: "D",
+  problem_id: null,
+  nodes: [{ id: "a1", kind: "app", flavour: "go", label: "", position: { x: 0, y: 0 }, props: {}, group_id: null }],
+  edges: [],
+  groups: [],
+  notes: [],
+  viewport: { x: 0, y: 0, zoom: 1 },
+};
 const fake = useFakeApi();
 
 describe("the problem catalogue", () => {
@@ -72,7 +85,14 @@ describe("solving a problem", () => {
     expect(options.problem).toEqual({ problem_id: "url-shortener", test_id: "viral" });
     expect(options.startS).toBe(20);
     expect(screen.queryByTestId("results")).not.toBeInTheDocument();
+    // The run keeps going once the dialog has closed and the card is selected, and the
+    // toolbar names the hidden test it replays.
+    await waitFor(() => expect(useEditor.getState().selection).toEqual(["db"]));
+    await act(() => new Promise((r) => setTimeout(r, 50)));
+    expect(isActive(useRun.getState().status)).toBe(true);
+    expect(screen.getByRole("button", { name: "Stop" })).toBeInTheDocument();
     act(() => useRun.getState().stop());
+    expect(screen.getByRole("combobox", { name: "Test to run" })).toHaveTextContent("Link goes viral");
   });
 
   it("a first Accepted submission says so and refreshes the brief", async () => {
@@ -84,6 +104,17 @@ describe("solving a problem", () => {
     expect(within(results).getByTestId("score")).toHaveTextContent("95");
     await user.click(within(results).getAllByRole("button", { name: "Close" }).at(-1)!);
     expect((await screen.findAllByRole("heading", { name: "Editorial" })).length).toBeGreaterThan(0);
+  });
+
+  it("opening a design made for a problem opens it on that problem's page", async () => {
+    const mine = { ...structuredClone(FAKE_DESIGN), problem_id: "url-shortener", name: "My shortener" };
+    setFakeApi({ files: { "C:/designs/mine.kbarch": mine }, openPick: "C:/designs/mine.kbarch" });
+    const { user, history } = renderApp("/");
+    await user.click(await screen.findByRole("button", { name: /Open/ }));
+    await waitFor(() => expect(history.location.pathname).toBe("/problems/url-shortener"));
+    expect(await screen.findByTestId("brief")).toBeInTheDocument();
+    expect(useEditor.getState().doc.name).toBe("My shortener");
+    expect(useEditor.getState().doc.nodes).toHaveLength(1);
   });
 
   it("edits autosave the draft", async () => {

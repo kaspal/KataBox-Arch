@@ -20,6 +20,10 @@ never changes them.
 
   Any finding makes the whole judgement **Invalid Design**, with the reasons listed and a score of 0.
 - **Each test** runs in a fresh engine, with its own seed `fnv64("<problem>/<test>")`.
+- **Sampling.** Tests run with the simulator's default sample cap (ADR 0006) unless the problem sets
+  `sample_cap` in `problem.toml`. A problem raises it when the sampled and full runs of its reference or naive
+  design disagree (review A1: same verdict, p95 within 10%). Live replays of a problem's tests use the same cap, so a
+  replay shows what the judge saw.
 - **Per-test verdicts,** in this order (the first that applies wins):
   1. **Invalid Design**;
   2. **Dropped Requests:** the error rate is over `pass.error_rate`, or lost messages are over `pass.lost`

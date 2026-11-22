@@ -96,7 +96,7 @@ export function RunControls() {
           </SelectTrigger>
           <SelectContent>
             {problem.brief.tests
-              .filter((x) => !x.hidden)
+              .filter((x) => !x.hidden || x.id === problemTest?.test_id)
               .map((x) => (
                 <SelectItem key={x.id} value={x.id}>
                   {i18n.language.startsWith("es") ? x.name_es : x.name}

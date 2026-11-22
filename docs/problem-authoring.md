@@ -49,6 +49,9 @@ A request type has:
   - `kill`, `latency`, `partition`, `traffic`, `flush` and `external`;
   - target selectors are written flat: `{ kill = { kind = "sql", role = "primary", at = 30 } }`.
 - **Hidden tests** show their name only, until the problem is solved.
+- **Sampling:** tests sample traffic above 5,000 simulated requests per second (ADR 0006). Run the accuracy check
+  (`cargo test -p ka-pack --release --test accuracy -- --ignored --nocapture`); if a design's verdict differs between
+  sampled and full runs, set a higher `sample_cap` at the top of `problem.toml` and say why in a comment.
 
 ## Checklist
 - **Numbers:**
