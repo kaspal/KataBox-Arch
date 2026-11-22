@@ -1,0 +1,167 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@xyflow/react/dist/base.css";
+@import "./styles/fonts.css";
+@import "@fontsource/kalam/latin-400.css";
+@import "@fontsource/kalam/latin-700.css";
+@import "./styles/tokens.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Tailwind utilities read the tokens. */
+@theme inline {
+  --font-sans: "Geist Variable", system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "Cascadia Code", monospace;
+  --font-display: "Cormorant Garamond Variable", Georgia, serif;
+  --font-hand: "Kalam", "Comic Sans MS", cursive;
+
+  --color-desk: var(--desk);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-canvas: var(--canvas);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-ink: var(--primary-ink);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-terracotta: var(--terracotta);
+  --color-terracotta-ink: var(--terracotta-ink);
+  --color-green: var(--green);
+  --color-amber: var(--amber);
+  --color-amber-ink: var(--amber-ink);
+  --color-yellow: var(--yellow);
+  --color-note: var(--note);
+  --color-note-foreground: var(--note-foreground);
+  --color-dev-badge: var(--dev-badge);
+  --color-dev-badge-foreground: var(--dev-badge-foreground);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 2px); /* cards: 12px */
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-stroke: cubic-bezier(0.37, 0, 0.63, 1);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-desk text-foreground font-sans antialiased;
+    font-size: var(--font-size-ui);
+  }
+
+  /* Visible keyboard focus everywhere; never removed, only restyled. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+/* --- Canvas (React Flow) ------------------------------------------------------------ */
+
+.kb-canvas .react-flow__pane {
+  cursor: default;
+}
+.kb-canvas .react-flow__node {
+  /* Cards draw their own frame. */
+  border: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+.kb-card {
+  transition:
+    transform 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out);
+}
+/* A card being dragged lifts. */
+.react-flow__node.dragging .kb-card {
+  transform: scale(1.03);
+  box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--foreground) 30%, transparent);
+}
+.reduce-motion .react-flow__node.dragging .kb-card {
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .react-flow__node.dragging .kb-card {
+    transform: none;
+  }
+}
+.kb-canvas .react-flow__handle {
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  border: 1.5px solid var(--card);
+  background: var(--primary);
+  opacity: 0;
+  transition: opacity 120ms var(--ease-out);
+}
+.kb-canvas .react-flow__node:hover .react-flow__handle,
+.kb-canvas .react-flow__node.selected .react-flow__handle,
+.kb-canvas.connecting .react-flow__handle {
+  opacity: 1;
+}
+.kb-canvas .react-flow__minimap {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.kb-canvas .react-flow__attribution {
+  background: transparent;
+}
+.kb-canvas .react-flow__attribution a {
+  color: var(--muted-foreground);
+}
+/* Zones: only the label (drag handle) and the resize controls take the pointer, so
+   cards, edges and the pane inside a zone stay clickable. */
+.kb-canvas .react-flow__node.kb-zone {
+  pointer-events: none;
+}
+.kb-canvas .kb-zone .kb-zone-handle,
+.kb-canvas .kb-zone .react-flow__resize-control {
+  pointer-events: all;
+}
+.kb-canvas .react-flow__selection,
+.kb-canvas .react-flow__nodesselection-rect {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  border: 1px dashed var(--primary);
+}
+
+/* Reduce motion (Settings, ui.motion = reduced): no CSS transitions or animations. */
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* High contrast: the selected toggle or tab gets a ring, not only a lighter fill. */
+.hc [data-state="on"],
+.hc [role="tab"][data-state="active"] {
+  box-shadow: inset 0 0 0 2px var(--ring);
+}

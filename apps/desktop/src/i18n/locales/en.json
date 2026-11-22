@@ -1,0 +1,372 @@
+{
+  "app": {
+    "skipToContent": "Skip to content",
+    "devData": "DEV DATA",
+    "devDataHint": "Development build: data lives in separate -dev folders, never in your real profile."
+  },
+  "nav": {
+    "label": "Main",
+    "home": "Home",
+    "problems": "Problems",
+    "sandbox": "Sandbox",
+    "guide": "Guide",
+    "samples": "Samples",
+    "progress": "Progress",
+    "settings": "Settings"
+  },
+  "palette": {
+    "open": "Search",
+    "placeholder": "Type a command, a page or a component…",
+    "empty": "Nothing matches.",
+    "pages": "Pages",
+    "file": "File",
+    "openRecent": "Open {{name}}",
+    "add": "Add to canvas",
+    "addItem": "Add {{name}}",
+    "theme": "Theme",
+    "language": "Language"
+  },
+  "theme": {
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "language": {
+    "en": "English",
+    "es": "Español"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "dismiss": "Dismiss",
+    "on": "On",
+    "off": "Off"
+  },
+  "errors": {
+    "generic": "Something went wrong.",
+    "not_found": "The file was not found. It may have been moved or deleted.",
+    "invalid_input": "That request was not valid.",
+    "store": "The app's database could not be read or written.",
+    "io": "The file could not be read or written.",
+    "file_too_large": "The file is too large to open.",
+    "invalid_file": "This is not a valid KataBox Arch design file.",
+    "newer_file_schema": "This design was saved by a newer version of KataBox Arch. Update the app to open it.",
+    "invalid_design": "The design breaks a rule (wiring, ids or values), so it was not saved.",
+    "setting_not_allowed": "That setting can't be changed from here.",
+    "path_not_allowed": "Use Save As or Open to choose a file first.",
+    "internal": "Something went wrong inside the app."
+  },
+  "files": {
+    "unsaved": {
+      "title": "Save your changes?",
+      "body": "“{{name}}” has changes that aren't saved. They will be lost if you don't save them.",
+      "discard": "Don't save",
+      "save": "Save"
+    },
+    "untitled": "Untitled design",
+    "notSaved": "Not saved yet",
+    "unsavedChanges": "Unsaved changes",
+    "new": "New design",
+    "open": "Open design",
+    "openEllipsis": "Open…",
+    "openShort": "Open",
+    "save": "Save",
+    "saveAs": "Save as…"
+  },
+  "edit": {
+    "undo": "Undo",
+    "redo": "Redo"
+  },
+  "sandbox": {
+    "toolbar": "Design actions",
+    "run": "Run",
+    "aiReview": "AI review",
+    "submit": "Submit",
+    "later": "Arrives in {{milestone}}"
+  },
+  "canvas": {
+    "label": "Canvas",
+    "statPending": "Live stats arrive with the simulation",
+    "connectFrom": "Connect from {{name}}",
+    "zone": {
+      "region": "Region",
+      "az": "Availability zone",
+      "note": "Sticky note"
+    },
+    "noteText": "Note text",
+    "notePlaceholder": "Double-click to write…",
+    "noteAria": "Note: {{text}}",
+    "edgeLabel": "{{protocol}} connection",
+    "minimap": "Minimap",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "fit": "Fit the design",
+    "pickFlavour": "Which {{kind}}?",
+    "pickProtocol": "Connect with",
+    "snap": "Snap to grid",
+    "snapHint": "Cards snap to an 8 px grid. Hold Alt while dragging to place freely."
+  },
+  "wiring": {
+    "reason": {
+      "self_loop": "A component can't connect to itself.",
+      "duplicate_edge": "These two are already connected with every protocol they allow.",
+      "into_client": "Clients only start requests; nothing calls into a client.",
+      "client_to_data": "A client can't reach a data store directly. Put a service in between.",
+      "from_ops": "Observability tools only receive telemetry.",
+      "data_calls_out": "Data stores answer queries; they don't start calls.",
+      "consume_needs_compute": "Messages leave a queue or stream only through a consumer service.",
+      "edge_to_data": "Put a service between the edge and the data.",
+      "no_rule": "These components can't be connected."
+    },
+    "added": "Connected with {{protocol}}.",
+    "keyboard": {
+      "start": "Connecting from {{name}}. Pick a target with the arrow keys or Tab, then press Enter. Escape cancels.",
+      "target": "{{name}}: can connect with {{protocols}}.",
+      "blocked": "{{name}}: {{reason}}",
+      "cancelled": "Connection cancelled.",
+      "hint": "Arrows or Tab: pick a target · Enter: connect · Esc: cancel"
+    }
+  },
+  "protocol": {
+    "http": "HTTP",
+    "grpc": "gRPC",
+    "ws": "WebSocket",
+    "query": "Query",
+    "publish": "Publish",
+    "consume": "Consume",
+    "replicate": "Replicate"
+  },
+  "library": {
+    "title": "Library",
+    "hint": "drag onto canvas",
+    "search": "Search components",
+    "searchLabel": "Search the library",
+    "noMatch": "No component matches.",
+    "meta": "Zones & notes",
+    "add": "{{name}}: drag onto the canvas or press Enter to add",
+    "quickLook": "About {{name}}",
+    "flavours": "Flavours",
+    "guideLater": "The full Component Guide entry (what it does, when to use it, its numbers) arrives in M3."
+  },
+  "inspector": {
+    "title": "Inspect",
+    "metrics": "Metrics",
+    "metricsLater": "Metrics arrive with the simulation (M1)",
+    "label": "Label",
+    "flavour": "Flavour",
+    "props": "Properties",
+    "placeholderNumbers": "Defaults are placeholders until the simulator is calibrated (M1).",
+    "delete": "Delete",
+    "zoneHint": "Cards inside a zone move with it. Network latency between zones arrives with the simulation.",
+    "protocol": "Protocol",
+    "designName": "Design name",
+    "count": {
+      "nodes": "Components",
+      "edges": "Connections",
+      "zones": "Zones",
+      "notes": "Notes"
+    },
+    "notSaved": "Not saved yet",
+    "nothingSelected": "Select a card, a connection or a zone to edit it.",
+    "many_one": "{{count}} item selected",
+    "many_other": "{{count}} items selected",
+    "range": "Enter a number from {{min}} to {{max}}.",
+    "rangeInt": "Enter a whole number from {{min}} to {{max}}."
+  },
+  "home": {
+    "eyebrow": "Your system design desk",
+    "title": "Design it. Break it. Fix it.",
+    "newDesign": "New design",
+    "recent": "Recent designs",
+    "noRecent": "No designs yet. Start a new one, or open a .kbarch file.",
+    "missing": "File not found",
+    "openNamed": "Open {{name}}",
+    "forget": "Forget",
+    "forgetNamed": "Remove {{name}} from recent designs"
+  },
+  "placeholder": {
+    "problems": {
+      "title": "Problems arrive in M2",
+      "body": "A LeetCode-style list of system design challenges, each judged against hidden traffic tests."
+    },
+    "guide": {
+      "title": "The Component Guide arrives in M3",
+      "body": "An entry and a concept card for every component: what it does, when to use it, and its numbers."
+    },
+    "samples": {
+      "title": "Animated samples arrive in M3",
+      "body": "Five guided designs that show traffic flowing, breaking and recovering."
+    },
+    "progress": {
+      "title": "Nothing to show yet",
+      "body": "Solved problems, best scores and your streak will appear here once Problems arrive."
+    }
+  },
+  "settings": {
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "contrast": "Contrast",
+    "contrastHint": "High contrast uses stronger text, borders and focus rings.",
+    "contrastValue": {
+      "normal": "Normal",
+      "high": "High"
+    },
+    "motion": "Motion",
+    "motionHint": "Reduce animations everywhere, or follow your system setting.",
+    "motionValue": {
+      "system": "Follow system",
+      "reduced": "Reduced"
+    },
+    "language": "Language",
+    "uiLanguage": "App language",
+    "canvas": "Canvas",
+    "about": "About",
+    "version": "Version",
+    "privacy": "KataBox Arch works offline. It sends no telemetry, ever.",
+    "trademarks": "Product names shown as component flavours belong to their owners; KataBox Arch is not affiliated with them."
+  },
+  "registry": {
+    "category": {
+      "edge": "Clients & Edge",
+      "compute": "Compute",
+      "data": "Data",
+      "async": "Async",
+      "ops": "Ops"
+    },
+    "kind": {
+      "client": "Client",
+      "dns": "DNS",
+      "cdn": "CDN",
+      "waf": "WAF",
+      "lb": "Load Balancer",
+      "gateway": "API Gateway",
+      "ratelimit": "Rate Limiter",
+      "app": "App Server",
+      "micro": "Microservice",
+      "worker": "Worker",
+      "serverless": "Serverless",
+      "autoscale": "Autoscaling",
+      "sql": "SQL Database",
+      "nosql": "NoSQL Store",
+      "cache": "Cache",
+      "object": "Object Storage",
+      "search": "Search Index",
+      "queue": "Queue",
+      "stream": "Stream",
+      "pubsub": "Pub/Sub",
+      "dlq": "Dead-Letter Queue",
+      "scheduler": "Scheduler",
+      "metrics": "Metrics",
+      "logs": "Logs",
+      "tracing": "Tracing"
+    },
+    "flavour": {
+      "generic": "Generic",
+      "web": "Web client",
+      "mobile": "Mobile client",
+      "route53": "Route 53",
+      "cloudflare_dns": "Cloudflare DNS",
+      "cloudfront": "CloudFront",
+      "cloudflare_cdn": "Cloudflare",
+      "fastly": "Fastly",
+      "aws_waf": "AWS WAF",
+      "cloudflare_waf": "Cloudflare WAF",
+      "nginx": "NGINX",
+      "haproxy": "HAProxy",
+      "aws_alb": "AWS ALB",
+      "aws_nlb": "AWS NLB",
+      "kong": "Kong",
+      "aws_api_gateway": "AWS API Gateway",
+      "envoy": "Envoy",
+      "redis_token_bucket": "Redis token bucket",
+      "nodejs": "Node.js",
+      "spring_boot": "Spring Boot",
+      "go": "Go",
+      "django": "Django",
+      "celery": "Celery",
+      "sidekiq": "Sidekiq",
+      "aws_lambda": "AWS Lambda",
+      "cloud_run": "Cloud Run",
+      "kubernetes_hpa": "Kubernetes HPA",
+      "aws_asg": "AWS Auto Scaling Group",
+      "postgresql": "PostgreSQL",
+      "mysql": "MySQL",
+      "dynamodb": "DynamoDB",
+      "cassandra": "Cassandra",
+      "mongodb": "MongoDB",
+      "redis": "Redis",
+      "memcached": "Memcached",
+      "s3": "Amazon S3",
+      "gcs": "Google Cloud Storage",
+      "elasticsearch": "Elasticsearch",
+      "opensearch": "OpenSearch",
+      "rabbitmq": "RabbitMQ",
+      "sqs": "Amazon SQS",
+      "kafka": "Apache Kafka",
+      "kinesis": "Kinesis",
+      "google_pubsub": "Google Pub/Sub",
+      "sns": "Amazon SNS",
+      "redis_pubsub": "Redis Pub/Sub",
+      "cron": "cron",
+      "airflow": "Airflow",
+      "prometheus_grafana": "Prometheus + Grafana",
+      "elk": "ELK",
+      "loki": "Loki",
+      "jaeger": "Jaeger"
+    },
+    "prop": {
+      "rps": "Requests per second",
+      "ttl_s": "TTL",
+      "hit_rate": "Hit rate",
+      "instances": "Instances",
+      "service_ms": "Service time",
+      "algorithm": "Algorithm",
+      "concurrency": "Concurrency per instance",
+      "limit_rps": "Limit",
+      "burst": "Burst",
+      "concurrency_limit": "Concurrency limit",
+      "cold_start_ms": "Cold start",
+      "min_instances": "Minimum instances",
+      "max_instances": "Maximum instances",
+      "target_util": "Target utilisation",
+      "scale_delay_s": "Scale-out delay",
+      "read_replicas": "Read replicas",
+      "shards": "Shards",
+      "replication_lag_ms": "Replication lag",
+      "partitions": "Partitions",
+      "replication_factor": "Replication factor",
+      "consistency": "Consistency",
+      "memory_gb": "Memory",
+      "eviction": "Eviction",
+      "persistence": "Persistence",
+      "replicas": "Replicas",
+      "max_depth": "Maximum depth",
+      "visibility_timeout_s": "Visibility timeout",
+      "max_retries": "Maximum retries",
+      "retention_h": "Retention",
+      "retention_days": "Retention",
+      "interval_s": "Interval",
+      "sample_rate": "Sample rate"
+    },
+    "choice": {
+      "round_robin": "Round robin",
+      "least_conn": "Least connections",
+      "ip_hash": "IP hash",
+      "eventual": "Eventual",
+      "strong": "Strong",
+      "lru": "LRU",
+      "lfu": "LFU",
+      "ttl": "TTL only"
+    }
+  },
+  "units": {
+    "none": "no unit",
+    "count": "items",
+    "ms": "ms",
+    "s": "s",
+    "h": "h",
+    "days": "days",
+    "percent": "%",
+    "rps": "req/s",
+    "gb": "GB"
+  }
+}

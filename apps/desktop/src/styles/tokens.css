@@ -1,0 +1,216 @@
+/* Design tokens: the "paper desk" palette (spec → UI & visual design system).
+ * Colours are 6-digit hex only, so `lib/static.test.ts` can check WCAG contrast for
+ * every pair. Text roles: foreground, muted-foreground, primary(-ink), terracotta-ink,
+ * green, amber-ink, destructive. Fill-only (never text): terracotta, amber, yellow.
+ * Text sits on paper (background), sheet (card/popover), canvas, muted and accent; never
+ * on the desk, which is only the frame around the sheets.
+ * Adjusted from the spec for AA: amber-ink #946016 (new), dark danger #eb7a72, dark
+ * primary-foreground #1a1d1b. muted/accent (hover surfaces) are ours, kept light enough
+ * for every text colour. High-contrast values are ours (.hc, .dark.hc). */
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --desk: #e6dbc7;
+  --background: #f8f4eb; /* paper: panels, sidebars */
+  --card: #fffcf5; /* sheet: cards, node bodies, dialogs */
+  --popover: #fffcf5;
+  --canvas: #f1f3f2;
+  --canvas-dot: #d4d8d5;
+  --muted: #f4efe4;
+  --accent: #f2ede2;
+
+  /* Text and lines */
+  --foreground: #26302b; /* ink */
+  --card-foreground: #26302b;
+  --popover-foreground: #26302b;
+  --accent-foreground: #26302b;
+  --secondary: #f4efe4;
+  --secondary-foreground: #26302b;
+  --muted-foreground: #5d635b;
+  --border: #d9d5ca; /* rule */
+  --input: #d9d5ca;
+  --ring: #35689e;
+
+  /* Accents */
+  --primary: #35689e; /* blue */
+  --primary-foreground: #fffcf5;
+  --primary-ink: #2c5a87;
+  --terracotta: #c45832;
+  --terracotta-ink: #a84b2e;
+  --green: #3f7560;
+  --amber: #e8a44d;
+  --amber-base: #c98535;
+  --amber-ink: #946016;
+  --yellow: #d7a928;
+  --destructive: #9c2f27; /* danger */
+  --destructive-foreground: #fffcf5;
+
+  /* Component categories: the tile is the colour at 14% on the card; the glyph uses
+   * the -glyph colour (≥ 3:1 on its tile). */
+  --cat-edge: #35689e;
+  --cat-compute: #3f7560;
+  --cat-data: #c45832;
+  --cat-async: #e8a44d;
+  --cat-ops: #26302b;
+  --cat-edge-glyph: #35689e;
+  --cat-compute-glyph: #3f7560;
+  --cat-data-glyph: #a84b2e;
+  --cat-async-glyph: #946016;
+  --cat-ops-glyph: #26302b;
+
+  /* Canvas extras */
+  --edge-line: #5d635b;
+  --note: #f1e6bd;
+  --note-foreground: #26302b;
+  --note-border: #d8c78a;
+  --zone-line: #80857c;
+
+  --dev-badge: #a84b2e;
+  --dev-badge-foreground: #fffcf5;
+
+  --radius: 0.625rem;
+  --font-size-ui: 0.875rem;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --desk: #1a1d1b;
+  --background: #222622;
+  --card: #2a2f2b;
+  --popover: #2a2f2b;
+  --canvas: #1e221f;
+  --canvas-dot: #333a35;
+  --muted: #252925;
+  --accent: #2c312d;
+
+  --foreground: #ece6d8;
+  --card-foreground: #ece6d8;
+  --popover-foreground: #ece6d8;
+  --accent-foreground: #ece6d8;
+  --secondary: #252925;
+  --secondary-foreground: #ece6d8;
+  --muted-foreground: #a4a9a5;
+  --border: #3a403b;
+  --input: #3a403b;
+  --ring: #6e9bcb;
+
+  --primary: #6e9bcb;
+  --primary-foreground: #1a1d1b;
+  --primary-ink: #6e9bcb;
+  --terracotta: #e07f5a;
+  --terracotta-ink: #e07f5a;
+  --green: #6fa88d;
+  --amber: #f0b866;
+  --amber-base: #f0b866;
+  --amber-ink: #f0b866;
+  --yellow: #e6c05a;
+  --destructive: #eb7a72;
+  --destructive-foreground: #1a1d1b;
+
+  --cat-edge: #6e9bcb;
+  --cat-compute: #6fa88d;
+  --cat-data: #e07f5a;
+  --cat-async: #f0b866;
+  --cat-ops: #ece6d8;
+  --cat-edge-glyph: #6e9bcb;
+  --cat-compute-glyph: #6fa88d;
+  --cat-data-glyph: #e07f5a;
+  --cat-async-glyph: #f0b866;
+  --cat-ops-glyph: #ece6d8;
+
+  --edge-line: #a4a9a5;
+  --note: #3a3626;
+  --note-foreground: #ece6d8;
+  --note-border: #5e5638;
+  --zone-line: #7d847e;
+
+  --dev-badge: #e07f5a;
+  --dev-badge-foreground: #1a1d1b;
+}
+
+/* High contrast (ui.contrast = high). Placed after .dark so `.hc` and `.dark.hc` win. */
+.hc {
+  --desk: #e8e8e8;
+  --background: #ffffff;
+  --card: #ffffff;
+  --popover: #ffffff;
+  --canvas: #ffffff;
+  --canvas-dot: #9a9a9a;
+  --muted: #f2f2f2;
+  --accent: #eaeaea;
+
+  --foreground: #000000;
+  --card-foreground: #000000;
+  --popover-foreground: #000000;
+  --accent-foreground: #000000;
+  --secondary-foreground: #000000;
+  --muted-foreground: #1f2420;
+  --border: #26302b;
+  --input: #26302b;
+  --ring: #0b3e6e;
+
+  --primary: #0b3e6e;
+  --primary-foreground: #ffffff;
+  --primary-ink: #0b3e6e;
+  --terracotta-ink: #7a2e16;
+  --green: #1e4a3a;
+  --amber-ink: #6b4210;
+  --destructive: #6e1a14;
+  --destructive-foreground: #ffffff;
+
+  --cat-edge-glyph: #0b3e6e;
+  --cat-compute-glyph: #1e4a3a;
+  --cat-data-glyph: #7a2e16;
+  --cat-async-glyph: #6b4210;
+  --cat-ops-glyph: #000000;
+
+  --edge-line: #26302b;
+  --note-foreground: #000000;
+  --note-border: #26302b;
+  --zone-line: #26302b;
+}
+
+.dark.hc {
+  --desk: #000000;
+  --background: #000000;
+  --card: #0e100f;
+  --popover: #0e100f;
+  --canvas: #000000;
+  --canvas-dot: #5a5f5b;
+  --muted: #141614;
+  --accent: #1c1f1d;
+
+  --foreground: #ffffff;
+  --card-foreground: #ffffff;
+  --popover-foreground: #ffffff;
+  --accent-foreground: #ffffff;
+  --secondary-foreground: #ffffff;
+  --muted-foreground: #c8ccc9;
+  --border: #a4a9a5;
+  --input: #a4a9a5;
+  --ring: #9cc3ee;
+
+  --primary: #9cc3ee;
+  --primary-foreground: #000000;
+  --primary-ink: #9cc3ee;
+  --terracotta-ink: #f4a27f;
+  --green: #93cdb1;
+  --amber-ink: #ffd27f;
+  --destructive: #ff8a82;
+  --destructive-foreground: #000000;
+
+  --cat-edge-glyph: #9cc3ee;
+  --cat-compute-glyph: #93cdb1;
+  --cat-data-glyph: #f4a27f;
+  --cat-async-glyph: #ffd27f;
+  --cat-ops-glyph: #ffffff;
+
+  --edge-line: #c8ccc9;
+  --note: #2a2618;
+  --note-foreground: #ffffff;
+  --note-border: #a4a9a5;
+  --zone-line: #a4a9a5;
+}
