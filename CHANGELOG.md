@@ -7,6 +7,20 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
 ## [Unreleased]
 
 ### Added
+- **Set 2: 15 more problems** (#16–30), from Image Thumbnails to an Order-Matching Exchange, each with hints, an
+  editorial (with "What the simulator leaves out" where it matters) and estimation drills. Learning paths include
+  them.
+- **Problem packs:** import a `.kbpack` with a preview (author as stated, SHA-256, problems); every pack is checked
+  (files, text and a judged run of every design) before it installs; a badge and a source filter on Problems;
+  uninstall in Settings keeps your history. `ka-pack pack` builds packs.
+- **Export:** copy or save a design as a Mermaid diagram; save it as an SVG or PNG image.
+- **Related in KataBox** on Guide entries, patterns and problems.
+- **Results and briefs show p99 limits** where a test has one.
+- **Accessibility:** cards and connections have full names, the side panel's tabs follow the ARIA pattern, and run
+  changes are announced. Reduced motion now follows the system everywhere.
+- **Simulator:** unfinished work at the end of a run counts at its age; reads stay in the caller's Region;
+  zone tests can target the Region holding the primary.
+- **Docs:** user guide (English and Spanish), pack and problem authoring guides, known issues.
 - **Practice modes:**
   - A **Numbers cheat sheet** (31 figures, with sources), linked from every problem brief.
   - **Estimation drills:** 37 back-of-the-envelope questions for Set 1, with worked solutions, an "Estimate first"
