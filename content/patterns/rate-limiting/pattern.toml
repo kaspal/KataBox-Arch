@@ -1,0 +1,57 @@
+id = "rate-limiting"
+number = 10
+
+title = "Rate limiting"
+title_es = "Limitación de tasa"
+
+one_liner = "Cap how many requests each caller may make, and refuse the excess early."
+one_liner_es = "Pon un tope a cuántas peticiones puede hacer cada cliente y rechaza el exceso pronto."
+
+problem = "A few callers, through abuse or a bug, send so much traffic that everyone else's requests slow down or fail."
+problem_es = "Unos pocos clientes, por abuso o por un fallo, envían tanto tráfico que las peticiones de todos los demás se ralentizan o fallan."
+
+use_when = [
+  "The API is open to callers you do not control",
+  "One caller's traffic can crowd out the others",
+  "Expensive endpoints need protecting from bursts",
+  "Plans or tiers come with different quotas",
+]
+use_when_es = [
+  "La API está abierta a clientes que no controlas",
+  "El tráfico de un cliente puede desplazar al de los demás",
+  "Hay endpoints caros que proteger de las ráfagas",
+  "Los planes o niveles tienen cuotas distintas",
+]
+
+gains = [
+  "Fair share for every caller",
+  "Abusive traffic is refused before it costs anything",
+  "The backend sees a load it was sized for",
+]
+gains_es = [
+  "Un reparto justo para cada cliente",
+  "El tráfico abusivo se rechaza antes de que cueste nada",
+  "El backend ve una carga para la que está dimensionado",
+]
+
+costs = [
+  "Limits set too low refuse real users",
+  "Shared counters across many limiter nodes add a lookup to every request",
+  "Callers must handle refusals and retry later",
+]
+costs_es = [
+  "Unos límites demasiado bajos rechazan a usuarios reales",
+  "Los contadores compartidos entre muchos nodos limitadores añaden una consulta a cada petición",
+  "Los clientes deben gestionar los rechazos y reintentar más tarde",
+]
+
+kinds = [
+  "ratelimit",
+  "app",
+]
+practice = [
+  "rate-limiter",
+]
+
+in_simulator = "Fully: a token bucket per API key with the card's limit and burst; shedding abusive traffic counts as success, and shedding legitimate traffic counts as an error."
+in_simulator_es = "Completamente: un token bucket por clave de API con el límite y la ráfaga de la tarjeta; descartar tráfico abusivo cuenta como éxito, y descartar tráfico legítimo cuenta como error."

@@ -27,7 +27,9 @@
     "language": "Idioma",
     "devPerf": "Desarrollo: fotogramas de la capa de paquetes",
     "guide": "Guía",
-    "guideItem": "Guía: {{name}}"
+    "guideItem": "Guía: {{name}}",
+    "patterns": "Patrones",
+    "patternItem": "Patrón: {{name}}"
   },
   "theme": {
     "system": "Sistema",
@@ -631,5 +633,16 @@
     "conceptCard": "Tarjeta de concepto",
     "playConcept_one": "Ver la tarjeta de concepto ({{count}} paso)",
     "playConcept_other": "Ver la tarjeta de concepto ({{count}} pasos)"
+  },
+  "patterns": {
+    "title": "Patrones",
+    "subtitle": "Formas probadas para problemas comunes, listas para el lienzo. {{read}} de {{total}} leídos.",
+    "unavailable": "La biblioteca de patrones no está disponible",
+    "insert": "Insertar en el Sandbox",
+    "problem": "El problema",
+    "howItWorks": "Cómo funciona",
+    "template": "La plantilla",
+    "templateHint": "Insertar en el Sandbox añade estas tarjetas al diseño que editas, en el centro de la vista; un deshacer las quita.",
+    "builtFrom": "Hecho con"
   }
 }

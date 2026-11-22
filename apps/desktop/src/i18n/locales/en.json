@@ -27,7 +27,9 @@
     "language": "Language",
     "devPerf": "Developer: packet layer frame rate",
     "guide": "Guide",
-    "guideItem": "Guide: {{name}}"
+    "guideItem": "Guide: {{name}}",
+    "patterns": "Patterns",
+    "patternItem": "Pattern: {{name}}"
   },
   "theme": {
     "system": "System",
@@ -631,5 +633,16 @@
     "conceptCard": "Concept card",
     "playConcept_one": "Play the concept card ({{count}} step)",
     "playConcept_other": "Play the concept card ({{count}} steps)"
+  },
+  "patterns": {
+    "title": "Patterns",
+    "subtitle": "Proven shapes for common problems, ready to drop onto the canvas. {{read}} of {{total}} read.",
+    "unavailable": "The pattern library is unavailable",
+    "insert": "Insert into the Sandbox",
+    "problem": "The problem",
+    "howItWorks": "How it works",
+    "template": "The template",
+    "templateHint": "Insert into the Sandbox adds these cards to the design you are editing, in the middle of the view; one undo removes them.",
+    "builtFrom": "Built from"
   }
 }

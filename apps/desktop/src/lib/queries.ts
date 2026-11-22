@@ -47,6 +47,14 @@ export function useGuidePage(kind: ComponentKind) {
   return useQuery({ queryKey: queryKeys.guidePage(kind), queryFn: () => api.guidePage(kind) });
 }
 
+export function usePatterns() {
+  return useQuery({ queryKey: ["patterns"], queryFn: api.listPatterns });
+}
+
+export function usePattern(id: string) {
+  return useQuery({ queryKey: ["patterns", id], queryFn: () => api.pattern(id) });
+}
+
 export function useConcept(kind: ComponentKind) {
   return useQuery({ queryKey: ["concept", kind], queryFn: () => api.concept(kind), staleTime: Infinity });
 }

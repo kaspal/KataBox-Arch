@@ -1,0 +1,58 @@
+id = "cache-aside"
+number = 1
+
+title = "Cache-aside"
+title_es = "Cache-aside"
+
+one_liner = "Check the cache first; on a miss, read the database and fill the cache."
+one_liner_es = "Mira primero en la caché; si falla, lee la base de datos y llena la caché."
+
+problem = "The database spends most of its time answering the same reads again and again, and latency climbs with load."
+problem_es = "La base de datos pasa la mayor parte del tiempo respondiendo las mismas lecturas una y otra vez, y la latencia sube con la carga."
+
+use_when = [
+  "Reads far outnumber writes",
+  "A small set of keys gets most of the reads",
+  "Readers can accept data a little out of date",
+]
+use_when_es = [
+  "Las lecturas superan con mucho a las escrituras",
+  "Un conjunto pequeño de claves recibe la mayoría de las lecturas",
+  "Los lectores aceptan datos algo desfasados",
+]
+
+gains = [
+  "Hits return far faster than a database read",
+  "The database only sees the misses",
+  "The cache holds only what is read, so it stays small",
+]
+gains_es = [
+  "Los aciertos responden mucho más rápido que una lectura de la base de datos",
+  "La base de datos solo ve los fallos",
+  "La caché guarda solo lo que se lee, así que sigue siendo pequeña",
+]
+
+costs = [
+  "A cached copy can be stale until it expires or is deleted",
+  "The first read of every key is slower, and a cold cache hits the database hard",
+  "The app owns the caching logic on every read path",
+]
+costs_es = [
+  "Una copia en caché puede quedar obsoleta hasta que caduca o se borra",
+  "La primera lectura de cada clave es más lenta, y una caché fría castiga a la base de datos",
+  "La app se encarga de la lógica de caché en cada ruta de lectura",
+]
+
+kinds = [
+  "app",
+  "cache",
+  "sql",
+]
+practice = [
+  "url-shortener",
+  "pastebin",
+  "typeahead",
+]
+
+in_simulator = "Fully: hits, misses, TTL expiry, memory size, cold starts, flushes and stale reads are simulated. Stampede coalescing is not."
+in_simulator_es = "Completamente: se simulan aciertos, fallos, caducidad por TTL, tamaño de memoria, arranques en frío, vaciados y lecturas obsoletas. La agrupación de peticiones ante una estampida no."

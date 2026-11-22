@@ -124,6 +124,16 @@ pub struct GuideRow {
     pub md_es: String,
 }
 
+/// A pattern: the entry as JSON, the prose, and the template as `.kbarch` JSON.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PatternRow {
+    pub id: String,
+    pub entry: String,
+    pub md_en: String,
+    pub md_es: String,
+    pub template: String,
+}
+
 /// A concept card: `def` is its `SampleRow` (definition and snapshots) as JSON.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ConceptRow {
@@ -139,6 +149,7 @@ pub struct ContentData {
     pub samples: Vec<SampleRow>,
     pub guide: Vec<GuideRow>,
     pub concepts: Vec<ConceptRow>,
+    pub patterns: Vec<PatternRow>,
 }
 
 /// Write a fresh `content.db` at `path` (replacing any file there).
@@ -201,6 +212,18 @@ pub async fn write_content(path: &Path, data: &ContentData) -> Result<()> {
             .bind(serde_json::to_string(&s.snapshots)?)
             .execute(&mut *tx)
             .await?;
+    }
+    for p in &data.patterns {
+        sqlx::query(
+            "INSERT INTO patterns (id, entry, md_en, md_es, template) VALUES (?, ?, ?, ?, ?)",
+        )
+        .bind(&p.id)
+        .bind(&p.entry)
+        .bind(&p.md_en)
+        .bind(&p.md_es)
+        .bind(&p.template)
+        .execute(&mut *tx)
+        .await?;
     }
     for c in &data.concepts {
         sqlx::query("INSERT INTO concepts (kind, def) VALUES (?, ?)")
@@ -339,6 +362,25 @@ impl ContentDb {
         row.as_ref().map(sample_row).transpose()
     }
 
+    /// Every pattern (the caller orders them by the entry's number).
+    pub async fn patterns(&self) -> Result<Vec<PatternRow>> {
+        let rows =
+            sqlx::query("SELECT id, entry, md_en, md_es, template FROM patterns ORDER BY id")
+                .fetch_all(&self.pool)
+                .await?;
+        rows.iter()
+            .map(|r| -> Result<PatternRow> {
+                Ok(PatternRow {
+                    id: r.try_get("id")?,
+                    entry: r.try_get("entry")?,
+                    md_en: r.try_get("md_en")?,
+                    md_es: r.try_get("md_es")?,
+                    template: r.try_get("template")?,
+                })
+            })
+            .collect()
+    }
+
     pub async fn concept(&self, kind: &str) -> Result<Option<ConceptRow>> {
         let row = sqlx::query("SELECT kind, def FROM concepts WHERE kind = ?")
             .bind(kind)
@@ -453,6 +495,13 @@ mod tests {
                 kind: "cache".into(),
                 def: "{}".into(),
             }],
+            patterns: vec![PatternRow {
+                id: "cache-aside".into(),
+                entry: "{}".into(),
+                md_en: "How".into(),
+                md_es: "Cómo".into(),
+                template: "{}".into(),
+            }],
         };
         write_content(&path, &data).await.unwrap();
         // Rewriting replaces the file.
@@ -482,6 +531,7 @@ mod tests {
         assert_eq!(db.guide_entry("nope").await.unwrap(), None);
         assert_eq!(db.concept("cache").await.unwrap().unwrap().def, "{}");
         assert_eq!(db.concept("lb").await.unwrap(), None);
+        assert_eq!(db.patterns().await.unwrap()[0].md_es, "Cómo");
         db.close().await;
     }
 

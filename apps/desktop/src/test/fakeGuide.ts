@@ -1,5 +1,5 @@
 // Two Guide entries for UI tests (the shapes Rust sends: ka-app guide.rs).
-import type { GuideEntry } from "@/bindings";
+import type { Design, GuideEntry, PatternEntry } from "@/bindings";
 
 export const FAKE_CACHE: GuideEntry = {
   kind: "cache",
@@ -49,3 +49,42 @@ export const FAKE_LB: GuideEntry = {
 };
 
 export const FAKE_GUIDE = [FAKE_LB, FAKE_CACHE];
+
+export const FAKE_PATTERN: PatternEntry = {
+  id: "cache-aside",
+  number: 1,
+  title: "Cache-aside",
+  title_es: "Cache-aside",
+  one_liner: "Read the cache first; on a miss, read the database and fill the cache.",
+  one_liner_es: "Lee primero la caché; en un fallo, lee la base de datos y llena la caché.",
+  problem: "The database can't serve every read.",
+  problem_es: "La base de datos no puede servir todas las lecturas.",
+  use_when: ["Reads dominate"],
+  use_when_es: ["Dominan las lecturas"],
+  gains: ["Fast reads"],
+  gains_es: ["Lecturas rápidas"],
+  costs: ["Stale reads"],
+  costs_es: ["Lecturas obsoletas"],
+  kinds: ["app", "cache", "sql"],
+  practice: ["url-shortener"],
+  in_simulator: "Fully: hits, misses and TTL are simulated.",
+  in_simulator_es: "Del todo: aciertos, fallos y TTL se simulan.",
+};
+
+const card = (id: string, kind: string, flavour: string, x: number, y: number) =>
+  ({ id, kind, flavour, label: "", position: { x, y }, props: {}, group_id: null }) as Design["nodes"][number];
+
+export const FAKE_TEMPLATE: Design = {
+  schema_version: 2,
+  id: "pattern-cache-aside",
+  name: "Cache-aside",
+  problem_id: null,
+  nodes: [card("app", "app", "go", 0, 0), card("cache", "cache", "redis", -150, 170), card("db", "sql", "postgresql", 150, 170)],
+  edges: [
+    { id: "e1", from: "app", to: "cache", protocol: "query" },
+    { id: "e2", from: "app", to: "db", protocol: "query" },
+  ],
+  groups: [],
+  notes: [],
+  viewport: { x: 0, y: 0, zoom: 1 },
+};

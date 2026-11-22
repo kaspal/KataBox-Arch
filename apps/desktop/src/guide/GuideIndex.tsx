@@ -76,10 +76,15 @@ export function GuideIndex() {
     <Page
       title={t("guide.title")}
       actions={
+        <div className="flex items-center gap-4">
+        <Link to="/patterns" className="text-sm font-semibold whitespace-nowrap text-primary underline underline-offset-4">
+          {t("patterns.title")}
+        </Link>
         <label className="relative block w-72">
           <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("guide.search")} aria-label={t("guide.searchLabel")} className="bg-card pl-9" />
         </label>
+        </div>
       }
     >
       <p className="-mt-4 text-muted-foreground" data-testid="guide-progress">

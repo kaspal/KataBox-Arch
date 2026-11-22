@@ -1,0 +1,54 @@
+id = "outbox"
+number = 4
+
+title = "Transactional outbox"
+title_es = "Outbox transaccional"
+
+one_liner = "Write the event into the database in the same transaction as the change, then relay it."
+one_liner_es = "Escribe el evento en la base de datos en la misma transacción que el cambio y después reenvíalo."
+
+problem = "A service must update its database and publish an event, and if it crashes between the two, the other systems never hear about the change."
+problem_es = "Un servicio tiene que actualizar su base de datos y publicar un evento, y si cae entre las dos cosas, los demás sistemas nunca se enteran del cambio."
+
+use_when = [
+  "A state change and its event must never disagree",
+  "The broker can be down while the database is up",
+  "Consumers can cope with seeing an event more than once",
+]
+use_when_es = [
+  "Un cambio de estado y su evento nunca deben discrepar",
+  "El broker puede estar caído mientras la base de datos funciona",
+  "Los consumidores pueden recibir un evento más de una vez sin problema",
+]
+
+gains = [
+  "No lost events: if the change is committed, so is its event",
+  "The request does not wait for the broker",
+  "Events leave in commit order",
+]
+gains_es = [
+  "Sin eventos perdidos: si el cambio se confirma, también su evento",
+  "La petición no espera al broker",
+  "Los eventos salen en el orden de confirmación",
+]
+
+costs = [
+  "An extra table and a relay process to run and watch",
+  "Delivery is at least once, so consumers must be idempotent",
+  "Events arrive a little after the change, not with it",
+]
+costs_es = [
+  "Una tabla más y un proceso de reenvío que operar y vigilar",
+  "La entrega es al menos una vez, así que los consumidores deben ser idempotentes",
+  "Los eventos llegan un poco después del cambio, no a la vez",
+]
+
+kinds = [
+  "app",
+  "sql",
+  "stream",
+]
+practice = []
+
+in_simulator = "Partly: the database write, the stream and its consumers are simulated, but a database never publishes onward in the engine, so the relay from the outbox table is drawn, not run. Crashes between a write and a publish are not modelled."
+in_simulator_es = "En parte: se simulan la escritura en la base de datos, el stream y sus consumidores, pero en el motor una base de datos nunca publica hacia delante, así que el reenvío desde la tabla outbox se dibuja pero no se ejecuta. Las caídas entre una escritura y una publicación no se modelan."

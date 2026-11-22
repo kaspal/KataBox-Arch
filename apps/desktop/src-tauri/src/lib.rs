@@ -17,6 +17,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use ka_app::guide::{GuidePage, GuideSummary};
 use ka_app::live::FrameSink;
+use ka_app::patterns::{PatternPage, PatternSummary};
 use ka_app::problems::{ProblemBrief, ProblemSummary, Progress, SubmitResult};
 use ka_app::samples::{Sample, SampleSummary};
 use ka_app::{
@@ -279,6 +280,27 @@ async fn set_guide_read(
     state.app()?.set_guide_read(kind, read).await
 }
 
+/// The pattern library, in order (each with its template for the preview).
+#[tauri::command]
+#[specta::specta]
+async fn list_patterns(state: State<'_, AppState>) -> Res<Vec<PatternSummary>> {
+    state.app()?.list_patterns().await
+}
+
+/// One pattern: its page and template.
+#[tauri::command]
+#[specta::specta]
+async fn pattern(state: State<'_, AppState>, id: String) -> Res<PatternPage> {
+    state.app()?.pattern(&id).await
+}
+
+/// Mark a pattern read (or unread).
+#[tauri::command]
+#[specta::specta]
+async fn set_pattern_read(state: State<'_, AppState>, id: String, read: bool) -> Res<()> {
+    state.app()?.set_pattern_read(&id, read).await
+}
+
 /// A component kind's concept card (null until it has one).
 #[tauri::command]
 #[specta::specta]
@@ -431,6 +453,9 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         progress,
         list_samples,
         sample,
+        list_patterns,
+        pattern,
+        set_pattern_read,
         list_guide,
         concept,
         guide_page,

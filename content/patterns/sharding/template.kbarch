@@ -1,0 +1,69 @@
+{
+  "schema_version": 2,
+  "id": "pattern-sharding",
+  "name": "Sharding",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "nodejs",
+      "label": "",
+      "position": {
+        "x": 130,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "orders-db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Orders, by customer id",
+      "position": {
+        "x": 0,
+        "y": 170
+      },
+      "props": {
+        "shards": 4
+      },
+      "group_id": null
+    },
+    {
+      "id": "events-db",
+      "kind": "nosql",
+      "flavour": "cassandra",
+      "label": "Events, by device id",
+      "position": {
+        "x": 260,
+        "y": 170
+      },
+      "props": {
+        "partitions": 16
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "app",
+      "to": "orders-db",
+      "protocol": "query"
+    },
+    {
+      "id": "e1",
+      "from": "app",
+      "to": "events-db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

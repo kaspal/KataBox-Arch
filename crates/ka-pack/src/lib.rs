@@ -10,6 +10,7 @@
 //! - `build_content` turns validated content into rows, and `write_db` writes the file.
 
 pub mod guide;
+pub mod patterns;
 pub mod problems;
 pub mod run;
 pub mod samples;
@@ -94,10 +95,12 @@ pub fn build_content(
     let samples = load_samples(root, registry)?;
     let guide = load_guide(root)?;
     let concepts = load_concepts(root, registry)?;
+    let patterns = patterns::load_patterns(root, registry)?;
     let mut issues = validate_problems(&problems, registry);
     issues.extend(validate_samples(&samples, &problems, registry));
     issues.extend(validate_guide(&guide, &problems, registry));
     issues.extend(validate_concepts(&concepts, &problems, registry));
+    issues.extend(patterns::validate_patterns(&patterns, &problems, registry));
     if !issues.is_empty() {
         return Err(issues);
     }
@@ -120,6 +123,11 @@ pub fn build_content(
         ],
         problems: rows,
         samples: sample_rows,
+        patterns: patterns
+            .iter()
+            .map(|p| patterns::pattern_row(p, registry))
+            .collect::<Result<_, _>>()
+            .map_err(|m| vec![issue("patterns", m)])?,
         concepts: concepts
             .iter()
             .map(|c| samples::concept_row(c, registry))

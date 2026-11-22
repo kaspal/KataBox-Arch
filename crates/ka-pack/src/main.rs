@@ -142,10 +142,19 @@ fn main() -> ExitCode {
                     Err(report(&issues))
                 }
             };
-            // The Guide reads the problem list (practice links) and needs no simulation.
+            // The Guide and the patterns read the problem list (practice links) and need no
+            // simulation.
             let check_guide = |problems: &[ka_pack::ProblemDir]| -> Result<usize, ExitCode> {
                 let guide = load_guide(&args.content).map_err(|i| report(&i))?;
-                let issues = validate_guide(&guide, problems, &registry);
+                let patterns = ka_pack::patterns::load_patterns(&args.content, &registry)
+                    .map_err(|i| report(&i))?;
+                let mut issues = validate_guide(&guide, problems, &registry);
+                issues.extend(ka_pack::patterns::validate_patterns(
+                    &patterns, problems, &registry,
+                ));
+                if issues.is_empty() && !patterns.is_empty() {
+                    println!("{} pattern(s) valid", patterns.len());
+                }
                 if !issues.is_empty() {
                     return Err(report(&issues));
                 }

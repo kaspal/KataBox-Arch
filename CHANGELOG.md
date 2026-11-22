@@ -62,6 +62,10 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
     Queue, CDN) play inline in their entries, with live traffic and checked numbers.
   - **Open entries from anywhere:** the library's info button shows a quick look, the Inspector's "Learn more"
     opens the entry at "In the simulator", and Ctrl+K finds every entry.
+- **The pattern library:** 10 patterns (cache-aside, read replicas, fan-out, transactional outbox, saga, CQRS,
+  sharding, circuit breaker, backpressure, rate limiting). Each page covers the problem it solves, how it works, when
+  to use it, gains and costs, and how much of it the simulator shows. **Insert into the Sandbox** adds the pattern's
+  cards to your design, centred in the view, as one undo step.
 - **Samples:**
   - **Five animated walkthroughs:** Hello, Traffic (the first-run tour), URL Shortener at scale, News Feed:
     fan-out, Chat with WebSockets, and Flash Sale. Every number they call out is checked against the simulator.

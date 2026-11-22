@@ -1,0 +1,53 @@
+id = "circuit-breaker"
+number = 8
+
+title = "Circuit breaker"
+title_es = "Circuit breaker"
+
+one_liner = "Stop calling a failing dependency for a while, and fail fast instead."
+one_liner_es = "Deja de llamar durante un tiempo a una dependencia que falla, y falla rápido en su lugar."
+
+problem = "A slow or failing downstream service ties up the caller's threads with calls that will time out, and the failure spreads up the chain."
+problem_es = "Un servicio dependiente lento o caído ocupa los hilos de quien lo llama con llamadas que acabarán en timeout, y el fallo se propaga hacia arriba."
+
+use_when = [
+  "A dependency can fail or slow down on its own",
+  "Callers hold a thread or connection while they wait",
+  "A fallback answer is better than a slow error",
+]
+use_when_es = [
+  "Una dependencia puede fallar o ralentizarse por su cuenta",
+  "Quien llama mantiene un hilo o una conexión mientras espera",
+  "Una respuesta de reserva es mejor que un error lento",
+]
+
+gains = [
+  "Callers stay responsive while a dependency is down",
+  "The struggling service gets room to recover",
+  "Failures stay local instead of cascading",
+]
+gains_es = [
+  "Quien llama sigue respondiendo mientras una dependencia está caída",
+  "El servicio en apuros tiene margen para recuperarse",
+  "Los fallos se quedan en su sitio en lugar de propagarse en cascada",
+]
+
+costs = [
+  "Thresholds and timers need tuning; wrong values trip too often or too late",
+  "While open, every request gets the fallback, even ones that would have worked",
+  "The fallback path needs its own design and testing",
+]
+costs_es = [
+  "Los umbrales y temporizadores hay que ajustarlos; con valores malos salta demasiado o demasiado tarde",
+  "Mientras está abierto, cada petición recibe la respuesta de reserva, incluso las que habrían funcionado",
+  "La ruta de reserva necesita su propio diseño y sus pruebas",
+]
+
+kinds = [
+  "app",
+  "micro",
+]
+practice = []
+
+in_simulator = "Not simulated: the engine has no breakers, so a slow dependency still holds the caller's slots until the call answers or the client times out. The template shows where one goes."
+in_simulator_es = "No se simula: el motor no tiene circuit breakers, así que una dependencia lenta sigue ocupando las plazas de quien llama hasta que la llamada responde o el cliente agota su tiempo. La plantilla muestra dónde iría uno."

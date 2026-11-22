@@ -1,0 +1,65 @@
+{
+  "schema_version": 2,
+  "id": "pattern-circuit-breaker",
+  "name": "Circuit breaker",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "nodejs",
+      "label": "Caller (breaker inside)",
+      "position": {
+        "x": 130,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "recommendations",
+      "kind": "micro",
+      "flavour": "generic",
+      "label": "Dependency",
+      "position": {
+        "x": 0,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "fallback",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "Fallback values",
+      "position": {
+        "x": 260,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "app",
+      "to": "recommendations",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "app",
+      "to": "fallback",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

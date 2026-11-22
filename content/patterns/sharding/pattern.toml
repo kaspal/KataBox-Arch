@@ -1,0 +1,56 @@
+id = "sharding"
+number = 7
+
+title = "Sharding"
+title_es = "Sharding"
+
+one_liner = "Split the data by key across several databases, each owning a slice."
+one_liner_es = "Reparte los datos por clave entre varias bases de datos, cada una dueña de una parte."
+
+problem = "The data or the write load has grown past what one database server can hold or handle."
+problem_es = "Los datos o la carga de escritura han crecido más allá de lo que un servidor de base de datos puede guardar o atender."
+
+use_when = [
+  "Writes outgrow one primary, and replicas do not help",
+  "Most requests touch a single key, such as one user or one order",
+  "There is a key that spreads load evenly",
+]
+use_when_es = [
+  "Las escrituras superan a una principal, y las réplicas no ayudan",
+  "La mayoría de las peticiones tocan una sola clave, como un usuario o un pedido",
+  "Hay una clave que reparte la carga de forma uniforme",
+]
+
+gains = [
+  "Write capacity and storage grow with each shard",
+  "A failure takes out one slice, not all the data",
+  "Each shard stays small enough to back up and restore quickly",
+]
+gains_es = [
+  "La capacidad de escritura y el almacenamiento crecen con cada shard",
+  "Un fallo afecta a una parte, no a todos los datos",
+  "Cada shard sigue siendo lo bastante pequeño para copiarlo y restaurarlo deprisa",
+]
+
+costs = [
+  "A popular key makes one shard hot while the others idle",
+  "Queries and transactions across shards are slow or impossible",
+  "Changing the number of shards means moving data",
+]
+costs_es = [
+  "Una clave popular calienta un shard mientras los demás están ociosos",
+  "Las consultas y transacciones entre shards son lentas o imposibles",
+  "Cambiar el número de shards obliga a mover datos",
+]
+
+kinds = [
+  "app",
+  "sql",
+  "nosql",
+]
+practice = [
+  "ride-sharing",
+]
+
+in_simulator = "Fully: SQL shards and NoSQL partitions each get their own servers and queue, a key always lands on the same one, and skewed keys make hot shards."
+in_simulator_es = "Completamente: los shards de SQL y las particiones de NoSQL tienen cada uno sus propios servidores y su cola, una clave siempre cae en el mismo, y las claves sesgadas crean shards calientes."

@@ -14,6 +14,8 @@ import {
   type ComponentKind,
   type GuidePage,
   type GuideSummary,
+  type PatternPage,
+  type PatternSummary,
   type Sample,
   type SampleSummary,
   type ProblemTest,
@@ -110,6 +112,10 @@ export const api = {
   listGuide: (): Promise<GuideSummary[]> => call(commands.listGuide()),
   guidePage: (kind: ComponentKind): Promise<GuidePage> => call(commands.guidePage(kind)),
   setGuideRead: (kind: ComponentKind, read: boolean): Promise<null> => call(commands.setGuideRead(kind, read)),
+  /** The pattern library, in order, each with its template. */
+  listPatterns: (): Promise<PatternSummary[]> => call(commands.listPatterns()),
+  pattern: (id: string): Promise<PatternPage> => call(commands.pattern(id)),
+  setPatternRead: (id: string, read: boolean): Promise<null> => call(commands.setPatternRead(id, read)),
   /** A kind's concept card (null until it has one). */
   concept: (kind: ComponentKind): Promise<Sample | null> => call(commands.concept(kind)),
   /** The sample gallery, in order, each with its first step's design. */

@@ -1,0 +1,83 @@
+{
+  "schema_version": 2,
+  "id": "pattern-read-replicas",
+  "name": "Read replicas",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "nodejs",
+      "label": "",
+      "position": {
+        "x": 260,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Primary",
+      "position": {
+        "x": 0,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "db-replica-1",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Replica",
+      "position": {
+        "x": 260,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "db-replica-2",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Replica",
+      "position": {
+        "x": 520,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "app",
+      "to": "db",
+      "protocol": "query"
+    },
+    {
+      "id": "e1",
+      "from": "db",
+      "to": "db-replica-1",
+      "protocol": "replicate"
+    },
+    {
+      "id": "e2",
+      "from": "db",
+      "to": "db-replica-2",
+      "protocol": "replicate"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

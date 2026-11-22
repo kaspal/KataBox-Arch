@@ -1,0 +1,101 @@
+{
+  "schema_version": 2,
+  "id": "pattern-saga",
+  "name": "Saga",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "orchestrator",
+      "kind": "app",
+      "flavour": "nodejs",
+      "label": "Saga orchestrator",
+      "position": {
+        "x": 130,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "saga-log",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Saga state",
+      "position": {
+        "x": 390,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "stock",
+      "kind": "micro",
+      "flavour": "generic",
+      "label": "Stock",
+      "position": {
+        "x": 0,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "payments",
+      "kind": "micro",
+      "flavour": "generic",
+      "label": "Payments",
+      "position": {
+        "x": 260,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "shipping",
+      "kind": "micro",
+      "flavour": "generic",
+      "label": "Shipping",
+      "position": {
+        "x": 520,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "orchestrator",
+      "to": "saga-log",
+      "protocol": "query"
+    },
+    {
+      "id": "e1",
+      "from": "orchestrator",
+      "to": "stock",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "orchestrator",
+      "to": "payments",
+      "protocol": "http"
+    },
+    {
+      "id": "e3",
+      "from": "orchestrator",
+      "to": "shipping",
+      "protocol": "http"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

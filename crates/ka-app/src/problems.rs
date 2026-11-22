@@ -530,6 +530,7 @@ error_rate = 0.001
                 samples: vec![],
                 guide: vec![],
                 concepts: vec![],
+                patterns: vec![],
             },
         )
         .await

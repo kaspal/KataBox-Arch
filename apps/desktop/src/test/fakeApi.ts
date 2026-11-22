@@ -4,7 +4,7 @@ import { vi } from "vitest";
 import type { AppError, Design, JsonValue, OpenedDesign, ProblemBrief, RecentEntry, Registry, RunControl, SubmissionSummary, SubmitResult } from "@/bindings";
 import { FAKE_BRIEF, FAKE_REFERENCE, fakeJudgement } from "@/test/fakeProblems";
 import { FAKE_SAMPLE, FAKE_SAMPLE_SUMMARY } from "@/test/fakeSamples";
-import { FAKE_GUIDE } from "@/test/fakeGuide";
+import { FAKE_GUIDE, FAKE_PATTERN, FAKE_TEMPLATE } from "@/test/fakeGuide";
 import type { Api, RunOptions } from "@/lib/api";
 import fixture from "@/test/fixtures/registry.json";
 
@@ -171,6 +171,18 @@ export function createFakeApi(opts: FakeOptions = {}) {
       const entry = FAKE_GUIDE.find((e) => e.kind === kind);
       if (!entry) throw err("not_found");
       return { entry: structuredClone(entry), md_en: "A cache keeps **hot** data in memory.", md_es: "Una caché guarda datos **calientes** en memoria.", read: read.has(kind) };
+    }),
+    listPatterns: vi.fn(async () => [
+      { id: FAKE_PATTERN.id, number: 1, title: FAKE_PATTERN.title, title_es: FAKE_PATTERN.title_es, one_liner: FAKE_PATTERN.one_liner, one_liner_es: FAKE_PATTERN.one_liner_es, kinds: FAKE_PATTERN.kinds, template: structuredClone(FAKE_TEMPLATE), read: read.has(`pattern:${FAKE_PATTERN.id}`) },
+    ]),
+    pattern: vi.fn(async (id: string) => {
+      if (id !== FAKE_PATTERN.id) throw err("not_found");
+      return { entry: structuredClone(FAKE_PATTERN), md_en: "Read the **cache** first.", md_es: "Lee primero la **caché**.", template: structuredClone(FAKE_TEMPLATE), read: read.has(`pattern:${id}`) };
+    }),
+    setPatternRead: vi.fn(async (id: string, r: boolean) => {
+      if (r) read.add(`pattern:${id}`);
+      else read.delete(`pattern:${id}`);
+      return null;
     }),
     concept: vi.fn(async (kind: string) =>
       kind === "cache" ? { ...structuredClone(FAKE_SAMPLE), def: { ...structuredClone(FAKE_SAMPLE.def), id: "cache", problem: null, steps: FAKE_SAMPLE.def.steps.slice(0, 1) } } : null,

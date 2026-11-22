@@ -81,6 +81,8 @@ type Actions = {
   addGroup: (kind: GroupKind, at: Point, scaling?: Scaling) => string;
   updateScaling: (id: string, scaling: Scaling) => void;
   addNote: (at: Point) => string;
+  /** Add every item of `design` (ids already fresh), centred on `centre`: one undo step. */
+  insertDesign: (design: Design, centre: Point) => void;
   addEdge: (from: string, to: string, protocol: Protocol) => string;
   setEdgeProtocol: (id: string, protocol: Protocol) => void;
   removeItems: (ids: string[]) => void;
@@ -257,6 +259,25 @@ export const useEditor = create<EditorStore>()(
         },
         updateScaling: (id, scaling) =>
           patchDoc((d) => ({ ...d, groups: d.groups.map((g) => (g.id === id ? { ...g, scaling } : g)) })),
+        insertDesign: (design, centre) => {
+          const xs = [...design.nodes.map((n) => [n.position.x, n.position.x + CARD_W]), ...design.groups.map((g) => [g.position.x, g.position.x + g.size.w]), ...design.notes.map((n) => [n.position.x, n.position.x + n.size.w])].flat();
+          const ys = [...design.nodes.map((n) => [n.position.y, n.position.y + CARD_H]), ...design.groups.map((g) => [g.position.y, g.position.y + g.size.h]), ...design.notes.map((n) => [n.position.y, n.position.y + n.size.h])].flat();
+          if (xs.length === 0) return;
+          const dx = centre.x - (Math.min(...xs) + Math.max(...xs)) / 2;
+          const dy = centre.y - (Math.min(...ys) + Math.max(...ys)) / 2;
+          const at = (p: Point) => ({ x: Math.round(p.x + dx), y: Math.round(p.y + dy) });
+          patchDoc((d) => {
+            const groups = [...d.groups, ...design.groups.map((g) => ({ ...g, position: at(g.position) }))].sort((a, b) => ZONE_ORDER[a.kind] - ZONE_ORDER[b.kind]);
+            return withMembership({
+              ...d,
+              groups,
+              nodes: [...d.nodes, ...design.nodes.map((n) => ({ ...n, position: at(n.position) }))],
+              edges: [...d.edges, ...design.edges],
+              notes: [...d.notes, ...design.notes.map((n) => ({ ...n, position: at(n.position) }))],
+            });
+          });
+          set({ selection: design.nodes.map((n) => n.id) });
+        },
         addNote: (at) => {
           const id = newId("note");
           patchDoc((d) => ({ ...d, notes: [...d.notes, { id, text: "", position: at, size: NOTE_SIZE }] }));

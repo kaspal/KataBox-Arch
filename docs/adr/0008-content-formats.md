@@ -38,6 +38,10 @@ are written by people, reviewed in pull requests, shipped inside the app, and re
     as JSON).
   - **A callout metric for queues:** `lost` counts async messages that failed every retry with no dead-letter
     queue.
+- **Patterns (M3.6):** `content/patterns/<id>/` holds `pattern.toml` (`ka_core::pattern::PatternEntry`, every
+  text with an `_es` twin), `pattern.md` / `pattern.es.md` ("How it works"), and `template.kbarch`.
+  - `in_simulator` says plainly how much of the pattern the simulator runs.
+  - The template must pass design validation, contain every kind the pattern names, and belong to no problem.
 - **Component Guide (M3.4):** `content/guide/<kind>/` holds `entry.toml` (`ka_core::guide::GuideEntry`), plus
   `entry.md` and `entry.es.md` ("What it does").
   - **The fields:**

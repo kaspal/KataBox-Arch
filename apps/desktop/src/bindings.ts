@@ -235,6 +235,39 @@ async sample(id: string) : Promise<Result<Sample, AppError>> {
 }
 },
 /**
+ * The pattern library, in order (each with its template for the preview).
+ */
+async listPatterns() : Promise<Result<PatternSummary[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_patterns") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * One pattern: its page and template.
+ */
+async pattern(id: string) : Promise<Result<PatternPage, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("pattern", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Mark a pattern read (or unread).
+ */
+async setPatternRead(id: string, read: boolean) : Promise<Result<null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_pattern_read", { id, read }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * The Component Guide index: every entry's one-liner and read mark.
  */
 async listGuide() : Promise<Result<GuideSummary[], AppError>> {
@@ -785,6 +818,29 @@ export type PassCriteria = { p95_ms?: number | null; error_rate?: number | null;
  * Messages that may be lost (usually 0).
  */
 lost?: number | null }
+export type PatternEntry = { id: string; 
+/**
+ * Library order.
+ */
+number: number; title: string; title_es: string; one_liner: string; one_liner_es: string; 
+/**
+ * The problem it solves, in a sentence or two.
+ */
+problem: string; problem_es: string; use_when: string[]; use_when_es: string[]; gains: string[]; gains_es: string[]; costs: string[]; costs_es: string[]; 
+/**
+ * The kinds that make it up (all of them are in the template).
+ */
+kinds: ComponentKind[]; 
+/**
+ * Problem ids where it is the key move.
+ */
+practice?: string[]; 
+/**
+ * How much of it the simulator shows ("Fully", "Partly: …"): honest about what is modelled.
+ */
+in_simulator: string; in_simulator_es: string }
+export type PatternPage = { entry: PatternEntry; md_en: string; md_es: string; template: Design; read: boolean }
+export type PatternSummary = { id: string; number: number; title: string; title_es: string; one_liner: string; one_liner_es: string; kinds: ComponentKind[]; template: Design; read: boolean }
 export type Percentiles = { p50_ms: number; p95_ms: number; p99_ms: number }
 export type Pitfall = { title: string; title_es: string; body: string; body_es: string; fix: string; fix_es: string; 
 /**

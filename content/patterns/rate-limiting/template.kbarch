@@ -1,0 +1,68 @@
+{
+  "schema_version": 2,
+  "id": "pattern-rate-limiting",
+  "name": "Rate limiting",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "limiter",
+      "kind": "ratelimit",
+      "flavour": "redis_token_bucket",
+      "label": "Per API key",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "limit_rps": 1000,
+        "burst": 100
+      },
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "nodejs",
+      "label": "",
+      "position": {
+        "x": 0,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "limiter",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "app",
+      "to": "db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

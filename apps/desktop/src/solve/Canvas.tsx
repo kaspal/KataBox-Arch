@@ -315,7 +315,9 @@ function CanvasInner() {
     (req: AddRequest, at?: { flow: Point; local: Point }) => {
       const where = at ?? viewportCentre();
       const s = store();
-      if ("kind" in req) {
+      if ("pattern" in req) {
+        s.insertDesign(req.pattern, where.flow);
+      } else if ("kind" in req) {
         if (req.pick) {
           setPicker({ type: "flavour", kind: req.kind, at: where.flow, screen: where.local });
         } else {
@@ -330,7 +332,10 @@ function CanvasInner() {
     [placeAt, placeKind, registry, store, viewportCentre],
   );
 
-  useEffect(() => registerCanvasAdd((req) => add(req)), [add]);
+  // Take add requests (palette, patterns) only once React Flow has its viewport: before
+  // that, screen-to-flow conversion is wrong and inserted items land off screen.
+  const [rfReady, setRfReady] = useState(false);
+  useEffect(() => (rfReady ? registerCanvasAdd((req) => add(req)) : undefined), [add, rfReady]);
 
   // --- Drag and drop from the library ----------------------------------------------
   const onDragOver = (e: React.DragEvent) => {
@@ -487,6 +492,7 @@ function CanvasInner() {
         edges={edges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
+        onInit={() => setRfReady(true)}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeDragStart={beginDrag}

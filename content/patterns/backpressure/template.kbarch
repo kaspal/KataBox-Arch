@@ -1,0 +1,85 @@
+{
+  "schema_version": 2,
+  "id": "pattern-backpressure",
+  "name": "Backpressure",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "nodejs",
+      "label": "Producer",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "jobs",
+      "kind": "queue",
+      "flavour": "rabbitmq",
+      "label": "Bounded queue",
+      "position": {
+        "x": 0,
+        "y": 170
+      },
+      "props": {
+        "max_depth": 10000
+      },
+      "group_id": null
+    },
+    {
+      "id": "worker",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Consumer",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "",
+      "position": {
+        "x": 0,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "app",
+      "to": "jobs",
+      "protocol": "publish"
+    },
+    {
+      "id": "e1",
+      "from": "jobs",
+      "to": "worker",
+      "protocol": "consume"
+    },
+    {
+      "id": "e2",
+      "from": "worker",
+      "to": "db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

@@ -9,6 +9,7 @@
 pub mod design;
 pub mod detmath;
 pub mod guide;
+pub mod pattern;
 pub mod problem;
 pub mod registry;
 pub mod rng;
