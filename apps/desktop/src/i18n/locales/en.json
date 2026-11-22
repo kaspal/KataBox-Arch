@@ -120,7 +120,10 @@
     "statBusy": "{{util}}% busy",
     "statQueued": "{{util}}% busy · {{queue}} queued",
     "statDown": "down",
-    "rate": "{{rate}}/s"
+    "rate": "{{rate}}/s",
+    "instances_one": "{{count}} instance",
+    "instances_other": "{{count}} instances",
+    "edgeAria": "{{protocol}} from {{from}} to {{to}}"
   },
   "wiring": {
     "reason": {
@@ -198,7 +201,8 @@
     "autoscaleHint": "Compute cards inside this frame scale between the minimum and maximum instances, adding instances when utilisation stays above the target.",
     "scaling": "Scaling policy",
     "brief": "Brief",
-    "learnMore": "Learn more"
+    "learnMore": "Learn more",
+    "tabs": "Side panel"
   },
   "home": {
     "eyebrow": "Your system design desk",
@@ -443,7 +447,13 @@
       "flush": "A cache is emptied at {{at}} s",
       "external": "A provider fails at {{at}} s"
     },
-    "test": "Test to run"
+    "test": "Test to run",
+    "announce": {
+      "starting": "Starting the run…",
+      "playing": "The run is playing.",
+      "paused": "The run is paused.",
+      "finished": "The run has finished. The Metrics tab has the results."
+    }
   },
   "metrics": {
     "empty": "Run the design to see live metrics.",

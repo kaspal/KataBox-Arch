@@ -491,16 +491,31 @@ export function InspectorPanel({ registry }: { registry: Registry }) {
     `-mb-px border-b-2 pb-2 ${on ? "border-primary font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`;
   return (
     <aside aria-label={t("inspector.title")} className="flex h-full min-h-0 flex-col bg-background" data-testid="inspector">
-      <div className="flex gap-4 border-b px-4 pt-3 text-sm" role="tablist">
+      <div
+        className="flex gap-4 border-b px-4 pt-3 text-sm"
+        role="tablist"
+        aria-label={t("inspector.tabs")}
+        onKeyDown={(e) => {
+          // The ARIA tabs pattern: arrows (and Home/End) move between tabs.
+          const order = (problem ? ["brief", "inspect", "metrics"] : ["inspect", "metrics"]) as (typeof tab)[];
+          const i = order.indexOf(tab);
+          const next =
+            e.key === "ArrowRight" ? order[(i + 1) % order.length] : e.key === "ArrowLeft" ? order[(i - 1 + order.length) % order.length] : e.key === "Home" ? order[0] : e.key === "End" ? order[order.length - 1] : null;
+          if (!next) return;
+          e.preventDefault();
+          setTab(next);
+          document.getElementById(`tab-${next}`)?.focus();
+        }}
+      >
         {problem && (
-          <button type="button" role="tab" id="tab-brief" aria-selected={tab === "brief"} aria-controls="tabpanel-side" className={tabClass(tab === "brief")} onClick={() => setTab("brief")}>
+          <button type="button" role="tab" id="tab-brief" tabIndex={tab === "brief" ? 0 : -1} aria-selected={tab === "brief"} aria-controls="tabpanel-side" className={tabClass(tab === "brief")} onClick={() => setTab("brief")}>
             {t("inspector.brief")}
           </button>
         )}
-        <button type="button" role="tab" id="tab-inspect" aria-selected={tab === "inspect"} aria-controls="tabpanel-side" className={tabClass(tab === "inspect")} onClick={() => setTab("inspect")}>
+        <button type="button" role="tab" id="tab-inspect" tabIndex={tab === "inspect" ? 0 : -1} aria-selected={tab === "inspect"} aria-controls="tabpanel-side" className={tabClass(tab === "inspect")} onClick={() => setTab("inspect")}>
           {t("inspector.title")}
         </button>
-        <button type="button" role="tab" id="tab-metrics" aria-selected={tab === "metrics"} aria-controls="tabpanel-side" className={tabClass(tab === "metrics")} onClick={() => setTab("metrics")}>
+        <button type="button" role="tab" id="tab-metrics" tabIndex={tab === "metrics" ? 0 : -1} aria-selected={tab === "metrics"} aria-controls="tabpanel-side" className={tabClass(tab === "metrics")} onClick={() => setTab("metrics")}>
           {t("inspector.metrics")}
         </button>
       </div>

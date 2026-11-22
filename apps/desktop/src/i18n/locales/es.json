@@ -120,7 +120,10 @@
     "statBusy": "{{util}} % ocupado",
     "statQueued": "{{util}} % ocupado · {{queue}} en cola",
     "statDown": "caído",
-    "rate": "{{rate}}/s"
+    "rate": "{{rate}}/s",
+    "instances_one": "{{count}} instancia",
+    "instances_other": "{{count}} instancias",
+    "edgeAria": "{{protocol}} de {{from}} a {{to}}"
   },
   "wiring": {
     "reason": {
@@ -198,7 +201,8 @@
     "autoscaleHint": "Las tarjetas de cómputo dentro de este marco escalan entre el mínimo y el máximo de instancias, y añaden instancias cuando la utilización se mantiene por encima del objetivo.",
     "scaling": "Política de escalado",
     "brief": "Enunciado",
-    "learnMore": "Saber más"
+    "learnMore": "Saber más",
+    "tabs": "Panel lateral"
   },
   "home": {
     "eyebrow": "Tu mesa de diseño de sistemas",
@@ -443,7 +447,13 @@
       "flush": "Una caché se vacía a los {{at}} s",
       "external": "Un proveedor falla a los {{at}} s"
     },
-    "test": "Prueba a ejecutar"
+    "test": "Prueba a ejecutar",
+    "announce": {
+      "starting": "Iniciando la ejecución…",
+      "playing": "La ejecución está en marcha.",
+      "paused": "La ejecución está en pausa.",
+      "finished": "La ejecución ha terminado. La pestaña Métricas tiene los resultados."
+    }
   },
   "metrics": {
     "empty": "Ejecuta el diseño para ver métricas en vivo.",

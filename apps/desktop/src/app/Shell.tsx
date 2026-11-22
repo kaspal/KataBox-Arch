@@ -105,6 +105,7 @@ export function Shell() {
     <div className="flex h-full gap-0 bg-desk p-3">
       <a
         href="#main"
+        data-testid="skip-link"
         className="sr-only z-50 rounded-md bg-primary text-primary-foreground focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:px-3 focus:py-2 focus:text-sm focus:font-medium"
         onClick={(e) => {
           // The router uses the hash: move focus instead of navigating.

@@ -59,7 +59,27 @@ function InjectMenu() {
   );
 }
 
+/** Announces the run's state to screen readers (M7.1); silent while idle. */
+function RunAnnouncer() {
+  const { t } = useTranslation();
+  const status = useRun((s) => s.status);
+  return (
+    <span className="sr-only" role="status" aria-live="polite" data-testid="run-announcer">
+      {status === "idle" ? "" : t(`run.announce.${status}`)}
+    </span>
+  );
+}
+
 export function RunControls() {
+  return (
+    <>
+      <RunAnnouncer />
+      <RunControlsInner />
+    </>
+  );
+}
+
+function RunControlsInner() {
   const { t } = useTranslation();
   const report = useReportError();
   const status = useRun((s) => s.status);
