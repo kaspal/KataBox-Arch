@@ -37,6 +37,8 @@ and, on passing tests, a p95 within 10%.
   servers) tips it over.
 - **The fix:** News Feed sets `sample_cap = 10000`; nothing else changed.
 - **After the fix:** all 15 problems agree on every test, and the worst p95 gap is 6.1%.
+- **M3 gate (M3.8):** unchanged. All 15 problems agree on every test; 11 sampled tests differ from their full runs, and
+  the worst p95 gap is 6.1%.
 
 ## Determinism (M1.8)
 
