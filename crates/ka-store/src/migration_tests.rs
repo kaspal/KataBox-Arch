@@ -47,6 +47,11 @@ fn seeds(version: i64) -> Vec<String> {
         3 => vec![
             "INSERT INTO reads VALUES ('guide', 'cache', 1700000011000), ('guide', 'lb', 1700000012000)".into(),
         ],
+        4 => vec![
+            "INSERT INTO estimates VALUES ('url-shortener', 'redirect-qps', 12000.5, 1, 1700000013000),
+                 ('pastebin', 'storage-year', 0.25, 0, 1700000014000)"
+                .into(),
+        ],
         _ => vec![],
     }
 }

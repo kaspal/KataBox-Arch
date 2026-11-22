@@ -301,6 +301,38 @@ async fn numbers(state: State<'_, AppState>) -> Res<Vec<ka_core::numbers::Number
     state.app()?.numbers().await
 }
 
+/// Estimation drills (all, or one problem's), without their answers.
+#[tauri::command]
+#[specta::specta]
+async fn drills(
+    state: State<'_, AppState>,
+    problem_id: Option<String>,
+) -> Res<Vec<ka_core::estimate::Drill>> {
+    state.app()?.drills(problem_id.as_deref()).await
+}
+
+/// Check an estimate: the verdict, the answer and the worked solution (recorded).
+#[tauri::command]
+#[specta::specta]
+async fn check_estimate(
+    state: State<'_, AppState>,
+    problem_id: String,
+    drill_id: String,
+    answer: f64,
+) -> Res<ka_core::estimate::EstimateCheck> {
+    state
+        .app()?
+        .check_estimate(&problem_id, &drill_id, answer)
+        .await
+}
+
+/// The estimation drills answered so far.
+#[tauri::command]
+#[specta::specta]
+async fn estimate_statuses(state: State<'_, AppState>) -> Res<Vec<ka_store::EstimateStatus>> {
+    state.app()?.estimate_statuses().await
+}
+
 /// The pattern library, in order (each with its template for the preview).
 #[tauri::command]
 #[specta::specta]
@@ -477,6 +509,9 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         decide_flows,
         glossary,
         numbers,
+        drills,
+        check_estimate,
+        estimate_statuses,
         list_patterns,
         pattern,
         set_pattern_read,

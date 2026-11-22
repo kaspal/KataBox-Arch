@@ -17,6 +17,9 @@ import {
   type DecideFlow,
   type GlossaryTerm,
   type NumberFigure,
+  type Drill,
+  type EstimateCheck,
+  type EstimateStatus,
   type PatternPage,
   type PatternSummary,
   type Sample,
@@ -120,6 +123,12 @@ export const api = {
   glossary: (): Promise<GlossaryTerm[]> => call(commands.glossary()),
   /** The numbers cheat sheet, in sheet order. */
   numbers: (): Promise<NumberFigure[]> => call(commands.numbers()),
+  /** Estimation drills (every problem's, or one problem's), without their answers. */
+  drills: (problemId?: string): Promise<Drill[]> => call(commands.drills(problemId ?? null)),
+  /** Judge an estimate (recorded) and reveal the answer with its worked solution. */
+  checkEstimate: (problemId: string, drillId: string, answer: number): Promise<EstimateCheck> =>
+    call(commands.checkEstimate(problemId, drillId, answer)),
+  estimateStatuses: (): Promise<EstimateStatus[]> => call(commands.estimateStatuses()),
   /** The pattern library, in order, each with its template. */
   listPatterns: (): Promise<PatternSummary[]> => call(commands.listPatterns()),
   pattern: (id: string): Promise<PatternPage> => call(commands.pattern(id)),

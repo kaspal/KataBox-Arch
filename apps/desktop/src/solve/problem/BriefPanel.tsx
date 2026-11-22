@@ -4,13 +4,14 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Calculator, Lightbulb, Lock } from "lucide-react";
+import { Calculator, ChevronDown, Lightbulb, Lock, Ruler } from "lucide-react";
 import type { ProblemBrief } from "@/bindings";
 import { useReportError } from "@/app/dialogs";
 import { Markdown } from "@/components/Markdown";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
-import { queryKeys, useSubmissions } from "@/lib/queries";
+import { queryKeys, useDrills, useEstimateStatuses, useSubmissions } from "@/lib/queries";
+import { EstimateDrill } from "@/practice/EstimateDrill";
 import { DifficultyBadge, StatusMark, useLocalized } from "@/pages/Problems";
 import { CompareButton } from "@/solve/compare/CompareButton";
 import { CostSpeedChart } from "@/solve/problem/CostSpeedChart";
@@ -85,6 +86,7 @@ export function BriefPanel({ brief }: { brief: ProblemBrief }) {
           {t("brief.numbers")}
         </Link>
       </Section>
+      <EstimateFirst problemId={p.id} />
       <Section title={t("brief.traffic")}>
         <ul className="space-y-1 text-sm">
           {brief.request_types.map((r) => (
@@ -148,6 +150,47 @@ export function BriefPanel({ brief }: { brief: ProblemBrief }) {
         </Section>
       )}
     </div>
+  );
+}
+
+/**
+ * "Estimate first" (M5.2): the problem's back-of-the-envelope drills, scored lightly: a count
+ * of drills done, never part of the judge's score. Folded until opened.
+ */
+function EstimateFirst({ problemId }: { problemId: string }) {
+  const { t } = useTranslation();
+  const drills = useDrills();
+  const statuses = useEstimateStatuses();
+  const [open, setOpen] = useState(false);
+  const mine = (drills.data ?? []).filter((d) => d.problem_id === problemId);
+  if (mine.length === 0) return null;
+  const done = new Set((statuses.data ?? []).filter((s) => s.problem_id === problemId && s.done).map((s) => s.drill_id));
+  const count = mine.filter((d) => done.has(d.id)).length;
+  return (
+    <section className="space-y-2" data-testid="estimate-first">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-2 text-left"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <Ruler aria-hidden className="size-3.5" />
+          {t("brief.estimateFirst")}
+        </span>
+        <span className="flex items-center gap-1 text-xs text-muted-foreground" data-testid="estimate-count">
+          {t("brief.estimated", { done: count, total: mine.length })}
+          <ChevronDown aria-hidden className={`size-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+        </span>
+      </button>
+      {open && (
+        <div className="space-y-3">
+          {mine.map((d) => (
+            <EstimateDrill key={d.id} drill={d} done={done.has(d.id)} />
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 

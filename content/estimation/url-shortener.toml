@@ -1,0 +1,34 @@
+# Estimation drills for the URL Shortener.
+
+[[drill]]
+id = "redirect-qps"
+kind = "qps"
+prompt = "People follow {daily_clicks} short links a day, and the busiest hour runs at {peak_factor}× the daily average. How many redirects a second must the service handle at peak?"
+prompt_es = "La gente sigue {daily_clicks} enlaces cortos al día, y la hora de más tráfico va a {peak_factor} veces la media diaria. ¿Cuántas redirecciones por segundo debe atender el servicio en el pico?"
+inputs = { daily_clicks = 330_000_000, peak_factor = 3 }
+formula = "daily_clicks / 86400 * peak_factor"
+unit = "rps"
+solution = "{daily_clicks} ÷ 86,400 s ≈ 3,820 redirects a second on average. × {peak_factor} at peak gives about {answer} a second, close to the 95% of 12,000 requests/s this problem asks for."
+solution_es = "{daily_clicks} ÷ 86 400 s ≈ 3820 redirecciones por segundo de media. × {peak_factor} en el pico da unas {answer} por segundo, cerca del 95 % de las 12 000 peticiones/s que pide este problema."
+
+[[drill]]
+id = "link-storage-year"
+kind = "storage"
+prompt = "Users create {links_per_day} short links a day. Each stored link (the long URL, its code, the owner and timestamps, plus index overhead) takes about {bytes_per_link} bytes. How much storage does a year of new links need, in TB?"
+prompt_es = "Los usuarios crean {links_per_day} enlaces cortos al día. Cada enlace guardado (la URL larga, su código, el dueño y las fechas, más lo que ocupan los índices) ocupa unos {bytes_per_link} bytes. ¿Cuánto almacenamiento necesita un año de enlaces nuevos, en TB?"
+inputs = { links_per_day = 15_000_000, bytes_per_link = 500 }
+formula = "links_per_day * 365 * bytes_per_link / 1e12"
+unit = "TB"
+solution = "{links_per_day} × 365 days ≈ 5.5 billion links a year. × {bytes_per_link} B ≈ 2.7 × 10^12 bytes, about {answer} TB: a few terabytes, which one database with replicas holds without sharding."
+solution_es = "{links_per_day} × 365 días ≈ 5500 millones de enlaces al año. × {bytes_per_link} B ≈ 2,7 × 10^12 bytes, unos {answer} TB: unos pocos terabytes, que una base de datos con réplicas guarda sin particionar."
+
+[[drill]]
+id = "app-servers"
+kind = "servers"
+prompt = "The service peaks at {peak_rps} requests a second. One app server instance handles {per_server_rps} requests a second, and you want each one to run at no more than {max_load_pct}% of that at peak. How many app servers do you need?"
+prompt_es = "El servicio llega a {peak_rps} peticiones por segundo en el pico. Una instancia de servidor de aplicaciones atiende {per_server_rps} peticiones por segundo, y quieres que ninguna pase del {max_load_pct} % de eso en el pico. ¿Cuántos servidores de aplicaciones necesitas?"
+inputs = { peak_rps = 12_000, per_server_rps = 6_400, max_load_pct = 60 }
+formula = "peak_rps / (per_server_rps * max_load_pct / 100)"
+unit = "count"
+solution = "At {max_load_pct}% load each server takes {per_server_rps} × 0.6 = 3,840 requests a second. {peak_rps} ÷ 3,840 ≈ {answer}, so round up to 4, and add one more so that losing a server doesn't overload the rest."
+solution_es = "Al {max_load_pct} % de carga cada servidor recibe {per_server_rps} × 0,6 = 3840 peticiones por segundo. {peak_rps} ÷ 3840 ≈ {answer}, así que redondea a 4 y añade uno más para que perder un servidor no sobrecargue al resto."

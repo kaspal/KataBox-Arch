@@ -1,0 +1,23 @@
+# Estimation drills for Chat.
+
+[[drill]]
+id = "messages-per-second"
+kind = "qps"
+prompt = "{daily_users} people use the app each day and send {messages_per_user} messages each. The busiest evening hour runs at {peak_factor}× the daily average. How many messages a second does the service carry at peak?"
+prompt_es = "{daily_users} personas usan la app cada día y envían {messages_per_user} mensajes cada una. La hora punta de la noche va a {peak_factor} veces la media diaria. ¿Cuántos mensajes por segundo transporta el servicio en el pico?"
+inputs = { daily_users = 4_000_000, messages_per_user = 30, peak_factor = 3 }
+formula = "daily_users * messages_per_user / 86400 * peak_factor"
+unit = "rps"
+solution = "{daily_users} × {messages_per_user} = 120 million messages a day. ÷ 86,400 s ≈ 1,390 a second on average, × {peak_factor} at peak gives about {answer} a second, this problem's 4,000. Each one is a publish and a delivery through the broker."
+solution_es = "{daily_users} × {messages_per_user} = 120 millones de mensajes al día. ÷ 86 400 s ≈ 1390 por segundo de media, × {peak_factor} en el pico da unos {answer} por segundo, los 4000 de este problema. Cada uno es una publicación y una entrega a través del broker."
+
+[[drill]]
+id = "connections-per-gateway"
+kind = "capacity"
+prompt = "Of the {daily_users} daily users, {online_pct}% are online at the same moment in the evening, each holding one WebSocket. You run {gateways} gateway servers behind the load balancer, which spreads connections evenly. How many open connections does each gateway hold?"
+prompt_es = "De los {daily_users} usuarios diarios, el {online_pct} % está conectado a la vez por la noche, cada uno con un WebSocket. Tienes {gateways} servidores gateway tras el balanceador, que reparte las conexiones por igual. ¿Cuántas conexiones abiertas mantiene cada gateway?"
+inputs = { daily_users = 4_000_000, online_pct = 30, gateways = 12 }
+formula = "daily_users * online_pct / 100 / gateways"
+unit = "count"
+solution = "{online_pct}% of {daily_users} = 1.2 million open sockets. ÷ {gateways} gateways = about {answer} each. When one gateway dies, its share reconnects to the others, so each must have room for about a tenth more."
+solution_es = "El {online_pct} % de {daily_users} = 1,2 millones de sockets abiertos. ÷ {gateways} gateways = unas {answer} cada uno. Cuando se cae un gateway, su parte se reconecta a los demás, así que cada uno necesita margen para casi una décima parte más."

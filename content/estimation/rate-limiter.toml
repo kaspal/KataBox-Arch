@@ -1,0 +1,23 @@
+# Estimation drills for the Rate Limiter.
+
+[[drill]]
+id = "per-key-rps"
+kind = "qps"
+prompt = "The API peaks at {peak_rps} requests a second. {api_share_pct}% of them come from the {api_keys} paying customers' keys, spread evenly. How many requests a second does one key send at peak?"
+prompt_es = "La API llega a {peak_rps} peticiones por segundo en el pico. El {api_share_pct} % viene de las claves de los {api_keys} clientes de pago, repartido por igual. ¿Cuántas peticiones por segundo envía una clave en el pico?"
+inputs = { peak_rps = 3_000, api_share_pct = 99, api_keys = 50 }
+formula = "peak_rps * api_share_pct / 100 / api_keys"
+unit = "rps"
+solution = "{peak_rps} × {api_share_pct}% = 2,970 requests a second from customers. ÷ {api_keys} keys ≈ {answer} a second per key. A per-key limit has to sit above that, with room for a busy day, or it blocks real customers."
+solution_es = "{peak_rps} × {api_share_pct} % = 2970 peticiones por segundo de clientes. ÷ {api_keys} claves ≈ {answer} por segundo por clave. Un límite por clave tiene que quedar por encima, con margen para un día ajetreado, o bloqueará a clientes reales."
+
+[[drill]]
+id = "bucket-memory"
+kind = "storage"
+prompt = "The API opens to self-serve sign-ups and grows to {api_keys} keys. You also keep a bucket per client IP, with {client_ips} IPs active in a day. Each bucket (token count, last refill time and its key, with the store's overhead) takes about {bytes_per_bucket} bytes. How much memory do all the buckets need, in MB?"
+prompt_es = "La API abre el registro a cualquiera y crece hasta {api_keys} claves. Además guardas una cubeta por IP de cliente, con {client_ips} IP activas en un día. Cada cubeta (número de tokens, hora de la última recarga y su clave, con lo que añade el almacén) ocupa unos {bytes_per_bucket} bytes. ¿Cuánta memoria necesitan todas las cubetas, en MB?"
+inputs = { api_keys = 200_000, client_ips = 5_000_000, bytes_per_bucket = 120 }
+formula = "(api_keys + client_ips) * bytes_per_bucket / 1e6"
+unit = "MB"
+solution = "{api_keys} + {client_ips} = 5.2 million buckets. × {bytes_per_bucket} B ≈ 624 million bytes, about {answer} MB. It fits in one small in-memory store, so keep the buckets in memory and let idle ones expire."
+solution_es = "{api_keys} + {client_ips} = 5,2 millones de cubetas. × {bytes_per_bucket} B ≈ 624 millones de bytes, unos {answer} MB. Cabe en un almacén en memoria pequeño, así que guarda las cubetas en memoria y deja que caduquen las inactivas."

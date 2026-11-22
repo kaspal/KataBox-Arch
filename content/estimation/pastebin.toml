@@ -1,0 +1,34 @@
+# Estimation drills for Pastebin.
+
+[[drill]]
+id = "create-qps"
+kind = "qps"
+prompt = "Users create {pastes_per_day} pastes a day, and the busiest hour runs at {peak_factor}× the daily average. How many creates a second must the service accept at peak?"
+prompt_es = "Los usuarios crean {pastes_per_day} pastes al día, y la hora de más tráfico va a {peak_factor} veces la media diaria. ¿Cuántas creaciones por segundo debe aceptar el servicio en el pico?"
+inputs = { pastes_per_day = 8_600_000, peak_factor = 3 }
+formula = "pastes_per_day / 86400 * peak_factor"
+unit = "rps"
+solution = "{pastes_per_day} ÷ 86,400 s ≈ 100 creates a second on average. × {peak_factor} at peak gives about {answer} a second: the 15% of 2,000 requests/s in this problem."
+solution_es = "{pastes_per_day} ÷ 86 400 s ≈ 100 creaciones por segundo de media. × {peak_factor} en el pico da unas {answer} por segundo: el 15 % de las 2000 peticiones/s de este problema."
+
+[[drill]]
+id = "storage-year"
+kind = "storage"
+prompt = "Users create {pastes_per_day} pastes a day. A paste can be as large as 1 MB, but the average is {avg_paste_kb} KB. How much storage does a year of pastes need, in TB?"
+prompt_es = "Los usuarios crean {pastes_per_day} pastes al día. Un paste puede llegar a 1 MB, pero la media es de {avg_paste_kb} KB. ¿Cuánto almacenamiento necesita un año de pastes, en TB?"
+inputs = { pastes_per_day = 8_600_000, avg_paste_kb = 10 }
+formula = "pastes_per_day * 365 * avg_paste_kb * 1000 / 1e12"
+unit = "TB"
+solution = "{pastes_per_day} × 365 days ≈ 3.1 billion pastes a year. × {avg_paste_kb} KB ≈ 3.1 × 10^13 bytes, about {answer} TB a year. That is a job for object storage, not a database row per paste body."
+solution_es = "{pastes_per_day} × 365 días ≈ 3100 millones de pastes al año. × {avg_paste_kb} KB ≈ 3,1 × 10^13 bytes, unos {answer} TB al año. Eso es trabajo para un almacenamiento de objetos, no para una fila de base de datos por cada paste."
+
+[[drill]]
+id = "read-bandwidth"
+kind = "bandwidth"
+prompt = "At peak, readers open {read_rps} pastes a second, and the average paste is {avg_paste_kb} KB. How much data a second leaves the service for reads, in MB/s?"
+prompt_es = "En el pico, los lectores abren {read_rps} pastes por segundo, y el paste medio ocupa {avg_paste_kb} KB. ¿Cuántos datos por segundo salen del servicio en lecturas, en MB/s?"
+inputs = { read_rps = 1_700, avg_paste_kb = 10 }
+formula = "read_rps * avg_paste_kb / 1000"
+unit = "MB/s"
+solution = "{read_rps} × {avg_paste_kb} KB = 17,000 KB a second, about {answer} MB/s, or roughly 136 Mbps. One server's 10 Gbps link carries that easily; the cost is in the reads behind it, not the network."
+solution_es = "{read_rps} × {avg_paste_kb} KB = 17 000 KB por segundo, unos {answer} MB/s, o unos 136 Mbps. El enlace de 10 Gbps de un solo servidor lo lleva sin problema; el coste está en las lecturas que hay detrás, no en la red."

@@ -9,6 +9,7 @@
 pub mod decide;
 pub mod design;
 pub mod detmath;
+pub mod estimate;
 pub mod guide;
 pub mod numbers;
 pub mod pattern;

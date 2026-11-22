@@ -16,6 +16,7 @@ export const queryKeys = {
   guide: ["guide"] as const,
   guidePage: (kind: string) => ["guide", kind] as const,
   sample: (id: string) => ["sample", id] as const,
+  estimateStatuses: ["estimate-statuses"] as const,
 };
 
 export function useAppInfo() {
@@ -57,6 +58,15 @@ export function useGlossary() {
 
 export function useNumbers() {
   return useQuery({ queryKey: ["numbers"], queryFn: api.numbers, staleTime: Infinity });
+}
+
+/** Every estimation drill (content: never changes while the app runs). */
+export function useDrills() {
+  return useQuery({ queryKey: ["drills"], queryFn: () => api.drills(), staleTime: Infinity });
+}
+
+export function useEstimateStatuses() {
+  return useQuery({ queryKey: queryKeys.estimateStatuses, queryFn: api.estimateStatuses });
 }
 
 export function usePatterns() {

@@ -4,7 +4,7 @@ import { vi } from "vitest";
 import type { AppError, Design, JsonValue, OpenedDesign, ProblemBrief, RecentEntry, Registry, RunControl, SubmissionSummary, SubmitResult } from "@/bindings";
 import { FAKE_BRIEF, FAKE_REFERENCE, fakeJudgement } from "@/test/fakeProblems";
 import { FAKE_SAMPLE, FAKE_SAMPLE_SUMMARY } from "@/test/fakeSamples";
-import { FAKE_FLOW, FAKE_GUIDE, FAKE_NUMBERS, FAKE_PATTERN, FAKE_TEMPLATE, FAKE_TERMS } from "@/test/fakeGuide";
+import { FAKE_DRILLS, FAKE_FLOW, FAKE_GUIDE, FAKE_NUMBERS, FAKE_PATTERN, FAKE_TEMPLATE, FAKE_TERMS } from "@/test/fakeGuide";
 import type { Api, RunOptions } from "@/lib/api";
 import fixture from "@/test/fixtures/registry.json";
 
@@ -49,6 +49,7 @@ export function createFakeApi(opts: FakeOptions = {}) {
   let submissionsCount = 0;
   const submitted: SubmissionSummary[] = [];
   const read = new Set<string>();
+  const estimates = new Map<string, { tries: number; done: boolean }>();
 
   const touch = (path: string, name: string) => {
     recent = [{ path, name, opened_at: 1_700_000_000_000 + recent.length, exists: true }, ...recent.filter((r) => r.path !== path)];
@@ -175,6 +176,26 @@ export function createFakeApi(opts: FakeOptions = {}) {
     decideFlows: vi.fn(async () => [structuredClone(FAKE_FLOW)]),
     glossary: vi.fn(async () => structuredClone(FAKE_TERMS)),
     numbers: vi.fn(async () => structuredClone(FAKE_NUMBERS)),
+    drills: vi.fn(async (problemId?: string) => structuredClone(FAKE_DRILLS.filter((d) => !problemId || d.problem_id === problemId))),
+    checkEstimate: vi.fn(async (problemId: string, drillId: string, given: number) => {
+      const d = FAKE_DRILLS.find((x) => x.problem_id === problemId && x.id === drillId);
+      if (!d) throw err("not_found");
+      // The fake's answer is the first input over 86,400 (its drills are QPS drills).
+      const answer = Object.values(d.inputs)[0]! / 86_400;
+      const ratio = given / answer;
+      const ok = ratio <= 1.5 && ratio >= 1 / 1.5;
+      const closeness = ok ? "close" : ratio > 10 || ratio < 0.1 ? "way_off" : ratio > 1 ? "too_high" : "too_low";
+      const key = `${problemId}/${drillId}`;
+      const s = estimates.get(key) ?? { tries: 0, done: false };
+      estimates.set(key, { tries: s.tries + 1, done: s.done || ok });
+      return { ok, closeness, answer, solution: "{daily} ÷ 86,400 = {answer}", solution_es: "{daily} ÷ 86 400 = {answer}", inputs: d.inputs } as const;
+    }),
+    estimateStatuses: vi.fn(async () =>
+      [...estimates].map(([key, s]) => {
+        const [problem_id, drill_id] = key.split("/");
+        return { problem_id: problem_id!, drill_id: drill_id!, tries: s.tries, done: s.done };
+      }),
+    ),
     listPatterns: vi.fn(async () => [
       { id: FAKE_PATTERN.id, number: 1, title: FAKE_PATTERN.title, title_es: FAKE_PATTERN.title_es, one_liner: FAKE_PATTERN.one_liner, one_liner_es: FAKE_PATTERN.one_liner_es, kinds: FAKE_PATTERN.kinds, template: structuredClone(FAKE_TEMPLATE), read: read.has(`pattern:${FAKE_PATTERN.id}`) },
     ]),

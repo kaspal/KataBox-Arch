@@ -268,6 +268,39 @@ async numbers() : Promise<Result<NumberFigure[], AppError>> {
 }
 },
 /**
+ * Estimation drills (all, or one problem's), without their answers.
+ */
+async drills(problemId: string | null) : Promise<Result<Drill[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("drills", { problemId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Check an estimate: the verdict, the answer and the worked solution (recorded).
+ */
+async checkEstimate(problemId: string, drillId: string, answer: number) : Promise<Result<EstimateCheck, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("check_estimate", { problemId, drillId, answer }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * The estimation drills answered so far.
+ */
+async estimateStatuses() : Promise<Result<EstimateStatus[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("estimate_statuses") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * The pattern library, in order (each with its template for the preview).
  */
 async listPatterns() : Promise<Result<PatternSummary[], AppError>> {
@@ -600,6 +633,22 @@ export type ChaosEvent =
  * calls per second.
  */
 { external: { name: string; at: number; for?: number | null; down?: boolean; add_ms?: number; rate?: number | null } }
+/**
+ * How close an answer was.
+ */
+export type Closeness = 
+/**
+ * Within the drill's band.
+ */
+"close" | 
+/**
+ * Within ×10 but outside the band.
+ */
+"too_high" | "too_low" | 
+/**
+ * More than ten times off: probably a units slip.
+ */
+"way_off"
 export type CompareRow = { label: string; label_es: string; 
 /**
  * One cell per compared flavour, in `flavours_compared.flavours` order.
@@ -649,7 +698,26 @@ export type DesignIssue = { code: IssueCode;
 ids: string[] }
 export type Difficulty = "easy" | "medium" | "hard"
 export type DifficultyCount = { total: number; attempted: number; solved: number }
+/**
+ * A drill as the UI gets it before answering: no answer, no formula, no solution.
+ */
+export type Drill = { problem_id: string; id: string; kind: DrillKind; prompt: string; prompt_es: string; inputs: Partial<{ [key in string]: number }>; unit: string }
+export type DrillKind = "qps" | "storage" | "bandwidth" | "servers" | 
+/**
+ * How much a part must hold at once: a queue's depth, connections, calls in flight.
+ */
+"capacity"
 export type Edge = { id: string; from: string; to: string; protocol: Protocol }
+export type EstimateCheck = { ok: boolean; closeness: Closeness; answer: number; 
+/**
+ * The worked solution as written, with `{name}` and `{answer}` placeholders: the UI
+ * fills them with `inputs` and `answer` in the reader's number format.
+ */
+solution: string; solution_es: string; inputs: Partial<{ [key in string]: number }> }
+/**
+ * One drill's record: how many checks, and whether any was within its band.
+ */
+export type EstimateStatus = { problem_id: string; drill_id: string; tries: number; done: boolean }
 export type ExternalBrief = { name: string; median_ms: number; p99_ms: number; rate_limit: number | null }
 /**
  * Why the first card failed.

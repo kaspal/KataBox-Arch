@@ -1,0 +1,23 @@
+# Estimation drills for Typeahead.
+
+[[drill]]
+id = "keystroke-rps"
+kind = "qps"
+prompt = "People run {searches_per_day} searches a day and type {keystrokes_per_search} keystrokes before picking a suggestion; each keystroke asks for suggestions. The busiest hour runs at {peak_factor}× the daily average. How many suggestion requests a second arrive at peak?"
+prompt_es = "La gente hace {searches_per_day} búsquedas al día y pulsa {keystrokes_per_search} teclas antes de elegir una sugerencia; cada pulsación pide sugerencias. La hora de más tráfico va a {peak_factor} veces la media diaria. ¿Cuántas peticiones de sugerencias por segundo llegan en el pico?"
+inputs = { searches_per_day = 43_200_000, keystrokes_per_search = 4, peak_factor = 3 }
+formula = "searches_per_day * keystrokes_per_search / 86400 * peak_factor"
+unit = "rps"
+solution = "{searches_per_day} × {keystrokes_per_search} ≈ 173 million keystrokes a day. ÷ 86,400 s = 2,000 a second on average, × {peak_factor} at peak gives {answer} a second. Waiting for a short pause in typing before asking would cut that a lot."
+solution_es = "{searches_per_day} × {keystrokes_per_search} ≈ 173 millones de pulsaciones al día. ÷ 86 400 s = 2000 por segundo de media, × {peak_factor} en el pico da {answer} por segundo. Esperar una breve pausa al escribir antes de preguntar lo reduciría mucho."
+
+[[drill]]
+id = "top-k-cache-memory"
+kind = "storage"
+prompt = "You cache the answer for each of the {prefixes} prefixes: its top {suggestions_per_prefix} suggestions, about {bytes_per_suggestion} bytes each. How much cache memory does that take, in MB?"
+prompt_es = "Guardas en caché la respuesta de cada uno de los {prefixes} prefijos: sus {suggestions_per_prefix} mejores sugerencias, de unos {bytes_per_suggestion} bytes cada una. ¿Cuánta memoria de caché ocupa, en MB?"
+inputs = { prefixes = 200_000, suggestions_per_prefix = 10, bytes_per_suggestion = 50 }
+formula = "prefixes * suggestions_per_prefix * bytes_per_suggestion / 1e6"
+unit = "MB"
+solution = "{prefixes} × {suggestions_per_prefix} = 2 million suggestions. × {bytes_per_suggestion} B = 100 million bytes, about {answer} MB. Every prefix fits in one small cache, so the search index only sees the rare misses."
+solution_es = "{prefixes} × {suggestions_per_prefix} = 2 millones de sugerencias. × {bytes_per_suggestion} B = 100 millones de bytes, unos {answer} MB. Todos los prefijos caben en una caché pequeña, así que el índice de búsqueda solo ve los fallos poco frecuentes."

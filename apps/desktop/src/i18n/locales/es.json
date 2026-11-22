@@ -483,6 +483,7 @@
       "attempted": "Intentado",
       "new": "Sin empezar"
     },
+    "estimated": "Ejercicios de estimación hechos",
     "best": "Mejor {{score}}",
     "random": "Problema al azar",
     "continue": "Continuar: {{title}}",
@@ -492,6 +493,8 @@
   "brief": {
     "teaches": "Enseña: {{what}}",
     "numbers": "Chuleta de números",
+    "estimateFirst": "Estima primero",
+    "estimated": "{{done}} de {{total}} estimadas",
     "targets": "Objetivos",
     "peak": "Tráfico pico",
     "p95": "Latencia p95",
@@ -666,6 +669,25 @@
     "title": "Glosario",
     "search": "Buscar en el glosario",
     "see": "Ver {{name}}."
+  },
+  "estimate": {
+    "title": "Ejercicios de estimación",
+    "intro": "Práctica de cálculos rápidos: calcula la cifra, escríbela y comprueba. Vale todo lo que caiga dentro de la banda del ejercicio; la solución explicada muestra un camino. Las cifras aproximadas están en la",
+    "problem": "Problema",
+    "random": "Ejercicio al azar",
+    "progress": "{{done}} de {{total}} ejercicios hechos",
+    "yourAnswer": "Tu respuesta",
+    "placeholder": "Tu estimación",
+    "check": "Comprobar",
+    "again": "Otra vez",
+    "done": "Hecho",
+    "answerWas": "La respuesta:",
+    "closeness": {
+      "close": "Bastante cerca: dentro de la banda.",
+      "too_high": "Demasiado alta, pero del orden correcto.",
+      "too_low": "Demasiado baja, pero del orden correcto.",
+      "way_off": "Más de diez veces lejos: revisa las unidades."
+    }
   },
   "numbers": {
     "title": "Chuleta de números",

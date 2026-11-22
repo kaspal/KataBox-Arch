@@ -483,6 +483,7 @@
       "attempted": "Attempted",
       "new": "Not started"
     },
+    "estimated": "Estimation drills done",
     "best": "Best {{score}}",
     "random": "Random problem",
     "continue": "Continue: {{title}}",
@@ -492,6 +493,8 @@
   "brief": {
     "teaches": "Teaches: {{what}}",
     "numbers": "Numbers cheat sheet",
+    "estimateFirst": "Estimate first",
+    "estimated": "{{done}} of {{total}} estimated",
     "targets": "Targets",
     "peak": "Peak traffic",
     "p95": "p95 latency",
@@ -666,6 +669,25 @@
     "title": "Glossary",
     "search": "Search the glossary",
     "see": "See {{name}}."
+  },
+  "estimate": {
+    "title": "Estimation drills",
+    "intro": "Back-of-the-envelope practice: work out the number, type it, and check. Anything within the drill's band counts; the worked solution shows one way there. Rough figures are on the",
+    "problem": "Problem",
+    "random": "Random drill",
+    "progress": "{{done}} of {{total}} drills done",
+    "yourAnswer": "Your answer",
+    "placeholder": "Your estimate",
+    "check": "Check",
+    "again": "Try again",
+    "done": "Done",
+    "answerWas": "The answer:",
+    "closeness": {
+      "close": "Close enough: within the band.",
+      "too_high": "Too high, but the right order of magnitude.",
+      "too_low": "Too low, but the right order of magnitude.",
+      "way_off": "More than ten times off: check the units."
+    }
   },
   "numbers": {
     "title": "Numbers cheat sheet",

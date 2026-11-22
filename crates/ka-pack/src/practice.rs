@@ -6,6 +6,7 @@ use std::collections::BTreeSet;
 use std::path::Path;
 
 use ka_core::Registry;
+use ka_core::estimate::{DrillDef, DrillFile, DrillSet};
 use ka_core::numbers::{NUMBER_UNITS, NumberFigure, NumberSheet, SourceKind, source_kind};
 use ka_store::DocRow;
 
@@ -17,6 +18,8 @@ use crate::{Issue, TODO_MARKER, issue};
 pub struct Practice {
     /// The numbers cheat sheet, in file order (empty if `numbers.toml` is absent).
     pub numbers: Vec<NumberFigure>,
+    /// Estimation drills by problem (`estimation/<problem-id>.toml`), in problem-id order.
+    pub estimation: Vec<(String, Vec<DrillDef>)>,
 }
 
 fn kebab(id: &str) -> bool {
@@ -86,18 +89,148 @@ pub fn validate_numbers(figures: &[NumberFigure]) -> Vec<Issue> {
     issues
 }
 
+pub fn load_estimation(root: &Path) -> Result<Vec<(String, Vec<DrillDef>)>, Vec<Issue>> {
+    let dir = root.join("estimation");
+    if !dir.exists() {
+        return Ok(Vec::new());
+    }
+    let mut files: Vec<_> = std::fs::read_dir(&dir)
+        .map_err(|e| vec![issue("estimation", e.to_string())])?
+        .filter_map(|e| e.ok().map(|e| e.path()))
+        .filter(|p| p.extension().and_then(|x| x.to_str()) == Some("toml"))
+        .collect();
+    files.sort();
+    let mut out = Vec::new();
+    let mut issues = Vec::new();
+    for f in files {
+        let id = f
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or_default()
+            .to_owned();
+        let name = format!("estimation/{id}.toml");
+        match std::fs::read_to_string(&f)
+            .map_err(|e| e.to_string())
+            .and_then(|t| toml::from_str::<DrillFile>(&t).map_err(|e| e.to_string()))
+        {
+            Ok(file) => out.push((id, file.drill)),
+            Err(e) => issues.push(issue(name, e)),
+        }
+    }
+    if issues.is_empty() {
+        Ok(out)
+    } else {
+        Err(issues)
+    }
+}
+
+/// `{name}` placeholders in a text.
+fn placeholders(text: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut rest = text;
+    while let Some(open) = rest.find('{') {
+        let Some(close) = rest[open..].find('}') else {
+            break;
+        };
+        out.push(rest[open + 1..open + close].to_owned());
+        rest = &rest[open + close + 1..];
+    }
+    out
+}
+
+/// A drill is answerable and honest: its formula parses and uses exactly its inputs, every
+/// input is shown in the prompt (both languages), placeholders name real inputs, and the
+/// answer is a positive number.
+pub fn validate_estimation(
+    sets: &[(String, Vec<DrillDef>)],
+    problems: &[ProblemDir],
+) -> Vec<Issue> {
+    let mut issues = Vec::new();
+    for (pid, drills) in sets {
+        let file = format!("estimation/{pid}.toml");
+        if !problems.iter().any(|p| &p.def.id == pid) {
+            issues.push(issue(&file, format!("no problem `{pid}`")));
+        }
+        if drills.is_empty() {
+            issues.push(issue(&file, "no drills"));
+        }
+        let mut seen = BTreeSet::new();
+        for d in drills {
+            let mut bad = |m: String| issues.push(issue(&file, format!("`{}`: {m}", d.id)));
+            if !kebab(&d.id) || !seen.insert(d.id.clone()) {
+                bad("ids must be kebab-case and unique".into());
+            }
+            for (name, text) in [
+                ("prompt", &d.prompt),
+                ("prompt_es", &d.prompt_es),
+                ("solution", &d.solution),
+                ("solution_es", &d.solution_es),
+            ] {
+                if text.trim().is_empty() || text.contains(TODO_MARKER) {
+                    bad(format!("`{name}` is empty or unfinished"));
+                }
+                for ph in placeholders(text) {
+                    let ok = d.inputs.contains_key(&ph)
+                        || (ph == "answer" && name.starts_with("solution"));
+                    if !ok {
+                        bad(format!("`{name}` shows `{{{ph}}}`, which isn't an input"));
+                    }
+                }
+            }
+            for (name, text) in [("prompt", &d.prompt), ("prompt_es", &d.prompt_es)] {
+                let shown = placeholders(text);
+                for input in d.inputs.keys() {
+                    if !shown.contains(input) {
+                        bad(format!("`{name}` doesn't show the input `{input}`"));
+                    }
+                }
+            }
+            if !NUMBER_UNITS.contains(&d.unit.as_str()) {
+                bad(format!("unknown unit `{}`", d.unit));
+            }
+            if !(0.05..=2.0).contains(&d.tolerance) {
+                bad(format!("tolerance {} outside 0.05–2", d.tolerance));
+            }
+            match ka_core::estimate::parse(&d.formula) {
+                Err(e) => bad(format!("formula: {e}")),
+                Ok(expr) => {
+                    let mut used = Vec::new();
+                    ka_core::estimate::names(&expr, &mut used);
+                    for u in &used {
+                        if !d.inputs.contains_key(u) {
+                            bad(format!("the formula uses `{u}`, which isn't an input"));
+                        }
+                    }
+                    for input in d.inputs.keys() {
+                        if !used.contains(input) {
+                            bad(format!("the input `{input}` isn't used by the formula"));
+                        }
+                    }
+                    if let Err(e) = ka_core::estimate::answer(d) {
+                        bad(e);
+                    }
+                }
+            }
+        }
+    }
+    issues
+}
+
 pub fn load_practice(root: &Path, _registry: &Registry) -> Result<Practice, Vec<Issue>> {
     Ok(Practice {
         numbers: load_numbers(root)?,
+        estimation: load_estimation(root)?,
     })
 }
 
 pub fn validate_practice(
     p: &Practice,
-    _problems: &[ProblemDir],
+    problems: &[ProblemDir],
     _registry: &Registry,
 ) -> Vec<Issue> {
-    validate_numbers(&p.numbers)
+    let mut issues = validate_numbers(&p.numbers);
+    issues.extend(validate_estimation(&p.estimation, problems));
+    issues
 }
 
 /// The `docs` rows for `content.db`.
@@ -110,12 +243,33 @@ pub fn practice_docs(p: &Practice) -> Result<Vec<DocRow>, String> {
             json: serde_json::to_string(&p.numbers).map_err(|e| e.to_string())?,
         });
     }
+    for (pid, drills) in &p.estimation {
+        let answers = drills
+            .iter()
+            .map(ka_core::estimate::answer)
+            .collect::<Result<Vec<_>, _>>()?;
+        let set = DrillSet {
+            problem_id: pid.clone(),
+            drills: drills.clone(),
+            answers,
+        };
+        rows.push(DocRow {
+            kind: "estimation".into(),
+            id: pid.clone(),
+            json: serde_json::to_string(&set).map_err(|e| e.to_string())?,
+        });
+    }
     Ok(rows)
 }
 
 /// One line for `validate`.
 pub fn summary(p: &Practice) -> String {
-    format!("{} number(s) valid", p.numbers.len())
+    let drills: usize = p.estimation.iter().map(|(_, d)| d.len()).sum();
+    format!(
+        "{} number(s), {drills} estimation drill(s) for {} problem(s) valid",
+        p.numbers.len(),
+        p.estimation.len()
+    )
 }
 
 #[cfg(test)]

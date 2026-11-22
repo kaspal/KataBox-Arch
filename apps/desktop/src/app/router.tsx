@@ -61,6 +61,13 @@ const routeTree = rootRoute.addChildren([
   }),
   createRoute({
     getParentRoute: () => rootRoute,
+    path: "/estimate",
+    validateSearch: (s: Record<string, unknown>): { problem?: string } =>
+      typeof s.problem === "string" && /^[a-z0-9-]{1,64}$/.test(s.problem) ? { problem: s.problem } : {},
+    component: lazyRouteComponent(() => import("@/practice/EstimatePage"), "EstimatePage"),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
     path: "/patterns",
     component: lazyRouteComponent(() => import("@/guide/Patterns"), "PatternsIndex"),
   }),

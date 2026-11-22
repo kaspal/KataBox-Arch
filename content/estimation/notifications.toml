@@ -1,0 +1,34 @@
+# Estimation drills for the Notification System.
+
+[[drill]]
+id = "push-rate"
+kind = "qps"
+prompt = "Client apps ask for {notifications_per_day} notifications a day, the busiest hour runs at {peak_factor}× the daily average, and {push_pct}% of notifications are push alerts. How many push notifications a second go out at peak?"
+prompt_es = "Las apps cliente piden {notifications_per_day} notificaciones al día, la hora de más tráfico va a {peak_factor} veces la media diaria, y el {push_pct} % de las notificaciones son push. ¿Cuántas notificaciones push por segundo salen en el pico?"
+inputs = { notifications_per_day = 43_200_000, peak_factor = 3, push_pct = 60 }
+formula = "notifications_per_day / 86400 * peak_factor * push_pct / 100"
+unit = "rps"
+solution = "{notifications_per_day} ÷ 86,400 s = 500 a second on average, × {peak_factor} = 1,500 at peak. {push_pct}% of those are push: about {answer} a second. Email takes 450 and SMS 150 of the rest."
+solution_es = "{notifications_per_day} ÷ 86 400 s = 500 por segundo de media, × {peak_factor} = 1500 en el pico. El {push_pct} % de ellas son push: unas {answer} por segundo. El correo se lleva 450 y los SMS 150 del resto."
+
+[[drill]]
+id = "email-calls"
+kind = "qps"
+prompt = "At peak the service sends {peak_rps} notifications a second, {email_pct}% of them by email. {retry_pct}% of email calls fail and are retried once. How many calls a second reach the email provider at peak?"
+prompt_es = "En el pico el servicio envía {peak_rps} notificaciones por segundo, el {email_pct} % por correo. El {retry_pct} % de las llamadas de correo fallan y se reintentan una vez. ¿Cuántas llamadas por segundo llegan al proveedor de correo en el pico?"
+inputs = { peak_rps = 1_500, email_pct = 30, retry_pct = 10 }
+formula = "peak_rps * email_pct / 100 * (1 + retry_pct / 100)"
+unit = "rps"
+solution = "{email_pct}% of {peak_rps} = 450 emails a second. Retries add {retry_pct}% on top: 450 × 1.1 ≈ {answer} calls a second. When the provider has a bad day, retries can multiply that, which is why they wait with backoff."
+solution_es = "El {email_pct} % de {peak_rps} = 450 correos por segundo. Los reintentos suman un {retry_pct} %: 450 × 1,1 ≈ {answer} llamadas por segundo. Cuando el proveedor tiene un mal día, los reintentos pueden multiplicar esa cifra; por eso esperan con backoff."
+
+[[drill]]
+id = "email-calls-in-flight"
+kind = "capacity"
+prompt = "At peak the service sends {peak_rps} notifications a second, {email_pct}% of them by email, and the email provider takes {email_ms} ms per call at the median. A worker holds its slot for the whole call. How many email calls are in flight at once?"
+prompt_es = "En el pico el servicio envía {peak_rps} notificaciones por segundo, el {email_pct} % por correo, y el proveedor de correo tarda {email_ms} ms por llamada en la mediana. Un worker mantiene ocupado su hueco durante toda la llamada. ¿Cuántas llamadas de correo hay en curso a la vez?"
+inputs = { peak_rps = 1_500, email_pct = 30, email_ms = 150 }
+formula = "peak_rps * email_pct / 100 * email_ms / 1000"
+unit = "count"
+solution = "Calls in flight = arrival rate × time per call. {email_pct}% of {peak_rps} = 450 a second, × 0.15 s ≈ {answer} calls at once. Plan worker slots for several times that, because the provider's slow tail holds slots far longer than the median."
+solution_es = "Llamadas en curso = ritmo de llegada × tiempo por llamada. El {email_pct} % de {peak_rps} = 450 por segundo, × 0,15 s ≈ {answer} llamadas a la vez. Planifica varias veces más huecos de worker, porque la cola lenta del proveedor los ocupa mucho más que la mediana."

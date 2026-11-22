@@ -3,14 +3,14 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { CheckCircle2, CircleDashed, CircleDot, List, Play, Shuffle } from "lucide-react";
+import { CheckCircle2, CircleDashed, CircleDot, List, Play, Ruler, Shuffle } from "lucide-react";
 import type { Difficulty, ProblemSummary } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState, Page } from "@/components/Page";
 import { describeError } from "@/lib/errors";
-import { useProblems, useProgress } from "@/lib/queries";
+import { useEstimateStatuses, useProblems, useProgress } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard"];
@@ -69,6 +69,10 @@ export function ProblemsPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const problems = useProblems();
+  // Estimation drills done per problem (scored lightly: a mark here, never in the judge's score).
+  const statuses = useEstimateStatuses();
+  const estimated = new Map<string, number>();
+  for (const s of statuses.data ?? []) if (s.done) estimated.set(s.problem_id, (estimated.get(s.problem_id) ?? 0) + 1);
   const progress = useProgress();
   const loc = useLocalized();
   const [query, setQuery] = useState("");
@@ -174,6 +178,13 @@ export function ProblemsPage() {
               </span>
               <span className="flex items-center gap-4">
                 <DifficultyBadge d={p.difficulty} />
+                {estimated.has(p.id) && (
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title={t("problems.estimated")} data-testid="estimated-mark">
+                    <Ruler aria-hidden className="size-3.5" />
+                    <span className="sr-only">{t("problems.estimated")}</span>
+                    {estimated.get(p.id)}
+                  </span>
+                )}
                 <StatusMark status={p.status} />
                 <span className="w-16 text-right font-mono text-xs tabular-nums text-muted-foreground">
                   {p.best_score === null ? "—" : t("problems.best", { score: p.best_score })}

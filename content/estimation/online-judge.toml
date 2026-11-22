@@ -1,0 +1,23 @@
+# Estimation drills for the Online Judge.
+
+[[drill]]
+id = "peak-submissions"
+kind = "qps"
+prompt = "Users send {submissions_per_day} submissions a day, and the busiest hour runs at {peak_factor}× the daily average. How many submissions a second arrive at peak?"
+prompt_es = "Los usuarios hacen {submissions_per_day} envíos al día, y la hora de más tráfico va a {peak_factor} veces la media diaria. ¿Cuántos envíos por segundo llegan en el pico?"
+inputs = { submissions_per_day = 1_150_000, peak_factor = 3 }
+formula = "submissions_per_day / 86400 * peak_factor"
+unit = "rps"
+solution = "{submissions_per_day} ÷ 86,400 s ≈ 13.3 submissions a second on average. × {peak_factor} at peak gives about {answer} a second, this problem's 40. A contest start can bring several times that."
+solution_es = "{submissions_per_day} ÷ 86 400 s ≈ 13,3 envíos por segundo de media. × {peak_factor} en el pico da unos {answer} por segundo, los 40 de este problema. El inicio de un concurso puede traer varias veces eso."
+
+[[drill]]
+id = "judge-workers"
+kind = "servers"
+prompt = "At peak, {submissions_rps} submissions a second arrive. Judging one takes {judge_s} seconds, and one judge worker instance runs {slots_per_worker} at a time. How many judge workers keep up?"
+prompt_es = "En el pico llegan {submissions_rps} envíos por segundo. Evaluar uno tarda {judge_s} segundos, y una instancia de worker de evaluación ejecuta {slots_per_worker} a la vez. ¿Cuántos workers de evaluación hacen falta para no quedarse atrás?"
+inputs = { submissions_rps = 40, judge_s = 2, slots_per_worker = 8 }
+formula = "submissions_rps * judge_s / slots_per_worker"
+unit = "count"
+solution = "{submissions_rps} a second × {judge_s} s = 80 submissions being judged at once. ÷ {slots_per_worker} per worker = {answer} workers. Keep one spare for a crash, and let the queue and autoscaling absorb a contest start."
+solution_es = "{submissions_rps} por segundo × {judge_s} s = 80 envíos evaluándose a la vez. ÷ {slots_per_worker} por worker = {answer} workers. Ten uno de reserva por si se cae alguno, y deja que la cola y el autoescalado absorban el inicio de un concurso."

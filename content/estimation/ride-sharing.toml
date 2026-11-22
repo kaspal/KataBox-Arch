@@ -1,0 +1,23 @@
+# Estimation drills for Ride Sharing.
+
+[[drill]]
+id = "driver-pings"
+kind = "qps"
+prompt = "There are {drivers} drivers, and at the busiest time {on_shift_pct}% of them are on shift. Each driver on shift sends their position every {ping_interval_s} seconds. How many location pings a second arrive?"
+prompt_es = "Hay {drivers} conductores, y en la hora de más actividad el {on_shift_pct} % está de turno. Cada conductor de turno envía su posición cada {ping_interval_s} segundos. ¿Cuántos envíos de ubicación por segundo llegan?"
+inputs = { drivers = 50_000, on_shift_pct = 90, ping_interval_s = 3 }
+formula = "drivers * on_shift_pct / 100 / ping_interval_s"
+unit = "rps"
+solution = "{on_shift_pct}% of {drivers} = 45,000 drivers on shift. ÷ {ping_interval_s} s gives {answer} pings a second, about this problem's peak. Every one is a write."
+solution_es = "El {on_shift_pct} % de {drivers} = 45 000 conductores de turno. ÷ {ping_interval_s} s da {answer} envíos por segundo, más o menos el pico de este problema. Cada uno es una escritura."
+
+[[drill]]
+id = "writes-per-shard"
+kind = "qps"
+prompt = "The location store takes {ping_rps} writes a second, spread over {shards} shards by driver id. Some drivers ping more than others, so the busiest shard gets {hot_shard_x}× its fair share. How many writes a second does that busiest shard take?"
+prompt_es = "El almacén de ubicaciones recibe {ping_rps} escrituras por segundo, repartidas en {shards} particiones por id de conductor. Unos conductores envían más que otros, así que la partición más cargada recibe {hot_shard_x} veces su parte justa. ¿Cuántas escrituras por segundo recibe esa partición?"
+inputs = { ping_rps = 14_700, shards = 16, hot_shard_x = 2 }
+formula = "ping_rps / shards * hot_shard_x"
+unit = "rps"
+solution = "{ping_rps} ÷ {shards} ≈ 919 writes a second per shard on average. × {hot_shard_x} for the hot one gives about {answer} a second. Size each shard for the hot one, not the average, or that shard falls behind first."
+solution_es = "{ping_rps} ÷ {shards} ≈ 919 escrituras por segundo por partición de media. × {hot_shard_x} en la caliente da unas {answer} por segundo. Dimensiona cada partición para la caliente, no para la media, o esa partición se quedará atrás la primera."

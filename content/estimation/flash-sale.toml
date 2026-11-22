@@ -1,0 +1,23 @@
+# Estimation drills for Flash-Sale Ticketing.
+
+[[drill]]
+id = "spike-rps"
+kind = "qps"
+prompt = "On a calm day the site peaks at {normal_rps} requests a second. When a big concert goes on sale, traffic jumps {spike_x}×. How many requests a second arrive during the spike?"
+prompt_es = "En un día tranquilo el sitio llega a {normal_rps} peticiones por segundo. Cuando sale a la venta un gran concierto, el tráfico se multiplica por {spike_x}. ¿Cuántas peticiones por segundo llegan durante el pico?"
+inputs = { normal_rps = 2_000, spike_x = 50 }
+formula = "normal_rps * spike_x"
+unit = "rps"
+solution = "{normal_rps} × {spike_x} = {answer} requests a second. If 10% of them are purchases, that is 10,000 buys a second, five times what the payment provider accepts. The browsing has to come from a cache, and the buying has to wait in a queue."
+solution_es = "{normal_rps} × {spike_x} = {answer} peticiones por segundo. Si el 10 % son compras, son 10 000 compras por segundo, cinco veces lo que acepta el proveedor de pagos. La navegación tiene que salir de una caché, y las compras tienen que esperar en una cola."
+
+[[drill]]
+id = "queue-depth"
+kind = "capacity"
+prompt = "During the spike, {buy_rps} orders a second join the queue. The payment workers drain it at {drain_rps} a second, the payment provider's limit. How many orders are waiting in the queue after {seconds} seconds?"
+prompt_es = "Durante el pico entran en la cola {buy_rps} pedidos por segundo. Los workers de pago la vacían a {drain_rps} por segundo, el límite del proveedor de pagos. ¿Cuántos pedidos esperan en la cola al cabo de {seconds} segundos?"
+inputs = { buy_rps = 10_000, drain_rps = 2_000, seconds = 10 }
+formula = "(buy_rps - drain_rps) * seconds"
+unit = "count"
+solution = "The queue grows by {buy_rps} − {drain_rps} = 8,000 orders a second. After {seconds} s that is {answer} orders waiting. At 2,000 a second it takes about 40 more seconds to drain once the spike ends: fine, because buyers only need to know their order was taken."
+solution_es = "La cola crece {buy_rps} − {drain_rps} = 8000 pedidos por segundo. Al cabo de {seconds} s hay {answer} pedidos esperando. A 2000 por segundo tarda unos 40 segundos más en vaciarse cuando acaba el pico: está bien, porque al comprador solo le hace falta saber que su pedido se ha recibido."
