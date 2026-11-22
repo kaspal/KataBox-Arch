@@ -49,7 +49,8 @@ export function useItemLabel() {
         return t("paths.item.flaw", { name: content });
       case "quiz": {
         const [what, id] = item.target.split(":");
-        return t("paths.item.quiz", { name: what === "guide" ? kindName(t, id as never) : (content ?? id) });
+        const title = es ? item.title_es : item.title;
+        return t("paths.item.quiz", { name: what === "guide" ? kindName(t, id as never) : (title ?? id ?? item.target) });
       }
     }
   };

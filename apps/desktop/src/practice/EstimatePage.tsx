@@ -93,6 +93,7 @@ export function EstimatePage() {
         <Link to="/numbers" className="font-semibold text-primary underline-offset-4 hover:underline">
           {t("numbers.title")}
         </Link>
+        .
       </p>
       <p className="mb-4 text-sm" data-testid="estimate-progress">
         {t("estimate.progress", { done: doneCount, total })}

@@ -49,12 +49,14 @@ export function ProblemPage() {
   const es = i18n.language.startsWith("es");
 
   // Load the editor once per problem: a design for this problem already open (from a file, or
-  // left from earlier) stays; otherwise the saved draft, or an empty design for it.
+  // left from earlier) stays unless it is empty; otherwise the saved draft (for a Find-the-flaw
+  // drill, its broken design), or an empty design for it.
   useEffect(() => {
     const b = brief.data;
     if (!b || loaded.current === id) return;
     loaded.current = id;
-    if (useEditor.getState().doc.problem_id !== id) {
+    const open = useEditor.getState().doc;
+    if (open.problem_id !== id || (open.nodes.length === 0 && (b.draft?.nodes.length ?? 0) > 0)) {
       useEditor.getState().load(b.draft ?? freshDesign(id, es ? b.summary.title_es : b.summary.title_en), null);
     }
     const first = b.tests.find((x) => !x.hidden) ?? b.tests[0];

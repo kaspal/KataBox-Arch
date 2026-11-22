@@ -397,7 +397,17 @@ impl App {
                                     .map(|f| (f.title.clone(), f.title_es.clone())),
                                 solved(&flaw_problem_id(target)),
                             ),
-                            PathItemKind::Quiz => (None, quizzes.iter().any(|q| q == target)),
+                            PathItemKind::Quiz => (
+                                // A pattern quiz is named after its pattern; a Guide quiz by
+                                // the UI, from the component kind.
+                                target.strip_prefix("pattern:").and_then(|id| {
+                                    patterns
+                                        .iter()
+                                        .find(|p| p.id == id)
+                                        .map(|p| (p.title.clone(), p.title_es.clone()))
+                                }),
+                                quizzes.iter().any(|q| q == target),
+                            ),
                         };
                         Some(PathItem {
                             kind,
@@ -419,6 +429,15 @@ impl App {
                 }
             })
             .collect())
+    }
+
+    /// A drill's broken design: where the user starts.
+    pub(crate) async fn flaw_broken(&self, id: &str) -> Result<ka_core::Design> {
+        let doc = self.flaw_doc(id).await?;
+        let mut d = crate::kbarch::parse(doc.broken.as_bytes(), &self.registry)
+            .map_err(|e| bad_content(e.message))?;
+        d.problem_id = Some(flaw_problem_id(id));
+        Ok(d)
     }
 
     /// The Find-the-flaw drills in order, each marked solved or not.
@@ -661,6 +680,22 @@ error_rate = 0.01
         assert!(brief.statement_es.contains("Qué falla"));
         assert_eq!(brief.editorial_en, None);
         assert!(brief.reference.is_none());
+        // The drill opens on its broken design until the user has a draft of their own.
+        assert_eq!(brief.draft.as_ref().map(|d| d.nodes.len()), Some(2));
+        // An empty draft (autosaved from an empty canvas) still opens on the broken design...
+        let mut empty = fixed.clone();
+        empty.nodes.clear();
+        empty.edges.clear();
+        app.save_draft("flaw--tiny", &empty).await.unwrap();
+        let brief = app.problem_brief("flaw--tiny").await.unwrap();
+        assert_eq!(brief.draft.as_ref().map(|d| d.nodes.len()), Some(2));
+        // ...and the user's own work is kept.
+        app.save_draft("flaw--tiny", &fixed).await.unwrap();
+        let brief = app.problem_brief("flaw--tiny").await.unwrap();
+        assert_eq!(
+            brief.draft.as_ref().map(|d| d.nodes.len()),
+            Some(fixed.nodes.len())
+        );
         let (problem, ref_cost) = app.problem_for_judging("flaw--tiny").await.unwrap();
         let j = crate::problems::judge_design(&problem, &fixed, &reg, ref_cost);
         assert_eq!(j.verdict, ka_judge::Verdict::Accepted);

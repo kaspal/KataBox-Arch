@@ -224,10 +224,17 @@ impl App {
         let solved = status.is_some_and(|s| s.status == "solved");
         let unlocked = self.user.hints_unlocked(id).await.map_err(store)?;
         let take = |h: &[String]| h.iter().take(unlocked as usize).cloned().collect();
-        let draft = match self.user.draft(id).await.map_err(store)? {
+        let mut draft = match self.user.draft(id).await.map_err(store)? {
             Some(json) => crate::kbarch::parse(json.as_bytes(), &self.registry).ok(),
             None => None,
         };
+        // A Find-the-flaw drill starts from its broken design while the user's draft is
+        // missing or empty (an empty canvas is never a useful place to look for a flaw).
+        if let Some(flaw) = id.strip_prefix("flaw--")
+            && draft.as_ref().is_none_or(|d| d.nodes.is_empty())
+        {
+            draft = Some(self.flaw_broken(flaw).await?);
+        }
         let reference = if solved {
             crate::kbarch::parse(row.reference.as_bytes(), &self.registry).ok()
         } else {
