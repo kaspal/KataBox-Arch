@@ -105,6 +105,19 @@ export function createFakeApi(opts: FakeOptions = {}) {
       return null;
     }),
     runResult: vi.fn(async () => null),
+    findBreakingPoint: vi.fn(async (design: Design) => {
+      if (opts.runError) throw err(opts.runError);
+      return {
+        limit_rps: 31_250,
+        multiplier: 31.25,
+        base_rps: 1000,
+        beyond_ceiling: false,
+        first_failure: { node: design.nodes[design.nodes.length - 1]?.id ?? "x", reason: "saturated" as const, at_s: 4, utilisation: 0.97 },
+        failing_p95_ms: 480,
+        failing_error_rate: 0.02,
+        runs: 14,
+      };
+    }),
     setWindowTitle: vi.fn(async (t: string) => {
       title = t;
       return null;

@@ -10,6 +10,7 @@
 //! ```
 
 pub mod behaviour;
+pub mod breaking;
 pub mod compile;
 pub mod engine;
 pub mod hist;
@@ -18,6 +19,7 @@ pub mod route;
 
 use std::sync::Arc;
 
+pub use breaking::{BreakingPoint, FailureReason, FirstFailure, Limits, find_limit};
 pub use compile::{Compiled, SAMPLE_CAP_RPS, ScaleGroup, SimError, SimOptions, Zone, compile};
 pub use engine::{Engine, NodeSnap, Packet, Snapshot};
 pub use result::{NodeResult, Percentiles, RunResult, SecondResult, TypeResult};

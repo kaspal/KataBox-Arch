@@ -129,6 +129,18 @@ A request type's `route` is a list of steps, `role[:qualifier…][?]`, with `a|b
   - servers (and the sampling stretch) change at runtime;
   - cost uses the time-averaged instance count.
 
+### The breaking point (M1.6)
+- **`breaking::find_limit`:**
+  - runs the scenario's mix in 20 s windows at traffic multipliers ×0.25, ×0.375, … (growing ×1.5);
+  - stops at the first window whose p95 passes the target or whose error rate passes the limit;
+  - bisects to within 5%;
+  - reports the last passing rate.
+- **The first failure** is the first card to give way in the first failing window: the earliest second in which a
+  card is at least 95% busy or drops, with ties going to the busiest, then the lowest id.
+- **The ceiling** is ×1024; a design that never fails up to there reports "at least".
+- **Deterministic** per seed (tested).
+- **The Sandbox** uses p95 200 ms and 1% errors; problems will use their own targets.
+
 ### Sampling (the scale trick)
 Above `sample_cap = 5000` simulated arrivals per second, only a share `f = cap / rate` of requests is simulated.
 - **Weights:** every count is weighted by `1/f`.

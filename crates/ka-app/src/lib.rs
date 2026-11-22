@@ -20,7 +20,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 pub use error::{AppError, AppErrorCode};
-pub use runs::{RunControl, RunInfo, RunRequest};
+pub use runs::{RunControl, RunInfo, RunRequest, breaking_point};
 pub use sandbox::SandboxPreset;
 
 pub type Result<T, E = AppError> = std::result::Result<T, E>;

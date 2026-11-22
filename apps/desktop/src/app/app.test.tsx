@@ -357,6 +357,18 @@ describe("live runs", () => {
     act(() => useRun.getState().stop());
   });
 
+  it("Find breaking point reports the limit and the first card to give way, and goes stale after an edit", async () => {
+    act(() => useEditor.getState().load(design, null));
+    const { user } = renderApp("/sandbox");
+    await user.click(await screen.findByRole("tab", { name: "Metrics" }));
+    await user.click(screen.getByRole("button", { name: "Find breaking point" }));
+    const result = await screen.findByTestId("breaking-result");
+    expect(result).toHaveTextContent("Holds about 31,250 req/s (31.3× the clients' traffic).");
+    expect(result).toHaveTextContent("API gives way first: every server busy within 5 s of the failing run.");
+    act(() => useEditor.getState().setProp("a1", "instances", 6));
+    expect(await screen.findByText("The design has changed since; find it again.")).toBeInTheDocument();
+  });
+
   it("a design with no path reports why instead of running", async () => {
     setFakeApi({ runError: "no_path" });
     act(() => useEditor.getState().load(design, null));

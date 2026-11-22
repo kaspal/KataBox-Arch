@@ -27,6 +27,8 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
     traffic. The run continues from there.
   - **A "Kill a node at 20 s" traffic preset.**
   - The Metrics tab plots p95 latency per second.
+  - **Find breaking point** (Metrics tab) pushes the traffic up until the design fails, then reports how much it
+    holds and the first component to give way.
   - **The simulation models failures:**
     - dead cards are noticed by health checks after a few seconds;
     - databases fail over to a replica;

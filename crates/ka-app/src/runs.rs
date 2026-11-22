@@ -66,6 +66,30 @@ fn sim_error(e: SimError) -> AppError {
 /// edited design restarts comparably (plan ★13).
 pub const SANDBOX_SEED: u64 = 1;
 
+/// The Sandbox's breaking point for `design`: its normal mix, grown until it fails the
+/// Sandbox limits (p95 200 ms, 1% errors). Pure and possibly a few seconds long: the command
+/// runs it off the async runtime, with a clone of the registry.
+pub fn breaking_point(
+    design: &Design,
+    registry: &ka_core::Registry,
+) -> Result<ka_sim::BreakingPoint> {
+    if let Some(first) = ka_core::validate(design, registry).first() {
+        return Err(AppError::new(
+            AppErrorCode::InvalidDesign,
+            format!("{first:?}"),
+        ));
+    }
+    let scenario = sandbox_scenario(design, registry, SandboxPreset::Normal).map_err(sim_error)?;
+    ka_sim::find_limit(
+        design,
+        registry,
+        &scenario,
+        SANDBOX_SEED,
+        ka_sim::Limits::default(),
+    )
+    .map_err(sim_error)
+}
+
 impl App {
     /// Start a live Sandbox run of `design`, replacing any run in progress.
     pub fn start_run(
@@ -285,6 +309,21 @@ mod tests {
         let f = rx.recv_timeout(Duration::from_secs(5)).expect("a frame");
         let t_ms = u32::from_le_bytes([f[10], f[11], f[12], f[13]]);
         assert!(t_ms >= 12_000, "{t_ms}");
+    }
+
+    #[test]
+    fn the_breaking_point_names_the_first_card_to_give_way() {
+        let design = crate::kbarch::tests::sample();
+        let b = breaking_point(&design, &ka_core::registry()).unwrap();
+        assert!(b.limit_rps > b.base_rps * 0.25, "{b:?}");
+        let mut no_path = design.clone();
+        no_path.edges.clear();
+        assert_eq!(
+            breaking_point(&no_path, &ka_core::registry())
+                .unwrap_err()
+                .code,
+            AppErrorCode::NoPath
+        );
     }
 
     #[tokio::test]

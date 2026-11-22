@@ -135,6 +135,18 @@ async runResult(runId: number) : Promise<Result<RunResult | null, AppError>> {
 }
 },
 /**
+ * How much traffic the design holds before it fails, and what fails first (a few seconds of
+ * simulation, off the async runtime).
+ */
+async findBreakingPoint(design: Design) : Promise<Result<BreakingPoint, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("find_breaking_point", { design }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * The window title (the webview has no `setTitle` permission).
  */
 async setWindowTitle(title: string) : Promise<Result<null, AppError>> {
@@ -238,6 +250,33 @@ export type AppErrorCode =
  */
 "no_path"
 export type AppInfo = { version: string; dev_data: boolean }
+export type BreakingPoint = { 
+/**
+ * Real requests per second the design holds (the last passing window), and its multiple
+ * of the scenario's own rate.
+ */
+limit_rps: number; multiplier: number; 
+/**
+ * The scenario's own rate (multiplier 1).
+ */
+base_rps: number; 
+/**
+ * It never failed up to the search's ceiling: the limit is at least this.
+ */
+beyond_ceiling: boolean; 
+/**
+ * The first card to give way in the first failing window, if one did (a design can
+ * also fail on latency alone).
+ */
+first_failure: FirstFailure | null; 
+/**
+ * What failed in that window.
+ */
+failing_p95_ms: number; failing_error_rate: number; 
+/**
+ * Windows simulated.
+ */
+runs: number }
 /**
  * Where a calibrated default comes from (ADR 0005).
  */
@@ -332,6 +371,23 @@ export type DesignIssue = { code: IssueCode;
  */
 ids: string[] }
 export type Edge = { id: string; from: string; to: string; protocol: Protocol }
+/**
+ * Why the first card failed.
+ */
+export type FailureReason = 
+/**
+ * Every server busy.
+ */
+"saturated" | 
+/**
+ * Its queue filled and it dropped requests.
+ */
+"queue_overflow"
+export type FirstFailure = { node: string; reason: FailureReason; 
+/**
+ * Seconds into the first failing window.
+ */
+at_s: number; utilisation: number }
 /**
  * Real-product flavours. A flavour belongs to one kind (`Generic` is shared by kinds with
  * no product choice yet). Vendor names belong to their owners; no logos are used.

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { flavourName } from "@/solve/registry";
 import { useEditor } from "@/solve/store";
 import { NODE_DOWN } from "@/solve/run/frames";
+import { BreakingPoint } from "@/solve/run/BreakingPoint";
 import { useRun } from "@/solve/run/runStore";
 import { Sparkline } from "@/solve/run/Sparkline";
 
@@ -26,7 +27,12 @@ export function MetricsPanel() {
   const series = useRun((s) => s.series);
   const nodes = useEditor((s) => s.doc.nodes);
   if (!frame) {
-    return <p className="text-sm text-muted-foreground">{t("metrics.empty")}</p>;
+    return (
+      <div className="space-y-6">
+        <p className="text-sm text-muted-foreground">{t("metrics.empty")}</p>
+        <BreakingPoint />
+      </div>
+    );
   }
   const n0 = new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 0 });
   const n1 = new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 });
@@ -83,6 +89,7 @@ export function MetricsPanel() {
       {info && info.sample_factor < 1 && (
         <p className="text-xs text-muted-foreground">{t("metrics.sampled", { pct: n0.format(info.sample_factor * 100) })}</p>
       )}
+      <BreakingPoint />
     </div>
   );
 }

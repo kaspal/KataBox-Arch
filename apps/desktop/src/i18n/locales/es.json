@@ -427,5 +427,19 @@
     "down": "caído",
     "sampled": "Se simula el {{pct}} % de las solicitudes; los recuentos se escalan de vuelta.",
     "p95Trend": "Latencia p95 por segundo"
+  },
+  "breaking": {
+    "title": "Punto de ruptura",
+    "find": "Buscar el punto de ruptura",
+    "finding": "Subiendo el tráfico…",
+    "holds": "Aguanta unas {{rps}} solicitudes/s ({{x}}× el tráfico de los clientes).",
+    "holdsBeyond": "Aguanta más de {{rps}} solicitudes/s; la búsqueda se detiene ahí.",
+    "reason": {
+      "saturated": "{{name}} cede primero: todos sus servidores ocupados en los primeros {{at}} s de la ejecución que falla.",
+      "queue_overflow": "{{name}} cede primero: su cola se desborda en los primeros {{at}} s de la ejecución que falla."
+    },
+    "latencyOnly": "La latencia cede primero (p95 de {{p95}} ms) sin que ninguna tarjeta se sature.",
+    "stale": "El diseño ha cambiado desde entonces; vuelve a buscarlo.",
+    "limits": "Romper significa p95 por encima de 200 ms o más de un 1 % de errores, en ejecuciones de 20 s con tráfico creciente."
   }
 }

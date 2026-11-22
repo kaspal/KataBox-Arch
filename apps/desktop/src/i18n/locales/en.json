@@ -427,5 +427,19 @@
     "down": "down",
     "sampled": "Simulating {{pct}}% of requests; counts are scaled back up.",
     "p95Trend": "p95 latency per second"
+  },
+  "breaking": {
+    "title": "Breaking point",
+    "find": "Find breaking point",
+    "finding": "Pushing the traffic up…",
+    "holds": "Holds about {{rps}} req/s ({{x}}× the clients' traffic).",
+    "holdsBeyond": "Holds more than {{rps}} req/s; the search stops there.",
+    "reason": {
+      "saturated": "{{name}} gives way first: every server busy within {{at}} s of the failing run.",
+      "queue_overflow": "{{name}} gives way first: its queue overflows within {{at}} s of the failing run."
+    },
+    "latencyOnly": "Latency gives way first (p95 {{p95}} ms) without any card saturating.",
+    "stale": "The design has changed since; find it again.",
+    "limits": "Breaking means p95 above 200 ms or more than 1% errors, in 20 s runs of growing traffic."
   }
 }

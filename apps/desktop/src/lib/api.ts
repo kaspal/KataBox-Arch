@@ -7,6 +7,7 @@ import {
   commands,
   type AppError,
   type AppInfo,
+  type BreakingPoint,
   type ChaosEvent,
   type Design,
   type DesignIssue,
@@ -69,6 +70,8 @@ export const api = {
   },
   controlRun: (runId: number, control: RunControl): Promise<null> => call(commands.controlRun(runId, control)),
   runResult: (runId: number): Promise<RunResult | null> => call(commands.runResult(runId)),
+  /** How much traffic the design holds before it fails (a few seconds of simulation). */
+  findBreakingPoint: (design: Design): Promise<BreakingPoint> => call(commands.findBreakingPoint(design)),
 
   setWindowTitle: (title: string): Promise<null> => call(commands.setWindowTitle(title)),
   setDirty: (dirty: boolean): Promise<null> => call(commands.setDirty(dirty)),

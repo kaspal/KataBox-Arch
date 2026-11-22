@@ -221,6 +221,20 @@ async fn run_result(state: State<'_, AppState>, run_id: u32) -> Res<Option<ka_si
     state.app()?.run_result(run_id)
 }
 
+/// How much traffic the design holds before it fails, and what fails first (a few seconds of
+/// simulation, off the async runtime).
+#[tauri::command]
+#[specta::specta]
+async fn find_breaking_point(
+    state: State<'_, AppState>,
+    design: Design,
+) -> Res<ka_sim::BreakingPoint> {
+    let registry = state.app()?.registry().clone();
+    tauri::async_runtime::spawn_blocking(move || ka_app::breaking_point(&design, &registry))
+        .await
+        .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?
+}
+
 // --- Window ---------------------------------------------------------------------------
 
 /// The window title (the webview has no `setTitle` permission).
@@ -285,6 +299,7 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         start_run,
         control_run,
         run_result,
+        find_breaking_point,
         set_window_title,
         set_dirty,
         confirm_close,
