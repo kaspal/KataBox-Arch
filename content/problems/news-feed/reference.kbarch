@@ -1,0 +1,170 @@
+{
+  "schema_version": 2,
+  "id": "news-feed-reference",
+  "name": "News Feed (reference)",
+  "problem_id": "news-feed",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "mobile",
+      "label": "Readers",
+      "position": {
+        "x": 390,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "nginx",
+      "label": "",
+      "position": {
+        "x": 390,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {
+        "instances": 6
+      },
+      "group_id": null
+    },
+    {
+      "id": "stream",
+      "kind": "stream",
+      "flavour": "kafka",
+      "label": "New posts",
+      "position": {
+        "x": 520,
+        "y": 340
+      },
+      "props": {
+        "partitions": 32
+      },
+      "group_id": null
+    },
+    {
+      "id": "feeds",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "Feeds",
+      "position": {
+        "x": 0,
+        "y": 510
+      },
+      "props": {
+        "memory_gb": 16
+      },
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "",
+      "position": {
+        "x": 260,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "db-replica",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Replica",
+      "position": {
+        "x": 520,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "fanout",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Fan-out",
+      "position": {
+        "x": 780,
+        "y": 510
+      },
+      "props": {
+        "instances": 4,
+        "service_ms": 2
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "app",
+      "to": "feeds",
+      "protocol": "query"
+    },
+    {
+      "id": "e3",
+      "from": "app",
+      "to": "db",
+      "protocol": "query"
+    },
+    {
+      "id": "e4",
+      "from": "db",
+      "to": "db-replica",
+      "protocol": "replicate"
+    },
+    {
+      "id": "e5",
+      "from": "app",
+      "to": "stream",
+      "protocol": "publish"
+    },
+    {
+      "id": "e6",
+      "from": "stream",
+      "to": "fanout",
+      "protocol": "consume"
+    },
+    {
+      "id": "e7",
+      "from": "fanout",
+      "to": "feeds",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

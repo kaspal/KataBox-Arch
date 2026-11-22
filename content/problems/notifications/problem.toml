@@ -1,0 +1,78 @@
+id = "notifications"
+number = 8
+set = 1
+difficulty = "medium"
+title = "Notification System"
+title_es = "Sistema de notificaciones"
+teaches = "Queues, retries with backoff and a dead-letter queue around unreliable providers"
+teaches_es = "Colas, reintentos con espera y una cola de mensajes fallidos frente a proveedores poco fiables"
+tags = ["queues", "retries", "dlq", "external-providers"]
+
+[nfr]
+peak_rps = 1500
+p95_ms = 3000
+availability = 0.999
+budget_usd = 5000
+
+[[externals]]
+name = "push"
+median_ms = 40
+p99_ms = 300
+
+[[externals]]
+name = "email"
+median_ms = 150
+p99_ms = 1200
+
+[[externals]]
+name = "sms"
+median_ms = 300
+p99_ms = 2000
+
+[[request_types]]
+id = "push"
+name = "Push notification"
+name_es = "Notificación push"
+share = 0.6
+route = ["compute", "broker", "worker", "external:push"]
+measure = "completion"
+
+[[request_types]]
+id = "email"
+name = "Email"
+name_es = "Correo"
+share = 0.3
+route = ["compute", "broker", "worker", "external:email"]
+measure = "completion"
+
+[[request_types]]
+id = "sms"
+name = "SMS"
+name_es = "SMS"
+share = 0.1
+route = ["compute", "broker", "worker", "external:sms"]
+measure = "completion"
+
+[[tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "email-outage"
+name = "The email provider goes down"
+name_es = "Se cae el proveedor de correo"
+hidden = true
+chaos = [{ external = { name = "email", at = 15, for = 40, down = true } }]
+pass = { error_rate = 0.5, p95_ms = 60000 }
+
+[[tests]]
+id = "burst"
+name = "A marketing blast"
+name_es = "Un envío masivo de marketing"
+hidden = true
+traffic = { spike = { at = 20, x = 5, for = 10 } }
+pass = { p95_ms = 15000 }
+
+[pass]
+error_rate = 0.01

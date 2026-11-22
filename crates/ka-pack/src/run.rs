@@ -12,12 +12,13 @@ pub fn summary(j: &Judgement) -> String {
         .iter()
         .map(|t| {
             format!(
-                "{}{}: {:?} (p95 {:.1} ms, errors {:.3}%, cost ${:.0})",
+                "{}{}: {:?} (p95 {:.1} ms, errors {:.3}%, lost {:.0}, cost ${:.0})",
                 t.id,
                 if t.hidden { " [hidden]" } else { "" },
                 t.verdict,
                 t.p95_ms,
                 t.error_rate * 100.0,
+                t.lost,
                 t.cost_month
             )
         })
