@@ -1,15 +1,17 @@
 //! Storage for KataBox Arch. M0 has one SQLite file, `user.db` ([`UserDb`]): read-write,
 //! WAL mode, numbered migrations embedded in the binary and applied at open after a
-//! backup copy. It holds settings and the recent-files list. (`content.db`, the
-//! read-only problem catalogue, arrives in M2.)
+//! backup copy. It holds settings and the recent-files list. `content.db` ([`ContentDb`])
+//! is the read-only catalogue the app ships (built by `ka-pack`).
 //!
 //! Times are UTC: `INTEGER` milliseconds since the Unix epoch.
 //! sqlx is used with runtime queries only, so building needs no `DATABASE_URL`.
 
+pub mod content;
 #[cfg(test)]
 mod migration_tests;
 pub mod user;
 
+pub use content::{CONTENT_SCHEMA, ContentData, ContentDb, ProblemRow, write_content};
 pub use user::{BACKUPS_KEPT, RECENT_KEPT, RecentFile, UserDb};
 
 #[derive(Debug, thiserror::Error)]

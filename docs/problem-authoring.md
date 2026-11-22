@@ -1,0 +1,62 @@
+# Writing a problem
+
+Problems live in `content/problems/<id>/`. They are packed into the app by `ka-pack` (ADR 0008), simulated by
+`ka-sim` (ADR 0006) and judged by `ka-judge` (ADR 0007).
+
+## Start
+
+```sh
+cargo run -p ka-pack -- new my-problem   # creates content/problems/my-problem/ from templates
+cargo run -p ka-pack -- validate --problems my-problem          # structure, EN/ES parity, designs
+cargo run -p ka-pack -- validate --run --problems my-problem    # and judging (slower)
+```
+
+Every `TODO(ka-pack)` must go before validation passes.
+
+## The files
+
+| File | What it holds |
+|---|---|
+| `problem.toml` | Id, number, set, difficulty, titles and "teaches" (EN and ES), tags, NFRs, request types, externals, tests, pass criteria |
+| `statement.md`, `statement.es.md` | The brief. Same `##` sections in both languages |
+| `hints.md`, `hints.es.md` | Three tiers: `## 1`, `## 2`, `## 3`, from a nudge to almost the answer |
+| `editorial.md`, `editorial.es.md` | The worked solution, shown once solved. Same `##` sections in both |
+| `reference.kbarch` | A design that is Accepted on every test |
+| `naive.kbarch` | The obvious first design: valid, with a path for every request type, but it fails at least one hidden test |
+
+## Request types and routes
+A request type has:
+- a share of the traffic;
+- a route of steps, `role[:qualifier][?]` (ADR 0006, the caller rule):
+  - roles: `edge`, `compute`, `worker`, `cache`, `datastore`, `broker` and `external:<name>`;
+  - `?` makes a step optional, and `cache?` is cache-aside;
+  - `:write` goes to a cluster's primary;
+  - `a|b` accepts either.
+- optionally:
+  - `key_space` and `key_skew = { zipf = 1.1 }`;
+  - `cacheable` (for CDNs);
+  - `payload_kb` and `value_kb`;
+  - `api_keys` and `abusive`;
+  - `fanout`;
+  - `measure = "completion"` (for async work);
+  - `source = "scheduler"`.
+
+## Tests
+- **A test has:** an id, EN and ES names, `hidden`, `duration_s` (default 60), `traffic` (`flat`, `spike`, `ramp`,
+  `steps`, `hourly`), `chaos`, `type_multipliers`, `key_skew_override`, `cold_caches`, and optional `pass`
+  overrides.
+- **Chaos:**
+  - `kill`, `latency`, `partition`, `traffic`, `flush` and `external`;
+  - target selectors are written flat: `{ kill = { kind = "sql", role = "primary", at = 30 } }`.
+- **Hidden tests** show their name only, until the problem is solved.
+
+## Checklist
+- **Numbers:**
+  - NFRs come from the problem's real-world shape;
+  - the reference passes with headroom (not by 1%);
+  - the naive design fails for the lesson's reason, not by accident.
+- **Text:**
+  - original, with no copied interview-site material;
+  - EN and ES say the same thing.
+- **Calibration:** use registry defaults where you can, and change a prop in a design only for a reason the editorial
+  explains.

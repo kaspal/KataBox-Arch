@@ -8,6 +8,7 @@
 
 pub mod design;
 pub mod detmath;
+pub mod problem;
 pub mod registry;
 pub mod rng;
 pub mod scenario;

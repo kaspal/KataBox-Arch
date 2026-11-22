@@ -2,6 +2,8 @@
 node_modules/
 dist/
 apps/desktop/src-tauri/gen/
+# Built from content/ by the desktop build script (ka-pack).
+apps/desktop/src-tauri/resources/content.db
 *.log
 .DS_Store
 .env*
