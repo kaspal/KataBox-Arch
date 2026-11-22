@@ -139,6 +139,20 @@ describe("inspector", () => {
     await user.type(service, "4.5{Enter}");
     expect(useEditor.getState().doc.nodes[1].props.service_ms).toBe(4.5);
   });
+
+  it("tags calibrated defaults and leaves design choices untagged", async () => {
+    act(() => useEditor.getState().load(design, null));
+    act(() => useEditor.getState().setSelection(["a1"]));
+    renderApp("/sandbox");
+    await screen.findByLabelText("Instances");
+    // An app server: concurrency and service time are calibrated, instances is a choice.
+    const tags = screen.getAllByTestId("calibration-tag");
+    expect(tags).toHaveLength(2);
+    expect(tags[0]).toHaveTextContent("ballpark");
+    expect(tags[0]).toHaveAttribute("title", expect.stringMatching(/source is still being confirmed/));
+    expect(screen.getByText(/Tagged defaults are calibrated figures/)).toBeInTheDocument();
+    expect(screen.queryByText(/placeholders until the simulator/)).not.toBeInTheDocument();
+  });
 });
 
 describe("files", () => {

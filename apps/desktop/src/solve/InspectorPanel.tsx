@@ -13,12 +13,32 @@ import { choiceName, flavourName, kindName, kindSpec, propName, unitName } from 
 import { useEditor } from "@/solve/store";
 import { checkWire, makeWiring } from "@/solve/wiring";
 
-function Field({ label, htmlFor, children, error }: { label: string; htmlFor: string; children: React.ReactNode; error?: string }) {
+function Field({
+  label,
+  htmlFor,
+  children,
+  error,
+  tag,
+}: {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+  error?: string;
+  /** A short marker after the label, e.g. "ballpark" for a calibrated default. */
+  tag?: { text: string; title: string };
+}) {
   return (
     <div className="space-y-1">
-      <label htmlFor={htmlFor} className="text-xs font-medium text-muted-foreground">
-        {label}
-      </label>
+      <div className="flex items-center justify-between gap-2">
+        <label htmlFor={htmlFor} className="text-xs font-medium text-muted-foreground">
+          {label}
+        </label>
+        {tag && (
+          <span title={tag.title} data-testid="calibration-tag" className="rounded border px-1 text-[10px] leading-4 text-muted-foreground">
+            {tag.text}
+          </span>
+        )}
+      </div>
       {children}
       {error && (
         <p className="text-xs text-destructive" role="alert">
@@ -84,6 +104,11 @@ function PropField({ spec, value, onChange }: { spec: PropSpec; value: PropValue
   // Plain counts and unitless props show no suffix.
   const unit = spec.unit === "none" || spec.unit === "count" ? "" : unitName(t, spec.unit);
   const label = propName(t, spec.key);
+  const tag = spec.calibration
+    ? spec.calibration.status === "cited"
+      ? { text: t("inspector.cited"), title: t("inspector.citedHint") }
+      : { text: t("inspector.ballpark"), title: t("inspector.ballparkHint") }
+    : undefined;
   const [draft, setDraft] = useState(String(current));
   const [error, setError] = useState<string | undefined>();
   useEffect(() => {
@@ -129,7 +154,7 @@ function PropField({ spec, value, onChange }: { spec: PropSpec; value: PropValue
     if (n !== current) onChange(n);
   };
   return (
-    <Field label={unit ? `${label} (${unit})` : label} htmlFor={id} error={error}>
+    <Field label={unit ? `${label} (${unit})` : label} htmlFor={id} error={error} tag={tag}>
       <Input
         id={id}
         type="number"
@@ -201,7 +226,7 @@ function NodeInspector({ registry, node }: { registry: Registry; node: Node }) {
         {spec.props.map((p) => (
           <PropField key={p.key} spec={p} value={node.props[p.key]} onChange={(v) => setProp(node.id, p.key, v)} />
         ))}
-        <p className="text-xs text-muted-foreground">{t("inspector.placeholderNumbers")}</p>
+        {spec.props.some((p) => p.calibration) && <p className="text-xs text-muted-foreground">{t("inspector.calibrationNote")}</p>}
       </div>
       <DeleteButton ids={[node.id]} />
     </div>

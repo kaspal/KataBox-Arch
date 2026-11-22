@@ -62,7 +62,8 @@ A request type's `route` is a list of steps, `role[:qualifier…][?]`, with `a|b
 
 ### Servers
 - **Capacity:**
-  - a card has `servers = instances × concurrency` (kind defaults when it has no such prop), split into **lanes**
+  - a card has `servers = instances × concurrency` (the flavour's `SimDefaults` when it has no such prop; ADR 0005),
+    split into **lanes**
     for NoSQL partitions and SQL/search shards (a key always lands in the same lane, so hot keys make hot shards);
   - each lane has a bounded queue, and a full queue drops the request.
 - **Service time:** lognormal from the `service_ms` median and a per-kind p99/median ratio. SQL/NoSQL times scale
@@ -89,7 +90,9 @@ A request type's `route` is a list of steps, `role[:qualifier…][?]`, with `a|b
 - **Rate limiter:** token buckets per API key. Shed abusive traffic is success; shed legitimate traffic is an error.
 - **Serverless:** a cold start is paid when a request needs a new warm instance.
 - **Brokers:**
-  - queues dispatch to any free consumer slot;
+  - a publish is acknowledged after the hop and the broker's median publish latency (`service_ms`);
+  - queues dispatch to any free consumer slot; the reserved slot is the consumer's alone, and the consumer's own calls
+    queue for their servers like any request;
   - streams cap in-flight messages at `partitions`;
   - pub/sub pushes one copy per subscriber, and the message completes when all are done.
   - A failed message is retried with exponential backoff up to `max_retries`, then dead-lettered if a DLQ is wired
@@ -127,7 +130,7 @@ consistent across designs and not a vendor quote.
 
 ## Consequences
 - **Fast:** a 60 s run at 50k rps takes about 0.44 s in release (golden b).
-- **Calibration:** the model's knobs are registry props, calibrated in M1.2 with cited sources. Known
+- **Calibration:** the model's figures live in the registry and `docs/calibration.md` (ADR 0005). Known
   simplifications (documented for problem authors):
   - a cache's capacity is per request type;
   - TTL expiry is per key with no stampede coalescing;

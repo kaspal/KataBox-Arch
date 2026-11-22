@@ -185,6 +185,21 @@ fn stream_partitions_cap_consumer_parallelism() {
 }
 
 #[test]
+fn a_consumer_s_calls_take_their_own_servers() {
+    // The reserved consumer slot is the worker's, not the store's: the store behind the
+    // workers counts its own busy servers (a regression found in M1.2).
+    let (d, s) = golden_c();
+    let r = run(&d, &s, 1);
+    let store = node(&r, "store");
+    // 400 writes/s × ~3 ms over 4 partitions × 8 servers ≈ 0.04.
+    assert!(
+        (0.02..0.08).contains(&store.utilisation),
+        "{}",
+        store.utilisation
+    );
+}
+
+#[test]
 fn failing_async_work_is_retried_then_dead_lettered_or_lost() {
     let (mut d, mut s) = golden_c();
     s.externals.push(External {

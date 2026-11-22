@@ -77,8 +77,10 @@ struct Req {
     dead: bool,
     done: bool,
     pending: u32,
-    /// A queue/stream consumer slot reserved at dispatch.
+    /// A queue/stream consumer slot reserved at dispatch, taken when the message arrives.
     reserved: bool,
+    /// The message holds one of its broker's in-flight slots until it is done or fails.
+    in_flight: bool,
     units: f64,
     attempts: u32,
     broker: u32,
@@ -434,6 +436,7 @@ impl Engine {
             done: false,
             pending: 0,
             reserved: false,
+            in_flight: false,
             units: 1.0,
             attempts: 0,
             broker: NONE,
@@ -558,15 +561,18 @@ impl Engine {
             self.broker_accept(r, node);
             return;
         }
+        // A consumer's reserved slot is used by this arrival only; the calls it makes
+        // afterwards queue for their servers like any request.
+        let reserved = std::mem::take(&mut self.reqs[r as usize].reserved);
         if self.nodes[node as usize].down {
-            if self.reqs[r as usize].reserved {
+            if reserved {
                 self.set_busy(node, 0, -1);
             }
             self.fail(r);
             return;
         }
         let lane = self.lane_of(node, r);
-        if self.reqs[r as usize].reserved {
+        if reserved {
             self.start_service(r, node, lane);
             return;
         }
@@ -892,8 +898,10 @@ impl Engine {
         self.nodes[b as usize].served += w;
         let caller = self.reqs[r as usize].caller;
         if !self.reqs[r as usize].resp_sent {
-            // The publish is acknowledged: the client's answer leaves now.
-            let ack = hop_latency_us(&self.c, b, caller, Protocol::Publish);
+            // The publish is acknowledged once the broker has stored it (its median publish
+            // latency, calibrated per flavour); the client's answer leaves then.
+            let store = (self.c.nodes[b as usize].spec.service_ms * 1000.0).round() as u64;
+            let ack = hop_latency_us(&self.c, b, caller, Protocol::Publish) + store;
             self.record_response(r, self.now + ack);
         }
         // The message's async life starts.
@@ -917,6 +925,7 @@ impl Engine {
         q.units = units;
         q.caller = NONE;
         q.reserved = false;
+        q.in_flight = false;
         if self.c.nodes[b as usize].kind == ComponentKind::Pubsub {
             self.fan_out(r, b);
         } else {
@@ -926,6 +935,7 @@ impl Engine {
 
     fn enqueue_broker(&mut self, r: u32, b: u32) {
         self.reqs[r as usize].reserved = false;
+        self.reqs[r as usize].in_flight = false;
         self.reqs[r as usize].pending += 1;
         self.brokers[b as usize].queue.push_back(r);
         let len = self.brokers[b as usize].queue.len();
@@ -1005,6 +1015,7 @@ impl Engine {
             self.set_busy(c, 0, 1);
             let q = &mut self.reqs[r as usize];
             q.reserved = true;
+            q.in_flight = true;
             q.phase = Phase::Consumer;
             self.send(r, b, c, Protocol::Consume, false);
         }
@@ -1013,8 +1024,8 @@ impl Engine {
     /// The broker's in-flight slot for a dispatched message frees (done or failed).
     fn message_done(&mut self, r: u32) {
         let q = &mut self.reqs[r as usize];
-        if q.reserved && q.broker != NONE {
-            q.reserved = false;
+        if q.in_flight && q.broker != NONE {
+            q.in_flight = false;
             let b = q.broker;
             self.brokers[b as usize].in_flight =
                 self.brokers[b as usize].in_flight.saturating_sub(1);

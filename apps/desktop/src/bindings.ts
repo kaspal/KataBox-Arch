@@ -211,6 +211,23 @@ export type AppErrorCode =
 "internal"
 export type AppInfo = { version: string; dev_data: boolean }
 /**
+ * Where a calibrated default comes from (ADR 0005).
+ */
+export type CalibrationRef = { 
+/**
+ * The row id in `docs/calibration.md`, e.g. `sql.service_ms`.
+ */
+id: string; status: CalibrationStatus }
+export type CalibrationStatus = 
+/**
+ * The figure is taken from the cited source.
+ */
+"cited" | 
+/**
+ * A conservative ballpark; its source still has to be confirmed.
+ */
+"needed"
+/**
  * The five library categories, each with its colour token (`--cat-<id>`).
  */
 export type Category = 
@@ -271,7 +288,11 @@ export type FlavourSpec = { flavour: Flavour; overrides: PropOverride[];
 /**
  * The monthly price model (a teaching model, consistent across flavours; not a quote).
  */
-cost: Cost }
+cost: Cost; 
+/**
+ * Behaviour without a prop; None for kinds never on a request's path.
+ */
+sim: SimDefaults | null }
 /**
  * A Region or AZ frame. Membership is by `Node::group_id` / `Group::parent_id`.
  */
@@ -400,7 +421,12 @@ export type Placement =
 "wrapper"
 export type Point = { x: number; y: number }
 export type PropOverride = { key: string; value: PropValue }
-export type PropSpec = { key: string; ty: PropType; default: PropValue; unit: Unit }
+export type PropSpec = { key: string; ty: PropType; default: PropValue; unit: Unit; 
+/**
+ * Set when the default is a calibrated figure (a row in `docs/calibration.md`); None
+ * for design choices.
+ */
+calibration?: CalibrationRef | null }
 /**
  * A prop's type and allowed range.
  */
@@ -435,6 +461,31 @@ export type Registry = { categories: Category[]; kinds: KindSpec[]; meta: MetaSp
  * An autoscaling group's policy: the Autoscaling kind's flavour and props (v2).
  */
 export type Scaling = { flavour: Flavour; props: Partial<{ [key in string]: PropValue }> }
+/**
+ * How a flavour behaves as a server where it has no prop for it (ADR 0005, ADR 0006).
+ */
+export type SimDefaults = { 
+/**
+ * Requests one instance (or one partition/shard) works on at once, when the kind has
+ * no `concurrency` prop.
+ */
+servers_per_instance: number; 
+/**
+ * Median service time when the kind has no `service_ms` prop.
+ */
+service_ms: number; 
+/**
+ * p99 / median of the service time.
+ */
+p99_ratio: number; 
+/**
+ * Waiting slots per server before requests are dropped.
+ */
+queue_per_server: number; 
+/**
+ * Seconds before a replica takes over from a dead primary (data kinds).
+ */
+failover_s: number }
 export type Size = { w: number; h: number }
 /**
  * The unit shown after a prop's value (`units.<unit>` in the UI).

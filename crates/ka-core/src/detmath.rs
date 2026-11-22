@@ -140,7 +140,17 @@ mod tests {
     #[test]
     fn exp_matches_std() {
         for &x in &[
-            -700.0, -50.0, -1.0, -1e-9, 0.0, 1e-9, 0.5, 1.0, std::f64::consts::LN_10, 50.0, 700.0,
+            -700.0,
+            -50.0,
+            -1.0,
+            -1e-9,
+            0.0,
+            1e-9,
+            0.5,
+            1.0,
+            std::f64::consts::LN_10,
+            50.0,
+            700.0,
         ] {
             assert!(
                 close(exp(x), x.exp()),

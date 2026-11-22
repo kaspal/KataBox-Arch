@@ -10,6 +10,7 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
 - **Autoscaling groups** are frames around compute cards, with a scaling policy (flavour,
   minimum and maximum instances, target utilisation, scale-out delay) edited in the Inspector.
 - Edges that share a side of a card spread out along it instead of meeting at one point.
+- SQL databases have a **Failover time** property.
 
 ### Changed
 - Design files are format version 2. Version 1 files still open: an Autoscaling card becomes a
@@ -17,6 +18,11 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
   dropped.
 - The Inspector's Label field shows the product name as its placeholder.
 - "Fit the design" never zooms out below 80%, so card text stays readable.
+- **Calibrated defaults:**
+  - Component defaults are calibrated per product, and every figure is listed with its source in
+    `docs/calibration.md`. Examples: PostgreSQL's 100 connections, MySQL's 151, Sidekiq's 5 threads, Cloud Run's
+    limits.
+  - The Inspector tags these figures as "ballpark" or "cited", in place of the old "placeholders" note.
 
 ### Fixed
 - A layout loop that re-measured the canvas every frame whenever zones or notes were on screen.

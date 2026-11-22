@@ -19,8 +19,10 @@ pub use design::{
     Scaling, Size, Viewport,
 };
 pub use registry::{
-    Category, ComponentKind, Cost, Flavour, FlavourSpec, KindSpec, MetaKind, MetaSpec, Placement,
-    PropOverride, PropSpec, PropType, Registry, Unit, registry,
+    CALIBRATED_PROPS, CITED, CalibrationRef, CalibrationRow, CalibrationStatus, Category,
+    ComponentKind, Cost, Flavour, FlavourSpec, KindSpec, MetaKind, MetaSpec, Placement,
+    PropOverride, PropSpec, PropType, Registry, SimDefaults, Unit, calibration_rows, flavour_id,
+    registry,
 };
 pub use validate::{DesignIssue, IssueCode, Limits, validate, wire_reason};
 pub use wiring::{KindSet, WiringCell, WiringDenial, WiringReason, WiringRule, WiringTable};

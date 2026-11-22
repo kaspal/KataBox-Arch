@@ -1,55 +1,25 @@
 //! How each card behaves as a server: capacity, lanes, service time, queue (ADR 0006).
 //! Props come from the card, then its flavour's overrides, then the kind's defaults; the
-//! few figures a kind has no prop for live in `KindDefaults` (M1.2 calibrates both).
+//! figures a kind has no prop for are the flavour's `SimDefaults` (both calibrated in the
+//! registry, ADR 0005).
 
-use ka_core::{ComponentKind, Node, PropValue, Registry};
+use ka_core::{ComponentKind, Node, PropValue, Registry, SimDefaults};
 
 use crate::route::Role;
 
-/// Values the registry has no prop for.
-#[derive(Debug, Clone, Copy)]
-pub struct KindDefaults {
-    /// Concurrent requests per instance when the kind has no `concurrency` prop.
-    pub servers_per_instance: f64,
-    /// Median service time when the kind has no `service_ms` prop.
-    pub service_ms: f64,
-    /// p99 / median of the service time.
-    pub p99_ratio: f64,
-    /// Queue slots per server.
-    pub queue_per_server: f64,
-}
-
-pub fn kind_defaults(kind: ComponentKind) -> KindDefaults {
-    use ComponentKind as K;
-    let d = |servers_per_instance: f64, service_ms: f64, p99_ratio: f64, queue_per_server: f64| {
-        KindDefaults {
-            servers_per_instance,
-            service_ms,
-            p99_ratio,
-            queue_per_server,
-        }
-    };
-    match kind {
-        K::Dns => d(10_000.0, 0.2, 3.0, 4.0),
-        K::Cdn => d(100_000.0, 2.0, 4.0, 4.0),
-        K::Waf => d(2_000.0, 0.5, 3.0, 8.0),
-        K::Lb => d(10_000.0, 0.2, 3.0, 8.0),
-        K::Gateway => d(256.0, 2.0, 4.0, 8.0),
-        K::Ratelimit => d(10_000.0, 0.3, 3.0, 8.0),
-        K::App | K::Micro => d(64.0, 10.0, 4.0, 8.0),
-        K::Worker => d(8.0, 100.0, 4.0, 8.0),
-        K::Serverless => d(1.0, 20.0, 4.0, 2.0),
-        K::Sql => d(100.0, 5.0, 5.0, 4.0),
-        K::Nosql => d(64.0, 3.0, 4.0, 4.0),
-        // Redis and Memcached answer from one event loop per instance, very fast.
-        K::Cache => d(1.0, 0.05, 3.0, 512.0),
-        K::Object => d(10_000.0, 50.0, 4.0, 4.0),
-        K::Search => d(16.0, 20.0, 4.0, 8.0),
-        K::Queue | K::Stream | K::Pubsub | K::Dlq => d(10_000.0, 1.0, 3.0, 4.0),
-        K::Client | K::Scheduler | K::Autoscale | K::Metrics | K::Logs | K::Tracing => {
-            d(1.0, 0.0, 1.0, 1.0)
-        }
-    }
+/// The flavour's behaviour without a prop; kinds never on a path get inert values.
+pub fn sim_defaults(registry: &Registry, node: &Node) -> SimDefaults {
+    registry
+        .kind(node.kind)
+        .flavour(node.flavour)
+        .and_then(|f| f.sim)
+        .unwrap_or(SimDefaults {
+            servers_per_instance: 1.0,
+            service_ms: 0.0,
+            p99_ratio: 1.0,
+            queue_per_server: 1.0,
+            failover_s: 0.0,
+        })
 }
 
 /// A card's resolved behaviour.
@@ -118,7 +88,7 @@ fn text(registry: &Registry, node: &Node, key: &str) -> Option<String> {
 
 pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
     use ComponentKind as K;
-    let d = kind_defaults(node.kind);
+    let d = sim_defaults(registry, node);
     let n = |k: &str| num(registry, node, k);
     let instances = n("instances").unwrap_or(1.0).max(1.0);
     let servers = match node.kind {
@@ -157,6 +127,6 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         burst: n("burst").unwrap_or(1.0),
         algorithm: text(registry, node, "algorithm").unwrap_or_else(|| "round_robin".into()),
         replication_lag_ms: n("replication_lag_ms").unwrap_or(0.0),
-        failover_s: n("failover_s").unwrap_or(10.0),
+        failover_s: n("failover_s").unwrap_or(d.failover_s),
     }
 }
