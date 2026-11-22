@@ -1,0 +1,21 @@
+[package]
+name = "ka-sim"
+description = "KataBox Arch simulator: a seeded, deterministic discrete-event model of a design under traffic"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+ka-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+specta = { workspace = true, optional = true }
+
+[features]
+# TypeScript bindings for the desktop app (tauri-specta).
+specta = ["dep:specta", "ka-core/specta"]
+
+[lints]
+workspace = true

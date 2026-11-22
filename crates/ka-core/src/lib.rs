@@ -7,7 +7,10 @@
 //! - [`validate`]: checks a design against the registry and the wiring table.
 
 pub mod design;
+pub mod detmath;
 pub mod registry;
+pub mod rng;
+pub mod scenario;
 pub mod validate;
 pub mod wiring;
 
@@ -16,7 +19,7 @@ pub use design::{
     Scaling, Size, Viewport,
 };
 pub use registry::{
-    Category, ComponentKind, Flavour, FlavourSpec, KindSpec, MetaKind, MetaSpec, Placement,
+    Category, ComponentKind, Cost, Flavour, FlavourSpec, KindSpec, MetaKind, MetaSpec, Placement,
     PropOverride, PropSpec, PropType, Registry, Unit, registry,
 };
 pub use validate::{DesignIssue, IssueCode, Limits, validate, wire_reason};

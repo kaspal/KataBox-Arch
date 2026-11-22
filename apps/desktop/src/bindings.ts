@@ -238,6 +238,12 @@ export type Category =
  * The 25 component kinds. Ids match the icon ids (`icons.json`).
  */
 export type ComponentKind = "client" | "dns" | "cdn" | "waf" | "lb" | "gateway" | "ratelimit" | "app" | "micro" | "worker" | "serverless" | "autoscale" | "sql" | "nosql" | "cache" | "object" | "search" | "queue" | "stream" | "pubsub" | "dlq" | "scheduler" | "metrics" | "logs" | "tracing"
+/**
+ * A flavour's monthly price: per instance (or per card), per GB of cache memory, and per
+ * million requests through it. Teaching figures, loosely shaped like public list prices
+ * (ADR 0006); the judge compares designs with each other, never with a real bill.
+ */
+export type Cost = { per_instance_month: number; per_gb_month: number; per_million: number }
 export type Design = { schema_version: number; id: string; name: string; 
 /**
  * The problem this design solves; `None` in the Sandbox.
@@ -261,7 +267,11 @@ export type Flavour = "generic" | "web" | "mobile" | "route53" | "cloudflare_dns
 /**
  * A flavour of a kind, with the props it changes from the kind's defaults.
  */
-export type FlavourSpec = { flavour: Flavour; overrides: PropOverride[] }
+export type FlavourSpec = { flavour: Flavour; overrides: PropOverride[]; 
+/**
+ * The monthly price model (a teaching model, consistent across flavours; not a quote).
+ */
+cost: Cost }
 /**
  * A Region or AZ frame. Membership is by `Node::group_id` / `Group::parent_id`.
  */

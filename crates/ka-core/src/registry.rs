@@ -324,6 +324,53 @@ impl PropSpec {
 pub struct FlavourSpec {
     pub flavour: Flavour,
     pub overrides: Vec<PropOverride>,
+    /// The monthly price model (a teaching model, consistent across flavours; not a quote).
+    pub cost: Cost,
+}
+
+/// A flavour's monthly price: per instance (or per card), per GB of cache memory, and per
+/// million requests through it. Teaching figures, loosely shaped like public list prices
+/// (ADR 0006); the judge compares designs with each other, never with a real bill.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+pub struct Cost {
+    pub per_instance_month: f64,
+    pub per_gb_month: f64,
+    pub per_million: f64,
+}
+
+/// The kind's default price (flavours may override in `fl_cost`).
+fn kind_cost(kind: ComponentKind) -> Cost {
+    use ComponentKind as K;
+    let c = |i: f64, g: f64, m: f64| Cost {
+        per_instance_month: i,
+        per_gb_month: g,
+        per_million: m,
+    };
+    match kind {
+        K::Client | K::Autoscale => c(0.0, 0.0, 0.0),
+        K::Dns => c(0.0, 0.0, 0.4),
+        K::Cdn => c(0.0, 0.0, 0.75),
+        K::Waf => c(20.0, 0.0, 0.6),
+        K::Lb => c(25.0, 0.0, 0.0),
+        K::Gateway => c(60.0, 0.0, 1.0),
+        K::Ratelimit => c(30.0, 0.0, 0.0),
+        K::App | K::Micro | K::Worker => c(70.0, 0.0, 0.0),
+        K::Serverless => c(0.0, 0.0, 3.0),
+        K::Sql => c(350.0, 0.0, 0.0),
+        K::Nosql => c(120.0, 0.0, 0.5),
+        K::Cache => c(0.0, 18.0, 0.0),
+        K::Object => c(0.0, 0.0, 4.0),
+        K::Search => c(250.0, 0.0, 0.0),
+        K::Queue => c(40.0, 0.0, 0.4),
+        K::Stream => c(15.0, 0.0, 0.2),
+        K::Pubsub => c(0.0, 0.0, 0.5),
+        K::Dlq => c(0.0, 0.0, 0.4),
+        K::Scheduler => c(20.0, 0.0, 0.0),
+        K::Metrics => c(100.0, 0.0, 0.0),
+        K::Logs => c(150.0, 0.0, 0.0),
+        K::Tracing => c(80.0, 0.0, 0.0),
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -455,6 +502,7 @@ fn fl(flavour: Flavour) -> FlavourSpec {
     FlavourSpec {
         flavour,
         overrides: Vec::new(),
+        cost: Cost::default(),
     }
 }
 
@@ -468,6 +516,7 @@ fn fl_with(flavour: Flavour, overrides: &[(&str, PropValue)]) -> FlavourSpec {
                 value: v.clone(),
             })
             .collect(),
+        cost: Cost::default(),
     }
 }
 
@@ -475,8 +524,13 @@ fn num(v: f64) -> PropValue {
     PropValue::Number(v)
 }
 
-fn kind(kind: ComponentKind, flavours: Vec<FlavourSpec>, props: Vec<PropSpec>) -> KindSpec {
+fn kind(kind: ComponentKind, mut flavours: Vec<FlavourSpec>, props: Vec<PropSpec>) -> KindSpec {
     let category = kind.category();
+    for f in &mut flavours {
+        if f.cost == Cost::default() {
+            f.cost = kind_cost(kind);
+        }
+    }
     KindSpec {
         kind,
         category,
@@ -501,7 +555,7 @@ fn concurrency(default: f64) -> PropSpec {
     int("concurrency", 1.0, 4096.0, default, Unit::Count)
 }
 fn service_ms(default: f64) -> PropSpec {
-    float("service_ms", 0.1, 10_000.0, 0.1, default, Unit::Ms)
+    float("service_ms", 0.01, 10_000.0, 0.01, default, Unit::Ms)
 }
 fn compute_props(inst: f64, conc: f64, ms: f64) -> Vec<PropSpec> {
     vec![instances(inst), concurrency(conc), service_ms(ms)]
@@ -640,7 +694,7 @@ pub fn registry() -> Registry {
                 int("ttl_s", 0.0, 604_800.0, 300.0, Unit::S),
                 choice("eviction", &["lru", "lfu", "ttl"], "lru"),
                 boolean("persistence", false),
-                service_ms(0.5),
+                service_ms(0.02),
             ],
         ),
         kind(

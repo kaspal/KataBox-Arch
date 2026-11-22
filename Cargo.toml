@@ -15,6 +15,7 @@ rust-version = "1.99"
 [workspace.dependencies]
 ka-app = { path = "crates/ka-app" }
 ka-core = { path = "crates/ka-core" }
+ka-sim = { path = "crates/ka-sim" }
 ka-store = { path = "crates/ka-store" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

@@ -1843,6 +1843,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ka-sim"
+version = "0.1.0"
+dependencies = [
+ "ka-core",
+ "serde",
+ "serde_json",
+ "specta",
+]
+
+[[package]]
 name = "ka-store"
 version = "0.1.0"
 dependencies = [

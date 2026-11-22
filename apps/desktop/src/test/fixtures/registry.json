@@ -4387,10 +4387,20 @@
         "default_flavour": "web",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.0
+            },
             "flavour": "web",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.0
+            },
             "flavour": "mobile",
             "overrides": []
           }
@@ -4418,10 +4428,20 @@
         "default_flavour": "route53",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.4
+            },
             "flavour": "route53",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.4
+            },
             "flavour": "cloudflare_dns",
             "overrides": []
           }
@@ -4449,14 +4469,29 @@
         "default_flavour": "cloudfront",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.75
+            },
             "flavour": "cloudfront",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.75
+            },
             "flavour": "cloudflare_cdn",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.75
+            },
             "flavour": "fastly",
             "overrides": []
           }
@@ -4484,10 +4519,20 @@
         "default_flavour": "aws_waf",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 20.0,
+              "per_million": 0.6
+            },
             "flavour": "aws_waf",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 20.0,
+              "per_million": 0.6
+            },
             "flavour": "cloudflare_waf",
             "overrides": []
           }
@@ -4512,8 +4557,8 @@
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -4526,18 +4571,38 @@
         "default_flavour": "nginx",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 25.0,
+              "per_million": 0.0
+            },
             "flavour": "nginx",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 25.0,
+              "per_million": 0.0
+            },
             "flavour": "haproxy",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 25.0,
+              "per_million": 0.0
+            },
             "flavour": "aws_alb",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 25.0,
+              "per_million": 0.0
+            },
             "flavour": "aws_nlb",
             "overrides": [
               {
@@ -4580,8 +4645,8 @@
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -4594,10 +4659,20 @@
         "default_flavour": "kong",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 60.0,
+              "per_million": 1.0
+            },
             "flavour": "kong",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 60.0,
+              "per_million": 1.0
+            },
             "flavour": "aws_api_gateway",
             "overrides": []
           }
@@ -4633,8 +4708,8 @@
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -4647,10 +4722,20 @@
         "default_flavour": "envoy",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 30.0,
+              "per_million": 0.0
+            },
             "flavour": "envoy",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 30.0,
+              "per_million": 0.0
+            },
             "flavour": "redis_token_bucket",
             "overrides": []
           }
@@ -4689,14 +4774,29 @@
         "default_flavour": "nodejs",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_million": 0.0
+            },
             "flavour": "nodejs",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_million": 0.0
+            },
             "flavour": "spring_boot",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_million": 0.0
+            },
             "flavour": "go",
             "overrides": [
               {
@@ -4706,6 +4806,11 @@
             ]
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_million": 0.0
+            },
             "flavour": "django",
             "overrides": [
               {
@@ -4746,8 +4851,8 @@
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -4760,6 +4865,11 @@
         "default_flavour": "generic",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_million": 0.0
+            },
             "flavour": "generic",
             "overrides": []
           }
@@ -4795,8 +4905,8 @@
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -4809,10 +4919,20 @@
         "default_flavour": "celery",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_million": 0.0
+            },
             "flavour": "celery",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_million": 0.0
+            },
             "flavour": "sidekiq",
             "overrides": []
           }
@@ -4848,8 +4968,8 @@
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -4862,10 +4982,20 @@
         "default_flavour": "aws_lambda",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 3.0
+            },
             "flavour": "aws_lambda",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 3.0
+            },
             "flavour": "cloud_run",
             "overrides": [
               {
@@ -4906,8 +5036,8 @@
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -4920,10 +5050,20 @@
         "default_flavour": "kubernetes_hpa",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.0
+            },
             "flavour": "kubernetes_hpa",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.0
+            },
             "flavour": "aws_asg",
             "overrides": []
           }
@@ -4984,10 +5124,20 @@
         "default_flavour": "postgresql",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 350.0,
+              "per_million": 0.0
+            },
             "flavour": "postgresql",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 350.0,
+              "per_million": 0.0
+            },
             "flavour": "mysql",
             "overrides": []
           }
@@ -5023,8 +5173,8 @@
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -5048,14 +5198,29 @@
         "default_flavour": "dynamodb",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 120.0,
+              "per_million": 0.5
+            },
             "flavour": "dynamodb",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 120.0,
+              "per_million": 0.5
+            },
             "flavour": "cassandra",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 120.0,
+              "per_million": 0.5
+            },
             "flavour": "mongodb",
             "overrides": []
           }
@@ -5103,8 +5268,8 @@
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -5117,10 +5282,20 @@
         "default_flavour": "redis",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 18.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.0
+            },
             "flavour": "redis",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 18.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.0
+            },
             "flavour": "memcached",
             "overrides": []
           }
@@ -5173,12 +5348,12 @@
             "unit": "none"
           },
           {
-            "default": 0.5,
+            "default": 0.02,
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -5191,10 +5366,20 @@
         "default_flavour": "s3",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 4.0
+            },
             "flavour": "s3",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 4.0
+            },
             "flavour": "gcs",
             "overrides": []
           }
@@ -5208,8 +5393,8 @@
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -5222,10 +5407,20 @@
         "default_flavour": "elasticsearch",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 250.0,
+              "per_million": 0.0
+            },
             "flavour": "elasticsearch",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 250.0,
+              "per_million": 0.0
+            },
             "flavour": "opensearch",
             "overrides": []
           }
@@ -5261,8 +5456,8 @@
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -5275,10 +5470,20 @@
         "default_flavour": "rabbitmq",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 40.0,
+              "per_million": 0.4
+            },
             "flavour": "rabbitmq",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 40.0,
+              "per_million": 0.4
+            },
             "flavour": "sqs",
             "overrides": []
           }
@@ -5328,10 +5533,20 @@
         "default_flavour": "kafka",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 15.0,
+              "per_million": 0.2
+            },
             "flavour": "kafka",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 15.0,
+              "per_million": 0.2
+            },
             "flavour": "kinesis",
             "overrides": []
           }
@@ -5370,14 +5585,29 @@
         "default_flavour": "google_pubsub",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.5
+            },
             "flavour": "google_pubsub",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.5
+            },
             "flavour": "sns",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.5
+            },
             "flavour": "redis_pubsub",
             "overrides": []
           }
@@ -5391,8 +5621,8 @@
             "key": "service_ms",
             "ty": {
               "max": 10000.0,
-              "min": 0.1,
-              "step": 0.1,
+              "min": 0.01,
+              "step": 0.01,
               "type": "float"
             },
             "unit": "ms"
@@ -5405,6 +5635,11 @@
         "default_flavour": "generic",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_million": 0.4
+            },
             "flavour": "generic",
             "overrides": []
           }
@@ -5432,10 +5667,20 @@
         "default_flavour": "cron",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 20.0,
+              "per_million": 0.0
+            },
             "flavour": "cron",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 20.0,
+              "per_million": 0.0
+            },
             "flavour": "airflow",
             "overrides": []
           }
@@ -5463,6 +5708,11 @@
         "default_flavour": "prometheus_grafana",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 100.0,
+              "per_million": 0.0
+            },
             "flavour": "prometheus_grafana",
             "overrides": []
           }
@@ -5490,10 +5740,20 @@
         "default_flavour": "elk",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 150.0,
+              "per_million": 0.0
+            },
             "flavour": "elk",
             "overrides": []
           },
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 150.0,
+              "per_million": 0.0
+            },
             "flavour": "loki",
             "overrides": []
           }
@@ -5521,6 +5781,11 @@
         "default_flavour": "jaeger",
         "flavours": [
           {
+            "cost": {
+              "per_gb_month": 0.0,
+              "per_instance_month": 80.0,
+              "per_million": 0.0
+            },
             "flavour": "jaeger",
             "overrides": []
           }
