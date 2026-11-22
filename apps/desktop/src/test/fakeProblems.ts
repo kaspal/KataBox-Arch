@@ -15,6 +15,7 @@ export const FAKE_BRIEF: ProblemBrief = {
     status: null,
     best_score: null,
     best_cost: null,
+    pack: null,
   },
   nfr: { peak_rps: 12000, read_ratio: 0.95, p95_ms: 80, availability: 0.999, budget_usd: 2500 },
   p99_ms: 120,

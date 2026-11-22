@@ -1,7 +1,8 @@
 // Content prose (statements, hints, editorials, the Guide, patterns): Markdown with GitHub
 // tables and lists. Raw HTML in content is dropped, never rendered (no rehype-raw; a test
 // checks it). The first use of each glossary term links to the glossary, with its
-// definition in a tooltip on hover or keyboard focus.
+// definition in a tooltip on hover or keyboard focus. Text from a problem pack (M6.4,
+// `trust="pack"`) shows images as their alt text: a pack can't make the page load anything.
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "@tanstack/react-router";
@@ -51,7 +52,18 @@ function GlossaryTerm({ id, definition, children }: { id: string; definition: st
   );
 }
 
-export function Markdown({ children, className, glossary = true }: { children: string; className?: string; glossary?: boolean }) {
+export function Markdown({
+  children,
+  className,
+  glossary = true,
+  trust = "app",
+}: {
+  children: string;
+  className?: string;
+  glossary?: boolean;
+  /** Where the text came from: built-in content, or an imported pack. */
+  trust?: "app" | "pack";
+}) {
   const { i18n } = useTranslation();
   const terms = useGlossary();
   const es = i18n.language.startsWith("es");
@@ -61,6 +73,9 @@ export function Markdown({ children, className, glossary = true }: { children: s
     const defs = new Map(list.map((g) => [g.id, es ? g.definition_es : g.definition]));
     const comps: Components = {
       ...base,
+      ...(trust === "pack"
+        ? { img: ({ alt }: { alt?: string }) => <span data-testid="inert-image">{alt ? `[${alt}]` : ""}</span> }
+        : {}),
       dfn: ({ node, children: inner }) => {
         const id = String(node?.properties?.dataTerm ?? "");
         const def = defs.get(id);
@@ -74,7 +89,7 @@ export function Markdown({ children, className, glossary = true }: { children: s
       },
     };
     return { plugins: needles.length > 0 ? [remarkGfm, remarkGlossary(needles)] : [remarkGfm], components: comps };
-  }, [glossary, terms.data, es]);
+  }, [glossary, terms.data, es, trust]);
   return (
     <div className={cn("space-y-3 text-sm", className)} data-testid="markdown">
       <ReactMarkdown remarkPlugins={plugins} skipHtml components={components}>

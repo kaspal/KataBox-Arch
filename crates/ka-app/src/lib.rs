@@ -7,6 +7,7 @@ pub mod error;
 pub mod guide;
 pub mod kbarch;
 pub mod live;
+pub mod packs;
 pub mod patterns;
 pub mod practice;
 pub mod problems;
@@ -40,6 +41,8 @@ pub struct AppPaths {
     /// The bundled problem catalogue (`content.db`, read-only). None or missing: the app
     /// runs without problems.
     pub content_db: Option<PathBuf>,
+    /// Where installed problem packs live (`<data>/packs`). None: packs are off.
+    pub packs_dir: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -76,6 +79,8 @@ pub struct App {
     session_paths: Mutex<HashSet<String>>,
     /// The problem catalogue, if it was found and opened.
     content: Option<ka_store::ContentDb>,
+    /// Installed problem packs (M6.4).
+    packs: packs::Packs,
     /// The live run, if one is playing (one at a time), and the id of the next.
     live: Mutex<Option<(u32, live::LiveRun)>>,
     next_run: std::sync::atomic::AtomicU32,
@@ -92,9 +97,12 @@ impl App {
             Some(p) if p.exists() => Some(ka_store::ContentDb::open(p).await?),
             _ => None,
         };
+        let packs = packs::Packs::new(paths.packs_dir.clone());
+        packs.load(&user.packs().await?).await?;
         Ok(App {
             user,
             content,
+            packs,
             registry: registry(),
             info: AppInfo {
                 version: env!("CARGO_PKG_VERSION").into(),
@@ -126,6 +134,7 @@ impl App {
         if let Some(c) = &self.content {
             c.close().await;
         }
+        self.packs.close().await;
     }
 
     // --- Settings -------------------------------------------------------------------
@@ -292,6 +301,7 @@ mod tests {
             user_db: dir.join("user.db"),
             dev_data: true,
             content_db: None,
+            packs_dir: None,
         })
         .await
         .unwrap();

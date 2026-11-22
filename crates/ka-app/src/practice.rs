@@ -488,6 +488,7 @@ mod tests {
             user_db: dir.join("user.db"),
             dev_data: true,
             content_db: Some(content),
+            packs_dir: None,
         })
         .await
         .unwrap()

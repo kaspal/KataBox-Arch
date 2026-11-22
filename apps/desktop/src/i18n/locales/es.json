@@ -61,7 +61,9 @@
     "path_not_allowed": "Usa Guardar como o Abrir para elegir antes un archivo.",
     "internal": "Algo salió mal dentro de la app.",
     "no_path": "Ninguna solicitud puede atravesar este diseño. Conecta un cliente a un servicio.",
-    "content_missing": "Falta el catálogo de problemas en esta instalación. Vuelve a instalar la app."
+    "content_missing": "Falta el catálogo de problemas en esta instalación. Vuelve a instalar la app.",
+    "pack_refused": "Este paquete no ha superado las comprobaciones de seguridad y contenido, así que no se ha instalado nada.",
+    "pack_version": "Este paquete no puede sustituir al instalado: es más antiguo, o es la misma versión con otro contenido."
   },
   "files": {
     "unsaved": {
@@ -494,7 +496,14 @@
     "random": "Problema al azar",
     "continue": "Continuar: {{title}}",
     "none": "Ningún problema coincide.",
-    "unavailable": "Los problemas no están disponibles"
+    "unavailable": "Los problemas no están disponibles",
+    "source": {
+      "label": "Origen",
+      "all": "Todos",
+      "builtin": "Incluidos",
+      "packs": "Paquetes"
+    },
+    "fromPack": "Del paquete {{name}}"
   },
   "brief": {
     "teaches": "Enseña: {{what}}",
@@ -761,5 +770,41 @@
       "arithmetic": "Aritmética",
       "simulator": "La cifra del propio simulador"
     }
+  },
+  "packs": {
+    "title": "Paquetes de problemas",
+    "intro": "Un paquete es un conjunto de problemas extra que alguien ha compartido como archivo .kbpack. Al importarlo se comprueba primero (sus archivos, su texto y una ejecución juzgada de cada diseño); no se instala nada hasta que lo confirmes.",
+    "import": "Importar paquete…",
+    "checking": "Comprobando el paquete…",
+    "previewTitle": "¿Instalar este paquete?",
+    "previewBody": "Ha superado todas las comprobaciones. Esto es lo que contiene.",
+    "unsigned": "Paquete sin firmar, de {{author}} (según el propio paquete). Instala solo paquetes de personas en las que confíes.",
+    "field": {
+      "name": "Nombre",
+      "author": "Autoría",
+      "version": "Versión",
+      "licence": "Licencia",
+      "sha": "SHA-256"
+    },
+    "problems_one": "{{n}} problema",
+    "problems_other": "{{n}} problemas",
+    "change": {
+      "new": "Nuevo: se añadirá a tus problemas.",
+      "upgrade": "Sustituye a la versión {{from}}, que está instalada.",
+      "reinstall": "Ya quitaste este paquete antes: volverá.",
+      "same": "Este mismo paquete ya está instalado."
+    },
+    "install": "Instalar",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "installed": "{{name}} instalado.",
+    "refusedTitle": "No se ha instalado el paquete",
+    "reasons": "Motivos",
+    "none": "No hay paquetes instalados.",
+    "line": "de {{author}} · versión {{version}} · {{n}} problemas",
+    "uninstall": "Desinstalar",
+    "uninstallNamed": "Desinstalar {{name}}",
+    "uninstallConfirm": "¿Desinstalar {{name}}? Sus problemas salen del catálogo; tus envíos se quedan en tu historial.",
+    "recommend": "Recomendar en Inicio problemas de los paquetes"
   }
 }

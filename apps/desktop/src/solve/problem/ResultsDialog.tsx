@@ -207,7 +207,7 @@ function ResultsExtras({ accepted }: { accepted: boolean }) {
           {last && (
             <div className="text-sm">
               <div className="mb-1 text-xs font-semibold text-muted-foreground">{t("brief.hint", { n: brief.hints_unlocked })}</div>
-              <Markdown>{last}</Markdown>
+              <Markdown trust={brief.summary.pack !== null ? "pack" : "app"}>{last}</Markdown>
             </div>
           )}
           {brief.hints_unlocked < 3 && (

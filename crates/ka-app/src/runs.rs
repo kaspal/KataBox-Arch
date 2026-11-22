@@ -261,6 +261,7 @@ mod tests {
             user_db: temp_dir("runs").join("user.db"),
             dev_data: true,
             content_db: None,
+            packs_dir: None,
         })
         .await
         .unwrap()

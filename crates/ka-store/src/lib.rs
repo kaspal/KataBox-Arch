@@ -9,6 +9,7 @@
 pub mod content;
 #[cfg(test)]
 mod migration_tests;
+pub mod packs;
 pub mod practice;
 pub mod progress;
 pub mod user;
@@ -17,6 +18,7 @@ pub use content::{
     CONTENT_SCHEMA, ConceptRow, ContentData, ContentDb, DocRow, GuideRow, JsonRow, PatternRow,
     ProblemRow, SampleRow, write_content,
 };
+pub use packs::PackRow;
 pub use practice::{EstimateStatus, ReviewCardRow};
 pub use progress::{NewSubmission, ProblemStatus, Submission, SubmissionSummary, day_number};
 pub use user::{BACKUPS_KEPT, RECENT_KEPT, RecentFile, UserDb};

@@ -64,6 +64,8 @@ export function BriefPanel({ brief }: { brief: ProblemBrief }) {
   const hints = loc.es ? brief.hints_es : brief.hints_en;
   // A Find-the-flaw drill (M5.3) runs as the problem `flaw--<id>`: no difficulty, no topic.
   const drill = p.id.startsWith("flaw--");
+  // Text from an imported pack renders with images as alt text (M6.4).
+  const trust = p.pack !== null ? "pack" : "app";
 
   return (
     <div className="space-y-5" data-testid="brief">
@@ -75,7 +77,7 @@ export function BriefPanel({ brief }: { brief: ProblemBrief }) {
         </div>
         {drill ? <p className="text-xs text-muted-foreground">{t("flaws.task")}</p> : <p className="text-xs text-muted-foreground">{t("brief.teaches", { what: loc.teaches(p) })}</p>}
       </div>
-      <Markdown>{loc.es ? brief.statement_es : brief.statement_en}</Markdown>
+      <Markdown trust={trust}>{loc.es ? brief.statement_es : brief.statement_en}</Markdown>
       <Section title={t("brief.targets")}>
         <div className="grid grid-cols-2 gap-2">
           <Stat label={t("brief.peak")} value={`${n0.format(brief.nfr.peak_rps)} ${t("units.rps")}`} />
@@ -136,7 +138,7 @@ export function BriefPanel({ brief }: { brief: ProblemBrief }) {
         {hints.map((h, i) => (
           <div key={i} className="rounded-md border bg-card p-3" data-testid="hint">
             <div className="mb-1 text-xs font-semibold text-muted-foreground">{t("brief.hint", { n: i + 1 })}</div>
-            <Markdown>{h}</Markdown>
+            <Markdown trust={trust}>{h}</Markdown>
           </div>
         ))}
         {brief.hints_unlocked < 3 && (
@@ -149,7 +151,7 @@ export function BriefPanel({ brief }: { brief: ProblemBrief }) {
       {brief.solved && <SolvedSection brief={brief} />}
       {brief.solved && (loc.es ? brief.editorial_es : brief.editorial_en) && (
         <Section title={t("brief.editorial")}>
-          <Markdown>{(loc.es ? brief.editorial_es : brief.editorial_en) ?? ""}</Markdown>
+          <Markdown trust={trust}>{(loc.es ? brief.editorial_es : brief.editorial_en) ?? ""}</Markdown>
         </Section>
       )}
     </div>

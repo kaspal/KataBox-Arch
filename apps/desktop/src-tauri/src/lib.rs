@@ -17,6 +17,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use ka_app::guide::{GuidePage, GuideSummary};
 use ka_app::live::FrameSink;
+use ka_app::packs::{PackInfo, PackPreview};
 use ka_app::patterns::{PatternPage, PatternSummary};
 use ka_app::problems::{ProblemBrief, ProblemSummary, Progress, SubmitResult};
 use ka_app::samples::{Sample, SampleSummary};
@@ -52,6 +53,8 @@ const CLOSE_REQUESTED_EVENT: &str = "close-requested";
 
 const KBARCH_FILTER: &str = "KataBox Arch design";
 const KBARCH_EXTENSIONS: &[&str] = &["kbarch"];
+const KBPACK_FILTER: &str = "KataBox Arch problem pack";
+const KBPACK_EXTENSIONS: &[&str] = &["kbpack"];
 
 // --- App and settings -----------------------------------------------------------------
 
@@ -142,6 +145,62 @@ async fn save_design_as(
 #[specta::specta]
 async fn validate_design(state: State<'_, AppState>, design: Design) -> Res<Vec<DesignIssue>> {
     Ok(state.app()?.validate(&design))
+}
+
+// --- Problem packs (M6.4) ---------------------------------------------------------------
+
+/// Show the Open dialog for a `.kbpack`, then open and check it (nothing is installed
+/// yet). `None` when cancelled.
+#[tauri::command]
+#[specta::specta]
+async fn preview_pack(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Res<Option<PackPreview>> {
+    let svc = state.app()?;
+    use tauri_plugin_dialog::DialogExt;
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .add_filter(KBPACK_FILTER, KBPACK_EXTENSIONS)
+            .blocking_pick_file()
+    })
+    .await
+    .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    let Some(path) = picked else {
+        return Ok(None);
+    };
+    let path = path
+        .into_path()
+        .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    Ok(Some(svc.preview_pack(&path).await?))
+}
+
+/// Install a previewed pack.
+#[tauri::command]
+#[specta::specta]
+async fn apply_pack(state: State<'_, AppState>, token: u32) -> Res<PackInfo> {
+    state.app()?.apply_pack(token).await
+}
+
+/// Drop a previewed pack.
+#[tauri::command]
+#[specta::specta]
+async fn cancel_pack(state: State<'_, AppState>, token: u32) -> Res<()> {
+    state.app()?.cancel_pack(token);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn list_packs(state: State<'_, AppState>) -> Res<Vec<PackInfo>> {
+    state.app()?.list_packs().await
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn uninstall_pack(state: State<'_, AppState>, id: String) -> Res<()> {
+    state.app()?.uninstall_pack(&id).await
 }
 
 async fn pick_file(app: tauri::AppHandle, save_as: Option<String>) -> Res<Option<PathBuf>> {
@@ -578,6 +637,11 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         set_window_title,
         set_dirty,
         confirm_close,
+        preview_pack,
+        apply_pack,
+        cancel_pack,
+        list_packs,
+        uninstall_pack,
     ])
 }
 
@@ -657,12 +721,16 @@ fn open_app(handle: &tauri::AppHandle) -> Res<App> {
         .path()
         .resolve("content.db", tauri::path::BaseDirectory::Resource)
         .ok();
+    let data = data_folder(dir);
     let paths = AppPaths {
-        user_db: data_folder(dir).join("user.db"),
+        user_db: data.join("user.db"),
         dev_data: cfg!(debug_assertions),
         content_db,
+        packs_dir: Some(data.join("packs")),
     };
-    tauri::async_runtime::block_on(App::open(paths))
+    let mut app = tauri::async_runtime::block_on(App::open(paths))?;
+    app.set_pack_opener(std::sync::Arc::new(ka_pack::kbpack::Opener));
+    Ok(app)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

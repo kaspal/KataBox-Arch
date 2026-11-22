@@ -21,6 +21,7 @@ const USAGE: &str = "usage:
   ka-pack new <id>
   ka-pack validate [--run [--verbose]] [--problems a,b] [--kind problems|samples|guide|practice] [--content DIR]
   ka-pack build --out FILE [--content DIR]
+  ka-pack pack HEAD.toml --problems a,b --out FILE.kbpack [--content DIR]
   ka-pack try --problems a,b         judge the designs only (tuning drafts; not a check)
   ka-pack migrate [--content DIR]   rewrite every .kbarch in the current format";
 
@@ -101,6 +102,66 @@ fn main() -> ExitCode {
                 }
                 Err(e) => {
                     eprintln!("{e}");
+                    ExitCode::FAILURE
+                }
+            }
+        }
+        // Write a `.kbpack` from problem folders, then open it the way the app does (every
+        // check, the designs judged), so an author sees what an importer would.
+        "pack" => {
+            let (Some(only), Some(out), Some(head_path)) =
+                (&args.problems, &args.out, args.rest.first())
+            else {
+                eprintln!("pack needs HEAD.toml --problems a,b --out FILE\n{USAGE}");
+                return ExitCode::FAILURE;
+            };
+            let head: ka_pack::kbpack::PackHead = match std::fs::read_to_string(head_path)
+                .map_err(|e| e.to_string())
+                .and_then(|s| toml::from_str(&s).map_err(|e| e.to_string()))
+            {
+                Ok(h) => h,
+                Err(e) => {
+                    eprintln!("{head_path}: {e}");
+                    return ExitCode::FAILURE;
+                }
+            };
+            let dirs: Vec<PathBuf> = only
+                .iter()
+                .map(|id| args.content.join("problems").join(id))
+                .collect();
+            let sha = match ka_pack::kbpack::write_pack(&dirs, &head, out) {
+                Ok(s) => s,
+                Err(e) => {
+                    eprintln!("{e}");
+                    return ExitCode::FAILURE;
+                }
+            };
+            let staging =
+                std::env::temp_dir().join(format!("ka-pack-check-{}", std::process::id()));
+            let _ = std::fs::remove_dir_all(&staging);
+            let opened = ka_app::packs::PackOpener::open(
+                &ka_pack::kbpack::Opener,
+                out,
+                &staging,
+                &std::collections::BTreeSet::new(),
+                env!("CARGO_PKG_VERSION"),
+                &registry,
+            );
+            let _ = std::fs::remove_dir_all(&staging);
+            match opened {
+                Ok(p) => {
+                    println!(
+                        "wrote {} ({} problem(s), SHA-256 {sha}); it opens and judges cleanly",
+                        out.display(),
+                        p.problems.len()
+                    );
+                    ExitCode::SUCCESS
+                }
+                Err(issues) => {
+                    for i in &issues {
+                        eprintln!("  {i}");
+                    }
+                    eprintln!("wrote {}, but the app would refuse it", out.display());
                     ExitCode::FAILURE
                 }
             }

@@ -27,6 +27,8 @@ pub struct ProblemSummary {
     pub best_score: Option<i64>,
     /// The cheapest Accepted submission's monthly cost.
     pub best_cost: Option<f64>,
+    /// The name of the pack it came from (M6.4); None for built-in problems.
+    pub pack: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -147,6 +149,13 @@ impl App {
         if let Some(flaw) = id.strip_prefix("flaw--") {
             return self.flaw_row(flaw).await;
         }
+        // A pack's problem (M6.4): `<pack>--<id>`, from that pack's own database.
+        if id.contains("--") {
+            return self
+                .pack_problem(id)
+                .await?
+                .ok_or_else(|| AppError::new(AppErrorCode::NotFound, format!("problem {id}")));
+        }
         self.content()?
             .problem(id)
             .await
@@ -185,6 +194,7 @@ impl App {
             status: status.map(|s| s.status.clone()),
             best_score: status.map(|s| s.best_score),
             best_cost,
+            pack: None,
         }
     }
 
@@ -202,10 +212,22 @@ impl App {
 
     /// The catalogue with the user's status and best score, in catalogue order.
     pub async fn list_problems(&self) -> Result<Vec<ProblemSummary>> {
-        let rows = self.content()?.problems().await.map_err(store)?;
+        let mut rows: Vec<(Option<String>, ka_store::ProblemRow)> = self
+            .content()?
+            .problems()
+            .await
+            .map_err(store)?
+            .into_iter()
+            .map(|r| (None, r))
+            .collect();
+        // Installed packs' problems follow the built-in catalogue, pack by pack.
+        for (pack, row) in self.pack_problems().await? {
+            let name = self.pack_name_of(&row.id).await?.unwrap_or(pack);
+            rows.push((Some(name), row));
+        }
         let statuses = self.user.problem_statuses().await.map_err(store)?;
         let mut out = Vec::new();
-        for row in &rows {
+        for (pack, row) in &rows {
             let def: ProblemDef = serde_json::from_str(&row.def).map_err(bad_content)?;
             let status = statuses.iter().find(|s| s.problem_id == row.id);
             let best = if status.is_some() {
@@ -213,7 +235,9 @@ impl App {
             } else {
                 None
             };
-            out.push(Self::summary(row, &def, status, best));
+            let mut s = Self::summary(row, &def, status, best);
+            s.pack = pack.clone();
+            out.push(s);
         }
         Ok(out)
     }
@@ -386,6 +410,13 @@ impl App {
     /// Solved and attempted per difficulty, the streak, and what to do next.
     pub async fn progress(&self, today: &str) -> Result<Progress> {
         let all = self.list_problems().await?;
+        // Pack problems are recommended only when the user turns that on.
+        let packs_too = self
+            .user
+            .get_setting("packs.recommend")
+            .await
+            .map_err(store)?
+            == Some(serde_json::Value::Bool(true));
         let mut p = Progress {
             easy: DifficultyCount::default(),
             medium: DifficultyCount::default(),
@@ -396,6 +427,7 @@ impl App {
             })?,
             recommended: all
                 .iter()
+                .filter(|s| packs_too || s.pack.is_none())
                 .find(|s| s.status.as_deref() != Some("solved"))
                 .map(|s| s.id.clone()),
             continue_with: None,
@@ -557,6 +589,7 @@ error_rate = 0.001
             user_db: dir.join("user.db"),
             dev_data: true,
             content_db: Some(content),
+            packs_dir: None,
         })
         .await
         .unwrap()
@@ -664,6 +697,7 @@ error_rate = 0.001
             user_db: temp_dir("nocontent").join("user.db"),
             dev_data: true,
             content_db: None,
+            packs_dir: None,
         })
         .await
         .unwrap();

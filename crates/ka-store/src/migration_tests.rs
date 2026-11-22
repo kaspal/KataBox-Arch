@@ -58,6 +58,11 @@ fn seeds(version: i64) -> Vec<String> {
                  ('pastebin', 'storage-year', 0.25, 0, 1700000014000)"
                 .into(),
         ],
+        6 => vec![
+            "INSERT INTO packs VALUES ('drills', 'Drills ñ', 'Ana', '1.0.0', 'CC-BY-SA-4.0', 'ab12', 1700000017000, NULL),
+                 ('old', 'Old pack', 'Bo', '0.9.0', 'MIT', 'cd34', 1700000018000, 1700000019000)"
+                .into(),
+        ],
         _ => vec![],
     }
 }

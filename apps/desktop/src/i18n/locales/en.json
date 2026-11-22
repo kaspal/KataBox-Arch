@@ -61,7 +61,9 @@
     "path_not_allowed": "Use Save As or Open to choose a file first.",
     "internal": "Something went wrong inside the app.",
     "no_path": "No request can get through this design. Connect a client to a service.",
-    "content_missing": "The problem catalogue is missing from this installation. Reinstall the app."
+    "content_missing": "The problem catalogue is missing from this installation. Reinstall the app.",
+    "pack_refused": "This pack failed its safety and content checks, so nothing was installed.",
+    "pack_version": "This pack can't replace the installed one: it is older, or the same version with different contents."
   },
   "files": {
     "unsaved": {
@@ -494,7 +496,14 @@
     "random": "Random problem",
     "continue": "Continue: {{title}}",
     "none": "No problem matches.",
-    "unavailable": "Problems are unavailable"
+    "unavailable": "Problems are unavailable",
+    "source": {
+      "label": "Source",
+      "all": "All",
+      "builtin": "Built-in",
+      "packs": "Packs"
+    },
+    "fromPack": "From the pack {{name}}"
   },
   "brief": {
     "teaches": "Teaches: {{what}}",
@@ -761,5 +770,41 @@
       "arithmetic": "Arithmetic",
       "simulator": "The simulator's own figure"
     }
+  },
+  "packs": {
+    "title": "Problem packs",
+    "intro": "A pack is a set of extra problems someone shared as a .kbpack file. Importing one checks it first (its files, its text and a judged run of every design); nothing is installed until you confirm.",
+    "import": "Import pack…",
+    "checking": "Checking the pack…",
+    "previewTitle": "Install this pack?",
+    "previewBody": "It passed every check. Here is what it holds.",
+    "unsigned": "Unsigned pack, from {{author}} (as stated in the pack). Only install packs from people you trust.",
+    "field": {
+      "name": "Name",
+      "author": "Author",
+      "version": "Version",
+      "licence": "Licence",
+      "sha": "SHA-256"
+    },
+    "problems_one": "{{n}} problem",
+    "problems_other": "{{n}} problems",
+    "change": {
+      "new": "New: it will be added to your problems.",
+      "upgrade": "Replaces version {{from}}, which is installed.",
+      "reinstall": "You removed this pack before: it will come back.",
+      "same": "This exact pack is already installed."
+    },
+    "install": "Install",
+    "cancel": "Cancel",
+    "close": "Close",
+    "installed": "{{name}} installed.",
+    "refusedTitle": "The pack was not installed",
+    "reasons": "Why",
+    "none": "No packs installed.",
+    "line": "by {{author}} · version {{version}} · {{n}} problems",
+    "uninstall": "Uninstall",
+    "uninstallNamed": "Uninstall {{name}}",
+    "uninstallConfirm": "Uninstall {{name}}? Its problems leave the catalogue; your submissions stay in your history.",
+    "recommend": "Recommend problems from packs on Home"
   }
 }

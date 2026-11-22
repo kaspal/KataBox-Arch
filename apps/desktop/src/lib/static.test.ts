@@ -50,6 +50,8 @@ describe("i18n resources", () => {
       internal: true,
       no_path: true,
       content_missing: true,
+      pack_refused: true,
+      pack_version: true,
     } satisfies Record<AppErrorCode, true>;
     expect(Object.keys(codes).filter((c) => !has(en, `errors.${c}`))).toEqual([]);
   });

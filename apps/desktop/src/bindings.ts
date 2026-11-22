@@ -475,6 +475,56 @@ async confirmClose() : Promise<Result<null, AppError>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+/**
+ * Show the Open dialog for a `.kbpack`, then open and check it (nothing is installed
+ * yet). `None` when cancelled.
+ */
+async previewPack() : Promise<Result<PackPreview | null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("preview_pack") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Install a previewed pack.
+ */
+async applyPack(token: number) : Promise<Result<PackInfo, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("apply_pack", { token }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Drop a previewed pack.
+ */
+async cancelPack(token: number) : Promise<Result<null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cancel_pack", { token }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async listPacks() : Promise<Result<PackInfo[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_packs") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async uninstallPack(id: string) : Promise<Result<null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("uninstall_pack", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -549,7 +599,16 @@ export type AppErrorCode =
 /**
  * The bundled problem catalogue (content.db) is missing or unreadable.
  */
-"content_missing"
+"content_missing" | 
+/**
+ * A problem pack failed its checks (the message lists why).
+ */
+"pack_refused" | 
+/**
+ * A pack can't replace the installed one: an older version, or the same version with
+ * different contents.
+ */
+"pack_version"
 export type AppInfo = { version: string; dev_data: boolean }
 export type Bottleneck = { node: string; kind: ComponentKind; from_s: number; utilisation: number; reason: BottleneckReason }
 /**
@@ -1021,6 +1080,46 @@ export type NumberGroup = "memory" | "storage" | "network" | "servers" | "sizes"
  */
 export type OpenedDesign = { path: string; design: Design }
 /**
+ * What applying a previewed pack would do.
+ */
+export type PackChange = 
+/**
+ * Not installed before.
+ */
+{ kind: "new" } | 
+/**
+ * Replaces an older installed version.
+ */
+{ kind: "upgrade"; from: string } | 
+/**
+ * Installed before and removed: comes back.
+ */
+{ kind: "reinstall" } | 
+/**
+ * The same version and contents are already installed: nothing to do.
+ */
+{ kind: "same" }
+/**
+ * An installed (or removed) pack.
+ */
+export type PackInfo = { id: string; name: string; author: string; version: string; licence: string; sha256: string; installed_at: number; removed: boolean; 
+/**
+ * Problems in the installed pack (0 once removed).
+ */
+problems: number }
+/**
+ * The import preview: shown before anything is installed.
+ */
+export type PackPreview = { 
+/**
+ * Pass back to `apply_pack` or `cancel_pack`.
+ */
+token: number; id: string; name: string; author: string; version: string; licence: string; sha256: string; problems: PackProblem[]; change: PackChange }
+/**
+ * A problem a pack holds (its stored id, `<pack>--<id>`).
+ */
+export type PackProblem = { id: string; title_en: string; title_es: string; difficulty: string }
+/**
  * What a passing run needs. Unset limits aren't checked.
  */
 export type PassCriteria = { p95_ms?: number | null; 
@@ -1115,7 +1214,11 @@ status: string | null; best_score: number | null;
 /**
  * The cheapest Accepted submission's monthly cost.
  */
-best_cost: number | null }
+best_cost: number | null; 
+/**
+ * The name of the pack it came from (M6.4); None for built-in problems.
+ */
+pack: string | null }
 export type ProblemTest = { problem_id: string; test_id: string }
 export type Progress = { easy: DifficultyCount; medium: DifficultyCount; hard: DifficultyCount; streak: number; 
 /**

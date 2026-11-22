@@ -16,9 +16,11 @@ serde.workspace = true
 serde_json.workspace = true
 specta = { workspace = true, optional = true }
 thiserror.workspace = true
+# Pack previews run their checks on a blocking thread; pack databases sit behind a lock.
+tokio = { workspace = true, features = ["rt", "sync"] }
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["macros"] }
+tokio = { workspace = true, features = ["macros", "rt"] }
 toml.workspace = true
 
 [features]

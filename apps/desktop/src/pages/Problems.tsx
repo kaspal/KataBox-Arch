@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { CheckCircle2, CircleDashed, CircleDot, List, Play, Ruler, Shuffle } from "lucide-react";
+import { CheckCircle2, CircleDashed, CircleDot, List, Package, Play, Ruler, Shuffle } from "lucide-react";
 import type { Difficulty, ProblemSummary } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { EmptyState, Page } from "@/components/Page";
 import { describeError } from "@/lib/errors";
 import { useEstimateStatuses, useProblems, useProgress } from "@/lib/queries";
 import { cn } from "@/lib/utils";
+import { ImportPackButton } from "@/packs/PackImport";
 
 const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard"];
 
@@ -78,6 +79,7 @@ export function ProblemsPage() {
   const [query, setQuery] = useState("");
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [tag, setTag] = useState<string | null>(null);
+  const [source, setSource] = useState<"all" | "builtin" | "packs">("all");
 
   const all = useMemo(() => problems.data ?? [], [problems.data]);
   const tags = useMemo(() => [...new Set(all.flatMap((p) => p.tags))].sort(), [all]);
@@ -86,8 +88,10 @@ export function ProblemsPage() {
     (p) =>
       (!difficulty || p.difficulty === difficulty) &&
       (!tag || p.tags.includes(tag)) &&
+      (source === "all" || (source === "packs") === (p.pack !== null)) &&
       (!q || normalise(`${p.title_en} ${p.title_es} ${p.teaches_en} ${p.teaches_es} ${p.tags.join(" ")}`).includes(q)),
   );
+  const hasPacks = all.some((p) => p.pack !== null);
   const unsolved = all.filter((p) => p.status !== "solved");
   const continueWith = all.find((p) => p.id === progress.data?.continue_with);
   const open = (p: ProblemSummary) => void navigate({ to: "/problems/$id", params: { id: p.id } });
@@ -119,6 +123,7 @@ export function ProblemsPage() {
             <Shuffle aria-hidden className="size-4" />
             {t("problems.random")}
           </Button>
+          <ImportPackButton />
         </>
       }
     >
@@ -144,6 +149,15 @@ export function ProblemsPage() {
             </Button>
           ))}
         </div>
+        {hasPacks && (
+          <div className="flex flex-wrap gap-2" role="group" aria-label={t("problems.source.label")}>
+            {(["all", "builtin", "packs"] as const).map((s) => (
+              <Button key={s} size="sm" variant={source === s ? "default" : "outline"} aria-pressed={source === s} onClick={() => setSource(s)}>
+                {t(`problems.source.${s}`)}
+              </Button>
+            ))}
+          </div>
+        )}
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-2" role="group" aria-label={t("problems.filterTopic")}>
             {tags.map((g) => (
@@ -175,6 +189,12 @@ export function ProblemsPage() {
               <span className="min-w-0">
                 <span className="block truncate font-semibold">{loc.title(p)}</span>
                 <span className="block truncate text-xs text-muted-foreground">{loc.teaches(p)}</span>
+                {p.pack !== null && (
+                  <span className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground" data-testid="pack-badge">
+                    <Package aria-hidden className="size-3.5" />
+                    {t("problems.fromPack", { name: p.pack })}
+                  </span>
+                )}
               </span>
               <span className="flex items-center gap-4">
                 <DifficultyBadge d={p.difficulty} />

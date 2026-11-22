@@ -43,6 +43,8 @@ import {
   type RunInfo,
   type RunResult,
   type SandboxPreset,
+  PackInfo,
+  PackPreview,
 } from "@/bindings";
 
 export async function call<T>(p: Promise<Result<T, AppError>>): Promise<T> {
@@ -143,6 +145,12 @@ export const api = {
   answerQuiz: (questionId: string, choice: number, today: string): Promise<QuizResult> => call(commands.answerQuiz(questionId, choice, today)),
   /** Today's review questions (at most 10), in review order. */
   reviewsDue: (today: string): Promise<QuizItem[]> => call(commands.reviewsDue(today)),
+  // Problem packs (M6.4): Rust opens the file dialog; null when cancelled.
+  previewPack: (): Promise<PackPreview | null> => call(commands.previewPack()),
+  applyPack: (token: number): Promise<PackInfo> => call(commands.applyPack(token)),
+  cancelPack: (token: number): Promise<null> => call(commands.cancelPack(token)),
+  listPacks: (): Promise<PackInfo[]> => call(commands.listPacks()),
+  uninstallPack: (id: string): Promise<null> => call(commands.uninstallPack(id)),
   /** A concept card was played to its end. */
   setConceptPlayed: (kind: ComponentKind): Promise<void> => call(commands.setConceptPlayed(kind)).then(() => undefined),
   /** The pattern library, in order, each with its template. */

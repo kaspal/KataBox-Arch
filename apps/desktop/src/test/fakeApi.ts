@@ -1,7 +1,7 @@
 // An in-memory backend with the same shape as `api`, for UI tests. The registry is the
 // fixture Rust exports (`src/test/fixtures/registry.json`), so tests see the real data.
 import { vi } from "vitest";
-import type { FlawSummary, PathView, AppError, Design, JsonValue, OpenedDesign, ProblemBrief, RecentEntry, Registry, RunControl, SubmissionSummary, SubmitResult } from "@/bindings";
+import type { FlawSummary, PackInfo, PackPreview, PathView, AppError, Design, JsonValue, OpenedDesign, ProblemBrief, RecentEntry, Registry, RunControl, SubmissionSummary, SubmitResult } from "@/bindings";
 import { FAKE_BRIEF, FAKE_REFERENCE, fakeJudgement } from "@/test/fakeProblems";
 import { FAKE_SAMPLE, FAKE_SAMPLE_SUMMARY } from "@/test/fakeSamples";
 import { FAKE_DRILLS, FAKE_QUIZ, FAKE_FLOW, FAKE_GUIDE, FAKE_NUMBERS, FAKE_PATTERN, FAKE_TEMPLATE, FAKE_TERMS } from "@/test/fakeGuide";
@@ -10,9 +10,9 @@ import fixture from "@/test/fixtures/registry.json";
 
 export const REGISTRY = fixture.registry as unknown as Registry;
 
-const UI_SETTINGS = ["theme", "ui_lang", "ui.contrast", "ui.motion", "sandbox.layout", "canvas.snap", "tour.offered", "paths.active"];
+const UI_SETTINGS = ["theme", "ui_lang", "ui.contrast", "ui.motion", "sandbox.layout", "canvas.snap", "tour.offered", "paths.active", "packs.recommend"];
 
-const err = (code: AppError["code"], message = code): AppError => ({ code, message });
+const err = (code: AppError["code"], message: string = code): AppError => ({ code, message });
 
 export type FakeOptions = {
   settings?: Record<string, JsonValue>;
@@ -30,6 +30,20 @@ export type FakeOptions = {
   runError?: AppError["code"];
   /** What submitting a design to the fake problem returns. */
   verdict?: SubmitResult["judgement"]["verdict"];
+  /** What the pack dialog picks: a pack that passes, one that fails its checks, or nothing. */
+  pack?: "ok" | "refused" | null;
+};
+
+export const FAKE_PACK_PREVIEW: PackPreview = {
+  token: 7,
+  id: "drills",
+  name: "Drills",
+  author: "Ana",
+  version: "1.0.0",
+  licence: "CC-BY-SA-4.0",
+  sha256: "c0ffee".padEnd(64, "0"),
+  problems: [{ id: "drills--demo", title_en: "Demo drill", title_es: "Ejercicio demo", difficulty: "easy" }],
+  change: { kind: "new" },
 };
 
 const FAKE_HINTS = { en: ["Look at the reads.", "Cache them.", "Redis in front of the database."], es: ["Mira las lecturas.", "Cachéalas.", "Redis delante de la base de datos."] };
@@ -53,6 +67,7 @@ export function createFakeApi(opts: FakeOptions = {}) {
   const read = new Set<string>();
   const estimates = new Map<string, { tries: number; done: boolean }>();
   const due = new Set<string>(opts.due ?? []);
+  let packs: PackInfo[] = [];
 
   const touch = (path: string, name: string) => {
     recent = [{ path, name, opened_at: 1_700_000_000_000 + recent.length, exists: true }, ...recent.filter((r) => r.path !== path)];
@@ -123,7 +138,12 @@ export function createFakeApi(opts: FakeOptions = {}) {
       return null;
     }),
     runResult: vi.fn(async () => null),
-    listProblems: vi.fn(async () => [{ ...FAKE_BRIEF.summary, ...problemState }]),
+    listProblems: vi.fn(async () => [
+      { ...FAKE_BRIEF.summary, ...problemState },
+      ...packs
+        .filter((p) => !p.removed)
+        .map((p) => ({ ...FAKE_BRIEF.summary, id: `${p.id}--demo`, number: 1, title_en: "Demo drill", title_es: "Ejercicio demo", status: null, best_score: null, best_cost: null, pack: p.name })),
+    ]),
     problemBrief: vi.fn(async (id: string): Promise<ProblemBrief> => {
       if (id !== FAKE_BRIEF.summary.id) throw err("not_found");
       return {
@@ -292,6 +312,22 @@ export function createFakeApi(opts: FakeOptions = {}) {
       return null;
     }),
     confirmClose: vi.fn(async () => null),
+    previewPack: vi.fn(async () => {
+      if (opts.pack === "refused") throw err("pack_refused", "problems/demo/statement.md: a <script> tag is not allowed in pack text");
+      return opts.pack === "ok" ? structuredClone(FAKE_PACK_PREVIEW) : null;
+    }),
+    applyPack: vi.fn(async (): Promise<PackInfo> => {
+      const p = FAKE_PACK_PREVIEW;
+      const info = { id: p.id, name: p.name, author: p.author, version: p.version, licence: p.licence, sha256: p.sha256, installed_at: 1, removed: false, problems: 1 };
+      packs = [...packs.filter((x) => x.id !== p.id), info];
+      return info;
+    }),
+    cancelPack: vi.fn(async () => null),
+    listPacks: vi.fn(async () => structuredClone(packs)),
+    uninstallPack: vi.fn(async (id: string) => {
+      packs = packs.map((p) => (p.id === id ? { ...p, removed: true, problems: 0 } : p));
+      return null;
+    }),
     onCloseRequested: vi.fn(async (cb: () => void) => {
       closeListener = cb;
       return () => {

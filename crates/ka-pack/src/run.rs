@@ -86,6 +86,14 @@ pub fn check_problem(p: &ProblemDir, registry: &Registry) -> (Vec<Issue>, Judgem
     (issues, reference, naive)
 }
 
+/// [`check_problem`] over every problem, printing nothing (packs, M6.4).
+pub fn run_checks_quiet(problems: &[ProblemDir], registry: &Registry) -> Vec<Issue> {
+    problems
+        .iter()
+        .flat_map(|p| check_problem(p, registry).0)
+        .collect()
+}
+
 pub fn run_checks(problems: &[ProblemDir], registry: &Registry, verbose: bool) -> Vec<Issue> {
     let mut issues = Vec::new();
     for p in problems {
