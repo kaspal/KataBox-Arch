@@ -1,0 +1,124 @@
+{
+  "schema_version": 3,
+  "id": "concept-worker-twelve-judges",
+  "name": "Online Judge (12 judges)",
+  "problem_id": "online-judge",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Contestants",
+      "position": {
+        "x": 130,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "nginx",
+      "label": "",
+      "position": {
+        "x": 130,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Submit API",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "queue",
+      "kind": "queue",
+      "flavour": "sqs",
+      "label": "Submissions",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {
+        "max_depth": 1000000
+      },
+      "group_id": null
+    },
+    {
+      "id": "judges",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Judges",
+      "position": {
+        "x": 0,
+        "y": 510
+      },
+      "props": {
+        "instances": 12,
+        "service_ms": 2000
+      },
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Verdicts",
+      "position": {
+        "x": 260,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "api",
+      "to": "queue",
+      "protocol": "publish"
+    },
+    {
+      "id": "e3",
+      "from": "queue",
+      "to": "judges",
+      "protocol": "consume"
+    },
+    {
+      "id": "e4",
+      "from": "judges",
+      "to": "db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

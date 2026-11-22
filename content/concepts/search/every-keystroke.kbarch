@@ -1,0 +1,87 @@
+{
+  "schema_version": 3,
+  "id": "concept-search-every-keystroke",
+  "name": "Typeahead (search on every keystroke)",
+  "problem_id": "typeahead",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Search boxes",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "nginx",
+      "label": "",
+      "position": {
+        "x": 0,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {
+        "instances": 3
+      },
+      "group_id": null
+    },
+    {
+      "id": "index",
+      "kind": "search",
+      "flavour": "elasticsearch",
+      "label": "Suggestions index",
+      "position": {
+        "x": 0,
+        "y": 510
+      },
+      "props": {
+        "shards": 12
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "app",
+      "to": "index",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

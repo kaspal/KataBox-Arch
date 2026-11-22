@@ -1,0 +1,27 @@
+id = "dlq"
+number = 10
+title = "Dead-Letter Queue"
+title_es = "Cola de mensajes fallidos"
+summary = "Where messages go when they keep failing, so they can be inspected and replayed instead of vanishing."
+summary_es = "Adonde van los mensajes que siguen fallando, para revisarlos y reprocesarlos en lugar de que desaparezcan."
+problem = "notifications"
+
+[[step]]
+snapshot = "no-dlq.kbarch"
+title = "The email provider goes down"
+title_es = "Se cae el proveedor de correo"
+caption = "For forty seconds the email provider answers nothing. Each email is retried a few times, then dropped: with no dead-letter queue, those messages are simply lost."
+caption_es = "Durante cuarenta segundos el proveedor de correo no responde. Cada correo se reintenta unas pocas veces y luego se descarta: sin cola de mensajes fallidos, esos mensajes se pierden sin más."
+focus = ["queue", "senders"]
+run = { test = "email-outage", start_s = 12 }
+callout = { metric = "lost", after = 4575 }
+
+[[step]]
+snapshot = "with-dlq.kbarch"
+title = "Failures land somewhere safe"
+title_es = "Los fallos acaban en un lugar seguro"
+caption = "More retries ride out most of the outage, and what still fails goes to the dead-letter queue, ready to be sent again once the provider is back. Nothing is lost."
+caption_es = "Más reintentos aguantan casi toda la caída, y lo que aún falla va a la cola de mensajes fallidos, listo para reenviarse cuando vuelva el proveedor. No se pierde nada."
+focus = ["queue", "dlq"]
+run = { test = "email-outage", start_s = 12 }
+callout = { metric = "lost", before = 4575, after = 0 }

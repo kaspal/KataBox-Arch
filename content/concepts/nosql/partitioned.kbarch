@@ -1,0 +1,105 @@
+{
+  "schema_version": 3,
+  "id": "concept-nosql-partitioned",
+  "name": "Ride Sharing (a partitioned store)",
+  "problem_id": "ride-sharing",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "mobile",
+      "label": "Driver and rider apps",
+      "position": {
+        "x": 130,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_nlb",
+      "label": "",
+      "position": {
+        "x": 130,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Location API",
+      "position": {
+        "x": 130,
+        "y": 340
+      },
+      "props": {
+        "instances": 8
+      },
+      "group_id": null
+    },
+    {
+      "id": "locations",
+      "kind": "nosql",
+      "flavour": "cassandra",
+      "label": "Locations",
+      "position": {
+        "x": 0,
+        "y": 510
+      },
+      "props": {
+        "partitions": 16
+      },
+      "group_id": null
+    },
+    {
+      "id": "index",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "Nearby drivers",
+      "position": {
+        "x": 260,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "app",
+      "to": "locations",
+      "protocol": "query"
+    },
+    {
+      "id": "e3",
+      "from": "app",
+      "to": "index",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

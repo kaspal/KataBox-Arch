@@ -1,0 +1,27 @@
+id = "worker"
+number = 15
+title = "Worker"
+title_es = "Worker"
+summary = "Takes jobs from a queue and does the slow work, so the API can answer at once."
+summary_es = "Toma trabajos de una cola y hace el trabajo lento, para que la API responda enseguida."
+problem = "online-judge"
+
+[[step]]
+snapshot = "nine-judges.kbarch"
+title = "Judging takes two seconds"
+title_es = "Juzgar lleva dos segundos"
+caption = "The API accepts a submission in milliseconds and queues it. Each worker slot judges one submission at a time, for about two seconds. Nine worker instances with eight slots each can't keep up with the arrivals, so the line grows."
+caption_es = "La API acepta un envío en milisegundos y lo pone en cola. Cada plaza de worker juzga un envío a la vez, durante unos dos segundos. Nueve instancias de worker con ocho plazas cada una no dan abasto con lo que llega, así que la fila crece."
+focus = ["queue", "judges"]
+run = { test = "normal" }
+callout = { metric = "p95_ms", after = 22770, target = 20000 }
+
+[[step]]
+snapshot = "twelve-judges.kbarch"
+title = "A few more workers"
+title_es = "Unos pocos workers más"
+caption = "Twelve instances have slots to spare, so the line stays short. Workers are the knob for slow, background work: add them until the queue stops growing."
+caption_es = "Doce instancias tienen plazas de sobra, así que la fila se mantiene corta. Los workers son el mando del trabajo lento en segundo plano: añádelos hasta que la cola deje de crecer."
+focus = ["judges"]
+run = { test = "normal" }
+callout = { metric = "p95_ms", before = 22770, after = 6540, target = 20000 }

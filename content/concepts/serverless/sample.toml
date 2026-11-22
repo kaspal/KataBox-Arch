@@ -1,0 +1,27 @@
+id = "serverless"
+number = 17
+title = "Serverless Function"
+title_es = "Función serverless"
+summary = "Runs code per request with no servers to size; new instances pay a cold start."
+summary_es = "Ejecuta código por petición sin servidores que dimensionar; las instancias nuevas pagan un arranque en frío."
+problem = "url-shortener"
+
+[[step]]
+snapshot = "lambda.kbarch"
+title = "No servers to size"
+title_es = "Sin servidores que dimensionar"
+caption = "The redirect logic runs as a Lambda function. On a normal day the warm instances answer each click in a few milliseconds, and there is no instance count to choose."
+caption_es = "La lógica de redirección se ejecuta como función Lambda. En un día normal las instancias calientes responden cada clic en pocos milisegundos, y no hay número de instancias que elegir."
+focus = ["app"]
+run = { test = "normal" }
+callout = { metric = "p95_ms", after = 59.9, target = 80 }
+
+[[step]]
+snapshot = "lambda.kbarch"
+title = "A spike meets the concurrency limit"
+title_es = "Un pico choca con el límite de concurrencia"
+caption = "When a link goes viral, traffic quadruples. The platform starts new instances, each paying a cold start, until it reaches the account's limit of concurrent executions. Beyond it, invocations are throttled and those clicks fail."
+caption_es = "Cuando un enlace se hace viral, el tráfico se cuadruplica. La plataforma arranca instancias nuevas, cada una con su arranque en frío, hasta llegar al límite de ejecuciones simultáneas de la cuenta. Por encima, las invocaciones se limitan y esos clics fallan."
+focus = ["app"]
+run = { test = "viral", start_s = 16 }
+callout = { metric = "error_rate", after = 0.127, target = 0.001 }

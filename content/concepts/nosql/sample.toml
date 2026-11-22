@@ -1,0 +1,27 @@
+id = "nosql"
+number = 12
+title = "NoSQL Database"
+title_es = "Base de datos NoSQL"
+summary = "Spreads data over partitions by key, so writes scale out by adding partitions."
+summary_es = "Reparte los datos en particiones por clave, así que las escrituras escalan añadiendo particiones."
+problem = "ride-sharing"
+
+[[step]]
+snapshot = "one-primary.kbarch"
+title = "Every ping hits one primary"
+title_es = "Cada ping llega a una sola principal"
+caption = "Drivers send their location every few seconds. When a city-wide surge triples the pings, a single PostgreSQL primary can't take that many writes, and requests fail."
+caption_es = "Los conductores envían su ubicación cada pocos segundos. Cuando una subida en toda la ciudad triplica los pings, una sola PostgreSQL principal no aguanta tantas escrituras y las peticiones fallan."
+focus = ["db"]
+run = { test = "surge", start_s = 12 }
+callout = { metric = "error_rate", after = 0.442, target = 0.001 }
+
+[[step]]
+snapshot = "partitioned.kbarch"
+title = "Sixteen partitions share the writes"
+title_es = "Dieciséis particiones se reparten las escrituras"
+caption = "In Cassandra each driver's key lands on one of sixteen partitions, and each partition takes its share of the writes on its own. The same surge passes."
+caption_es = "En Cassandra la clave de cada conductor cae en una de dieciséis particiones, y cada partición atiende su parte de las escrituras por su cuenta. La misma subida pasa."
+focus = ["locations"]
+run = { test = "surge", start_s = 12 }
+callout = { metric = "error_rate", before = 0.442, after = 0, target = 0.001 }

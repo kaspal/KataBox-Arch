@@ -1,0 +1,27 @@
+id = "autoscale"
+number = 11
+title = "Autoscaling"
+title_es = "Autoescalado"
+summary = "Adds instances when a pool is busy and removes them when it is quiet, after a delay."
+summary_es = "Añade instancias cuando un grupo está ocupado y las quita cuando está tranquilo, tras un retraso."
+problem = "online-judge"
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "Contest start with a fixed pool"
+title_es = "Inicio de concurso con un grupo fijo"
+caption = "At the start of a contest submissions ramp up to six times the usual rate. Twelve judges are enough for a normal day, but now the queue grows and waits stretch past the limit."
+caption_es = "Al empezar un concurso los envíos suben hasta seis veces el ritmo habitual. Doce jueces bastan en un día normal, pero ahora la cola crece y las esperas superan el límite."
+focus = ["judges"]
+run = { test = "contest", start_s = 20 }
+callout = { metric = "p95_ms", after = 51290, target = 30000 }
+
+[[step]]
+snapshot = "scaling.kbarch"
+title = "The pool grows with the load"
+title_es = "El grupo crece con la carga"
+caption = "Wrapped in an autoscaling group, the judges are watched every few seconds. When they run hot, more instances start after the scaling delay, and the queue drains in time."
+caption_es = "Dentro de un grupo de autoescalado, los jueces se vigilan cada pocos segundos. Cuando van saturados, arrancan más instancias tras el retraso de escalado, y la cola se vacía a tiempo."
+focus = ["judges"]
+run = { test = "contest", start_s = 20 }
+callout = { metric = "p95_ms", before = 51290, after = 20630, target = 30000 }
