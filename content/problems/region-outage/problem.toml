@@ -6,7 +6,7 @@ title = "Survive a Region Outage"
 title_es = "Sobrevivir a la caída de una región"
 teaches = "Run in several regions behind DNS, with replicas that can be promoted, so losing a region or the links between regions is survivable"
 teaches_es = "Funcionar en varias regiones detrás de DNS, con réplicas que se pueden promover, para sobrevivir a la pérdida de una región o de los enlaces entre regiones"
-tags = ["regions", "dns", "replication", "failover", "partitions"]
+tags = ["regions", "dns", "replication", "failover", "partitioning"]
 
 [nfr]
 peak_rps = 6000

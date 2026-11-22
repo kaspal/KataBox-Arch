@@ -20,6 +20,7 @@ describe("problem packs", () => {
     // The unsigned warning names the author as the pack states it; the hash is shown.
     expect(within(preview).getByTestId("pack-unsigned")).toHaveTextContent("Unsigned pack, from Ana (as stated in the pack)");
     expect(within(preview).getByTestId("pack-sha")).toHaveTextContent(/^c0ffee0+$/);
+    expect(preview).toHaveTextContent("1 problem");
     expect(preview).toHaveTextContent("Demo drill");
     expect(within(preview).getByTestId("pack-change")).toHaveTextContent("New: it will be added to your problems.");
     expect(unnamed(document.body)).toEqual([]);

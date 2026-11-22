@@ -30,5 +30,5 @@ prompt_es = "En el pico llegan {peak_rps} peticiones por segundo, y el {flip_pct
 inputs = { peak_rps = 60_000, flip_pct = 0.1, flags = 20_000 }
 formula = "flags / (peak_rps * flip_pct / 100)"
 unit = "s"
-solution = "{flip_pct}% of {peak_rps} = 60 flips a second. {flags} ÷ 60 ≈ {answer} seconds between flips of one flag. A 5 s TTL is tiny next to that, so few reads see an old value; a 300 s TTL is about as long, so many would."
-solution_es = "El {flip_pct} % de {peak_rps} = 60 cambios por segundo. {flags} ÷ 60 ≈ {answer} segundos entre cambios de un mismo flag. Un TTL de 5 s es minúsculo a su lado, así que pocas lecturas ven un valor antiguo; uno de 300 s dura casi lo mismo, así que muchas lo verían."
+solution = "{flip_pct}% of {peak_rps} = 60 flips a second. {flags} ÷ 60 ≈ {answer} seconds between flips of one flag. A 3 s TTL is tiny next to that, so few reads see an old value; a 300 s TTL is about as long, so many would."
+solution_es = "El {flip_pct} % de {peak_rps} = 60 cambios por segundo. {flags} ÷ 60 ≈ {answer} segundos entre cambios de un mismo flag. Un TTL de 3 s es minúsculo a su lado, así que pocas lecturas ven un valor antiguo; uno de 300 s dura casi lo mismo, así que muchas lo verían."

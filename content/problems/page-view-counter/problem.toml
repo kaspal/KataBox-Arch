@@ -6,7 +6,7 @@ title = "Page-View Counter"
 title_es = "Contador de visitas"
 teaches = "Count through a stream: partitions and consumers sized for bursts and slow consumers, reads from a cache"
 teaches_es = "Contar a través de un stream: particiones y consumidores dimensionados para picos y consumidores lentos, lecturas desde una caché"
-tags = ["streams", "partitions", "workers", "cache"]
+tags = ["streams", "partitioning", "workers", "caching"]
 
 [nfr]
 peak_rps = 3000

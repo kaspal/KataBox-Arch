@@ -6,7 +6,7 @@ title = "Ad Click Aggregator"
 title_es = "Agregador de clics en anuncios"
 teaches = "Count clicks through a stream into in-memory counters, with partitions and consumers for the bursts"
 teaches_es = "Contar clics a través de un stream en contadores en memoria, con particiones y consumidores para los picos"
-tags = ["streams", "partitions", "cache", "aggregation"]
+tags = ["streams", "partitioning", "caching", "aggregation"]
 
 [nfr]
 peak_rps = 10000

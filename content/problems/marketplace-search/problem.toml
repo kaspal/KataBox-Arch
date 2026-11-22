@@ -6,7 +6,7 @@ title = "Marketplace Search"
 title_es = "Búsqueda en un marketplace"
 teaches = "Serve search from a search engine fed by change data capture, with a cache for the hottest queries"
 teaches_es = "Servir la búsqueda desde un motor de búsqueda alimentado por captura de cambios, con una caché para las consultas más populares"
-tags = ["search", "cdc", "streams", "cache"]
+tags = ["search", "cdc", "streams", "caching"]
 
 [nfr]
 peak_rps = 5000

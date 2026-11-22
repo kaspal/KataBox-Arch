@@ -52,7 +52,7 @@
         "y": 510
       },
       "props": {
-        "ttl_s": 5
+        "ttl_s": 3
       },
       "group_id": null
     },

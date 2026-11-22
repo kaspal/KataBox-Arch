@@ -6,7 +6,7 @@ title = "Order-Matching Exchange"
 title_es = "Bolsa con casamiento de órdenes"
 teaches = "Keep the matching path short and the tail tight: enough partitions for the open, and a second matcher so one crash cannot stop matching"
 teaches_es = "Mantener corto el camino de casamiento y ajustada la cola de latencias: particiones suficientes para la apertura y un segundo matcher para que una caída no detenga el casamiento"
-tags = ["streams", "partitions", "p99", "failover", "cache"]
+tags = ["streams", "partitioning", "p99", "failover", "caching"]
 
 [nfr]
 peak_rps = 10000

@@ -786,8 +786,8 @@
       "licence": "Licencia",
       "sha": "SHA-256"
     },
-    "problems_one": "{{n}} problema",
-    "problems_other": "{{n}} problemas",
+    "problems_one": "{{count}} problema",
+    "problems_other": "{{count}} problemas",
     "change": {
       "new": "Nuevo: se añadirá a tus problemas.",
       "upgrade": "Sustituye a la versión {{from}}, que está instalada.",

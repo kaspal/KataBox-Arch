@@ -55,7 +55,7 @@ function PreviewBody({ p }: { p: PackPreview }) {
         </dd>
       </dl>
       <div>
-        <p className="mb-1 font-semibold">{t("packs.problems", { n: p.problems.length })}</p>
+        <p className="mb-1 font-semibold">{t("packs.problems", { count: p.problems.length })}</p>
         <ul className="list-inside list-disc text-muted-foreground">
           {p.problems.map((x) => (
             <li key={x.id}>{es ? x.title_es : x.title_en}</li>

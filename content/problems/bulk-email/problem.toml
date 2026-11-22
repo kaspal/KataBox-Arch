@@ -6,7 +6,7 @@ title = "Bulk Email Campaigns"
 title_es = "Campañas de correo masivo"
 teaches = "Send through a queue with retries and a dead-letter queue, so a provider's rate limit only slows a campaign down"
 teaches_es = "Enviar a través de una cola con reintentos y una cola de mensajes fallidos, para que el límite de un proveedor solo frene la campaña"
-tags = ["queues", "retries", "dlq", "rate-limits", "scheduler"]
+tags = ["queues", "retries", "dlq", "rate-limiting", "scheduler"]
 
 [nfr]
 peak_rps = 500

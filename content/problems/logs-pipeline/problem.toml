@@ -6,7 +6,7 @@ title = "Logs & Metrics Pipeline"
 title_es = "Pipeline de logs y métricas"
 teaches = "Ingest through a partitioned stream with spare consumer capacity, so a burst or a rebalance only delays data"
 teaches_es = "Ingerir a través de un stream particionado con capacidad de consumo de sobra, para que un pico o un rebalanceo solo retrasen los datos"
-tags = ["streams", "partitions", "workers", "object-storage", "search"]
+tags = ["streams", "partitioning", "workers", "object-storage", "search"]
 
 [nfr]
 peak_rps = 1000

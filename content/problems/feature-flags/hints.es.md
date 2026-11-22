@@ -8,4 +8,4 @@ Pon una caché delante de la base de datos (cache-aside) y deja que las entradas
 
 ## 3
 
-Añade una Cache Redis y ponle un TTL de unos pocos segundos, unos 5, en lugar de los 300 por defecto: así un cambio se ve en segundos y a la base de datos solo le llega un goteo de fallos de caché. Mantén los App Servers Go y una PostgreSQL principal con una réplica unida por una arista Replicate. Sin la caché, cada miembro de PostgreSQL atiende unas 20 000 consultas por segundo, muy lejos de 60 000.
+Añade una Cache Redis y ponle un TTL de unos pocos segundos, unos 3, en lugar de los 300 por defecto: así un cambio se ve en segundos y a la base de datos solo le llega un goteo de fallos de caché. Mantén los App Servers Go y una PostgreSQL principal con una réplica unida por una arista Replicate. Sin la caché, cada miembro de PostgreSQL atiende unas 20 000 consultas por segundo, muy lejos de 60 000.

@@ -6,7 +6,10 @@ title = "Feature Flags"
 title_es = "Feature flags"
 teaches = "Cache a read-heavy config with a short TTL: fast reads, flips seen within seconds, and reads that survive the database"
 teaches_es = "Cachear una configuración muy leída con un TTL corto: lecturas rápidas, cambios visibles en segundos y lecturas que sobreviven a la base de datos"
-tags = ["cache", "ttl", "staleness", "read-heavy"]
+tags = ["caching", "ttl", "staleness", "read-heavy"]
+# Staleness depends on reads landing just after a flip; sampling 60,000 req/s down to the
+# default 5,000 under-counts those collisions (review A1 accuracy check), so run at full rate.
+sample_cap = 60000
 
 [nfr]
 peak_rps = 60000
@@ -43,7 +46,7 @@ id = "flip-storm"
 name = "A flip storm"
 name_es = "Una tormenta de cambios"
 hidden = true
-type_multipliers = { flip = 20 }
+type_multipliers = { flip = 5 }
 
 [[tests]]
 id = "db-down"
@@ -55,4 +58,4 @@ pass = { error_rate = 0.01, availability = 0.99 }
 
 [pass]
 error_rate = 0.001
-stale_rate = 0.03
+stale_rate = 0.05

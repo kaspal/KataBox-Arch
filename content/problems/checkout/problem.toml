@@ -6,7 +6,7 @@ title = "Checkout & Inventory"
 title_es = "Checkout e inventario"
 teaches = "Take the order, reserve stock, and charge the card behind a queue, so a slow payment provider can't drag the shop down"
 teaches_es = "Aceptar el pedido, reservar stock y cobrar detrás de una cola, para que un proveedor de pagos lento no hunda la tienda"
-tags = ["queues", "external-providers", "cache"]
+tags = ["queues", "external-providers", "caching"]
 
 [nfr]
 peak_rps = 4000

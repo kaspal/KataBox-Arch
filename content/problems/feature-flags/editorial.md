@@ -8,9 +8,9 @@ Without one, every read is a database query. A PostgreSQL member works 100 queri
 
 ## The reference design
 
-An ALB Load Balancer spreads traffic over 10 Go App Servers, the Flags API. Each reads a Redis Cache first, with the TTL set to 5 seconds; a miss reads PostgreSQL and fills the cache. PostgreSQL runs as a primary and one replica joined by a Replicate edge; flips go to the primary. This costs about $1,461 per month, with a p95 near 22 ms and 0.02% stale reads on a normal day.
+An ALB Load Balancer spreads traffic over 10 Go App Servers, the Flags API. Each reads a Redis Cache first, with the TTL set to 3 seconds; a miss reads PostgreSQL and fills the cache. PostgreSQL runs as a primary and one replica joined by a Replicate edge; flips go to the primary. This costs about $1,461 per month, with a p95 near 20 ms and about 1% stale reads on a normal day, most of them from the replica's lag.
 
-The TTL is the lesson. At 5 seconds a cached flag is never more than 5 seconds behind its latest flip, and the database still sees only a small stream of misses. "A flip storm" multiplies flips by 20, to about 1,200 a second, so each flag changes every 17 seconds or so. More reads land in the window after a flip, and stale reads rise to about 1.7%, still under the 3% limit. "The config database is down for 20 s" kills the PostgreSQL primary at 20 seconds for 20 seconds, allowing 1% errors and 99% availability. The cache keeps answering for the flags it holds, so only some misses and the flips fail: about 0.34% of requests.
+The TTL is the lesson. At 3 seconds a cached flag is never more than 3 seconds behind its latest flip, and the database still sees only a small stream of misses. "A flip storm" multiplies flips by 5, to about 300 a second, so each flag changes about once a minute. More reads land in the window after a flip, and stale reads rise to about 2.4%, still under the 5% limit. At 5 seconds they would reach about 5.4%, just over it. "The config database is down for 20 s" kills the PostgreSQL primary at 20 seconds for 20 seconds, allowing 1% errors and 99% availability. The cache keeps answering for the flags it holds, so only some misses and the flips fail: about 0.17% of requests.
 
 ## Why the first try breaks
 

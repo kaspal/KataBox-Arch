@@ -6,7 +6,7 @@ title = "Session Store"
 title_es = "Almacén de sesiones"
 teaches = "Keep sessions out of the app servers, in a replicated store that survives a failover"
 teaches_es = "Guardar las sesiones fuera de los servidores de aplicación, en un almacén replicado que sobrevive a una conmutación"
-tags = ["cache", "replication", "failover", "stateless"]
+tags = ["caching", "replication", "failover", "stateless"]
 
 [nfr]
 peak_rps = 20000
