@@ -42,10 +42,10 @@ export function designBounds(d: Design): Box | null {
   return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
 }
 
-/** A viewport that shows `box` inside a pane of `size`, with a margin, zoomed 0.3–1. */
-export function fitBox(box: Box | null, size: { w: number; h: number }, margin = 32): Viewport {
+/** A viewport that shows `box` inside a pane of `size`, with a margin, zoomed `minZoom`–1. */
+export function fitBox(box: Box | null, size: { w: number; h: number }, margin = 32, minZoom = 0.3): Viewport {
   if (!box || size.w <= 0 || size.h <= 0) return { x: 0, y: 0, zoom: 1 };
-  const zoom = Math.min(1, Math.max(0.3, Math.min((size.w - 2 * margin) / box.w, (size.h - 2 * margin) / box.h)));
+  const zoom = Math.min(1, Math.max(minZoom, Math.min((size.w - 2 * margin) / box.w, (size.h - 2 * margin) / box.h)));
   return {
     x: size.w / 2 - (box.x + box.w / 2) * zoom,
     y: size.h / 2 - (box.y + box.h / 2) * zoom,
@@ -60,6 +60,7 @@ export function DesignView({
   onViewportChange,
   label,
   interactive = true,
+  still = false,
   focus,
   children,
   testId,
@@ -72,6 +73,8 @@ export function DesignView({
   label: string;
   /** False: no pan or zoom (a ghost under another view). */
   interactive?: boolean;
+  /** A still picture: no live numbers on its cards (they belong to the running design). */
+  still?: boolean;
   /** Cards in the spotlight; everything else dims. Empty or absent: nothing dims. */
   focus?: string[];
   /** Drawn inside the flow (the player's packet layer). */
@@ -110,13 +113,13 @@ export function DesignView({
       id: n.id,
       type: "component",
       position: n.position,
-      data: { node: n, spec: kindSpec(registry, n.kind) },
+      data: { node: n, spec: kindSpec(registry, n.kind), still },
       measured: { width: CARD_W, height: CARD_H },
       className: lit && !lit.has(n.id) ? "kb-dim" : undefined,
       ariaLabel: `${n.label.trim() || flavourName(t, n.flavour)}, ${kindName(t, n.kind)}`,
     }));
     return [...zones, ...notes, ...cards];
-  }, [design, registry, t, lit]);
+  }, [design, registry, t, lit, still]);
 
   const edges = useMemo<CurvedFlowEdge[]>(() => {
     const rects = new Map(design.nodes.map((n) => [n.id, { x: n.position.x, y: n.position.y, w: CARD_W, h: CARD_H }]));
@@ -126,10 +129,10 @@ export function DesignView({
       source: e.from,
       target: e.to,
       type: "curved",
-      data: { protocol: e.protocol, slots: slots.get(e.id) },
+      data: { protocol: e.protocol, slots: slots.get(e.id), still },
       className: lit && !(lit.has(e.from) && lit.has(e.to)) ? "kb-dim" : undefined,
     }));
-  }, [design, lit]);
+  }, [design, lit, still]);
 
   return (
     <div className="kb-canvas kb-readonly relative h-full w-full" role="group" aria-label={label} data-testid={testId}>
@@ -150,7 +153,7 @@ export function DesignView({
           zoomOnScroll={interactive}
           zoomOnPinch={interactive}
           zoomOnDoubleClick={false}
-          minZoom={0.3}
+          minZoom={0.1}
           maxZoom={2}
           proOptions={{ hideAttribution: true }}
         >

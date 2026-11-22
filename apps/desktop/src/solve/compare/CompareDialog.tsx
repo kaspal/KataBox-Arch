@@ -109,10 +109,10 @@ function Split({ mine, reference, registry }: ViewsProps) {
   return (
     <div ref={box} className="grid min-h-0 flex-1 grid-cols-2 gap-3">
       <Pane title={t("compare.yours")}>
-        <DesignView design={mine} registry={registry} viewport={vp} onViewportChange={setVp} label={t("compare.yours")} testId="compare-mine" />
+        <DesignView design={mine} registry={registry} viewport={vp} onViewportChange={setVp} label={t("compare.yours")} still testId="compare-mine" />
       </Pane>
       <Pane title={t("compare.reference")}>
-        <DesignView design={reference} registry={registry} viewport={vp} onViewportChange={setVp} label={t("compare.reference")} testId="compare-reference" />
+        <DesignView design={reference} registry={registry} viewport={vp} onViewportChange={setVp} label={t("compare.reference")} still testId="compare-reference" />
       </Pane>
     </div>
   );
@@ -147,10 +147,10 @@ function Overlay({ mine, reference, registry }: ViewsProps) {
       </p>
       <div ref={box} className="relative min-h-0 flex-1 overflow-hidden rounded-md border bg-canvas">
         <div className="pointer-events-none absolute inset-0 opacity-35" aria-hidden data-testid="compare-ghost">
-          <DesignView design={reference} registry={registry} viewport={ghost} label={t("compare.reference")} interactive={false} />
+          <DesignView design={reference} registry={registry} viewport={ghost} label={t("compare.reference")} interactive={false} still />
         </div>
         <div className="absolute inset-0">
-          <DesignView design={mine} registry={registry} viewport={vp} onViewportChange={setVp} label={t("compare.yours")} testId="compare-mine" />
+          <DesignView design={mine} registry={registry} viewport={vp} onViewportChange={setVp} label={t("compare.yours")} still testId="compare-mine" />
         </div>
       </div>
     </div>

@@ -17,6 +17,9 @@ export type CardData = {
   spec: KindSpec;
   /** Keyboard wiring: this card is the source, or the current target (ok or blocked). */
   wiring?: "source" | "target-ok" | "target-blocked";
+  /** A still picture (a gallery thumbnail): never shows live numbers, which are keyed by
+   * node id and belong to whichever design is running. */
+  still?: boolean;
 };
 export type CardFlowNode = FlowNode<CardData, "component">;
 
@@ -29,7 +32,7 @@ export const ComponentCard = memo(function ComponentCard({ data, selected }: Nod
   const product = flavourName(t, node.flavour);
   const kind = kindName(t, node.kind);
   const title = node.label.trim() || product;
-  const health = useTelemetry((s) => s.byId[node.id]);
+  const health = useTelemetry((s) => (data.still ? undefined : s.byId[node.id]));
   const stat = !health
     ? null
     : health.down

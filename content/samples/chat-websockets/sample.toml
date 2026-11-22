@@ -1,0 +1,37 @@
+id = "chat-websockets"
+number = 4
+title = "Chat with WebSockets"
+title_es = "Chat con WebSockets"
+summary = "Long-lived connections need gateways, and gateways need a way to talk to each other. Pub/sub joins them so one can fail."
+summary_es = "Las conexiones de larga duración necesitan gateways, y los gateways necesitan hablar entre sí. Pub/sub los une para que uno pueda fallar."
+problem = "chat"
+
+[[step]]
+snapshot = "naive.kbarch"
+title = "One pool of gateways"
+title_es = "Un único grupo de gateways"
+caption = "Phones keep a WebSocket open to a gateway. A message goes out through Redis pub/sub and comes back to the gateway that holds the recipient. On a normal evening p95 is about 26 ms."
+caption_es = "Los móviles mantienen un WebSocket abierto con un gateway. Un mensaje sale por Redis pub/sub y vuelve al gateway que tiene al destinatario. En una tarde normal la p95 ronda los 26 ms."
+focus = ["gw", "bus"]
+run = { test = "normal" }
+callout = { metric = "p95_ms", after = 26.1, target = 150 }
+
+[[step]]
+snapshot = "naive.kbarch"
+title = "A gateway dies"
+title_es = "Se cae un gateway"
+caption = "At 20 seconds the gateway pool goes down. Every connection was on it, so from then on every message fails: about two thirds of the run."
+caption_es = "A los 20 segundos se cae el grupo de gateways. Todas las conexiones estaban en él, así que desde ese momento falla cada mensaje: cerca de dos tercios de la ejecución."
+focus = ["gw"]
+run = { test = "gateway-dies", start_s = 16 }
+callout = { metric = "error_rate", after = 0.668, target = 0.02 }
+
+[[step]]
+snapshot = "reference.kbarch"
+title = "Two pools, joined by pub/sub"
+title_es = "Dos grupos, unidos por pub/sub"
+caption = "Now there are two gateway pools behind the load balancer, both subscribed to the same pub/sub. When one dies, health checks send its users to the other, and only the messages caught in between fail: under 2%."
+caption_es = "Ahora hay dos grupos de gateways detrás del balanceador, suscritos al mismo pub/sub. Cuando uno cae, las comprobaciones de salud mandan a sus usuarios al otro, y solo fallan los mensajes atrapados entre medias: menos del 2 %."
+focus = ["gw-a", "gw-b", "bus"]
+run = { test = "gateway-dies", start_s = 16 }
+callout = { metric = "error_rate", before = 0.668, after = 0.0167, target = 0.02 }

@@ -20,7 +20,7 @@ import { useTelemetry } from "@/solve/run/telemetry";
 import { CARD_H, CARD_W, useEditor } from "@/solve/store";
 import { protocolStyle } from "@/solve/wiring";
 
-export type CurvedEdgeData = { protocol: Protocol; slots?: EdgeSlots };
+export type CurvedEdgeData = { protocol: Protocol; slots?: EdgeSlots; /** No live numbers (see CardData.still). */ still?: boolean };
 export type CurvedFlowEdge = FlowEdge<CurvedEdgeData, "curved">;
 
 export function nodeRect(n: InternalNode): Rect {
@@ -39,7 +39,7 @@ const ARROW = 9;
 export const CurvedEdge = memo(function CurvedEdge({ id, source, target, data, selected }: EdgeProps<CurvedFlowEdge>) {
   const { t, i18n } = useTranslation();
   const reduced = useReducedMotion();
-  const rate = useTelemetry((s) => (reduced ? s.edgeRates[id] : undefined));
+  const rate = useTelemetry((s) => (reduced && !data?.still ? s.edgeRates[id] : undefined));
   const a = useInternalNode(source);
   const b = useInternalNode(target);
   const setSelection = useEditor((s) => s.setSelection);

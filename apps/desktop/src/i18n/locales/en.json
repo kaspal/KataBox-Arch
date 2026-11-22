@@ -203,7 +203,13 @@
     "continue": "Continue",
     "recommended": "Recommended next",
     "streak_one": "{{count}}-day streak",
-    "streak_other": "{{count}}-day streak"
+    "streak_other": "{{count}}-day streak",
+    "watch": "Watch how it works",
+    "allSamples": "All samples",
+    "tourTitle": "New here? Take the tour",
+    "tourBody": "\"{{title}}\" shows the canvas, a live run and the metrics in about a minute and a half. It stays in Samples.",
+    "tourStart": "Start the tour",
+    "tourLater": "Not now"
   },
   "placeholder": {
     "problems": {

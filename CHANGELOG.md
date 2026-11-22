@@ -54,7 +54,11 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
     - **a cost vs speed chart** places every accepted submission against the reference.
   - **A failed submission's results** offer the next hint.
 - **Samples:**
-  - **A gallery** of animated walkthroughs, starting with "Hello, Traffic", the first-run tour.
+  - **Five animated walkthroughs:** Hello, Traffic (the first-run tour), URL Shortener at scale, News Feed:
+    fan-out, Chat with WebSockets, and Flash Sale. Every number they call out is checked against the simulator.
+  - **Home** shows them under "Watch how it works". The card under the pointer, or the first one, plays a live
+    6-second preview; the others are still pictures, and nothing moves with reduced motion.
+  - **Home offers the tour once**; it always stays in Samples.
   - **The player** pans the camera to each step and dims what isn't in focus. Each step has a caption, plays live
     traffic, and calls out the number that changed.
   - Step with Previous and Next, the step dots or the arrow keys, and Replay step plays a step again.

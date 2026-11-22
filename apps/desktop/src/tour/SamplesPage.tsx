@@ -24,11 +24,11 @@ export function DesignThumb({ design, registry, label }: { design: Design; regis
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const fit = fitBox(designBounds(design), size, 16);
+  const fit = fitBox(designBounds(design), size, 12, 0.12);
   const vp = { ...fit, zoom: Math.min(0.6, fit.zoom) };
   return (
     <div ref={box} className="pointer-events-none h-40 overflow-hidden rounded-md border bg-canvas" aria-hidden>
-      {size.w > 0 && <DesignView design={design} registry={registry} viewport={vp} interactive={false} label={label} />}
+      {size.w > 0 && <DesignView design={design} registry={registry} viewport={vp} interactive={false} still label={label} />}
     </div>
   );
 }

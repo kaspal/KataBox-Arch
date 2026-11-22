@@ -29,7 +29,12 @@ fn the_shipped_samples_are_valid_and_build_into_rows() {
 fn structural_mistakes_are_reported() {
     let r = registry();
     let problems = load_problems(&content(), &r).unwrap();
-    let good = load_samples(&content(), &r).unwrap().remove(0);
+    // Hello, Traffic: the tour, no problem, four steps (the last without a run).
+    let good = load_samples(&content(), &r)
+        .unwrap()
+        .into_iter()
+        .find(|s| s.def.id == "hello-traffic")
+        .unwrap();
     let messages = |s: &ka_pack::SampleDir| -> Vec<String> {
         validate_samples(std::slice::from_ref(s), &problems, &r)
             .into_iter()

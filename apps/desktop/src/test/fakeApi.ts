@@ -9,7 +9,7 @@ import fixture from "@/test/fixtures/registry.json";
 
 export const REGISTRY = fixture.registry as unknown as Registry;
 
-const UI_SETTINGS = ["theme", "ui_lang", "ui.contrast", "ui.motion", "sandbox.layout", "canvas.snap"];
+const UI_SETTINGS = ["theme", "ui_lang", "ui.contrast", "ui.motion", "sandbox.layout", "canvas.snap", "tour.offered"];
 
 const err = (code: AppError["code"], message = code): AppError => ({ code, message });
 

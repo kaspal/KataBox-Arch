@@ -203,7 +203,13 @@
     "continue": "Continuar",
     "recommended": "Siguiente recomendado",
     "streak_one": "Racha de {{count}} día",
-    "streak_other": "Racha de {{count}} días"
+    "streak_other": "Racha de {{count}} días",
+    "watch": "Mira cómo funciona",
+    "allSamples": "Todos los ejemplos",
+    "tourTitle": "¿Eres nuevo? Haz el recorrido",
+    "tourBody": "«{{title}}» muestra el lienzo, una ejecución en vivo y las métricas en un minuto y medio. Siempre está en Ejemplos.",
+    "tourStart": "Empezar el recorrido",
+    "tourLater": "Ahora no"
   },
   "placeholder": {
     "problems": {

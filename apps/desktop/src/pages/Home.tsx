@@ -1,15 +1,64 @@
-// Home (matches the Home mockup's frame): the hero, New / Open, and the recent designs.
-// The samples gallery, progress and recommendations arrive with M2–M3.
+// Home (matches the Home mockup's frame): the hero, New / Open, the first-run tour offer,
+// practice (continue, recommended, streak), the samples gallery and the recent designs.
+import { lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, useNavigate } from "@tanstack/react-router";
 import type { ProblemSummary } from "@/bindings";
 import { DifficultyBadge, useLocalized } from "@/pages/Problems";
-import { FilePlus2, FileText, FolderOpen, Trash2 } from "lucide-react";
+import { FilePlus2, FileText, FolderOpen, PlayCircle, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Page } from "@/components/Page";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useProblems, useProgress, useRecentFiles } from "@/lib/queries";
+import { api } from "@/lib/api";
+import { useProblems, useProgress, useRecentFiles, useSamples } from "@/lib/queries";
 import { useFileActions } from "@/solve/files";
+
+// The gallery draws designs with React Flow: load it apart from Home's own code.
+const HomeSamples = lazy(() => import("@/tour/HomeSamples").then((m) => ({ default: m.HomeSamples })));
+
+const TOUR_OFFERED = "tour.offered";
+
+/** Offered once: take the tour, or not now. Either answer is remembered; the tour stays in Samples. */
+function TourOffer() {
+  const { t, i18n } = useTranslation();
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const offered = useQuery({ queryKey: ["setting", TOUR_OFFERED], queryFn: () => api.getSetting(TOUR_OFFERED) });
+  const tour = useSamples().data?.find((s) => s.tour);
+  if (!tour || offered.isLoading || offered.data === true) return null;
+  const done = async () => {
+    qc.setQueryData(["setting", TOUR_OFFERED], true);
+    await api.setSetting(TOUR_OFFERED, true).catch(() => {});
+  };
+  const title = i18n.language.startsWith("es") ? tour.title_es : tour.title;
+  return (
+    <section className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card p-4" aria-labelledby="tour-offer-title" data-testid="tour-offer">
+      <div className="space-y-1">
+        <h2 id="tour-offer-title" className="font-semibold">
+          {t("home.tourTitle")}
+        </h2>
+        <p className="text-sm text-muted-foreground">{t("home.tourBody", { title })}</p>
+      </div>
+      <div className="flex gap-2">
+        <Button
+          className="gap-2"
+          onClick={() => {
+            void done();
+            void navigate({ to: "/samples/$id", params: { id: tour.id } });
+          }}
+        >
+          <PlayCircle aria-hidden className="size-4" />
+          {t("home.tourStart")}
+        </Button>
+        <Button variant="ghost" className="gap-2" onClick={() => void done()}>
+          <X aria-hidden className="size-4" />
+          {t("home.tourLater")}
+        </Button>
+      </div>
+    </section>
+  );
+}
 
 function when(ms: number, lang: string): string {
   return new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" }).format(new Date(ms));
@@ -79,7 +128,11 @@ export function Home() {
         </>
       }
     >
+      <TourOffer />
       <PracticeCards />
+      <Suspense fallback={<Skeleton className="h-56 w-full" />}>
+        <HomeSamples />
+      </Suspense>
       <section aria-labelledby="recent-title" className="space-y-4">
         <h2 id="recent-title" className="font-display text-3xl font-semibold">
           {t("home.recent")}

@@ -1,0 +1,47 @@
+id = "news-feed-fan-out"
+number = 3
+title = "News Feed: fan-out"
+title_es = "Feed de noticias: fan-out"
+summary = "Building every feed from the database when it is opened is slow. Building feeds ahead of time, as posts arrive, is fast."
+summary_es = "Construir cada feed desde la base de datos al abrirlo es lento. Construirlos por adelantado, a medida que llegan las publicaciones, es rápido."
+problem = "news-feed"
+
+[[step]]
+snapshot = "naive.kbarch"
+title = "Feeds built on read"
+title_es = "Feeds construidos al leer"
+caption = "Each time someone opens the app, the App Servers assemble the feed from PostgreSQL. On a normal day p95 is about 84 ms, just under the 100 ms target."
+caption_es = "Cada vez que alguien abre la aplicación, los App Servers montan el feed desde PostgreSQL. En un día normal la p95 ronda los 84 ms, justo por debajo del objetivo de 100 ms."
+focus = ["app", "db"]
+run = { test = "normal" }
+callout = { metric = "p95_ms", after = 83.9, target = 100 }
+
+[[step]]
+snapshot = "naive.kbarch"
+title = "Everyone opens the app at once"
+title_es = "Todo el mundo abre la aplicación a la vez"
+caption = "At 20 seconds three times as many people open their feeds. Every one of them is a heavy query on the same database, and p95 climbs to about 350 ms."
+caption_es = "A los 20 segundos el triple de personas abre su feed. Cada una es una consulta pesada a la misma base de datos, y la p95 sube a unos 350 ms."
+focus = ["db"]
+run = { test = "read-storm", start_s = 16 }
+callout = { metric = "p95_ms", after = 349, target = 100 }
+
+[[step]]
+snapshot = "reference.kbarch"
+title = "Fan out on write"
+title_es = "Fan-out al escribir"
+caption = "Now a new post goes to Kafka, and workers copy it into each follower's feed in Redis. Opening the app is a single read from memory, so the same storm stays at about 23 ms."
+caption_es = "Ahora cada publicación nueva va a Kafka, y los workers la copian en el feed de cada seguidor en Redis. Abrir la aplicación es una sola lectura en memoria, así que la misma avalancha se queda en unos 23 ms."
+focus = ["stream", "fanout", "feeds"]
+run = { test = "read-storm", start_s = 16 }
+callout = { metric = "p95_ms", before = 349, after = 22.7, target = 100 }
+
+[[step]]
+snapshot = "reference.kbarch"
+title = "Breaking news"
+title_es = "Última hora"
+caption = "Four times as many posts arrive. The stream holds them while the workers catch up, and readers never wait for the fan-out: p95 stays near 25 ms."
+caption_es = "Llegan cuatro veces más publicaciones. El stream las retiene mientras los workers se ponen al día, y los lectores nunca esperan al fan-out: la p95 se queda cerca de 25 ms."
+focus = ["app", "stream", "fanout"]
+run = { test = "breaking-news" }
+callout = { metric = "p95_ms", after = 25.1, target = 100 }
