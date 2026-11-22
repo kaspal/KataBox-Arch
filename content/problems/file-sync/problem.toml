@@ -1,0 +1,61 @@
+id = "file-sync"
+number = 28
+set = 2
+difficulty = "hard"
+title = "Cloud File Sync"
+title_es = "Sincronización de archivos en la nube"
+teaches = "Skip chunks you already have, store the rest in object storage, and tell the other devices through a queue"
+teaches_es = "Saltarse los bloques que ya tienes, guardar el resto en almacenamiento de objetos y avisar a los demás dispositivos a través de una cola"
+tags = ["object-storage", "dedup", "cache", "queues"]
+
+[nfr]
+peak_rps = 2000
+p95_ms = 5000
+availability = 0.999
+budget_usd = 4000
+
+[[request_types]]
+id = "chunk"
+name = "Upload a changed chunk"
+name_es = "Subir un bloque modificado"
+share = 0.85
+route = ["edge?", "compute", "cache?", "datastore:write:object", "datastore:write:sql", "broker", "worker"]
+key_space = 2_000_000
+key_skew = { zipf = 1.2 }
+payload_kb = 128
+value_kb = 0.1
+measure = "completion"
+
+[[request_types]]
+id = "list"
+name = "List a folder"
+name_es = "Listar una carpeta"
+share = 0.15
+route = ["edge?", "compute", "datastore:sql"]
+key_space = 2_000_000
+
+[[tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "first-sync"
+name = "A new laptop syncs everything"
+name_es = "Un portátil nuevo lo sincroniza todo"
+hidden = true
+type_multipliers = { chunk = 2 }
+key_skew_override = { zipf = 0.7 }
+pass = { p95_ms = 1000 }
+
+[[tests]]
+id = "slow-storage"
+name = "The object store slows down"
+name_es = "El almacenamiento de objetos se ralentiza"
+hidden = true
+chaos = [{ latency = { kind = "object", all = true, add_ms = 150, at = 15, for = 30 } }]
+pass = { p95_ms = 1000 }
+
+[pass]
+error_rate = 0.001
+lost = 0

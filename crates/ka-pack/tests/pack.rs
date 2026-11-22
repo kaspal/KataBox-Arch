@@ -229,6 +229,10 @@ fn structural_problems_are_reported_with_their_file() {
         .replace(
             "route = [\"compute\", \"datastore\"]",
             "route = [\"compute\", \"external:mail\"]",
+        )
+        .replace(
+            "traffic = { spike = { at = 2, x = 4, for = 5 } }",
+            "chaos = [{ partition = { zone = \"us-east\", at = 2 } }, { split = { zone = \"@primary\", at = 3 } }]",
         );
     write_problem(&root, "demo", &bad);
     std::fs::write(root.join("problems/demo/editorial.es.md"), "# Editorial\n").unwrap();
@@ -242,6 +246,8 @@ fn structural_problems_are_reported_with_their_file() {
     assert!(has("needs at least one hidden test"), "{text:#?}");
     assert!(has("external \"mail\""), "{text:#?}");
     assert!(has("editorial.es.md: 0 sections"), "{text:#?}");
+    assert!(has("zone \"us-east\" is neither"), "{text:#?}");
+    assert!(!has("zone \"@primary\""), "{text:#?}");
     assert!(build_content(&root, &r).is_err());
 }
 

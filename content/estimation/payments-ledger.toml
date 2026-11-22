@@ -1,0 +1,34 @@
+# Estimation drills for the Payments Ledger.
+
+[[drill]]
+id = "ledger-growth"
+kind = "storage"
+prompt = "The ledger takes {peak_rps} transfers a second at peak, and each one adds a row of about {row_bytes} bytes (two account ids, an amount, a timestamp and the index entries). Rows are never deleted. If the peak lasted all day, how many GB would the ledger grow in a day?"
+prompt_es = "El libro mayor recibe {peak_rps} transferencias por segundo en el pico, y cada una añade una fila de unos {row_bytes} bytes (dos ids de cuenta, un importe, una marca de tiempo y las entradas de índice). Las filas no se borran nunca. Si el pico durase todo el día, ¿cuántos GB crecería el libro mayor en un día?"
+inputs = { peak_rps = 1_000, row_bytes = 200 }
+formula = "peak_rps * 86400 * row_bytes / 1000000000"
+unit = "GB"
+solution = "{peak_rps} × 86,400 s = 86.4 million transfers a day, × {row_bytes} bytes ≈ {answer} GB a day. A ledger only grows, and its replica holds a full copy, so both need the same disk. The balances stay small: one row per account, 5 million in all."
+solution_es = "{peak_rps} × 86 400 s = 86,4 millones de transferencias al día, × {row_bytes} bytes ≈ {answer} GB al día. Un libro mayor solo crece, y su réplica guarda una copia completa, así que las dos necesitan el mismo disco. Los saldos siguen siendo pequeños: una fila por cuenta, 5 millones en total."
+
+[[drill]]
+id = "projector-partitions"
+kind = "capacity"
+prompt = "During a retry storm, {storm_rps} committed transfers a second reach the change stream. A stream works one message per partition at a time, and each change takes a projector about {project_ms} ms plus a DynamoDB write of about {write_ms} ms. How many partitions are busy just to keep up?"
+prompt_es = "Durante una tormenta de reintentos, llegan al stream de cambios {storm_rps} transferencias confirmadas por segundo. Un stream procesa un mensaje por partición a la vez, y cada cambio le cuesta a un proyector unos {project_ms} ms más una escritura en DynamoDB de unos {write_ms} ms. ¿Cuántas particiones están ocupadas solo para seguir el ritmo?"
+inputs = { storm_rps = 2_000, project_ms = 2, write_ms = 3 }
+formula = "storm_rps * (project_ms + write_ms) / 1000"
+unit = "count"
+solution = "Messages in flight = arrival rate × time per message: {storm_rps} a second × 0.005 s = {answer} partitions, before any queueing. Kafka's default 6 would fall behind; 32 leave room for the burst and for the backlog a failover leaves behind."
+solution_es = "Mensajes en curso = ritmo de llegada × tiempo por mensaje: {storm_rps} por segundo × 0,005 s = {answer} particiones, sin contar colas. Las 6 por defecto de Kafka se quedarían atrás; 32 dejan margen para la ráfaga y para el retraso que deja una conmutación."
+
+[[drill]]
+id = "failover-errors"
+kind = "capacity"
+prompt = "The ledger takes {peak_rps} transfers a second. Its primary dies, and the replica takes {failover_s} s to be promoted; every transfer fails meanwhile. How many transfers fail before the ledger takes writes again?"
+prompt_es = "El libro mayor recibe {peak_rps} transferencias por segundo. Su primario cae y la réplica tarda {failover_s} s en pasar a primario; mientras tanto, todas las transferencias fallan. ¿Cuántas transferencias fallan antes de que el libro mayor vuelva a aceptar escrituras?"
+inputs = { peak_rps = 1_000, failover_s = 30 }
+formula = "peak_rps * failover_s"
+unit = "count"
+solution = "{peak_rps} a second × {failover_s} s = {answer} failed transfers. In a 120-second run of 120,000 transfers that is 25%. Each one is an error the customer sees and can retry, and none of them was committed, so nothing is lost. Without a replica the failures run from the crash to the end of the run."
+solution_es = "{peak_rps} por segundo × {failover_s} s = {answer} transferencias fallidas. En una ejecución de 120 segundos con 120 000 transferencias, eso es un 25 %. Cada una es un error que el cliente ve y puede reintentar, y ninguna llegó a confirmarse, así que no se pierde nada. Sin réplica, los fallos van desde la caída hasta el final de la ejecución."

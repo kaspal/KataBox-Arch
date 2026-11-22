@@ -1,0 +1,86 @@
+{
+  "schema_version": 3,
+  "id": "webhooks-naive",
+  "name": "Webhook Delivery (first try)",
+  "problem_id": "webhooks",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Product services",
+      "position": {
+        "x": 260,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Events API",
+      "position": {
+        "x": 260,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "q_all",
+      "kind": "queue",
+      "flavour": "sqs",
+      "label": "Deliveries",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "senders",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Senders",
+      "position": {
+        "x": 260,
+        "y": 510
+      },
+      "props": {
+        "instances": 22,
+        "concurrency": 64
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "api",
+      "to": "q_all",
+      "protocol": "publish"
+    },
+    {
+      "id": "e2",
+      "from": "q_all",
+      "to": "senders",
+      "protocol": "consume"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

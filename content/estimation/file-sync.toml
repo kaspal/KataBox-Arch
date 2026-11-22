@@ -1,0 +1,34 @@
+# Estimation drills for Cloud File Sync.
+
+[[drill]]
+id = "upload-bandwidth"
+kind = "bandwidth"
+prompt = "Devices send {peak_rps} requests a second at peak, and {chunk_pct}% of them upload a chunk of {chunk_kb} KB. How much upload traffic reaches the Sync API at peak?"
+prompt_es = "Los dispositivos envían {peak_rps} peticiones por segundo en el pico, y el {chunk_pct} % sube un bloque de {chunk_kb} KB. ¿Cuánto tráfico de subida llega a la Sync API en el pico?"
+inputs = { peak_rps = 2_000, chunk_pct = 85, chunk_kb = 128 }
+formula = "peak_rps * chunk_pct / 100 * chunk_kb / 1000"
+unit = "MB/s"
+solution = "{chunk_pct}% of {peak_rps} = 1,700 chunks a second, × {chunk_kb} KB = 217,600 KB, ÷ 1,000 ≈ {answer} a second. A chunk index can't make the bytes skip the wire, but it can keep most of them out of the object store, the database and the queue."
+solution_es = "El {chunk_pct} % de {peak_rps} = 1700 bloques por segundo, × {chunk_kb} KB = 217 600 KB, ÷ 1000 ≈ {answer} por segundo. Un índice de bloques no evita que los bytes viajen, pero sí que la mayoría lleguen al almacenamiento de objetos, a la base de datos y a la cola."
+
+[[drill]]
+id = "requests-per-month"
+kind = "capacity"
+prompt = "Without a chunk index, each of the {chunks_per_s} chunk uploads a second is one request to the object store, around the clock. How many object store requests is that in a month of {seconds_per_month} seconds?"
+prompt_es = "Sin un índice de bloques, cada una de las {chunks_per_s} subidas de bloques por segundo es una petición al almacenamiento de objetos, a todas horas. ¿Cuántas peticiones al almacenamiento de objetos son en un mes de {seconds_per_month} segundos?"
+inputs = { chunks_per_s = 1_700, seconds_per_month = 2_592_000 }
+formula = "chunks_per_s * seconds_per_month"
+unit = "count"
+solution = "{chunks_per_s} × {seconds_per_month} s ≈ {answer} requests, about 4.4 billion. At $1 per million that is about $4,400 a month for S3 alone, and SQS adds about $1,800 more for the change notices, past the $4,000 budget. If about 96% of uploads end at the index, S3 sees only about 4% of them: under $200."
+solution_es = "{chunks_per_s} × {seconds_per_month} s ≈ {answer} peticiones, unos 4400 millones. A 1 $ por millón son unos 4400 $ al mes solo de S3, y SQS añade unos 1800 $ más por los avisos de cambio: por encima del presupuesto de 4000 $. Si cerca del 96 % de las subidas terminan en el índice, a S3 solo llega un 4 %: menos de 200 $."
+
+[[drill]]
+id = "index-size"
+kind = "storage"
+prompt = "A chunk index keeps one entry for each of the {chunks} distinct chunks, saying only that the chunk is stored. Each entry takes about {entry_kb} KB. How much memory does the whole index need?"
+prompt_es = "Un índice de bloques guarda una entrada por cada uno de los {chunks} bloques distintos, que solo dice que el bloque está guardado. Cada entrada ocupa unos {entry_kb} KB. ¿Cuánta memoria necesita el índice entero?"
+inputs = { chunks = 2_000_000, entry_kb = 0.1 }
+formula = "chunks * entry_kb / 1000"
+unit = "MB"
+solution = "{chunks} × {entry_kb} KB = 200,000 KB, ÷ 1,000 ≈ {answer}. The index never holds the 128 KB chunks themselves, only their names, so a 1 GB Redis Cache at about $18 a month holds every entry with room to spare."
+solution_es = "{chunks} × {entry_kb} KB = 200 000 KB, ÷ 1000 ≈ {answer}. El índice nunca guarda los bloques de 128 KB, solo sus nombres, así que una Cache Redis de 1 GB, por unos 18 $ al mes, guarda todas las entradas con margen."

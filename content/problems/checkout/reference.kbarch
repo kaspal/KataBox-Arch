@@ -1,0 +1,182 @@
+{
+  "schema_version": 3,
+  "id": "checkout-reference",
+  "name": "Checkout & Inventory (reference)",
+  "problem_id": "checkout",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Shoppers",
+      "position": {
+        "x": 390,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "Load balancer",
+      "position": {
+        "x": 390,
+        "y": 340
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Shop API",
+      "position": {
+        "x": 390,
+        "y": 510
+      },
+      "props": {
+        "instances": 4
+      },
+      "group_id": null
+    },
+    {
+      "id": "cache",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "Product cache",
+      "position": {
+        "x": 130,
+        "y": 680
+      },
+      "props": {
+        "ttl_s": 60
+      },
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Orders & stock",
+      "position": {
+        "x": 390,
+        "y": 782
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "db_r",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Replica",
+      "position": {
+        "x": 390,
+        "y": 952
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "queue",
+      "kind": "queue",
+      "flavour": "sqs",
+      "label": "Payments",
+      "position": {
+        "x": 650,
+        "y": 680
+      },
+      "props": {
+        "max_retries": 8
+      },
+      "group_id": null
+    },
+    {
+      "id": "dlq",
+      "kind": "dlq",
+      "flavour": "generic",
+      "label": "Failed payments",
+      "position": {
+        "x": 910,
+        "y": 680
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "payers",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Payment workers",
+      "position": {
+        "x": 650,
+        "y": 884
+      },
+      "props": {
+        "instances": 12,
+        "concurrency": 64
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "api",
+      "to": "cache",
+      "protocol": "query"
+    },
+    {
+      "id": "e3",
+      "from": "api",
+      "to": "db",
+      "protocol": "query"
+    },
+    {
+      "id": "e4",
+      "from": "db",
+      "to": "db_r",
+      "protocol": "replicate"
+    },
+    {
+      "id": "e5",
+      "from": "api",
+      "to": "queue",
+      "protocol": "publish"
+    },
+    {
+      "id": "e6",
+      "from": "queue",
+      "to": "payers",
+      "protocol": "consume"
+    },
+    {
+      "id": "e7",
+      "from": "queue",
+      "to": "dlq",
+      "protocol": "publish"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

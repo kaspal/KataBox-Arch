@@ -12,14 +12,24 @@ pub fn summary(j: &Judgement) -> String {
         .iter()
         .map(|t| {
             format!(
-                "{}{}: {:?} (p95 {:.1} ms, errors {:.3}%, lost {:.0}, cost ${:.0})",
+                "{}{}: {:?} (p95 {:.1} ms{}, errors {:.3}%, lost {:.0}, cost ${:.0}{})",
                 t.id,
                 if t.hidden { " [hidden]" } else { "" },
                 t.verdict,
                 t.p95_ms,
+                if t.limits.p99_ms.is_some() {
+                    format!(", p99 {:.1} ms", t.p99_ms)
+                } else {
+                    String::new()
+                },
                 t.error_rate * 100.0,
                 t.lost,
-                t.cost_month
+                t.cost_month,
+                if t.stale_rate > 0.0 {
+                    format!(", stale {:.2}%", t.stale_rate * 100.0)
+                } else {
+                    String::new()
+                }
             )
         })
         .collect::<Vec<_>>()

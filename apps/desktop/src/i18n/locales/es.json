@@ -446,6 +446,7 @@
   "metrics": {
     "empty": "Ejecuta el diseño para ver métricas en vivo.",
     "p95": "Latencia p95",
+    "p99": "Latencia p99",
     "throughput": "Rendimiento",
     "errorRate": "Tasa de errores",
     "cost": "Coste",
@@ -503,6 +504,7 @@
     "targets": "Objetivos",
     "peak": "Tráfico pico",
     "p95": "Latencia p95",
+    "p99": "Latencia p99",
     "availability": "Disponibilidad",
     "budget": "Presupuesto",
     "traffic": "Tráfico",

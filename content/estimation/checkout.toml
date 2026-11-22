@@ -1,0 +1,34 @@
+# Estimation drills for Checkout & Inventory.
+
+[[drill]]
+id = "inline-payment-slots"
+kind = "capacity"
+prompt = "The shop peaks at {peak_rps} requests a second, and {order_pct}% of them are orders. Each order charges a card through a payment provider that takes {payment_ms} ms at the median, and whoever makes the call holds a slot for all of it. How many slots do the charges alone keep busy?"
+prompt_es = "La tienda llega a {peak_rps} peticiones por segundo en el pico, y el {order_pct} % son pedidos. Cada pedido cobra una tarjeta a través de un proveedor de pagos que tarda {payment_ms} ms de mediana, y quien hace la llamada ocupa un hueco durante toda ella. ¿Cuántos huecos mantienen ocupados solo los cobros?"
+inputs = { peak_rps = 4_000, order_pct = 20, payment_ms = 300 }
+formula = "peak_rps * order_pct / 100 * payment_ms / 1000"
+unit = "count"
+solution = "Slots in use = arrival rate × time per call. {order_pct}% of {peak_rps} = 800 orders a second, × 0.3 s ≈ {answer} slots, at the median alone. If those slots are the App Servers', product views have to share what is left."
+solution_es = "Huecos ocupados = ritmo de llegada × tiempo por llamada. El {order_pct} % de {peak_rps} = 800 pedidos por segundo, × 0,3 s ≈ {answer} huecos, solo con la mediana. Si esos huecos son los de los App Servers, las visitas a productos tienen que repartirse lo que quede."
+
+[[drill]]
+id = "slow-provider-slots"
+kind = "capacity"
+prompt = "The shop takes {orders_rps} orders a second. The payment provider normally answers in {payment_ms} ms, and on a bad day it adds {extra_ms} ms to every call. How many slots do the charges hold at once on the bad day?"
+prompt_es = "La tienda recibe {orders_rps} pedidos por segundo. El proveedor de pagos responde normalmente en {payment_ms} ms, y en un mal día añade {extra_ms} ms a cada llamada. ¿Cuántos huecos ocupan a la vez los cobros en el mal día?"
+inputs = { orders_rps = 800, payment_ms = 300, extra_ms = 2_500 }
+formula = "orders_rps * (payment_ms + extra_ms) / 1000"
+unit = "count"
+solution = "Each charge now takes 0.3 + 2.5 = 2.8 s, so {orders_rps} a second × 2.8 s ≈ {answer} slots, more than nine times a normal day. No sensible number of App Servers absorbs that; a queue in front of the workers does, by letting the backlog wait."
+solution_es = "Cada cobro tarda ahora 0,3 + 2,5 = 2,8 s, así que {orders_rps} por segundo × 2,8 s ≈ {answer} huecos, más de nueve veces un día normal. Ningún número razonable de App Servers absorbe eso; una cola delante de los Workers sí, porque deja que el trabajo pendiente espere."
+
+[[drill]]
+id = "double-click-workers"
+kind = "servers"
+prompt = "In a double-click storm the shop takes {orders_rps} orders a second. A charge takes {payment_ms} ms at the median, and one Celery worker instance runs {concurrency} charges at a time. How many worker instances keep up at the median?"
+prompt_es = "En una tormenta de doble clic la tienda recibe {orders_rps} pedidos por segundo. Un cobro tarda {payment_ms} ms de mediana, y una instancia de Worker Celery ejecuta {concurrency} cobros a la vez. ¿Cuántas instancias de Worker hacen falta para seguir el ritmo con la mediana?"
+inputs = { orders_rps = 1_600, payment_ms = 300, concurrency = 64 }
+formula = "orders_rps * payment_ms / 1000 / concurrency"
+unit = "count"
+solution = "{orders_rps} a second × 0.3 s = 480 charges in flight, ÷ {concurrency} per instance ≈ {answer} instances. The slow tail holds slots longer than the median, so plan more; and if the workers fall behind for a while, the queue holds the backlog while the shopper already has an answer."
+solution_es = "{orders_rps} por segundo × 0,3 s = 480 cobros en curso, ÷ {concurrency} por instancia ≈ {answer} instancias. La cola lenta ocupa los huecos más que la mediana, así que planifica más; y si los Workers se retrasan un rato, la cola guarda el trabajo pendiente mientras el cliente ya tiene su respuesta."

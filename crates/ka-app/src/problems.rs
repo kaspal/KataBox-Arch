@@ -64,6 +64,8 @@ pub struct ExternalBrief {
 pub struct ProblemBrief {
     pub summary: ProblemSummary,
     pub nfr: Nfr,
+    /// The problem-wide p99 limit, when it has one (shown with the targets).
+    pub p99_ms: Option<f64>,
     pub statement_en: String,
     pub statement_es: String,
     pub request_types: Vec<RequestTypeBrief>,
@@ -243,6 +245,7 @@ impl App {
         Ok(ProblemBrief {
             summary: Self::summary(&row, &def, status, self.best_cost(id).await?),
             nfr: def.nfr.clone(),
+            p99_ms: def.pass.p99_ms,
             statement_en: row.statement_en.clone(),
             statement_es: row.statement_es.clone(),
             request_types: def

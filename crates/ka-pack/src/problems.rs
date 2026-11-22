@@ -205,6 +205,31 @@ pub fn validate_problems(problems: &[ProblemDir], registry: &Registry) -> Vec<Is
                 bad("problem.toml", format!("{what} needs English and Spanish"));
             }
         }
+        // Zone chaos: `@primary`, or a Region/AZ of the reference (players can't be expected
+        // to match other names, so `@primary` is the one to use; see problem-authoring.md).
+        for t in &d.tests {
+            for c in &t.chaos {
+                let zone = match c {
+                    ka_core::scenario::ChaosEvent::Partition { zone, .. }
+                    | ka_core::scenario::ChaosEvent::Split { zone, .. } => zone,
+                    _ => continue,
+                };
+                let known = zone == "@primary"
+                    || p.reference
+                        .groups
+                        .iter()
+                        .any(|g| &g.id == zone || &g.label == zone);
+                if !known {
+                    bad(
+                        "problem.toml",
+                        format!(
+                            "test {}: zone {zone:?} is neither @primary nor a group of the reference",
+                            t.id
+                        ),
+                    );
+                }
+            }
+        }
         // Request types.
         let mut type_ids = BTreeSet::new();
         let mut share = 0.0;

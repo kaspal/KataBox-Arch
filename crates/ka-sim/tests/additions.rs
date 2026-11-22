@@ -112,6 +112,30 @@ fn a_dead_stream_consumer_s_messages_come_back_after_the_session_timeout() {
 }
 
 #[test]
+fn work_still_waiting_at_the_end_counts_at_its_age() {
+    // Both consumers die for good at 5 s: nothing completes after that, so without the
+    // end-of-run count the completion percentiles would only see the first 5 seconds.
+    let q = node("q", K::Queue, Flavour::Sqs, &[]);
+    let (d, mut s) = jobs(q);
+    s.chaos.push(ChaosEvent::Kill {
+        target: Selector {
+            kind: Some(K::Worker),
+            all: true,
+            ..Default::default()
+        },
+        at: 5.0,
+        for_s: None,
+    });
+    let r = run(&d, &s);
+    let c = r.completion.unwrap();
+    // Most jobs arrived after the crash and waited until the end (30 s + the 30 s drain).
+    assert!(c.p50_ms > 20_000.0, "unfinished jobs count: {c:?}");
+    assert_eq!(r.lost, 0.0, "waiting is not lost");
+    // Deterministic like everything else.
+    assert_eq!(run(&d, &s).completion.unwrap(), c);
+}
+
+#[test]
 fn leases_still_count_attempts_toward_the_dlq() {
     // Workers that die and stay dead: each redelivery is an attempt; after max_retries the
     // message is lost (no DLQ wired).
@@ -388,6 +412,48 @@ fn two_regions() -> (Design, ka_core::scenario::Scenario) {
     let mut write = rtype("write", 0.1, &["edge?", "compute", "datastore:write"]);
     write.key_space = 1000;
     (d, scenario(500.0, 40.0, vec![read, write]))
+}
+
+#[test]
+fn reads_stay_in_the_caller_s_region() {
+    let (d, s) = two_regions();
+    let r = run(&d, &s);
+    // A cross-region hop costs 70 ms each way: reads that stay local never pay it.
+    let read = r.per_type.iter().find(|t| t.id == "read").unwrap();
+    assert!(read.latency.p95_ms < 30.0, "{:?}", read.latency);
+    let served = |id: &str| r.nodes.iter().find(|n| n.id == id).unwrap().served;
+    assert!(served("db-eu") > 0.0 && served("db") > 0.0);
+}
+
+fn down(r: &RunResult, id: &str) -> bool {
+    !r.nodes
+        .iter()
+        .find(|n| n.id == id)
+        .unwrap()
+        .down_seconds
+        .is_empty()
+}
+
+#[test]
+fn at_primary_names_the_region_of_the_main_store_s_primary() {
+    let (d, mut s) = two_regions();
+    s.chaos.push(ChaosEvent::Partition {
+        zone: "@primary".into(),
+        at: 10.0,
+        for_s: Some(10.0),
+    });
+    let r = run(&d, &s);
+    assert!(down(&r, "db") && down(&r, "app-us"));
+    assert!(!down(&r, "db-eu") && !down(&r, "app-eu") && !down(&r, "lb"));
+    // Without Regions, the whole design is the primary's "region" (clients stay up).
+    let (mut d, s) = (d, s);
+    d.groups.clear();
+    for n in &mut d.nodes {
+        n.group_id = None;
+    }
+    let r = run(&d, &s);
+    assert!(down(&r, "db") && down(&r, "app-eu") && down(&r, "lb"));
+    assert!(!down(&r, "client"));
 }
 
 #[test]

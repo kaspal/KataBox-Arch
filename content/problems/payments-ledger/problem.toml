@@ -1,0 +1,50 @@
+id = "payments-ledger"
+number = 26
+set = 2
+difficulty = "hard"
+title = "Payments Ledger"
+title_es = "Libro mayor de pagos"
+teaches = "Commit every transfer to a replicated ledger once, and build balances from its change stream so a failover loses nothing"
+teaches_es = "Registrar cada transferencia una vez en un libro mayor replicado y construir los saldos desde su flujo de cambios, para que una conmutación no pierda nada"
+tags = ["sql", "replication", "failover", "cdc", "streams"]
+
+[nfr]
+peak_rps = 1000
+p95_ms = 3000
+availability = 0.999
+budget_usd = 4000
+
+[[request_types]]
+id = "transfer"
+name = "Make a transfer"
+name_es = "Hacer una transferencia"
+share = 1.0
+route = ["edge?", "compute", "datastore:write:sql", "cdc", "worker", "datastore:write:nosql"]
+key_space = 5_000_000
+measure = "completion"
+
+[[tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "retry-storm"
+name = "A retry storm"
+name_es = "Una tormenta de reintentos"
+hidden = true
+traffic = { spike = { at = 20, x = 2, for = 15 } }
+pass = { p95_ms = 15000 }
+
+[[tests]]
+id = "db-failover"
+name = "The ledger's primary fails mid-transfer"
+name_es = "Falla el primario del libro mayor en plena transferencia"
+hidden = true
+duration_s = 120
+chaos = [{ kill = { kind = "sql", role = "primary", at = 20 } }]
+pass = { error_rate = 0.3, availability = 0.7, p95_ms = 15000 }
+
+[pass]
+error_rate = 0.001
+lost = 0

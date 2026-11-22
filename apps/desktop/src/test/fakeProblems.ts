@@ -17,6 +17,7 @@ export const FAKE_BRIEF: ProblemBrief = {
     best_cost: null,
   },
   nfr: { peak_rps: 12000, read_ratio: 0.95, p95_ms: 80, availability: 0.999, budget_usd: 2500 },
+  p99_ms: 120,
   statement_en: "# URL Shortener\n\n## The problem\n\nTurn long links into short ones. <b>raw</b>\n\n| a | b |\n|---|---|\n| 1 | 2 |",
   statement_es: "# Acortador de URLs\n\n## El problema\n\nConvierte enlaces largos en cortos.",
   request_types: [
@@ -97,7 +98,7 @@ export function fakeJudgement(problemId: string, verdict: Verdict): Judgement {
         lost: 0,
         throughput_rps: 30500,
         cost_month: 2100,
-        limits,
+        limits: { ...limits, p99_ms: 120 },
         bottleneck: pass ? null : { node: "db", kind: "sql", from_s: 22, utilisation: 0.99, reason: "saturated" },
         replay_at_s: pass ? null : 20,
         seed: 2,

@@ -446,6 +446,7 @@
   "metrics": {
     "empty": "Run the design to see live metrics.",
     "p95": "p95 latency",
+    "p99": "p99 latency",
     "throughput": "Throughput",
     "errorRate": "Error rate",
     "cost": "Cost",
@@ -503,6 +504,7 @@
     "targets": "Targets",
     "peak": "Peak traffic",
     "p95": "p95 latency",
+    "p99": "p99 latency",
     "availability": "Availability",
     "budget": "Budget",
     "traffic": "Traffic",

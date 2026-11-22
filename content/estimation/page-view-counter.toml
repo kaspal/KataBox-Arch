@@ -1,0 +1,34 @@
+# Estimation drills for the Page-View Counter.
+
+[[drill]]
+id = "view-rate"
+kind = "qps"
+prompt = "Websites send {requests_per_day} requests a day, the busiest hour runs at {peak_factor}× the daily average, and {view_pct}% of requests are page views (the rest are dashboard reads). How many page views a second must you count at peak?"
+prompt_es = "Los sitios web envían {requests_per_day} peticiones al día, la hora de más tráfico va a {peak_factor} veces la media diaria, y el {view_pct} % de las peticiones son visitas (el resto son lecturas del panel). ¿Cuántas visitas por segundo tienes que contar en el pico?"
+inputs = { requests_per_day = 86_400_000, peak_factor = 3, view_pct = 99 }
+formula = "requests_per_day / 86400 * peak_factor * view_pct / 100"
+unit = "rps"
+solution = "{requests_per_day} ÷ 86,400 s = 1,000 requests a second on average, × {peak_factor} = 3,000 at peak. {view_pct}% of those are views: about {answer} a second to count. The 30 dashboard reads a second are small next to them."
+solution_es = "{requests_per_day} ÷ 86 400 s = 1000 peticiones por segundo de media, × {peak_factor} = 3000 en el pico. El {view_pct} % son visitas: unas {answer} por segundo que contar. Las 30 lecturas del panel por segundo son poca cosa a su lado."
+
+[[drill]]
+id = "partition-throughput"
+kind = "capacity"
+prompt = "On a stream, each partition hands out one message at a time. Counting a view takes {count_ms} ms in all (hops, the increment and the database write). How many views a second can a stream with {partitions} partitions count, however many consumers you add?"
+prompt_es = "En un stream, cada partición entrega un mensaje cada vez. Contar una visita lleva {count_ms} ms en total (saltos, el incremento y la escritura en la base de datos). ¿Cuántas visitas por segundo puede contar un stream con {partitions} particiones, por muchos consumidores que añadas?"
+inputs = { partitions = 48, count_ms = 9 }
+formula = "partitions * 1000 / count_ms"
+unit = "rps"
+solution = "One partition counts 1,000 ÷ {count_ms} ≈ 111 views a second. × {partitions} partitions ≈ {answer} a second. That covers the 2,970 views a second of a normal peak with room to spare, and comes close to the 5,940 of a doubled peak. With 32 partitions the ceiling is about 3,550, barely above a normal day."
+solution_es = "Una partición cuenta 1000 ÷ {count_ms} ≈ 111 visitas por segundo. × {partitions} particiones ≈ {answer} por segundo. Eso cubre con margen las 2970 visitas por segundo del pico normal y se acerca a las 5940 de un pico doble. Con 32 particiones el techo ronda las 3550, apenas por encima de un día normal."
+
+[[drill]]
+id = "slowdown-backlog"
+kind = "capacity"
+prompt = "{views_per_s} views a second arrive at a stream with {partitions} partitions. Counting a view normally takes {count_ms} ms, but for {slow_s} seconds the consumers take {extra_ms} ms longer per message. How many views pile up in the stream by the end of the slowdown?"
+prompt_es = "Llegan {views_per_s} visitas por segundo a un stream con {partitions} particiones. Contar una visita lleva normalmente {count_ms} ms, pero durante {slow_s} segundos los consumidores tardan {extra_ms} ms más por mensaje. ¿Cuántas visitas se acumulan en el stream al final de la ralentización?"
+inputs = { views_per_s = 2_970, partitions = 48, count_ms = 9, extra_ms = 10, slow_s = 20 }
+formula = "(views_per_s - partitions * 1000 / (count_ms + extra_ms)) * slow_s"
+unit = "count"
+solution = "A slow view takes {count_ms} + {extra_ms} = 19 ms, so {partitions} partitions count 48 × 1,000 ÷ 19 ≈ 2,526 a second. {views_per_s} arrive, so about 444 a second are left over, × {slow_s} s ≈ {answer} views waiting. Back at full speed the stream counts about 5,333 a second, 2,363 more than arrive, so the backlog clears in under 4 seconds."
+solution_es = "Una visita lenta tarda {count_ms} + {extra_ms} = 19 ms, así que {partitions} particiones cuentan 48 × 1000 ÷ 19 ≈ 2526 por segundo. Llegan {views_per_s}, así que sobran unas 444 por segundo, × {slow_s} s ≈ {answer} visitas esperando. De vuelta a la velocidad normal, el stream cuenta unas 5333 por segundo, 2363 más de las que llegan, así que el atasco se vacía en menos de 4 segundos."

@@ -1,0 +1,190 @@
+{
+  "schema_version": 3,
+  "id": "region-outage-naive",
+  "name": "Survive a Region Outage (first try)",
+  "problem_id": "region-outage",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Customers",
+      "position": {
+        "x": 390,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "dns",
+      "kind": "dns",
+      "flavour": "route53",
+      "label": "DNS",
+      "position": {
+        "x": 390,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "Load balancer",
+      "position": {
+        "x": 390,
+        "y": 408
+      },
+      "props": {},
+      "group_id": "us"
+    },
+    {
+      "id": "app_a",
+      "kind": "app",
+      "flavour": "go",
+      "label": "App 1a",
+      "position": {
+        "x": 260,
+        "y": 612
+      },
+      "props": {
+        "instances": 3
+      },
+      "group_id": "az1"
+    },
+    {
+      "id": "db_a",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Primary",
+      "position": {
+        "x": 260,
+        "y": 782
+      },
+      "props": {},
+      "group_id": "az1"
+    },
+    {
+      "id": "app_b",
+      "kind": "app",
+      "flavour": "go",
+      "label": "App 1b",
+      "position": {
+        "x": 520,
+        "y": 612
+      },
+      "props": {
+        "instances": 3
+      },
+      "group_id": "az2"
+    },
+    {
+      "id": "db_b",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Replica",
+      "position": {
+        "x": 520,
+        "y": 782
+      },
+      "props": {},
+      "group_id": "az2"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "dns",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "dns",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "lb",
+      "to": "app_a",
+      "protocol": "http"
+    },
+    {
+      "id": "e3",
+      "from": "lb",
+      "to": "app_b",
+      "protocol": "http"
+    },
+    {
+      "id": "e4",
+      "from": "app_a",
+      "to": "db_a",
+      "protocol": "query"
+    },
+    {
+      "id": "e5",
+      "from": "app_b",
+      "to": "db_a",
+      "protocol": "query"
+    },
+    {
+      "id": "e6",
+      "from": "db_a",
+      "to": "db_b",
+      "protocol": "replicate"
+    }
+  ],
+  "groups": [
+    {
+      "id": "us",
+      "kind": "region",
+      "label": "us-east",
+      "position": {
+        "x": 204,
+        "y": 364
+      },
+      "size": {
+        "w": 580,
+        "h": 546
+      },
+      "parent_id": null
+    },
+    {
+      "id": "az1",
+      "kind": "az",
+      "label": "us-east-1a",
+      "position": {
+        "x": 232,
+        "y": 568
+      },
+      "size": {
+        "w": 264,
+        "h": 314
+      },
+      "parent_id": "us"
+    },
+    {
+      "id": "az2",
+      "kind": "az",
+      "label": "us-east-1b",
+      "position": {
+        "x": 492,
+        "y": 568
+      },
+      "size": {
+        "w": 264,
+        "h": 314
+      },
+      "parent_id": "us"
+    }
+  ],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

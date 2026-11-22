@@ -1,0 +1,169 @@
+{
+  "schema_version": 3,
+  "id": "logs-pipeline-reference",
+  "name": "Logs & Metrics Pipeline (reference)",
+  "problem_id": "logs-pipeline",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Services",
+      "position": {
+        "x": 390,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "Load balancer",
+      "position": {
+        "x": 390,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Collector",
+      "position": {
+        "x": 390,
+        "y": 340
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "stream",
+      "kind": "stream",
+      "flavour": "kafka",
+      "label": "Log stream",
+      "position": {
+        "x": 260,
+        "y": 510
+      },
+      "props": {
+        "partitions": 128
+      },
+      "group_id": null
+    },
+    {
+      "id": "shippers_a",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Shippers A",
+      "position": {
+        "x": 130,
+        "y": 680
+      },
+      "props": {
+        "instances": 10,
+        "service_ms": 5
+      },
+      "group_id": null
+    },
+    {
+      "id": "shippers_b",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Shippers B",
+      "position": {
+        "x": 390,
+        "y": 680
+      },
+      "props": {
+        "instances": 10,
+        "service_ms": 5
+      },
+      "group_id": null
+    },
+    {
+      "id": "archive",
+      "kind": "object",
+      "flavour": "s3",
+      "label": "Log archive",
+      "position": {
+        "x": 260,
+        "y": 850
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "search",
+      "kind": "search",
+      "flavour": "elasticsearch",
+      "label": "Log index",
+      "position": {
+        "x": 650,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "api",
+      "to": "stream",
+      "protocol": "publish"
+    },
+    {
+      "id": "e3",
+      "from": "stream",
+      "to": "shippers_a",
+      "protocol": "consume"
+    },
+    {
+      "id": "e4",
+      "from": "stream",
+      "to": "shippers_b",
+      "protocol": "consume"
+    },
+    {
+      "id": "e5",
+      "from": "shippers_a",
+      "to": "archive",
+      "protocol": "query"
+    },
+    {
+      "id": "e6",
+      "from": "shippers_b",
+      "to": "archive",
+      "protocol": "query"
+    },
+    {
+      "id": "e7",
+      "from": "api",
+      "to": "search",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

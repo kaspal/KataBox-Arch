@@ -279,6 +279,8 @@ pub struct Engine {
     cdc_backlog: Vec<VecDeque<u32>>,
     /// Keys and commit times of CDC messages in the order streams accepted them (tests).
     cdc_audit: Option<Vec<(u64, u64)>>,
+    /// Messages still unfinished at the end have been counted (once).
+    censored: bool,
 }
 
 /// One forward hop of a simulated request, for the live packet layer.
@@ -428,6 +430,7 @@ impl Engine {
             splits: Vec::new(),
             cdc_backlog: vec![VecDeque::new(); c.nodes.len()],
             cdc_audit: None,
+            censored: false,
             nodes,
             c,
         };
@@ -488,6 +491,44 @@ impl Engine {
             self.handle(s.ev);
         }
         self.now = self.now.max(t.min(self.c.duration_us + DRAIN_US));
+        if !self.censored && self.now >= self.c.duration_us + DRAIN_US {
+            self.censored = true;
+            self.censor_unfinished();
+        }
+    }
+
+    /// Asynchronous work still unfinished when the run ends (a backlog behind a dead or
+    /// slow consumer, changes waiting for their stream) counts as completed at the end,
+    /// with its age then: a lower bound on its real completion time. Without this, work
+    /// that never finishes would simply be missing from the completion percentiles, and a
+    /// design whose only consumer dies would look fast. Not lost: it is still in a broker.
+    fn censor_unfinished(&mut self) {
+        let end = self.now;
+        let w = self.c.weight;
+        let mut groups_seen = std::collections::BTreeSet::new();
+        for i in 0..self.reqs.len() {
+            let q = &self.reqs[i];
+            if q.pending == u32::MAX / 2 || q.done || q.dead || !q.resp_sent {
+                continue;
+            }
+            let ty = q.ty as usize;
+            let mut start = q.start;
+            if q.group != NONE {
+                if !groups_seen.insert(q.group) {
+                    continue;
+                }
+                start = self.groups[q.group as usize].start;
+            }
+            if q.seg == 0 && !q.cdc_pending {
+                continue;
+            }
+            let lat = end.saturating_sub(start) as f64;
+            let m = &mut self.types[ty];
+            m.completion.add(lat, w);
+            if self.c.types[ty].def.measure == Measure::Completion {
+                m.measured.add(lat, w);
+            }
+        }
     }
 
     /// Record forward hops for the packet layer (live runs). Tracing never changes the run.
@@ -1130,13 +1171,25 @@ impl Engine {
             return primary;
         }
         let members = &self.c.clusters[cl as usize].members;
-        let live: Vec<u32> = members
+        let mut live: Vec<u32> = members
             .iter()
             .copied()
             .filter(|m| !self.nodes[*m as usize].known_down && !self.known_cut(caller, *m))
             .collect();
         if live.is_empty() {
             return primary;
+        }
+        // Reads stay in the caller's Region when a live member is there (the nearest replica).
+        let region = |n: u32| self.c.nodes[n as usize].region;
+        if caller != NONE && region(caller).is_some() {
+            let local: Vec<u32> = live
+                .iter()
+                .copied()
+                .filter(|&m| region(m) == region(caller))
+                .collect();
+            if !local.is_empty() {
+                live = local;
+            }
         }
         self.cluster_rr[cl as usize] = self.cluster_rr[cl as usize].wrapping_add(1);
         live[self.cluster_rr[cl as usize] % live.len()]
@@ -2163,8 +2216,43 @@ impl Engine {
         hits
     }
 
+    /// A chaos zone as written, or `@primary`: the Region holding the current primary of
+    /// the design's main data store (its first SQL cluster, else its first NoSQL one, by
+    /// card id). With no Region around that primary the whole design is the zone (`*`),
+    /// so leaving Regions out can't dodge a region test.
+    fn resolve_zone(&self, zone: &str) -> String {
+        if zone != "@primary" {
+            return zone.to_owned();
+        }
+        let primary = [ComponentKind::Sql, ComponentKind::Nosql]
+            .iter()
+            .find_map(|k| {
+                self.c
+                    .clusters
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, cl)| self.c.nodes[cl.members[0] as usize].kind == *k)
+                    .map(|(i, _)| self.cluster_primary[i])
+                    .min_by(|a, b| {
+                        self.c.nodes[*a as usize]
+                            .id
+                            .cmp(&self.c.nodes[*b as usize].id)
+                    })
+            });
+        primary
+            .and_then(|p| self.c.nodes[p as usize].region)
+            .map_or_else(|| "*".to_owned(), |z| self.c.zones[z as usize].id.clone())
+    }
+
     fn in_zone(&self, node: u32, zone: &str) -> bool {
         let n = &self.c.nodes[node as usize];
+        if zone == "*" {
+            // The whole design, except the cards that stand for the outside world.
+            return !matches!(
+                n.kind,
+                ComponentKind::Client | ComponentKind::Dns | ComponentKind::Cdn
+            );
+        }
         [n.az, n.region].into_iter().flatten().any(|z| {
             let z = &self.c.zones[z as usize];
             z.id == zone || z.label == zone
@@ -2187,8 +2275,9 @@ impl Engine {
                 for_s = *f;
             }
             C::Partition { zone, for_s: f, .. } => {
+                let zone = self.resolve_zone(zone);
                 targets = (0..self.c.nodes.len() as u32)
-                    .filter(|&n| self.in_zone(n, zone))
+                    .filter(|&n| self.in_zone(n, &zone))
                     .collect();
                 for &n in &targets {
                     self.kill(n);
@@ -2235,9 +2324,10 @@ impl Engine {
                 for_s = *f;
             }
             C::Split { zone, for_s: f, .. } => {
+                let zone = self.resolve_zone(zone);
                 self.splits.push(SplitRt {
                     chaos: i,
-                    zone: zone.clone(),
+                    zone,
                     since: self.now,
                     checks: 0,
                     known: false,

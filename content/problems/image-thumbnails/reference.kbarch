@@ -1,0 +1,155 @@
+{
+  "schema_version": 3,
+  "id": "image-thumbnails-reference",
+  "name": "Image Thumbnails (reference)",
+  "problem_id": "image-thumbnails",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "mobile",
+      "label": "Photo apps",
+      "position": {
+        "x": 260,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "Load balancer",
+      "position": {
+        "x": 260,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Upload API",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "photos",
+      "kind": "object",
+      "flavour": "s3",
+      "label": "Photos",
+      "position": {
+        "x": 0,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "queue",
+      "kind": "queue",
+      "flavour": "sqs",
+      "label": "Thumbnail jobs",
+      "position": {
+        "x": 520,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "thumbs_a",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Thumbnailers A",
+      "position": {
+        "x": 390,
+        "y": 680
+      },
+      "props": {
+        "instances": 12,
+        "service_ms": 200
+      },
+      "group_id": null
+    },
+    {
+      "id": "thumbs_b",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Thumbnailers B",
+      "position": {
+        "x": 650,
+        "y": 680
+      },
+      "props": {
+        "instances": 12,
+        "service_ms": 200
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "api",
+      "to": "photos",
+      "protocol": "query"
+    },
+    {
+      "id": "e3",
+      "from": "api",
+      "to": "queue",
+      "protocol": "publish"
+    },
+    {
+      "id": "e4",
+      "from": "queue",
+      "to": "thumbs_a",
+      "protocol": "consume"
+    },
+    {
+      "id": "e5",
+      "from": "queue",
+      "to": "thumbs_b",
+      "protocol": "consume"
+    },
+    {
+      "id": "e6",
+      "from": "thumbs_a",
+      "to": "photos",
+      "protocol": "query"
+    },
+    {
+      "id": "e7",
+      "from": "thumbs_b",
+      "to": "photos",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

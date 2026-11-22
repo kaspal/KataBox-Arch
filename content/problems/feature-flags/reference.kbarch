@@ -1,0 +1,123 @@
+{
+  "schema_version": 3,
+  "id": "feature-flags-reference",
+  "name": "Feature Flags (reference)",
+  "problem_id": "feature-flags",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Services",
+      "position": {
+        "x": 260,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "Load balancer",
+      "position": {
+        "x": 260,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Flags API",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {
+        "instances": 10
+      },
+      "group_id": null
+    },
+    {
+      "id": "cache",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "Flag cache",
+      "position": {
+        "x": 0,
+        "y": 510
+      },
+      "props": {
+        "ttl_s": 5
+      },
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Flags DB",
+      "position": {
+        "x": 260,
+        "y": 680
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "db_r",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Flags DB replica",
+      "position": {
+        "x": 520,
+        "y": 680
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "api",
+      "to": "cache",
+      "protocol": "query"
+    },
+    {
+      "id": "e3",
+      "from": "api",
+      "to": "db",
+      "protocol": "query"
+    },
+    {
+      "id": "e4",
+      "from": "db",
+      "to": "db_r",
+      "protocol": "replicate"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

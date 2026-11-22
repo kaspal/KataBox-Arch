@@ -1,0 +1,34 @@
+# Estimation drills for Collaborative Docs.
+
+[[drill]]
+id = "bus-messages-per-month"
+kind = "capacity"
+prompt = "Editors send {peak_rps} messages a second at peak, and {edit_pct}% of them are edits, each published once to a Redis Pub/Sub. If that rate held for a month of {days} days, how many messages would the bus carry? It bills $0.50 per million."
+prompt_es = "Los editores envían {peak_rps} mensajes por segundo en el pico, y el {edit_pct} % son ediciones, que se publican una vez en un Pub/Sub Redis. Si ese ritmo se mantuviera durante un mes de {days} días, ¿cuántos mensajes transportaría el bus? Cobra 0,50 $ por millón."
+inputs = { peak_rps = 6_000, edit_pct = 90, days = 30 }
+formula = "peak_rps * edit_pct / 100 * 86400 * days"
+unit = "count"
+solution = "{edit_pct}% of {peak_rps} = 5,400 edits a second. × 86,400 s × {days} days ≈ {answer} messages, about 14,000 million. At $0.50 per million that is about $7,000 a month, far more than the sync servers and the database together. Every edit you avoid sending, for example by batching keystrokes, comes straight off this line."
+solution_es = "El {edit_pct} % de {peak_rps} = 5400 ediciones por segundo. × 86 400 s × {days} días ≈ {answer} mensajes, unos 14 000 millones. A 0,50 $ por millón son unos 7000 $ al mes, mucho más que los servidores de sincronización y la base de datos juntos. Cada edición que evitas enviar, por ejemplo agrupando pulsaciones, sale directamente de esta línea."
+
+[[drill]]
+id = "sync-slots-alone"
+kind = "capacity"
+prompt = "The editor gets {peak_rps} messages a second, {edit_pct}% of them edits. A sync server spends {service_ms} ms on each message it receives from an editor, and another {service_ms} ms on each edit it receives from the bus, which delivers every edit to every sync card. One sync card has died and the other carries everything. How many of its slots are busy at once?"
+prompt_es = "El editor recibe {peak_rps} mensajes por segundo, el {edit_pct} % de ellos ediciones. Un servidor de sincronización dedica {service_ms} ms a cada mensaje que recibe de un editor, y otros {service_ms} ms a cada edición que recibe del bus, que entrega cada edición a todas las tarjetas de sincronización. Una tarjeta de sincronización se ha caído y la otra lo lleva todo. ¿Cuántos de sus huecos están ocupados a la vez?"
+inputs = { peak_rps = 6_000, edit_pct = 90, service_ms = 5 }
+formula = "(peak_rps + peak_rps * edit_pct / 100) * service_ms / 1000"
+unit = "count"
+solution = "From editors: {peak_rps} a second. From the bus: 5,400 edits. 11,400 × 0.005 s ≈ {answer} slots busy. 3 Go instances have 192 slots, so one card manages alone. Note the bus half: it does not shrink when you add cards, because each card hears every edit."
+solution_es = "De los editores: {peak_rps} por segundo. Del bus: 5400 ediciones. 11 400 × 0,005 s ≈ {answer} huecos ocupados. 3 instancias Go tienen 192 huecos, así que una tarjeta se basta sola. Fíjate en la mitad del bus: no baja al añadir tarjetas, porque cada tarjeta recibe todas las ediciones."
+
+[[drill]]
+id = "snapshot-bandwidth"
+kind = "bandwidth"
+prompt = "Of the {peak_rps} messages a second at peak, {snapshot_pct}% are snapshots, and each writes about {snapshot_kb} KB to PostgreSQL. How much data a second reaches the database, in MB/s?"
+prompt_es = "De los {peak_rps} mensajes por segundo del pico, el {snapshot_pct} % son instantáneas, y cada una escribe unos {snapshot_kb} KB en PostgreSQL. ¿Cuántos datos por segundo llegan a la base de datos, en MB/s?"
+inputs = { peak_rps = 6_000, snapshot_pct = 10, snapshot_kb = 16 }
+formula = "peak_rps * snapshot_pct / 100 * snapshot_kb / 1000"
+unit = "MB/s"
+solution = "{snapshot_pct}% of {peak_rps} = 600 snapshots a second, × {snapshot_kb} KB = 9,600 KB, about {answer} MB/s. That is a light load for one PostgreSQL. The snapshots are a tenth of the messages and a small part of the work; the edits are where the design is decided."
+solution_es = "El {snapshot_pct} % de {peak_rps} = 600 instantáneas por segundo, × {snapshot_kb} KB = 9600 KB, unos {answer} MB/s. Es una carga ligera para una PostgreSQL. Las instantáneas son una décima parte de los mensajes y una parte pequeña del trabajo; el diseño se decide en las ediciones."

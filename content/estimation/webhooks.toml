@@ -1,0 +1,34 @@
+# Estimation drills for Webhook Delivery.
+
+[[drill]]
+id = "sender-slots"
+kind = "capacity"
+prompt = "At peak the platform delivers {peak_rps} events a second. {general_pct}% go to customers' endpoints, which take {general_ms} ms per call at the median, and the rest go to Acme, which takes {acme_ms} ms. A sender holds its slot for the whole call. How many calls are in flight at once?"
+prompt_es = "En el pico la plataforma entrega {peak_rps} eventos por segundo. El {general_pct} % va a los endpoints de los clientes, que tardan {general_ms} ms por llamada en la mediana, y el resto va a Acme, que tarda {acme_ms} ms. Un sender mantiene ocupado su hueco durante toda la llamada. ¿Cuántas llamadas hay en curso a la vez?"
+inputs = { peak_rps = 2_000, general_pct = 70, general_ms = 200, acme_ms = 100 }
+formula = "peak_rps * general_pct / 100 * general_ms / 1000 + peak_rps * (100 - general_pct) / 100 * acme_ms / 1000"
+unit = "count"
+solution = "Calls in flight = arrival rate × time per call. 1,400 a second × 0.2 s = 280, plus 600 a second × 0.1 s = 60: about {answer} calls at once. That is only the median; the slow tail and a bad day hold slots far longer, so plan several times as many."
+solution_es = "Llamadas en curso = ritmo de llegada × tiempo por llamada. 1400 por segundo × 0,2 s = 280, más 600 por segundo × 0,1 s = 60: unas {answer} llamadas a la vez. Eso es solo la mediana; la cola lenta y un mal día ocupan los huecos mucho más tiempo, así que planifica varias veces más."
+
+[[drill]]
+id = "outage-slots"
+kind = "capacity"
+prompt = "Acme gets {acme_rps} events a second, and its endpoint goes down. Each call to it now fails after a {timeout_s} s connect timeout. How many sender slots do the first attempts alone hold, before any retry?"
+prompt_es = "Acme recibe {acme_rps} eventos por segundo, y su endpoint se cae. Cada llamada a él falla ahora tras un tiempo de conexión agotado de {timeout_s} s. ¿Cuántos huecos de sender ocupan solo los primeros intentos, antes de cualquier reintento?"
+inputs = { acme_rps = 600, timeout_s = 1 }
+formula = "acme_rps * timeout_s"
+unit = "count"
+solution = "{acme_rps} a second × {timeout_s} s = {answer} slots, ten times the 60 Acme needs on a normal day. Every retry holds another slot for the same second, so a dead endpoint can eat the capacity everyone else needs."
+solution_es = "{acme_rps} por segundo × {timeout_s} s = {answer} huecos, diez veces los 60 que Acme necesita en un día normal. Cada reintento ocupa otro hueco durante ese mismo segundo, así que un endpoint caído puede comerse la capacidad que necesitan todos los demás."
+
+[[drill]]
+id = "retry-window"
+kind = "capacity"
+prompt = "A queue retries a failed delivery after waits of 1, 2, 4, 8, 16 and 32 seconds, then waits 32 seconds before each further retry. With {max_retries} retries, how many seconds of waiting does an event get before it is given up on?"
+prompt_es = "Una cola reintenta una entrega fallida tras esperas de 1, 2, 4, 8, 16 y 32 segundos, y después espera 32 segundos antes de cada reintento siguiente. Con {max_retries} reintentos, ¿cuántos segundos de espera recibe un evento antes de darlo por perdido?"
+inputs = { max_retries = 8 }
+formula = "1 + 2 + 4 + 8 + 16 + 32 + (max_retries - 6) * 32"
+unit = "s"
+solution = "The first six waits add up to 63 s, and retries 7 and 8 add 32 s each: {answer} seconds, about two minutes, longer than a one-minute outage. The default 3 retries wait only 1 + 2 + 4 = 7 s."
+solution_es = "Las seis primeras esperas suman 63 s, y los reintentos 7 y 8 añaden 32 s cada uno: {answer} segundos, unos dos minutos, más que una caída de un minuto. Los 3 reintentos por defecto solo esperan 1 + 2 + 4 = 7 s."

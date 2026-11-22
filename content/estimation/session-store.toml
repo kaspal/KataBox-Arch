@@ -1,0 +1,34 @@
+# Estimation drills for the Session Store.
+
+[[drill]]
+id = "session-memory"
+kind = "storage"
+prompt = "The site has {active_sessions} active sessions, and each one (user id, roles, a few preferences and the store's own overhead) takes about {session_kb} KB. How much memory does the session store need, in GB?"
+prompt_es = "El sitio tiene {active_sessions} sesiones activas, y cada una (el id de usuario, sus roles, algunas preferencias y lo que ocupa el propio almacén) ocupa unos {session_kb} KB. ¿Cuánta memoria necesita el almacén de sesiones, en GB?"
+inputs = { active_sessions = 2_000_000, session_kb = 2 }
+formula = "active_sessions * session_kb / 1000000"
+unit = "GB"
+solution = "{active_sessions} × {session_kb} KB = 4,000,000 KB, about {answer} GB. One 8 GB Redis holds that with room for growth, and its replica needs the same memory, because it is a full copy."
+solution_es = "{active_sessions} × {session_kb} KB = 4 000 000 KB, unos {answer} GB. Un Redis de 8 GB lo guarda con margen para crecer, y su réplica necesita la misma memoria, porque es una copia completa."
+
+[[drill]]
+id = "session-writes"
+kind = "qps"
+prompt = "The site peaks at {peak_rps} requests a second, and {login_pct}% of them are sign-ins that write a new session. How many writes a second reach the session store's primary at peak?"
+prompt_es = "El sitio llega a {peak_rps} peticiones por segundo en el pico, y el {login_pct} % son inicios de sesión que escriben una sesión nueva. ¿Cuántas escrituras por segundo llegan al primario del almacén de sesiones en el pico?"
+inputs = { peak_rps = 20_000, login_pct = 10 }
+formula = "peak_rps * login_pct / 100"
+unit = "rps"
+solution = "{login_pct}% of {peak_rps} = {answer} writes a second, all to the primary. The other 18,000 reads can spread over the primary and its replica. While a failover runs, those writes are the requests that fail, which is why a short failover time matters."
+solution_es = "El {login_pct} % de {peak_rps} = {answer} escrituras por segundo, todas al primario. Las otras 18 000 lecturas pueden repartirse entre el primario y su réplica. Mientras dura una conmutación, esas escrituras son las peticiones que fallan; por eso importa que la conmutación sea corta."
+
+[[drill]]
+id = "failover-errors"
+kind = "capacity"
+prompt = "The site serves {peak_rps} requests a second and {write_pct}% are sign-ins, which must write to the session store's primary. The primary dies, and the replica takes {failover_s} s to be promoted; page loads keep reading from the replica meanwhile. How many sign-ins fail during the failover?"
+prompt_es = "El sitio atiende {peak_rps} peticiones por segundo y el {write_pct} % son inicios de sesión, que deben escribir en el primario del almacén de sesiones. El primario cae y la réplica tarda {failover_s} s en pasar a primario; mientras tanto, las cargas de página siguen leyendo de la réplica. ¿Cuántos inicios de sesión fallan durante la conmutación?"
+inputs = { peak_rps = 20_000, write_pct = 10, failover_s = 15 }
+formula = "peak_rps * write_pct / 100 * failover_s"
+unit = "count"
+solution = "{write_pct}% of {peak_rps} = 2,000 sign-ins a second, × {failover_s} s = {answer} failed sign-ins. Over a 120-second run of 2.4 million requests that is about 1.25%. Without a replica there is nothing to promote, and every request fails from the crash onward."
+solution_es = "El {write_pct} % de {peak_rps} = 2000 inicios de sesión por segundo, × {failover_s} s = {answer} inicios de sesión fallidos. En una ejecución de 120 segundos con 2,4 millones de peticiones, eso es cerca de un 1,25 %. Sin réplica no hay nada que promover, y desde la caída falla toda petición."

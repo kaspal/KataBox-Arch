@@ -54,6 +54,8 @@ describe("solving a problem", () => {
     expect(brief.querySelector("b")).toBeNull();
     expect(brief).toHaveTextContent("12,000 req/s");
     expect(brief).toHaveTextContent("≤ 80 ms");
+    // A problem with a p99 limit shows it with the targets.
+    expect(brief).toHaveTextContent("p99 latency≤ 120 ms");
     const tests = within(brief).getByTestId("tests");
     expect(tests).toHaveTextContent("Link goes viral");
     expect(tests).toHaveTextContent("hidden");
@@ -77,6 +79,9 @@ describe("solving a problem", () => {
     const rows = within(results).getAllByTestId("test-result");
     expect(rows).toHaveLength(2);
     expect(rows[1]).toHaveTextContent("Link goes viral");
+    // A p99 cell only where the test has a p99 limit.
+    expect(within(rows[0]).queryByTestId("p99")).toBeNull();
+    expect(within(rows[1]).getByTestId("p99")).toHaveTextContent("900 ms / 120");
     expect(within(rows[1]).getByTestId("bottleneck")).toHaveTextContent("SQL Database saturated from 22 s.");
     expect(within(results).getByTestId("ai-review")).toHaveTextContent("arrives in M4");
     await user.click(within(rows[1]).getByRole("button", { name: "Replay at failure" }));

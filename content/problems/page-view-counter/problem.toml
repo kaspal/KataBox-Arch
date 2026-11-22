@@ -1,0 +1,59 @@
+id = "page-view-counter"
+number = 20
+set = 2
+difficulty = "easy"
+title = "Page-View Counter"
+title_es = "Contador de visitas"
+teaches = "Count through a stream: partitions and consumers sized for bursts and slow consumers, reads from a cache"
+teaches_es = "Contar a través de un stream: particiones y consumidores dimensionados para picos y consumidores lentos, lecturas desde una caché"
+tags = ["streams", "partitions", "workers", "cache"]
+
+[nfr]
+peak_rps = 3000
+p95_ms = 3000
+availability = 0.999
+budget_usd = 3500
+
+[[request_types]]
+id = "view"
+name = "Count a page view"
+name_es = "Contar una visita"
+share = 0.99
+route = ["edge?", "compute", "broker", "worker", "datastore:write"]
+key_space = 1_000_000
+key_skew = { zipf = 1.0 }
+measure = "completion"
+
+[[request_types]]
+id = "dashboard"
+name = "Open the stats dashboard"
+name_es = "Abrir el panel de estadísticas"
+share = 0.01
+route = ["edge?", "compute", "cache?", "datastore"]
+key_space = 1_000_000
+key_skew = { zipf = 1.0 }
+
+[[tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "viral"
+name = "The homepage goes viral"
+name_es = "La portada se hace viral"
+hidden = true
+traffic = { spike = { at = 20, x = 2, for = 15 } }
+pass = { p95_ms = 10000 }
+
+[[tests]]
+id = "consumer-lag"
+name = "Consumers slow down"
+name_es = "Los consumidores se ralentizan"
+hidden = true
+chaos = [{ latency = { kind = "worker", all = true, add_ms = 10, at = 15, for = 20 } }]
+pass = { p95_ms = 10000 }
+
+[pass]
+error_rate = 0.001
+lost = 0

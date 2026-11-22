@@ -1,0 +1,128 @@
+{
+  "schema_version": 3,
+  "id": "exchange-naive",
+  "name": "Order-Matching Exchange (first try)",
+  "problem_id": "exchange",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Brokers' gateways",
+      "position": {
+        "x": 390,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_nlb",
+      "label": "Load balancer",
+      "position": {
+        "x": 390,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "gw",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Order gateway",
+      "position": {
+        "x": 390,
+        "y": 340
+      },
+      "props": {
+        "instances": 3
+      },
+      "group_id": null
+    },
+    {
+      "id": "stream",
+      "kind": "stream",
+      "flavour": "kafka",
+      "label": "Order log",
+      "position": {
+        "x": 390,
+        "y": 510
+      },
+      "props": {
+        "partitions": 48
+      },
+      "group_id": null
+    },
+    {
+      "id": "m",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Matchers",
+      "position": {
+        "x": 390,
+        "y": 680
+      },
+      "props": {
+        "instances": 8,
+        "service_ms": 0.5
+      },
+      "group_id": null
+    },
+    {
+      "id": "book",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "Order books",
+      "position": {
+        "x": 390,
+        "y": 850
+      },
+      "props": {
+        "ttl_s": 86400
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "gw",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "gw",
+      "to": "stream",
+      "protocol": "publish"
+    },
+    {
+      "id": "e3",
+      "from": "stream",
+      "to": "m",
+      "protocol": "consume"
+    },
+    {
+      "id": "e4",
+      "from": "m",
+      "to": "book",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

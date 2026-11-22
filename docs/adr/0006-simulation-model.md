@@ -213,6 +213,20 @@ new.
   broker publishes as usual; a caller with no broker edge makes the next segment's calls itself, still holding its
   slot, so the answer waits for them. One route then fits both the queued design and the inline one (Find the flaw's
   `sync-email`, Set 2's Checkout).
+- **Unfinished work at the end (M6.2).** Asynchronous work still waiting when the run and its 30 s drain end (a
+  backlog behind consumers that died for good, changes waiting for their stream) is counted in the completion
+  percentiles at its age then: a lower bound, so a stalled pipeline can't look fast just because nothing finished.
+  It isn't lost (it is still in a broker). Set 1 verdicts are unchanged; two naive designs' hidden-test p95 moved by
+  under 5% (online-judge "contest", web-crawler "duplicates").
+- **Local reads (M6.3).** A read from a data cluster goes to a live member in the caller's own Region when there is
+  one (the nearest replica), round robin among those; otherwise to any live member, as before. Writes still go to
+  the primary, wherever it is. Designs without Regions are unaffected (Set 1 results are identical).
+- **`@primary` zones (M6.3).** A `partition` or `split` whose zone is `@primary` hits the Region holding the current
+  primary of the design's main data store (its first SQL cluster by card id, else its first NoSQL one), so a region
+  test doesn't depend on how the player labels Regions. If that primary is in no Region, the zone is the whole design
+  except clients, DNS and CDNs (the outside world), so leaving Regions out can't dodge the test.
+- **Pub/sub and dead subscribers.** A delivery to a subscriber that is down fails and is retried with backoff from
+  the topic, which holds it until a subscriber is back; it is lost only when its retries run out.
 - **Still simplifications:** DNS TTL, WAF and gateway blocking, the serverless cold-start rule, sagas and circuit
   breakers.
 

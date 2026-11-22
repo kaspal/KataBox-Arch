@@ -80,6 +80,7 @@ export function BriefPanel({ brief }: { brief: ProblemBrief }) {
         <div className="grid grid-cols-2 gap-2">
           <Stat label={t("brief.peak")} value={`${n0.format(brief.nfr.peak_rps)} ${t("units.rps")}`} />
           <Stat label={t("brief.p95")} value={`≤ ${n0.format(brief.nfr.p95_ms)} ms`} />
+          {brief.p99_ms != null && <Stat label={t("brief.p99")} value={`≤ ${n0.format(brief.p99_ms)} ms`} />}
           <Stat label={t("brief.availability")} value={`≥ ${pct.format(brief.nfr.availability)}`} />
           <Stat label={t("brief.budget")} value={`${usd.format(brief.nfr.budget_usd)}${t("metrics.perMonth")}`} />
         </div>

@@ -73,13 +73,21 @@ function TestRow({ test, onReplay }: { test: TestResult; onReplay: (t: TestResul
         <VerdictChip v={test.verdict} />
       </div>
       {test.verdict !== "invalid_design" && (
-        <dl className="grid grid-cols-3 gap-2 text-xs">
+        <dl className={`grid gap-2 text-xs ${test.limits.p99_ms != null ? "grid-cols-4" : "grid-cols-3"}`}>
           <div>
             <dt className="text-muted-foreground">{t("metrics.p95")}</dt>
             <dd className="font-mono tabular-nums">
               {n1.format(test.p95_ms)} ms{test.limits.p95_ms != null && ` / ${n1.format(test.limits.p95_ms)}`}
             </dd>
           </div>
+          {test.limits.p99_ms != null && (
+            <div data-testid="p99">
+              <dt className="text-muted-foreground">{t("metrics.p99")}</dt>
+              <dd className="font-mono tabular-nums">
+                {n1.format(test.p99_ms)} ms / {n1.format(test.limits.p99_ms)}
+              </dd>
+            </div>
+          )}
           <div>
             <dt className="text-muted-foreground">{t("metrics.errorRate")}</dt>
             <dd className="font-mono tabular-nums">

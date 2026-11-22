@@ -1,0 +1,63 @@
+id = "checkout"
+number = 21
+set = 2
+difficulty = "medium"
+title = "Checkout & Inventory"
+title_es = "Checkout e inventario"
+teaches = "Take the order, reserve stock, and charge the card behind a queue, so a slow payment provider can't drag the shop down"
+teaches_es = "Aceptar el pedido, reservar stock y cobrar detrás de una cola, para que un proveedor de pagos lento no hunda la tienda"
+tags = ["queues", "external-providers", "cache"]
+
+[nfr]
+peak_rps = 4000
+read_ratio = 0.8
+p95_ms = 800
+availability = 0.999
+budget_usd = 4000
+
+[[externals]]
+name = "payment"
+median_ms = 300
+p99_ms = 1500
+
+[[request_types]]
+id = "browse"
+name = "Browse products"
+name_es = "Ver productos"
+share = 0.8
+route = ["edge?", "compute", "cache?", "datastore"]
+key_space = 50_000
+key_skew = { zipf = 1.1 }
+cacheable = true
+
+[[request_types]]
+id = "order"
+name = "Place an order"
+name_es = "Hacer un pedido"
+share = 0.2
+route = ["edge?", "compute", "datastore:write", "broker?", "worker", "external:payment"]
+key_space = 50_000
+key_skew = { zipf = 1.1 }
+
+[[tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "slow-payments"
+name = "The payment provider slows down"
+name_es = "El proveedor de pagos se ralentiza"
+hidden = true
+chaos = [{ external = { name = "payment", at = 15, for = 30, add_ms = 2500 } }]
+
+[[tests]]
+id = "double-click"
+name = "Double-click storm (orders ×2)"
+name_es = "Tormenta de doble clic (pedidos ×2)"
+hidden = true
+type_multipliers = { order = 2 }
+
+[pass]
+error_rate = 0.001
+lost = 0

@@ -21,6 +21,7 @@ const USAGE: &str = "usage:
   ka-pack new <id>
   ka-pack validate [--run [--verbose]] [--problems a,b] [--kind problems|samples|guide|practice] [--content DIR]
   ka-pack build --out FILE [--content DIR]
+  ka-pack try --problems a,b         judge the designs only (tuning drafts; not a check)
   ka-pack migrate [--content DIR]   rewrite every .kbarch in the current format";
 
 struct Args {
@@ -103,6 +104,54 @@ fn main() -> ExitCode {
                     ExitCode::FAILURE
                 }
             }
+        }
+        // Judge only (no text or structure checks), for tuning a problem's designs while its
+        // prose is still a draft. It proves nothing: `validate --run` is the check.
+        "try" => {
+            let Some(only) = &args.problems else {
+                eprintln!("try needs --problems a,b\n{USAGE}");
+                return ExitCode::FAILURE;
+            };
+            let mut problems = match load_problems(&args.content, &registry) {
+                Ok(p) => p,
+                Err(issues) => return report(&issues),
+            };
+            problems.retain(|p| only.contains(&p.def.id));
+            // Per card, on the first test: where the money and the load go.
+            for p in &problems {
+                let Some(t) = p.def.tests.first() else {
+                    continue;
+                };
+                for (name, d) in [("reference", &p.reference), ("naive", &p.naive)] {
+                    if let Ok(r) = ka_judge::run_test(&p.def, t, d, &registry) {
+                        let cards = r
+                            .nodes
+                            .iter()
+                            .map(|n| {
+                                format!(
+                                    "{} ${:.0} {:.0}%{}",
+                                    n.id,
+                                    n.cost_month,
+                                    n.utilisation * 100.0,
+                                    if n.drops > 0.0 {
+                                        format!(" drops {:.0}", n.drops)
+                                    } else {
+                                        String::new()
+                                    }
+                                )
+                            })
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        println!("  {name} cards ({}): {cards}", t.id);
+                    }
+                }
+            }
+            let issues = ka_pack::run::run_checks(&problems, &registry, true);
+            for i in &issues {
+                println!("  {i}");
+            }
+            println!("(try: designs judged only; run validate --run before committing)");
+            ExitCode::SUCCESS
         }
         "migrate" => match ka_pack::migrate::rewrite(&args.content, &registry) {
             Ok((changed, total)) => {

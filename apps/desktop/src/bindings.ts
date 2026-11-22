@@ -1094,7 +1094,11 @@ export type Point = { x: number; y: number }
  * What the Solve page shows. Hidden tests come with their names only; hints only up to the
  * unlocked tier; the editorial and the reference only once solved.
  */
-export type ProblemBrief = { summary: ProblemSummary; nfr: Nfr; statement_en: string; statement_es: string; request_types: RequestTypeBrief[]; externals: ExternalBrief[]; tests: TestBrief[]; 
+export type ProblemBrief = { summary: ProblemSummary; nfr: Nfr; 
+/**
+ * The problem-wide p99 limit, when it has one (shown with the targets).
+ */
+p99_ms: number | null; statement_en: string; statement_es: string; request_types: RequestTypeBrief[]; externals: ExternalBrief[]; tests: TestBrief[]; 
 /**
  * Unlocked tiers (0–3) and their text.
  */
