@@ -1,0 +1,47 @@
+id = "online-judge"
+number = 15
+set = 1
+difficulty = "hard"
+title = "Online Judge"
+title_es = "Juez en línea"
+teaches = "Slow jobs belong on workers that autoscale with the queue"
+teaches_es = "Las tareas lentas van a workers que escalan con la cola"
+tags = ["queues", "autoscaling", "async", "bursts"]
+
+[nfr]
+peak_rps = 40
+p95_ms = 20000
+availability = 0.999
+budget_usd = 3000
+
+[[request_types]]
+id = "submit"
+name = "Judge a submission"
+name_es = "Evaluar un envío"
+share = 1.0
+route = ["edge", "compute", "broker", "worker", "datastore:write"]
+measure = "completion"
+
+[[tests]]
+id = "normal"
+name = "A quiet afternoon"
+name_es = "Una tarde tranquila"
+
+[[tests]]
+id = "contest"
+name = "The contest starts"
+name_es = "Empieza el concurso"
+hidden = true
+traffic = { ramp = { from = 1, to = 6 } }
+pass = { p95_ms = 30000 }
+
+[[tests]]
+id = "worker-crash"
+name = "A judge machine crashes"
+name_es = "Se cae una máquina de evaluación"
+hidden = true
+chaos = [{ kill = { kind = "worker", at = 20, for = 20 } }]
+pass = { p95_ms = 30000 }
+
+[pass]
+error_rate = 0.001

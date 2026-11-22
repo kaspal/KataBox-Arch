@@ -1,0 +1,54 @@
+id = "ride-sharing"
+number = 13
+set = 1
+difficulty = "hard"
+title = "Ride Sharing"
+title_es = "Viajes compartidos"
+teaches = "Partition a write-heavy stream of locations; keep hot partitions in mind"
+teaches_es = "Particionar un flujo de ubicaciones con muchas escrituras; vigilar las particiones calientes"
+tags = ["nosql", "partitioning", "write-heavy", "hot-keys"]
+
+[nfr]
+peak_rps = 15000
+p95_ms = 60
+availability = 0.999
+budget_usd = 25000
+
+[[request_types]]
+id = "ping"
+name = "A driver reports their location"
+name_es = "Un conductor envía su ubicación"
+share = 0.98
+route = ["edge", "compute", "datastore:write"]
+key_space = 50_000
+key_skew = { zipf = 0.8 }
+
+[[request_types]]
+id = "match"
+name = "A rider asks for a car"
+name_es = "Un pasajero pide un coche"
+share = 0.02
+route = ["edge", "compute", "cache"]
+key_space = 2_000
+
+[[tests]]
+id = "normal"
+name = "Normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "surge"
+name = "City-wide surge"
+name_es = "Aumento en toda la ciudad"
+hidden = true
+traffic = { spike = { at = 15, x = 3, for = 25 } }
+
+[[tests]]
+id = "hot-area"
+name = "Everyone at the stadium"
+name_es = "Todos en el estadio"
+hidden = true
+key_skew_override = { zipf = 1.3 }
+
+[pass]
+error_rate = 0.001
