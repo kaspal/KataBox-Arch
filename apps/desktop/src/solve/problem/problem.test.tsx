@@ -81,7 +81,10 @@ describe("solving a problem", () => {
     expect(rows[1]).toHaveTextContent("Link goes viral");
     // A p99 cell only where the test has a p99 limit.
     expect(within(rows[0]).queryByTestId("p99")).toBeNull();
-    expect(within(rows[1]).getByTestId("p99")).toHaveTextContent("900 ms / 120");
+    expect(within(rows[1]).getByTestId("p99")).toHaveTextContent("900 ms / 120 ms");
+    // Retried attempts are their own number, not errors (review F3).
+    expect(within(rows[0]).queryByTestId("retried")).toBeNull();
+    expect(within(rows[1]).getByTestId("retried")).toHaveTextContent("1,234 attempts failed and were retried: not errors");
     expect(within(rows[1]).getByTestId("bottleneck")).toHaveTextContent("SQL Database saturated from 22 s.");
     expect(within(results).getByTestId("ai-review")).toHaveTextContent("arrives in M4");
     await user.click(within(rows[1]).getByRole("button", { name: "Replay at failure" }));

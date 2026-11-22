@@ -1061,6 +1061,11 @@ color_token: string; flavours: FlavourSpec[]; default_flavour: Flavour; props: P
  */
 placement: Placement }
 /**
+ * What a problem's latency limits measure (review F2): every request type's answer, every
+ * type's completion (async work done), or a mix.
+ */
+export type LatencyMeasure = "response" | "completion" | "mixed"
+/**
  * Size caps for a design. Sent to the UI with the registry.
  */
 export type Limits = { max_nodes: number; max_edges: number; max_groups: number; max_notes: number; 
@@ -1254,7 +1259,11 @@ export type ProblemBrief = { summary: ProblemSummary; nfr: Nfr;
 /**
  * The problem-wide p99 limit, when it has one (shown with the targets).
  */
-p99_ms: number | null; statement_en: string; statement_es: string; request_types: RequestTypeBrief[]; externals: ExternalBrief[]; tests: TestBrief[]; 
+p99_ms: number | null; 
+/**
+ * What the latency limits measure: the answer, the finished async work, or both.
+ */
+judged_on: LatencyMeasure; statement_en: string; statement_es: string; request_types: RequestTypeBrief[]; externals: ExternalBrief[]; tests: TestBrief[]; 
 /**
  * Unlocked tiers (0–3) and their text.
  */
@@ -1406,7 +1415,11 @@ latency: Percentiles; response: Percentiles;
 /**
  * For request types with async work.
  */
-completion: Percentiles | null; lost: number; dead_lettered: number; stale_reads: number; stale_rate: number; cost_month: number; per_type: TypeResult[]; nodes: NodeResult[]; 
+completion: Percentiles | null; lost: number; dead_lettered: number; 
+/**
+ * Failed attempts that were retried: not errors, since the message lived on (review F3).
+ */
+retried?: number; stale_reads: number; stale_rate: number; cost_month: number; per_type: TypeResult[]; nodes: NodeResult[]; 
 /**
  * One entry per simulated second.
  */
@@ -1590,7 +1603,11 @@ export type TestBrief = { id: string; name: string; name_es: string; hidden: boo
  * The result of one test. Hidden tests carry the same numbers, but never their traffic or
  * chaos: the definition stays in Rust.
  */
-export type TestResult = { id: string; name: string; name_es: string; hidden: boolean; verdict: Verdict; p95_ms: number; p99_ms: number; error_rate: number; availability: number; stale_rate: number; lost: number; throughput_rps: number; cost_month: number; 
+export type TestResult = { id: string; name: string; name_es: string; hidden: boolean; verdict: Verdict; p95_ms: number; p99_ms: number; error_rate: number; availability: number; stale_rate: number; lost: number; 
+/**
+ * Failed attempts that were retried (not errors: the message lived on; review F3).
+ */
+retried?: number; throughput_rps: number; cost_month: number; 
 /**
  * The limits this test was held to.
  */

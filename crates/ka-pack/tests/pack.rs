@@ -233,7 +233,8 @@ fn structural_problems_are_reported_with_their_file() {
         .replace(
             "traffic = { spike = { at = 2, x = 4, for = 5 } }",
             "chaos = [{ partition = { zone = \"us-east\", at = 2 } }, { split = { zone = \"@primary\", at = 3 } }]",
-        );
+        )
+        .replace("error_rate = 0.001", "error_rate = 0.5");
     write_problem(&root, "demo", &bad);
     std::fs::write(root.join("problems/demo/editorial.es.md"), "# Editorial\n").unwrap();
     let r = registry();
@@ -248,6 +249,7 @@ fn structural_problems_are_reported_with_their_file() {
     assert!(has("editorial.es.md: 0 sections"), "{text:#?}");
     assert!(has("zone \"us-east\" is neither"), "{text:#?}");
     assert!(!has("zone \"@primary\""), "{text:#?}");
+    assert!(has("test normal: an error limit above 10%"), "{text:#?}");
     assert!(build_content(&root, &r).is_err());
 }
 

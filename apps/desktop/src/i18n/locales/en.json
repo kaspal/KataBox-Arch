@@ -469,7 +469,8 @@
     "sampled": "Simulating {{pct}}% of requests; counts are scaled back up.",
     "p95Trend": "p95 latency per second",
     "stale": "Stale reads",
-    "availability": "Availability"
+    "availability": "Availability",
+    "retried": "Retried attempts"
   },
   "breaking": {
     "title": "Breaking point",
@@ -562,7 +563,9 @@
       "queue_overflow": "{{name}} overflowed its queue from {{at}} s.",
       "down": "{{name}} was down from {{at}} s."
     },
-    "stuck": "Stuck?"
+    "stuck": "Stuck?",
+    "retried_one": "{{n}} attempt failed and was retried: not an error, since the message was still delivered or kept.",
+    "retried_other": "{{n}} attempts failed and were retried: not errors, since the messages were still delivered or kept."
   },
   "compare": {
     "open": "Compare with reference",
@@ -832,5 +835,17 @@
       "problem": "Problem"
     },
     "hint": "The algorithms behind this page, to practise in KataBox."
+  },
+  "latency": {
+    "p95": {
+      "response": "p95 latency",
+      "completion": "p95 completion",
+      "mixed": "p95 (answers and completions)"
+    },
+    "p99": {
+      "response": "p99 latency",
+      "completion": "p99 completion",
+      "mixed": "p99 (answers and completions)"
+    }
   }
 }

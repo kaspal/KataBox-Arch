@@ -65,6 +65,9 @@ pub struct TestResult {
     pub availability: f64,
     pub stale_rate: f64,
     pub lost: f64,
+    /// Failed attempts that were retried (not errors: the message lived on; review F3).
+    #[serde(default)]
+    pub retried: f64,
     pub throughput_rps: f64,
     pub cost_month: f64,
     /// The limits this test was held to.
@@ -323,6 +326,7 @@ pub fn judge_with(
         availability: 0.0,
         stale_rate: 0.0,
         lost: 0.0,
+        retried: 0.0,
         throughput_rps: 0.0,
         cost_month: 0.0,
         limits: problem.pass_for(t),
@@ -384,6 +388,7 @@ pub fn judge_with(
                     availability: r.availability,
                     stale_rate: r.stale_rate,
                     lost: r.lost,
+                    retried: r.retried,
                     throughput_rps: r.throughput_rps,
                     cost_month: r.cost_month,
                     limits,

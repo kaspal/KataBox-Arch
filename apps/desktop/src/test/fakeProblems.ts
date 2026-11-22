@@ -19,6 +19,7 @@ export const FAKE_BRIEF: ProblemBrief = {
   },
   nfr: { peak_rps: 12000, read_ratio: 0.95, p95_ms: 80, availability: 0.999, budget_usd: 2500 },
   p99_ms: 120,
+  judged_on: "response",
   statement_en: "# URL Shortener\n\n## The problem\n\nTurn long links into short ones. <b>raw</b>\n\n| a | b |\n|---|---|\n| 1 | 2 |",
   statement_es: "# Acortador de URLs\n\n## El problema\n\nConvierte enlaces largos en cortos.",
   request_types: [
@@ -78,6 +79,7 @@ export function fakeJudgement(problemId: string, verdict: Verdict): Judgement {
         availability: 1,
         stale_rate: 0,
         lost: 0,
+        retried: 0,
         throughput_rps: 11980,
         cost_month: 1850,
         limits,
@@ -97,6 +99,7 @@ export function fakeJudgement(problemId: string, verdict: Verdict): Judgement {
         availability: pass ? 1 : 0.966,
         stale_rate: 0,
         lost: 0,
+        retried: pass ? 0 : 1234,
         throughput_rps: 30500,
         cost_month: 2100,
         limits: { ...limits, p99_ms: 120 },

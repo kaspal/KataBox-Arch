@@ -30,5 +30,5 @@ prompt_es = "El libro mayor recibe {peak_rps} transferencias por segundo. Su pri
 inputs = { peak_rps = 1_000, failover_s = 30 }
 formula = "peak_rps * failover_s"
 unit = "count"
-solution = "{peak_rps} a second × {failover_s} s = {answer} failed transfers. In a 120-second run of 120,000 transfers that is 25%. Each one is an error the customer sees and can retry, and none of them was committed, so nothing is lost. Without a replica the failures run from the crash to the end of the run."
-solution_es = "{peak_rps} por segundo × {failover_s} s = {answer} transferencias fallidas. En una ejecución de 120 segundos con 120 000 transferencias, eso es un 25 %. Cada una es un error que el cliente ve y puede reintentar, y ninguna llegó a confirmarse, así que no se pierde nada. Sin réplica, los fallos van desde la caída hasta el final de la ejecución."
+solution = "{peak_rps} a second × {failover_s} s = {answer} failed transfers. In a six-minute run of 360,000 transfers that is about 8%. Each one is an error the customer sees and can retry, and none of them was committed, so nothing is lost. Without a replica the failures run from the crash to the end of the run."
+solution_es = "{peak_rps} por segundo × {failover_s} s = {answer} transferencias fallidas. En una ejecución de seis minutos con 360 000 transferencias, eso es cerca de un 8 %. Cada una es un error que el cliente ve y puede reintentar, y ninguna llegó a confirmarse, así que no se pierde nada. Sin réplica, los fallos van desde la caída hasta el final de la ejecución."

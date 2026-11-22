@@ -59,6 +59,7 @@ function synthetic(n: number, edges: number, seq: number): Frame {
     errorRate: 0,
     costMonth: 9_000,
     staleRate: 0,
+    retried: 0,
     util,
     queue: new Uint16Array(n),
     nodeFlags: new Uint8Array(n),

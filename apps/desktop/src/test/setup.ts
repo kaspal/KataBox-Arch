@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { afterEach, vi } from "vitest";
 import { cleanup, configure } from "@testing-library/react";
+import i18n from "i18next";
 import { initI18n } from "@/i18n";
 import { resetDialogs } from "@/app/dialogs";
 import { useEditor } from "@/solve/store";
@@ -45,6 +46,18 @@ window.matchMedia = vi.fn((query: string) => ({
 })) as unknown as typeof window.matchMedia;
 
 initI18n("en");
+
+// A missing translation key fails the test that rendered it (review F1): typed keys catch
+// most mistakes at compile time, but keys built at run time (plurals, `as` casts) don't.
+const missingKeys: string[] = [];
+i18n.options.saveMissing = true;
+i18n.options.missingKeyHandler = (_lngs, _ns, key) => {
+  missingKeys.push(key);
+};
+afterEach(() => {
+  const found = missingKeys.splice(0);
+  if (found.length > 0) throw new Error(`missing i18n keys: ${[...new Set(found)].join(", ")}`);
+});
 
 // One generous default for every findBy*/waitFor (Testing Library's own is 1 s). The
 // lazy Sandbox route can take a few seconds

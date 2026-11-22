@@ -14,13 +14,13 @@ A Load Balancer (AWS ALB) sends transfers to the Ledger API, 2 Go instances. Eac
 
 "A retry storm" doubles the traffic for 15 seconds from 20 seconds, and allows a p95 of 15 s. The extra changes wait their turn in the stream and at the projectors, and the p95 rises to about 230 ms.
 
-"The ledger's primary fails mid-transfer" kills the PostgreSQL primary at 20 seconds, for good, in a 120-second run. It allows 30% errors and 70% availability, but still no lost transfers. Transfers fail until the replica is promoted, after PostgreSQL's default failover time of 30 seconds: 30 of 120 seconds, about 25% of the run. Those customers see an error and can try again. A failed write is never committed, so it publishes nothing, and the promoted replica keeps publishing through its own CDC edge. Nothing is lost.
+"The ledger's primary fails mid-transfer" kills the PostgreSQL primary at 20 seconds, for good, in a run of six minutes. It allows 10% errors and 90% availability, and no lost transfers. Transfers fail until the replica is promoted, after PostgreSQL's default failover time of 30 seconds: 30 of 360 seconds, about 8% of the run. Those customers see an error and can try again. A failed write is never committed, so it publishes nothing, and the promoted replica keeps publishing through its own CDC edge. Nothing is lost.
 
 ## Why the first try breaks
 
 A common first try is the same design with one PostgreSQL ledger and no replica, for about $2,899 per month. It passes "Normal day" and "A retry storm" with the same numbers as the reference.
 
-When the primary dies there is nothing to promote, so every transfer fails from 20 seconds to the end of the run: about 83% errors. Nothing committed is lost, but the payments app is down until someone rebuilds the database.
+When the primary dies there is nothing to promote, so every transfer fails from 20 seconds to the end of the run: about 94% errors. Nothing committed is lost, but the payments app is down until someone rebuilds the database.
 
 The lesson: an error the customer sees can be retried, but a transfer that was acknowledged and then lost cannot. The ledger must be replicated, and the balances are a projection you can always rebuild from its change log.
 

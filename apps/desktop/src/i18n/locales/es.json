@@ -469,7 +469,8 @@
     "sampled": "Se simula el {{pct}} % de las solicitudes; los recuentos se escalan de vuelta.",
     "p95Trend": "Latencia p95 por segundo",
     "stale": "Lecturas obsoletas",
-    "availability": "Disponibilidad"
+    "availability": "Disponibilidad",
+    "retried": "Intentos reintentados"
   },
   "breaking": {
     "title": "Punto de ruptura",
@@ -562,7 +563,9 @@
       "queue_overflow": "{{name}} desbordó su cola desde los {{at}} s.",
       "down": "{{name}} estuvo caído desde los {{at}} s."
     },
-    "stuck": "¿Te has atascado?"
+    "stuck": "¿Te has atascado?",
+    "retried_one": "{{n}} intento falló y se reintentó: no es un error, porque el mensaje se entregó o se guardó igualmente.",
+    "retried_other": "{{n}} intentos fallaron y se reintentaron: no son errores, porque los mensajes se entregaron o se guardaron igualmente."
   },
   "compare": {
     "open": "Comparar con la referencia",
@@ -832,5 +835,17 @@
       "problem": "Problema"
     },
     "hint": "Los algoritmos detrás de esta página, para practicarlos en KataBox."
+  },
+  "latency": {
+    "p95": {
+      "response": "Latencia p95",
+      "completion": "Finalización p95",
+      "mixed": "p95 (respuestas y finalizaciones)"
+    },
+    "p99": {
+      "response": "Latencia p99",
+      "completion": "Finalización p99",
+      "mixed": "p99 (respuestas y finalizaciones)"
+    }
   }
 }

@@ -104,6 +104,9 @@ pub fn validate_flaws(flaws: &[FlawDir], registry: &Registry) -> Vec<Issue> {
         if !numbers.insert(d.number) {
             bad(format!("number {} is used twice", d.number));
         }
+        for m in crate::problems::loose_limits(&d.problem()) {
+            bad(m);
+        }
         for (name, text) in [
             ("title", &d.title),
             ("title_es", &d.title_es),

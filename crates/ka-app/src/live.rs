@@ -16,7 +16,8 @@
 //!          | speed f32 | p95_ms f32 | rps f32 | error_rate f32 | cost_month f32
 //!          | node_count u16 | packet_count u16
 //!          | packet_total u32 (hops and events in the window before thinning)
-//!          | stale_rate f32 (stale reads over reads so far)                     (48 bytes)
+//!          | stale_rate f32 (stale reads over reads so far)
+//!          | retried f32 (failed attempts retried so far: not errors)        (52 bytes)
 //! node     idx u16 | util % u8 | queue u16 (saturating) | flags u8 (1 down, 2 overloaded)
 //! packet   edge idx u16 | type u8 (bits 0-2 the request type, bit 3 async, bit 4 cache
 //!          hit at the edge's far end, bit 5 dropped there, bit 6 travels the edge from its
@@ -39,7 +40,7 @@ use ka_core::Design;
 use ka_sim::{Compiled, Engine, RunResult};
 
 pub const MAGIC: &[u8; 4] = b"KAF1";
-pub const HEADER_BYTES: usize = 48;
+pub const HEADER_BYTES: usize = 52;
 pub const NODE_BYTES: usize = 6;
 pub const PACKET_BYTES: usize = 7;
 /// A snapshot every 5 simulated seconds bounds the re-simulation a seek needs.
@@ -233,6 +234,7 @@ impl LiveCore {
         out.extend_from_slice(&(chosen.len() as u16).to_le_bytes());
         out.extend_from_slice(&(mapped.len().min(u32::MAX as usize) as u32).to_le_bytes());
         out.extend_from_slice(&(snap.stale_rate as f32).to_le_bytes());
+        out.extend_from_slice(&(snap.retried as f32).to_le_bytes());
         debug_assert_eq!(out.len(), HEADER_BYTES);
 
         for (i, n) in snap.nodes.iter().enumerate() {

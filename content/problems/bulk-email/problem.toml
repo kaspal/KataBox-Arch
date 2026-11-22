@@ -41,7 +41,7 @@ name_es = "El proveedor te baja el límite"
 hidden = true
 duration_s = 120
 chaos = [{ external = { name = "email", at = 20, for = 40, rate = 250 } }]
-pass = { error_rate = 0.6, p95_ms = 120000 }
+pass = { p95_ms = 120000 }
 
 [[tests]]
 id = "overlap"
@@ -50,7 +50,7 @@ name_es = "Se solapan dos campañas"
 hidden = true
 duration_s = 120
 traffic = { spike = { at = 20, x = 2, for = 30 } }
-pass = { error_rate = 0.6, p95_ms = 120000 }
+pass = { p95_ms = 120000 }
 
 [pass]
 error_rate = 0.01

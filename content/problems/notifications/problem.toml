@@ -64,7 +64,7 @@ name = "The email provider goes down"
 name_es = "Se cae el proveedor de correo"
 hidden = true
 chaos = [{ external = { name = "email", at = 15, for = 40, down = true } }]
-pass = { error_rate = 0.5, p95_ms = 60000 }
+pass = { p95_ms = 60000 }
 
 [[tests]]
 id = "burst"

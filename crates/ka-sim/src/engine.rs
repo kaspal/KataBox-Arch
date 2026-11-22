@@ -259,6 +259,8 @@ pub struct Engine {
     seconds: Vec<Second>,
     lost: f64,
     dead_lettered: f64,
+    /// Failed attempts that were retried (not errors: the message lives on).
+    retried: f64,
     stale_reads: f64,
     reads: f64,
     /// Max traffic multiplier per source (for thinning).
@@ -323,6 +325,8 @@ pub struct Snapshot {
     pub cost_month: f64,
     /// Stale reads over reads so far.
     pub stale_rate: f64,
+    /// Failed attempts retried so far (weighted back to real traffic).
+    pub retried: f64,
 }
 
 impl Engine {
@@ -420,6 +424,7 @@ impl Engine {
             seconds: vec![Second::default(); nsec],
             lost: 0.0,
             dead_lettered: 0.0,
+            retried: 0.0,
             stale_reads: 0.0,
             reads: 0.0,
             max_mult,
@@ -606,6 +611,7 @@ impl Engine {
             nodes,
             last_second,
             cost_month: round2(cost_month),
+            retried: self.retried,
             stale_rate: if self.reads > 0.0 {
                 self.stale_reads / self.reads
             } else {
@@ -1490,6 +1496,7 @@ impl Engine {
         let b = q.broker;
         q.attempts += 1;
         if q.attempts <= self.c.nodes[b as usize].spec.max_retries {
+            self.retried += w;
             self.enqueue_broker(r, b);
         } else if self.c.dlq_of[b as usize].is_some() {
             self.dead_lettered += w;
@@ -1805,6 +1812,7 @@ impl Engine {
         }
         let retries = self.c.nodes[b as usize].spec.max_retries;
         if q.attempts <= retries {
+            self.retried += w;
             let backoff = 1_000_000u64 << (q.attempts - 1).min(5);
             self.push_req(self.now + backoff, Ev::Requeue { r }, r);
         } else if self.c.dlq_of[b as usize].is_some() {
@@ -2164,6 +2172,7 @@ impl Engine {
             completion: (completion.total() > 0.0).then(|| pct(&completion)),
             lost: self.lost,
             dead_lettered: self.dead_lettered,
+            retried: self.retried,
             stale_reads: self.stale_reads,
             stale_rate: if self.reads > 0.0 {
                 self.stale_reads / self.reads

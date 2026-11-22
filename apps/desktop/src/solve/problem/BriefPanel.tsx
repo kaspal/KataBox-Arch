@@ -9,6 +9,7 @@ import type { ProblemBrief } from "@/bindings";
 import { useReportError } from "@/app/dialogs";
 import { Markdown } from "@/components/Markdown";
 import { RelatedInKatabox } from "@/guide/RelatedInKatabox";
+import { formatMs, percentileLabel } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { queryKeys, useDrills, useEstimateStatuses, useSubmissions } from "@/lib/queries";
@@ -82,8 +83,8 @@ export function BriefPanel({ brief }: { brief: ProblemBrief }) {
       <Section title={t("brief.targets")}>
         <div className="grid grid-cols-2 gap-2">
           <Stat label={t("brief.peak")} value={`${n0.format(brief.nfr.peak_rps)} ${t("units.rps")}`} />
-          <Stat label={t("brief.p95")} value={`≤ ${n0.format(brief.nfr.p95_ms)} ms`} />
-          {brief.p99_ms != null && <Stat label={t("brief.p99")} value={`≤ ${n0.format(brief.p99_ms)} ms`} />}
+          <Stat label={percentileLabel(t, "p95", brief.judged_on)} value={`≤ ${formatMs(i18n.language, brief.nfr.p95_ms)}`} />
+          {brief.p99_ms != null && <Stat label={percentileLabel(t, "p99", brief.judged_on)} value={`≤ ${formatMs(i18n.language, brief.p99_ms)}`} />}
           <Stat label={t("brief.availability")} value={`≥ ${pct.format(brief.nfr.availability)}`} />
           <Stat label={t("brief.budget")} value={`${usd.format(brief.nfr.budget_usd)}${t("metrics.perMonth")}`} />
         </div>

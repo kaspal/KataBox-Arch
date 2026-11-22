@@ -191,6 +191,7 @@ fn result(verdict: Verdict, p95: f64, target: f64) -> TestResult {
         availability: 1.0,
         stale_rate: 0.0,
         lost: 0.0,
+        retried: 0.0,
         throughput_rps: 0.0,
         cost_month: 0.0,
         limits: PassCriteria {

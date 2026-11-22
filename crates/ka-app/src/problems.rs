@@ -41,6 +41,33 @@ pub struct TestBrief {
     pub duration_s: f64,
 }
 
+/// What a problem's latency limits measure (review F2): every request type's answer, every
+/// type's completion (async work done), or a mix.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(rename_all = "snake_case")]
+pub enum LatencyMeasure {
+    Response,
+    Completion,
+    Mixed,
+}
+
+impl LatencyMeasure {
+    pub fn of(def: &ProblemDef) -> LatencyMeasure {
+        use ka_core::scenario::Measure;
+        let completion = def
+            .request_types
+            .iter()
+            .filter(|t| t.measure == Measure::Completion)
+            .count();
+        match completion {
+            0 => LatencyMeasure::Response,
+            n if n == def.request_types.len() => LatencyMeasure::Completion,
+            _ => LatencyMeasure::Mixed,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct RequestTypeBrief {
@@ -68,6 +95,8 @@ pub struct ProblemBrief {
     pub nfr: Nfr,
     /// The problem-wide p99 limit, when it has one (shown with the targets).
     pub p99_ms: Option<f64>,
+    /// What the latency limits measure: the answer, the finished async work, or both.
+    pub judged_on: LatencyMeasure,
     pub statement_en: String,
     pub statement_es: String,
     pub request_types: Vec<RequestTypeBrief>,
@@ -270,6 +299,7 @@ impl App {
             summary: Self::summary(&row, &def, status, self.best_cost(id).await?),
             nfr: def.nfr.clone(),
             p99_ms: def.pass.p99_ms,
+            judged_on: LatencyMeasure::of(&def),
             statement_en: row.statement_en.clone(),
             statement_es: row.statement_es.clone(),
             request_types: def
@@ -603,6 +633,8 @@ error_rate = 0.001
         assert_eq!(list[0].status, None);
 
         let brief = app.problem_brief("demo").await.unwrap();
+        // Its one request type is judged on the answer (review F2).
+        assert_eq!(brief.judged_on, LatencyMeasure::Response);
         assert_eq!(brief.tests.len(), 2);
         assert!(brief.tests[1].hidden);
         assert_eq!(brief.hints_unlocked, 0);

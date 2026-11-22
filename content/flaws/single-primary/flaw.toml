@@ -41,7 +41,7 @@ id = "primary-dies"
 name = "The database server dies"
 name_es = "Se cae el servidor de la base de datos"
 chaos = [{ kill = { kind = "sql", role = "primary", at = 20 } }]
-pass = { error_rate = 0.15, availability = 0.85 }
+pass = { error_rate = 0.1, availability = 0.9 }
 
 [scenario.pass]
 p95_ms = 50

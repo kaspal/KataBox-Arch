@@ -35,6 +35,9 @@ pub struct RunResult {
     pub completion: Option<Percentiles>,
     pub lost: f64,
     pub dead_lettered: f64,
+    /// Failed attempts that were retried: not errors, since the message lived on (review F3).
+    #[serde(default)]
+    pub retried: f64,
     pub stale_reads: f64,
     pub stale_rate: f64,
     pub cost_month: f64,

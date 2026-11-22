@@ -14,13 +14,13 @@ Un Load Balancer (AWS ALB) envía las transferencias a la Ledger API, 2 instanci
 
 «Una tormenta de reintentos» duplica el tráfico durante 15 segundos a partir del segundo 20, y admite un p95 de 15 s. Los cambios de más esperan su turno en el stream y en los proyectores, y el p95 sube a unos 230 ms.
 
-«Falla el primario del libro mayor en plena transferencia» tumba el primario de PostgreSQL en el segundo 20, para siempre, en una ejecución de 120 segundos. Admite un 30 % de errores y un 70 % de disponibilidad, pero ninguna transferencia perdida. Las transferencias fallan hasta que la réplica pasa a primario, tras el tiempo de conmutación por defecto de PostgreSQL, 30 segundos: 30 de 120 segundos, cerca del 25 % de la ejecución. Esos clientes ven un error y pueden volver a intentarlo. Una escritura fallida nunca se confirma, así que no publica nada, y la réplica promovida sigue publicando por su propio enlace de captura de cambios. No se pierde nada.
+«Falla el primario del libro mayor en plena transferencia» tumba el primario de PostgreSQL en el segundo 20, para siempre, en una ejecución de seis minutos. Admite un 10 % de errores y un 90 % de disponibilidad, y ninguna transferencia perdida. Las transferencias fallan hasta que la réplica pasa a primario, tras el tiempo de conmutación por defecto de PostgreSQL, 30 segundos: 30 de 360 segundos, cerca del 8 % de la ejecución. Esos clientes ven un error y pueden volver a intentarlo. Una escritura fallida nunca se confirma, así que no publica nada, y la réplica promovida sigue publicando por su propio enlace de captura de cambios. No se pierde nada.
 
 ## Por qué falla el primer intento
 
 Un primer intento habitual es el mismo diseño con un solo libro mayor PostgreSQL y sin réplica, por unos 2899 $ al mes. Supera «Un día normal» y «Una tormenta de reintentos» con las mismas cifras que la referencia.
 
-Cuando cae el primario no hay nada que promover, así que todas las transferencias fallan desde el segundo 20 hasta el final de la ejecución: cerca de un 83 % de errores. No se pierde nada confirmado, pero la app de pagos está caída hasta que alguien reconstruya la base de datos.
+Cuando cae el primario no hay nada que promover, así que todas las transferencias fallan desde el segundo 20 hasta el final de la ejecución: cerca de un 94 % de errores. No se pierde nada confirmado, pero la app de pagos está caída hasta que alguien reconstruya la base de datos.
 
 La lección: un error que ve el cliente se puede reintentar, pero una transferencia confirmada y luego perdida no. El libro mayor tiene que estar replicado, y los saldos son una proyección que siempre puedes reconstruir desde su registro de cambios.
 
