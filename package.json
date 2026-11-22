@@ -1,0 +1,18 @@
+{
+  "name": "katabox-arch",
+  "private": true,
+  "license": "MIT OR Apache-2.0",
+  "packageManager": "pnpm@10.28.0",
+  "scripts": {
+    "dev": "pnpm --filter @katabox-arch/desktop tauri dev",
+    "dev:web": "pnpm --filter @katabox-arch/desktop dev",
+    "build": "pnpm --filter @katabox-arch/desktop build",
+    "typecheck": "pnpm --filter @katabox-arch/desktop exec tsc --noEmit",
+    "test": "pnpm --filter @katabox-arch/desktop test",
+    "licenses:check": "node scripts/check-npm-licenses.mjs",
+    "versions:check": "node scripts/check-versions.mjs",
+    "notices": "node scripts/gen-notices.mjs",
+    "tauri": "pnpm --filter @katabox-arch/desktop tauri",
+    "release:build": "pnpm notices && pnpm --filter @katabox-arch/desktop tauri build"
+  }
+}

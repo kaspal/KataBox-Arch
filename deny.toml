@@ -1,0 +1,34 @@
+# cargo-deny configuration: `cargo deny check licenses` (run in CI).
+# KataBox Arch is MIT OR Apache-2.0; dependencies must be compatible with that.
+
+[graph]
+all-features = true
+# The platforms KataBox Arch ships on. Others (wasm32, Android, Apple) are never built,
+# so their target-only dependencies are not checked.
+targets = [
+    "x86_64-pc-windows-msvc",
+    "x86_64-unknown-linux-gnu",
+    "aarch64-unknown-linux-gnu",
+]
+
+[licenses]
+version = 2
+confidence-threshold = 0.9
+allow = [
+    "MIT",
+    "MIT-0",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause", # Inflector, via specta-macros
+    "BSD-3-Clause",
+    "Zlib",
+    "0BSD",
+    "CC0-1.0",
+    "Unlicense",
+    "Unicode-3.0",
+    # Permissive (MIT-equivalent): ring, rustls-webpki, untrusted arrive with the AI
+    # review's HTTPS client (ka-review, M4).
+    "ISC",
+    # Weak copyleft, file-level (Tauri's dependency tree).
+    "MPL-2.0",
+]
