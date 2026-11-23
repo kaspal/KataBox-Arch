@@ -51,6 +51,8 @@ pub enum SourceKind {
     Needed,
     Arithmetic,
     Simulator,
+    /// A convention with no single source (a typical URL's length, a peak factor).
+    RuleOfThumb,
     Invalid,
 }
 
@@ -67,6 +69,8 @@ pub fn source_kind(source: &str) -> SourceKind {
         SourceKind::Arithmetic
     } else if s == "simulator" {
         SourceKind::Simulator
+    } else if s == "rule of thumb" {
+        SourceKind::RuleOfThumb
     } else {
         SourceKind::Invalid
     }
@@ -83,6 +87,7 @@ mod tests {
         assert_eq!(source_kind("needed: someday"), SourceKind::Invalid);
         assert_eq!(source_kind("arithmetic"), SourceKind::Arithmetic);
         assert_eq!(source_kind("simulator"), SourceKind::Simulator);
+        assert_eq!(source_kind("rule of thumb"), SourceKind::RuleOfThumb);
         assert_eq!(source_kind("trust me"), SourceKind::Invalid);
     }
 }

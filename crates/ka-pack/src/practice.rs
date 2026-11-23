@@ -170,7 +170,7 @@ pub fn validate_numbers(figures: &[NumberFigure]) -> Vec<Issue> {
         }
         if source_kind(&f.source) == SourceKind::Invalid {
             bad(format!(
-                "source `{}`: a https:// URL, `needed: <URL>`, `arithmetic` or `simulator`",
+                "source `{}`: a https:// URL, `needed: <URL>`, `arithmetic`, `simulator` or `rule of thumb`",
                 f.source
             ));
         }

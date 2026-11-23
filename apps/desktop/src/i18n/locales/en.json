@@ -804,7 +804,8 @@
       "cited": "Source: {{host}}",
       "needed": "Source to be checked (suggested: {{host}})",
       "arithmetic": "Arithmetic",
-      "simulator": "The simulator's own figure"
+      "simulator": "The simulator's own figure",
+      "ruleOfThumb": "A rule of thumb"
     }
   },
   "packs": {

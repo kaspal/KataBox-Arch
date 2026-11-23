@@ -12,6 +12,8 @@ it matters.
 - **The print layout** leaves out the concept cards, the simulator tables and the quizzes (they need the app).
 - **WebM records in real time** (a 30-second clip takes about 30 seconds) and stops if the window is hidden. Web
   views without `MediaRecorder` (WebKitGTK on Linux) can't record it; the menu says so.
+- **Saved WebM files carry no duration:** browsers' `MediaRecorder` doesn't write one, so some players show the
+  length as unknown and seek roughly. The video itself plays normally.
 - **Exported images name their fonts but don't embed them;** another computer shows them in its own fallback fonts.
 - **The in-app problem editor** is planned; authors use `ka-pack new`, `try`, `validate` and `pack`
   ([pack-authoring.md](pack-authoring.md)).

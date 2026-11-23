@@ -260,10 +260,13 @@ export function frameOps(
     const flags = frame.nodeFlags[i] ?? 0;
     const down = (flags & NODE_DOWN) !== 0;
     const over = (flags & NODE_OVERLOADED) !== 0;
+    // Idle cards (clients, unused stores) get no pill: it would only say 0%.
+    if (!down && frame.util[i] === 0 && frame.queue[i] === 0) return;
     ops.push({
       t: "pill",
-      x: rect.x + rect.w / 2,
-      y: rect.y + rect.h + 12,
+      // On the card's top-right corner: clear of the connections and their chips.
+      x: rect.x + rect.w - 34,
+      y: rect.y,
       text: down ? words.down : words.stat(frame.util[i]!, frame.queue[i]!),
       fill: palette.card,
       stroke: down ? palette.danger : over ? palette.warning : palette.border,
@@ -278,9 +281,9 @@ export function frameOps(
 export const HUD_H = 36;
 
 /** Paint a display list: `scale` maps flow coordinates to pixels; the HUD sits at the bottom. */
-export function paintOps(ctx: CanvasRenderingContext2D, ops: readonly Op[], layout: SceneLayout, scale: number, palette: Palette) {
+export function paintOps(ctx: CanvasRenderingContext2D, ops: readonly Op[], layout: SceneLayout, scale: number, palette: Palette, offsetX = 0) {
   const { x: bx, y: by } = layout.bounds;
-  ctx.setTransform(scale, 0, 0, scale, -bx * scale, -by * scale);
+  ctx.setTransform(scale, 0, 0, scale, offsetX - bx * scale, -by * scale);
   for (const op of ops) {
     if (op.t === "hud") continue;
     ctx.globalAlpha = "a" in op ? op.a : 1;

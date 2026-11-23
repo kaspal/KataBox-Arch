@@ -17,6 +17,7 @@ export const GIF_MAX_S = 20;
 /** The video's size: at most 1280 × 720 (the scene scaled to fit), plus the HUD band. */
 export const MAX_W = 1280;
 export const MAX_H = 720;
+export const MIN_W = 640;
 
 export type FramesInfo = {
   duration_s: number;
@@ -64,11 +65,14 @@ export function webmType(): string | null {
 }
 
 /** Pixel size and scale for a scene: fit inside MAX_W × MAX_H, even sizes, HUD below. */
-export function videoSize(layout: SceneLayout): { w: number; h: number; scale: number } {
+export function videoSize(layout: SceneLayout): { w: number; h: number; scale: number; offsetX: number } {
   const { w, h } = layout.bounds;
   const scale = Math.min(MAX_W / w, (MAX_H - HUD_H) / h, 2);
   const even = (n: number) => Math.max(2, Math.round(n / 2) * 2);
-  return { w: even(w * scale), h: even(h * scale + HUD_H), scale };
+  // A tall, thin design is centred in at least MIN_W, so the HUD line fits and the video
+  // isn't a sliver.
+  const width = even(Math.max(MIN_W, w * scale));
+  return { w: width, h: even(h * scale + HUD_H), scale, offsetX: Math.round((width - w * scale) / 2) };
 }
 
 export type Clock = { now: () => number; sleep: (ms: number) => Promise<void> };
@@ -106,7 +110,7 @@ export function renderer(
   words: FrameWords,
 ): Renderer {
   const layout = sceneLayout(info.design, info.nodes, info.edges);
-  const { w, h, scale } = videoSize(layout);
+  const { w, h, scale, offsetX } = videoSize(layout);
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
@@ -123,8 +127,8 @@ export function renderer(
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = palette.canvas;
       ctx.fillRect(0, 0, w, h);
-      ctx.drawImage(background, 0, 0, layout.bounds.w * scale, layout.bounds.h * scale);
-      paintOps(ctx, frameOps(layout, f, ring, i * frameMs, frameMs, palette, words), layout, scale, palette);
+      ctx.drawImage(background, offsetX, 0, layout.bounds.w * scale, layout.bounds.h * scale);
+      paintOps(ctx, frameOps(layout, f, ring, i * frameMs, frameMs, palette, words), layout, scale, palette, offsetX);
     },
   };
 }

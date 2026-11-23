@@ -804,7 +804,8 @@
       "cited": "Fuente: {{host}}",
       "needed": "Fuente por comprobar (sugerida: {{host}})",
       "arithmetic": "Aritmética",
-      "simulator": "La cifra del propio simulador"
+      "simulator": "La cifra del propio simulador",
+      "ruleOfThumb": "Una regla práctica"
     }
   },
   "packs": {
