@@ -148,6 +148,24 @@ flavour = "kinesis"
 title = "Amazon Kinesis Data Streams documentation"
 url = "https://docs.aws.amazon.com/kinesis/"
 
+[[sources]]
+flavour = "redpanda"
+title = "Redpanda documentation"
+url = "https://docs.redpanda.com/"
+checked = false
+
+[[sources]]
+flavour = "pulsar"
+title = "Apache Pulsar documentation"
+url = "https://pulsar.apache.org/docs/"
+checked = false
+
+[[sources]]
+flavour = "azure_event_hubs"
+title = "Azure Event Hubs documentation"
+url = "https://learn.microsoft.com/en-us/azure/event-hubs/"
+checked = false
+
 [[quiz]]
 q = "A stream has 8 partitions and its consumer group has 20 workers, yet the lag keeps growing. What should you change?"
 q_es = "Un stream tiene 8 particiones y su grupo de consumidores tiene 20 workers, pero el retraso sigue creciendo. ¿Qué deberías cambiar?"

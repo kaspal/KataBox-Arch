@@ -119,6 +119,24 @@ flavour = "airflow"
 title = "Apache Airflow documentation"
 url = "https://airflow.apache.org/docs/"
 
+[[sources]]
+flavour = "temporal"
+title = "Temporal documentation"
+url = "https://docs.temporal.io/"
+checked = false
+
+[[sources]]
+flavour = "dagster"
+title = "Dagster documentation"
+url = "https://docs.dagster.io/"
+checked = false
+
+[[sources]]
+flavour = "k8s_cronjob"
+title = "Kubernetes CronJob documentation"
+url = "https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/"
+checked = false
+
 [[quiz]]
 q = "Thousands of jobs are all due at midnight. What keeps them from swamping the services they call?"
 q_es = "Miles de tareas vencen todas a medianoche. ¿Qué evita que saturen los servicios a los que llaman?"

@@ -51,6 +51,7 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `cdn.p99_ratio` | 4 | × median | source: needed (suggested: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html); tail spread of the service time |
 | `cdn.queue_per_server` | 4 | slots per server | source: needed (suggested: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html); backlog before the card drops requests |
 | `cdn.cost.million` | 0.75 | $/million requests | source: needed (suggested: https://aws.amazon.com/cloudfront/pricing/); teaching price, shaped like the list price |
+| `cdn.cost.million@akamai` | 1.2 | $/million requests | source: needed (suggested: https://www.akamai.com/products/content-delivery-network); teaching price shaped like the list price |
 
 ### `waf`
 
@@ -73,6 +74,10 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `lb.p99_ratio` | 3 | × median | source: needed (suggested: https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html); tail spread of the service time |
 | `lb.queue_per_server` | 8 | slots per server | source: needed (suggested: https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html); backlog before the card drops requests |
 | `lb.cost.instance` | 25 | $/instance-month | source: needed (suggested: https://aws.amazon.com/elasticloadbalancing/pricing/); teaching price, shaped like the list price |
+| `lb.service_ms@global_accelerator` | 0.2 | ms | source: needed (suggested: https://aws.amazon.com/global-accelerator/pricing/); vendor figure, ballpark |
+| `lb.cost.instance@envoy_lb` | 70 | $/instance-month | source: needed (suggested: https://www.envoyproxy.io/docs/envoy/latest/); teaching price shaped like the list price |
+| `lb.cost.instance@traefik` | 70 | $/instance-month | source: needed (suggested: https://doc.traefik.io/traefik/); teaching price shaped like the list price |
+| `lb.cost.instance@global_accelerator` | 18 | $/instance-month | source: needed (suggested: https://aws.amazon.com/global-accelerator/pricing/); teaching price shaped like the list price |
 
 ### `gateway`
 
@@ -84,6 +89,13 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `gateway.queue_per_server` | 8 | slots per server | source: needed (suggested: https://docs.konghq.com/gateway/latest/); backlog before the card drops requests |
 | `gateway.cost.instance` | 60 | $/instance-month | source: needed (suggested: https://aws.amazon.com/api-gateway/pricing/); teaching price, shaped like the list price |
 | `gateway.cost.million` | 1 | $/million requests | source: needed (suggested: https://aws.amazon.com/api-gateway/pricing/); teaching price, shaped like the list price |
+| `gateway.service_ms@apollo_router` | 3 | ms | source: needed (suggested: https://www.apollographql.com/docs/graphos/routing); vendor figure, ballpark |
+| `gateway.cost.instance@azure_apim` | 686 | $/instance-month | source: needed (suggested: https://azure.microsoft.com/en-us/pricing/details/api-management/); teaching price shaped like the list price |
+| `gateway.cost.million@azure_apim` | 0 | $/million requests | billed another way (see the other rows for this flavour) |
+| `gateway.cost.instance@litellm` | 70 | $/instance-month | source: needed (suggested: https://docs.litellm.ai/docs/proxy/deploy); teaching price shaped like the list price |
+| `gateway.cost.million@litellm` | 0 | $/million requests | billed another way (see the other rows for this flavour) |
+| `gateway.cost.instance@apollo_router` | 70 | $/instance-month | source: needed (suggested: https://www.apollographql.com/docs/graphos/routing); teaching price shaped like the list price |
+| `gateway.cost.million@apollo_router` | 0 | $/million requests | billed another way (see the other rows for this flavour) |
 
 ### `ratelimit`
 
@@ -107,6 +119,9 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `app.p99_ratio` | 4 | × median | source: needed (suggested: https://www.techempower.com/benchmarks/); tail spread of the service time |
 | `app.queue_per_server` | 8 | slots per server | source: needed (suggested: https://www.techempower.com/benchmarks/); backlog before the card drops requests |
 | `app.cost.instance` | 70 | $/instance-month | source: needed (suggested: https://www.techempower.com/benchmarks/); teaching price, shaped like the list price |
+| `app.concurrency@rails` | 5 | in parallel per instance | source: needed (suggested: https://guides.rubyonrails.org/tuning_performance_for_deployment.html); vendor figure, ballpark |
+| `app.service_ms@aspnet_core` | 6 | ms | source: needed (suggested: https://www.techempower.com/benchmarks/); vendor figure, ballpark |
+| `app.service_ms@rails` | 25 | ms | source: needed (suggested: https://guides.rubyonrails.org/tuning_performance_for_deployment.html); vendor figure, ballpark |
 
 ### `micro`
 
@@ -128,6 +143,14 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `worker.p99_ratio` | 4 | × median | source: needed (suggested: https://docs.celeryq.dev/en/stable/userguide/workers.html#concurrency); tail spread of the service time |
 | `worker.queue_per_server` | 8 | slots per server | source: needed (suggested: https://docs.celeryq.dev/en/stable/userguide/workers.html#concurrency); backlog before the card drops requests |
 | `worker.cost.instance` | 70 | $/instance-month | source: needed (suggested: https://docs.celeryq.dev/en/stable/userguide/workers.html#concurrency); teaching price, shaped like the list price |
+| `worker.concurrency@bullmq` | 10 | in parallel per instance | source: needed (suggested: https://docs.bullmq.io/guide/workers/concurrency); vendor figure, ballpark |
+| `worker.concurrency@temporal_worker` | 100 | in parallel per instance | source: needed (suggested: https://docs.temporal.io/develop/worker-performance); vendor figure, ballpark |
+| `worker.concurrency@ffmpeg` | 2 | in parallel per instance | source: needed (suggested: https://trac.ffmpeg.org/wiki/Encode/H.264); vendor figure, ballpark |
+| `worker.concurrency@mediaconvert` | 1000 | in parallel per instance | source: needed (suggested: https://aws.amazon.com/mediaconvert/pricing/); vendor figure, ballpark |
+| `worker.service_ms@ffmpeg` | 10000 | ms | source: needed (suggested: https://trac.ffmpeg.org/wiki/Encode/H.264); vendor figure, ballpark |
+| `worker.service_ms@mediaconvert` | 10000 | ms | source: needed (suggested: https://aws.amazon.com/mediaconvert/pricing/); vendor figure, ballpark |
+| `worker.cost.instance@mediaconvert` | 0 | $/instance-month | billed another way (see the other rows for this flavour) |
+| `worker.cost.million@mediaconvert` | 7500 | $/million requests | source: needed (suggested: https://aws.amazon.com/mediaconvert/pricing/); teaching price shaped like the list price |
 
 ### `serverless`
 
@@ -141,6 +164,10 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `serverless.p99_ratio` | 4 | × median | source: needed (suggested: https://docs.aws.amazon.com/lambda/latest/dg/lambda-concurrency.html); tail spread of the service time |
 | `serverless.queue_per_server` | 0 | slots per server | source: needed (suggested: https://docs.aws.amazon.com/lambda/latest/dg/lambda-concurrency.html); invocations over the limit are throttled, not queued |
 | `serverless.cost.million` | 0.5 | $/million requests | source: needed (suggested: https://aws.amazon.com/lambda/pricing/); the request price plus ~20 ms of duration at 512 MB |
+| `serverless.cold_start_ms@cloudflare_workers` | 5 | ms | source: needed (suggested: https://developers.cloudflare.com/workers/platform/pricing/); vendor figure, ballpark |
+| `serverless.service_ms@cloudflare_workers` | 10 | ms | source: needed (suggested: https://developers.cloudflare.com/workers/platform/pricing/); vendor figure, ballpark |
+| `serverless.cost.million@cloudflare_workers` | 0.3 | $/million requests | source: needed (suggested: https://developers.cloudflare.com/workers/platform/pricing/); teaching price shaped like the list price |
+| `serverless.cost.million@azure_functions` | 0.4 | $/million requests | source: needed (suggested: https://azure.microsoft.com/en-us/pricing/details/functions/); teaching price shaped like the list price |
 
 ### `sql`
 
@@ -156,6 +183,14 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `sql.cost.instance` | 350 | $/instance-month | source: needed (suggested: https://aws.amazon.com/rds/postgresql/pricing/); teaching price, shaped like the list price |
 | `sql.max_connections` | 1700 | connections | source: needed (suggested: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html#RDS_Limits.MaxConnections); RDS PostgreSQL default LEAST(DBInstanceClassMemory/9531392, 5000) on db.m5.xlarge |
 | `sql.max_connections@mysql` | 1365 | connections | source: needed (suggested: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html#RDS_Limits.MaxConnections); RDS MySQL default DBInstanceClassMemory/12582880 on db.m5.xlarge |
+| `sql.service_ms@cockroachdb` | 12 | ms | source: needed (suggested: https://www.cockroachlabs.com/pricing/); vendor figure, ballpark |
+| `sql.service_ms@spanner` | 12 | ms | source: needed (suggested: https://cloud.google.com/spanner/pricing); vendor figure, ballpark |
+| `sql.service_ms@postgis` | 10 | ms | source: needed (suggested: https://postgis.net/documentation/); vendor figure, ballpark |
+| `sql.service_ms@citus` | 5.5 | ms | source: needed (suggested: https://docs.citusdata.com/en/stable/); vendor figure, ballpark |
+| `sql.replication_lag_ms@aurora_postgresql` | 20 | ms | source: needed (suggested: https://aws.amazon.com/rds/aurora/pricing/); vendor figure, ballpark |
+| `sql.cost.instance@cockroachdb` | 438 | $/instance-month | source: needed (suggested: https://www.cockroachlabs.com/pricing/); teaching price shaped like the list price |
+| `sql.cost.instance@aurora_postgresql` | 300 | $/instance-month | source: needed (suggested: https://aws.amazon.com/rds/aurora/pricing/); teaching price shaped like the list price |
+| `sql.cost.instance@spanner` | 657 | $/instance-month | source: needed (suggested: https://cloud.google.com/spanner/pricing); teaching price shaped like the list price |
 
 ### `nosql`
 
@@ -177,6 +212,15 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `nosql.cost.lane@mongodb` | 394 | $/shard-month (one per partition) | https://www.mongodb.com/pricing — Atlas M30 at $0.54/h × 730, taken as a 3-node replica set per shard (the Atlas default); no per-request fee (list price, us-east-1, read 2026-11-22) |
 | `nosql.cost.million@mongodb` | 0 | $/million read units | Atlas dedicated clusters: no per-request fee |
 | `nosql.cost.million_write@mongodb` | 0 | $/million write units | Atlas dedicated clusters: no per-request fee |
+| `nosql.servers_per_instance@scylladb` | 96 | in parallel per instance | source: needed (suggested: https://www.scylladb.com/product/benchmarks/); vendor figure, ballpark |
+| `nosql.cost.lane@scylladb` | 250 | $/shard-month | source: needed (suggested: https://www.scylladb.com/product/benchmarks/); teaching price shaped like the list price |
+| `nosql.cost.million@scylladb` | 0 | $/million requests | billed another way (see the other rows for this flavour) |
+| `nosql.cost.million_write@scylladb` | 0 | $/million writes | billed another way (see the other rows for this flavour) |
+| `nosql.cost.lane@bigtable` | 474 | $/shard-month | source: needed (suggested: https://cloud.google.com/bigtable/pricing); teaching price shaped like the list price |
+| `nosql.cost.million@bigtable` | 0 | $/million requests | billed another way (see the other rows for this flavour) |
+| `nosql.cost.million_write@bigtable` | 0 | $/million writes | billed another way (see the other rows for this flavour) |
+| `nosql.cost.million@cosmos_db` | 0.25 | $/million requests | source: needed (suggested: https://azure.microsoft.com/en-us/pricing/details/cosmos-db/serverless/); teaching price shaped like the list price |
+| `nosql.cost.million_write@cosmos_db` | 1.25 | $/million writes | source: needed (suggested: https://azure.microsoft.com/en-us/pricing/details/cosmos-db/serverless/); teaching price shaped like the list price |
 
 ### `cache`
 
@@ -189,6 +233,8 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `cache.failover_s` | 15 | s | source: needed (suggested: https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/AutoFailover.html); replica promotion in a managed Redis |
 | `cache.servers_per_instance@memcached` | 4 | in parallel per instance | source: needed (suggested: https://github.com/memcached/memcached/wiki/ConfiguringServer); memcached starts 4 worker threads (`-t 4`) |
 | `cache.cost.gb` | 18 | $/GB-month | source: needed (suggested: https://aws.amazon.com/elasticache/pricing/); teaching price, shaped like the list price |
+| `cache.servers_per_instance@dragonfly` | 8 | in parallel per instance | source: needed (suggested: https://www.dragonflydb.io/docs); vendor figure, ballpark |
+| `cache.servers_per_instance@hazelcast` | 8 | in parallel per instance | source: needed (suggested: https://docs.hazelcast.com/hazelcast/latest/); vendor figure, ballpark |
 
 ### `object`
 
@@ -200,6 +246,13 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `object.queue_per_server` | 4 | slots per server | source: needed (suggested: https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html); backlog before the card drops requests |
 | `object.cost.million` | 0.4 | $/million GETs | https://aws.amazon.com/s3/pricing/ — GET "$0.0004 per 1,000 requests"; GCS Standard Class B is the same (https://cloud.google.com/storage/pricing) (list price, us-east-1, read 2026-11-22) |
 | `object.cost.million_write` | 5 | $/million PUTs | https://aws.amazon.com/s3/pricing/ — PUT $0.005 per 1,000 (corroborated by https://www.manageengine.com/cloudspend/articles/s3-pricing-guide.html); GCS Standard Class A is the same (list price, us-east-1, read 2026-11-22) |
+| `object.cost.million@azure_blob` | 0.44 | $/million requests | source: needed (suggested: https://azure.microsoft.com/en-us/pricing/details/storage/blobs/); teaching price shaped like the list price |
+| `object.cost.million_write@azure_blob` | 5.5 | $/million writes | source: needed (suggested: https://azure.microsoft.com/en-us/pricing/details/storage/blobs/); teaching price shaped like the list price |
+| `object.cost.million@cloudflare_r2` | 0.36 | $/million requests | source: needed (suggested: https://developers.cloudflare.com/r2/pricing/); teaching price shaped like the list price |
+| `object.cost.million_write@cloudflare_r2` | 4.5 | $/million writes | source: needed (suggested: https://developers.cloudflare.com/r2/pricing/); teaching price shaped like the list price |
+| `object.cost.instance@minio` | 70 | $/instance-month | source: needed (suggested: https://min.io/docs/minio/linux/index.html); teaching price shaped like the list price |
+| `object.cost.million@minio` | 0 | $/million requests | billed another way (see the other rows for this flavour) |
+| `object.cost.million_write@minio` | 0 | $/million writes | billed another way (see the other rows for this flavour) |
 
 ### `search`
 
@@ -211,6 +264,8 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `search.queue_per_server` | 77 | slots per server | source: needed (suggested: https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-threadpool.html); the search queue of 1,000 spread over 13 threads |
 | `search.failover_s` | 10 | s | source: needed (suggested: https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-threadpool.html); a replica shard is promoted when a node leaves |
 | `search.cost.instance` | 250 | $/instance-month | source: needed (suggested: https://aws.amazon.com/opensearch-service/pricing/); teaching price, shaped like the list price |
+| `search.service_ms@meilisearch` | 5 | ms | source: needed (suggested: https://www.meilisearch.com/pricing); vendor figure, ballpark |
+| `search.cost.instance@meilisearch` | 150 | $/instance-month | source: needed (suggested: https://www.meilisearch.com/pricing); teaching price shaped like the list price |
 
 ### `queue`
 
@@ -227,6 +282,15 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `queue.cost.instance@rabbitmq` | 70 | $/node-month | https://aws.amazon.com/ec2/pricing/on-demand/ — self-hosted on m5.large at $0.096/h × 730; managed Amazon MQ mq.m5.large would be $0.288/h ≈ $210 (https://aws.amazon.com/amazon-mq/pricing/) (list price, us-east-1, read 2026-11-22) |
 | `queue.cost.million@rabbitmq` | 0 | $/million retried receives | self-hosted: no per-request fee |
 | `queue.cost.million_write@rabbitmq` | 0 | $/million messages | self-hosted: no per-request fee |
+| `queue.servers_per_instance@sqs_fifo` | 300 | in parallel per instance | source: needed (suggested: https://aws.amazon.com/sqs/pricing/); vendor figure, ballpark |
+| `queue.service_ms@sqs_fifo` | 20 | ms | source: needed (suggested: https://aws.amazon.com/sqs/pricing/); vendor figure, ballpark |
+| `queue.cost.million@azure_service_bus` | 0.05 | $/million requests | source: needed (suggested: https://azure.microsoft.com/en-us/pricing/details/service-bus/); teaching price shaped like the list price |
+| `queue.cost.million_write@azure_service_bus` | 0.05 | $/million writes | source: needed (suggested: https://azure.microsoft.com/en-us/pricing/details/service-bus/); teaching price shaped like the list price |
+| `queue.cost.instance@amazon_mq` | 210 | $/instance-month | source: needed (suggested: https://aws.amazon.com/amazon-mq/pricing/); teaching price shaped like the list price |
+| `queue.cost.million@amazon_mq` | 0 | $/million requests | billed another way (see the other rows for this flavour) |
+| `queue.cost.million_write@amazon_mq` | 0 | $/million writes | billed another way (see the other rows for this flavour) |
+| `queue.cost.million@sqs_fifo` | 0.5 | $/million requests | source: needed (suggested: https://aws.amazon.com/sqs/pricing/); teaching price shaped like the list price |
+| `queue.cost.million_write@sqs_fifo` | 1.5 | $/million writes | source: needed (suggested: https://aws.amazon.com/sqs/pricing/); teaching price shaped like the list price |
 
 ### `stream`
 
@@ -243,6 +307,10 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `stream.cost.lane@kinesis` | 10.95 | $/shard-month (one per partition) | https://aws.amazon.com/kinesis/data-streams/pricing/ — $0.015 per shard-hour × 730 (list price, us-east-1, read 2026-11-22) |
 | `stream.cost.million_write@kinesis` | 0.014 | $/million PUT payload units | https://aws.amazon.com/kinesis/data-streams/pricing/ — $0.014 per million PUT payload units of 25 KB (list price, us-east-1, read 2026-11-22) |
 | `stream.cost.unit_kb@kinesis` | 25 | KB per billed unit | https://aws.amazon.com/kinesis/data-streams/pricing/ — a PUT payload unit is 25 KB |
+| `stream.service_ms@redpanda` | 1 | ms | source: needed (suggested: https://www.redpanda.com/blog/redpanda-vs-kafka-performance-benchmark); vendor figure, ballpark |
+| `stream.cost.instance@azure_event_hubs` | 0 | $/instance-month | billed another way (see the other rows for this flavour) |
+| `stream.cost.lane@azure_event_hubs` | 21.9 | $/shard-month | source: needed (suggested: https://azure.microsoft.com/en-us/pricing/details/event-hubs/); teaching price shaped like the list price |
+| `stream.cost.million_write@azure_event_hubs` | 0.028 | $/million writes | source: needed (suggested: https://azure.microsoft.com/en-us/pricing/details/event-hubs/); teaching price shaped like the list price |
 
 ### `pubsub`
 
@@ -258,6 +326,11 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `pubsub.cost.unit_kb@google_pubsub` | 1 | KB per billed unit | https://cloud.google.com/pubsub/pricing — billed by volume, at least 1 KB per message |
 | `pubsub.cost.instance@redis_pubsub` | 36 | $/node-month | self-hosted Redis: the cache node price (2 GB × `cache.cost.gb`); no per-message fee |
 | `pubsub.cost.million_write@redis_pubsub` | 0 | $/million publishes | self-hosted: no per-message fee |
+| `pubsub.service_ms@nats` | 0.5 | ms | source: needed (suggested: https://docs.nats.io/); vendor figure, ballpark |
+| `pubsub.cost.instance@nats` | 70 | $/instance-month | source: needed (suggested: https://docs.nats.io/); teaching price shaped like the list price |
+| `pubsub.cost.million_write@nats` | 0 | $/million writes | billed another way (see the other rows for this flavour) |
+| `pubsub.cost.million_write@azure_web_pubsub` | 1 | $/million writes | source: needed (suggested: https://azure.microsoft.com/en-us/pricing/details/web-pubsub/); teaching price shaped like the list price |
+| `pubsub.cost.million_write@eventbridge` | 1 | $/million writes | source: needed (suggested: https://aws.amazon.com/eventbridge/pricing/); teaching price shaped like the list price |
 
 ### `dlq`
 
@@ -275,6 +348,9 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | Id | Value | Unit | Source |
 |---|---|---|---|
 | `scheduler.cost.instance` | 20 | $/instance-month | source: needed (suggested: https://airflow.apache.org/docs/); teaching price, shaped like the list price |
+| `scheduler.cost.instance@temporal` | 200 | $/instance-month | source: needed (suggested: https://temporal.io/pricing); teaching price shaped like the list price |
+| `scheduler.cost.instance@dagster` | 100 | $/instance-month | source: needed (suggested: https://dagster.io/pricing); teaching price shaped like the list price |
+| `scheduler.cost.instance@k8s_cronjob` | 0 | $/instance-month | billed another way (see the other rows for this flavour) |
 
 ### `metrics`
 

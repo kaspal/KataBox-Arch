@@ -155,6 +155,24 @@ flavour = "memcached"
 title = "Memcached wiki"
 url = "https://github.com/memcached/memcached/wiki"
 
+[[sources]]
+flavour = "valkey"
+title = "Valkey documentation"
+url = "https://valkey.io/docs/"
+checked = false
+
+[[sources]]
+flavour = "dragonfly"
+title = "Dragonfly documentation"
+url = "https://www.dragonflydb.io/docs"
+checked = false
+
+[[sources]]
+flavour = "hazelcast"
+title = "Hazelcast documentation"
+url = "https://docs.hazelcast.com/"
+checked = false
+
 [[quiz]]
 q = "Every key is about equally likely to be read, and the cache holds only 5% of the data. What hit rate should you expect?"
 q_es = "Todas las claves tienen más o menos la misma probabilidad de leerse, y la caché guarda solo el 5 % de los datos. ¿Qué tasa de aciertos cabe esperar?"

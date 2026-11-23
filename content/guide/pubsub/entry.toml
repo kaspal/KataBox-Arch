@@ -143,6 +143,24 @@ flavour = "redis_pubsub"
 title = "Redis documentation"
 url = "https://redis.io/docs/latest/"
 
+[[sources]]
+flavour = "nats"
+title = "NATS documentation"
+url = "https://docs.nats.io/"
+checked = false
+
+[[sources]]
+flavour = "azure_web_pubsub"
+title = "Azure Web PubSub documentation"
+url = "https://learn.microsoft.com/en-us/azure/azure-web-pubsub/"
+checked = false
+
+[[sources]]
+flavour = "eventbridge"
+title = "Amazon EventBridge documentation"
+url = "https://docs.aws.amazon.com/eventbridge/"
+checked = false
+
 [[quiz]]
 q = "A chat message arrives at one of several servers that hold users' live connections. Members of the conversation are connected to other servers too. What delivers the message to all of them?"
 q_es = "Un mensaje de chat llega a uno de varios servidores que mantienen las conexiones en vivo de los usuarios. Los miembros de la conversación están conectados también a otros servidores. ¿Qué entrega el mensaje a todos ellos?"

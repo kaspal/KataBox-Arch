@@ -382,6 +382,53 @@ pub enum Flavour {
     Launchdarkly,
     AwsAppconfig,
     Unleash,
+    // --- M8.3: new flavours on the existing kinds ---
+    Scylladb,
+    Bigtable,
+    CosmosDb,
+    Cockroachdb,
+    AuroraPostgresql,
+    Spanner,
+    Postgis,
+    Citus,
+    Valkey,
+    Dragonfly,
+    Hazelcast,
+    AzureServiceBus,
+    AmazonMq,
+    SqsFifo,
+    Redpanda,
+    Pulsar,
+    AzureEventHubs,
+    Nats,
+    AzureWebPubsub,
+    Eventbridge,
+    Solr,
+    Meilisearch,
+    AzureBlob,
+    CloudflareR2,
+    Minio,
+    EnvoyLb,
+    Traefik,
+    GlobalAccelerator,
+    Akamai,
+    AzureApim,
+    Litellm,
+    ApolloRouter,
+    CloudflareWorkers,
+    AzureFunctions,
+    AspnetCore,
+    Rails,
+    Bullmq,
+    TemporalWorker,
+    Ffmpeg,
+    Mediaconvert,
+    Temporal,
+    Dagster,
+    #[serde(rename = "k8s_cronjob")]
+    K8sCronjob,
+    IotDevice,
+    PartnerServer,
 }
 
 /// The unit shown after a prop's value (`units.<unit>` in the UI).
@@ -905,6 +952,75 @@ fn flavour_cost(flavour: Flavour) -> Option<Cost> {
             ..Cost::default()
         },
         F::Fivetran => per_call(500.0),
+        // --- M8.3 flavours on existing kinds (teaching prices; `source: needed`). ---
+        // ScyllaDB self-hosted on the same i4i.xlarge node as Cassandra.
+        F::Scylladb => lane(250.0),
+        // Bigtable: $0.65 per node-hour × 730 per node (partition).
+        F::Bigtable => lane(474.0),
+        // Cosmos DB serverless request units, shaped as reads and writes.
+        F::CosmosDb => Cost {
+            per_million: 0.25,
+            per_million_write: Some(1.25),
+            ..Cost::default()
+        },
+        F::Cockroachdb => node(438.0),
+        F::AuroraPostgresql => node(300.0),
+        // Spanner: one node ($0.90/h × 730).
+        F::Spanner => node(657.0),
+        F::AzureServiceBus => Cost {
+            per_million: 0.05,
+            per_million_write: Some(0.05),
+            ..Cost::default()
+        },
+        // Amazon MQ mq.m5.large ($0.288/h × 730).
+        F::AmazonMq => node(210.0),
+        // SQS FIFO: $0.50 per million requests, three per message.
+        F::SqsFifo => Cost {
+            per_million: 0.5,
+            per_million_write: Some(1.5),
+            ..Cost::default()
+        },
+        F::Redpanda | F::Pulsar => node(153.0),
+        // Event Hubs Standard: a throughput unit per partition ($0.03/h × 730) + $0.028 per
+        // million events.
+        F::AzureEventHubs => Cost {
+            per_lane_month: 21.9,
+            per_million_write: Some(0.028),
+            ..Cost::default()
+        },
+        F::Nats => node(70.0),
+        F::AzureWebPubsub | F::Eventbridge => Cost {
+            per_million_write: Some(1.0),
+            ..Cost::default()
+        },
+        F::Meilisearch => node(150.0),
+        // Azure Blob hot: reads $0.44, writes $5.50 per million.
+        F::AzureBlob => Cost {
+            per_million: 0.44,
+            per_million_write: Some(5.5),
+            ..Cost::default()
+        },
+        // Cloudflare R2: class B $0.36, class A $4.50 per million; no egress fee.
+        F::CloudflareR2 => Cost {
+            per_million: 0.36,
+            per_million_write: Some(4.5),
+            ..Cost::default()
+        },
+        F::Minio => node(70.0),
+        F::EnvoyLb | F::Traefik => node(70.0),
+        // Global Accelerator: $0.025 per hour, data transfer not modelled.
+        F::GlobalAccelerator => node(18.0),
+        F::Akamai => per_call(1.2),
+        // API Management Standard unit.
+        F::AzureApim => node(686.0),
+        F::Litellm | F::ApolloRouter => node(70.0),
+        F::CloudflareWorkers => per_call(0.3),
+        F::AzureFunctions => per_call(0.4),
+        // MediaConvert: per minute of output, here per job.
+        F::Mediaconvert => per_call(7_500.0),
+        F::Temporal => node(200.0),
+        F::Dagster => node(100.0),
+        F::K8sCronjob => node(0.0),
         // GCS Standard: Class B $0.40, Class A $5.00 per million, as S3.
         _ => return None,
     })
@@ -923,6 +1039,18 @@ fn flavour_sim(flavour: Flavour, s: &mut SimDefaults) {
         F::Memcached => s.servers_per_instance = 4.0,
         F::Sqs => s.service_ms = 10.0,
         F::Kinesis => s.service_ms = 15.0,
+        // M8.3: ScyllaDB's shard-per-core design (vendor benchmarks: several times
+        // Cassandra's throughput per node; source needed).
+        F::Scylladb => s.servers_per_instance = 96.0,
+        // Multi-threaded caches.
+        F::Dragonfly | F::Hazelcast => s.servers_per_instance = 8.0,
+        // SQS FIFO: 300 messages a second per action without batching.
+        F::SqsFifo => {
+            s.service_ms = 20.0;
+            s.servers_per_instance = 300.0;
+        }
+        F::Redpanda => s.service_ms = 1.0,
+        F::Eventbridge => s.service_ms = 20.0,
         _ => {}
     }
 }
@@ -1241,7 +1369,12 @@ pub fn registry() -> Registry {
         // --- Clients & Edge ---
         kind(
             K::Client,
-            vec![fl(F::Web), fl(F::Mobile)],
+            vec![
+                fl(F::Web),
+                fl(F::Mobile),
+                fl(F::IotDevice),
+                fl(F::PartnerServer),
+            ],
             vec![
                 int("rps", 1.0, 1_000_000.0, 1000.0, Unit::Rps),
                 // S8 (M8): how a client gives up and tries again. The defaults are the
@@ -1272,7 +1405,12 @@ pub fn registry() -> Registry {
         ),
         kind(
             K::Cdn,
-            vec![fl(F::Cloudfront), fl(F::CloudflareCdn), fl(F::Fastly)],
+            vec![
+                fl(F::Cloudfront),
+                fl(F::CloudflareCdn),
+                fl(F::Fastly),
+                fl(F::Akamai),
+            ],
             vec![int("ttl_s", 0.0, 604_800.0, 3600.0, Unit::S)],
         ),
         kind(
@@ -1287,6 +1425,9 @@ pub fn registry() -> Registry {
                 fl(F::Haproxy),
                 fl(F::AwsAlb),
                 fl_with(F::AwsNlb, &[("service_ms", num(0.2))]),
+                fl(F::EnvoyLb),
+                fl(F::Traefik),
+                fl_with(F::GlobalAccelerator, &[("service_ms", num(0.2))]),
             ],
             vec![
                 int("instances", 1.0, 16.0, 1.0, Unit::Count),
@@ -1304,7 +1445,13 @@ pub fn registry() -> Registry {
         ),
         kind(
             K::Gateway,
-            vec![fl(F::Kong), fl(F::AwsApiGateway)],
+            vec![
+                fl(F::Kong),
+                fl(F::AwsApiGateway),
+                fl(F::AzureApim),
+                fl(F::Litellm),
+                fl_with(F::ApolloRouter, &[("service_ms", num(3.0))]),
+            ],
             [compute_props(2.0, 256.0, 2.0), vec![shed_queue()]].concat(),
         ),
         kind(
@@ -1376,6 +1523,11 @@ pub fn registry() -> Registry {
                     F::Django,
                     &[("service_ms", num(20.0)), ("concurrency", num(9.0))],
                 ),
+                fl_with(F::AspnetCore, &[("service_ms", num(6.0))]),
+                fl_with(
+                    F::Rails,
+                    &[("service_ms", num(25.0)), ("concurrency", num(5.0))],
+                ),
             ],
             [compute_props(2.0, 64.0, 10.0), resilience()].concat(),
         ),
@@ -1389,6 +1541,16 @@ pub fn registry() -> Registry {
             vec![
                 fl(F::Celery),
                 fl_with(F::Sidekiq, &[("concurrency", num(5.0))]),
+                fl_with(F::Bullmq, &[("concurrency", num(10.0))]),
+                fl_with(F::TemporalWorker, &[("concurrency", num(100.0))]),
+                fl_with(
+                    F::Ffmpeg,
+                    &[("service_ms", num(10_000.0)), ("concurrency", num(2.0))],
+                ),
+                fl_with(
+                    F::Mediaconvert,
+                    &[("service_ms", num(10_000.0)), ("concurrency", num(1000.0))],
+                ),
             ],
             [
                 vec![
@@ -1411,6 +1573,11 @@ pub fn registry() -> Registry {
                         ("concurrency_limit", num(8000.0)),
                     ],
                 ),
+                fl_with(
+                    F::CloudflareWorkers,
+                    &[("cold_start_ms", num(5.0)), ("service_ms", num(10.0))],
+                ),
+                fl(F::AzureFunctions),
             ],
             vec![
                 int("concurrency_limit", 1.0, 10_000.0, 1000.0, Unit::Count),
@@ -1517,6 +1684,11 @@ pub fn registry() -> Registry {
                         ("max_connections", num(1_365.0)),
                     ],
                 ),
+                fl_with(F::Cockroachdb, &[("service_ms", num(12.0))]),
+                fl_with(F::AuroraPostgresql, &[("replication_lag_ms", num(20.0))]),
+                fl_with(F::Spanner, &[("service_ms", num(12.0))]),
+                fl_with(F::Postgis, &[("service_ms", num(10.0))]),
+                fl_with(F::Citus, &[("service_ms", num(5.5)), ("shards", num(4.0))]),
             ],
             vec![
                 int("shards", 1.0, 64.0, 1.0, Unit::Count),
@@ -1536,7 +1708,14 @@ pub fn registry() -> Registry {
         ),
         kind(
             K::Nosql,
-            vec![fl(F::Dynamodb), fl(F::Cassandra), fl(F::Mongodb)],
+            vec![
+                fl(F::Dynamodb),
+                fl(F::Cassandra),
+                fl(F::Mongodb),
+                fl(F::Scylladb),
+                fl(F::Bigtable),
+                fl(F::CosmosDb),
+            ],
             vec![
                 int("partitions", 1.0, 1024.0, 4.0, Unit::Count),
                 int("replication_factor", 1.0, 5.0, 3.0, Unit::Count),
@@ -1551,7 +1730,13 @@ pub fn registry() -> Registry {
         ),
         kind(
             K::Cache,
-            vec![fl(F::Redis), fl(F::Memcached)],
+            vec![
+                fl(F::Redis),
+                fl(F::Memcached),
+                fl(F::Valkey),
+                fl(F::Dragonfly),
+                fl(F::Hazelcast),
+            ],
             vec![
                 float("memory_gb", 0.5, 1024.0, 0.5, 2.0, Unit::Gb),
                 int("ttl_s", 0.0, 604_800.0, 300.0, Unit::S),
@@ -1566,12 +1751,23 @@ pub fn registry() -> Registry {
         ),
         kind(
             K::Object,
-            vec![fl(F::S3), fl(F::Gcs)],
+            vec![
+                fl(F::S3),
+                fl(F::Gcs),
+                fl(F::AzureBlob),
+                fl(F::CloudflareR2),
+                fl(F::Minio),
+            ],
             vec![service_ms(50.0)],
         ),
         kind(
             K::Search,
-            vec![fl(F::Elasticsearch), fl(F::Opensearch)],
+            vec![
+                fl(F::Elasticsearch),
+                fl(F::Opensearch),
+                fl(F::Solr),
+                fl_with(F::Meilisearch, &[("service_ms", num(5.0))]),
+            ],
             vec![
                 int("shards", 1.0, 64.0, 2.0, Unit::Count),
                 int("replicas", 0.0, 5.0, 1.0, Unit::Count),
@@ -1685,7 +1881,13 @@ pub fn registry() -> Registry {
         // --- Async ---
         kind(
             K::Queue,
-            vec![fl(F::Rabbitmq), fl(F::Sqs)],
+            vec![
+                fl(F::Rabbitmq),
+                fl(F::Sqs),
+                fl(F::AzureServiceBus),
+                fl(F::AmazonMq),
+                fl(F::SqsFifo),
+            ],
             vec![
                 int("max_depth", 1.0, 10_000_000.0, 100_000.0, Unit::Count),
                 int("visibility_timeout_s", 1.0, 43_200.0, 30.0, Unit::S),
@@ -1694,7 +1896,13 @@ pub fn registry() -> Registry {
         ),
         kind(
             K::Stream,
-            vec![fl(F::Kafka), fl(F::Kinesis)],
+            vec![
+                fl(F::Kafka),
+                fl(F::Kinesis),
+                fl(F::Redpanda),
+                fl(F::Pulsar),
+                fl(F::AzureEventHubs),
+            ],
             vec![
                 int("partitions", 1.0, 1024.0, 6.0, Unit::Count),
                 int("session_timeout_s", 1.0, 1800.0, 45.0, Unit::S),
@@ -1703,7 +1911,14 @@ pub fn registry() -> Registry {
         ),
         kind(
             K::Pubsub,
-            vec![fl(F::GooglePubsub), fl(F::Sns), fl(F::RedisPubsub)],
+            vec![
+                fl(F::GooglePubsub),
+                fl(F::Sns),
+                fl(F::RedisPubsub),
+                fl_with(F::Nats, &[("service_ms", num(0.5))]),
+                fl(F::AzureWebPubsub),
+                fl(F::Eventbridge),
+            ],
             vec![service_ms(5.0)],
         ),
         kind(
@@ -1713,7 +1928,13 @@ pub fn registry() -> Registry {
         ),
         kind(
             K::Scheduler,
-            vec![fl(F::Cron), fl(F::Airflow)],
+            vec![
+                fl(F::Cron),
+                fl(F::Airflow),
+                fl(F::Temporal),
+                fl(F::Dagster),
+                fl(F::K8sCronjob),
+            ],
             vec![int("interval_s", 1.0, 86_400.0, 60.0, Unit::S)],
         ),
         kind(

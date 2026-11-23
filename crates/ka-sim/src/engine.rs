@@ -1495,6 +1495,26 @@ impl Engine {
                 n.spec.verify_ms
             };
         }
+        if q.call_write
+            && matches!(
+                n.flavour,
+                ka_core::Flavour::Cockroachdb | ka_core::Flavour::Spanner
+            )
+            && let Some(cl) = self.c.cluster_of[node as usize]
+        {
+            // M8.3: a consensus write waits for a majority; across Regions that's a
+            // cross-region round trip.
+            let mut regions: Vec<u32> = self.c.clusters[cl as usize]
+                .members
+                .iter()
+                .filter_map(|&m| self.c.nodes[m as usize].region)
+                .collect();
+            regions.sort_unstable();
+            regions.dedup();
+            if regions.len() >= 2 {
+                median += 70.0;
+            }
+        }
         match n.kind {
             // M8: a traversal visits fanout + fanout² + … relationships.
             ComponentKind::Graph => {

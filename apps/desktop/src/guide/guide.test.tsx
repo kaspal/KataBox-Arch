@@ -41,7 +41,7 @@ describe("the Component Guide", () => {
     expect(rows[1]).toHaveTextContent("Memory");
     expect(rows[1]).toHaveTextContent("2 GB");
     expect(rows[2]).toHaveTextContent("Parallel work per node");
-    expect(within(rows[2]).getAllByRole("cell").map((c) => c.textContent)).toEqual(["1", "4", "Parallel work per node."]);
+    expect(within(rows[2]).getAllByRole("cell").map((c) => c.textContent)).toEqual(["1", "4", "1", "8", "8", "Parallel work per node."]);
     expect(rows[3]).toHaveTextContent("$18 per GB a month");
     expect(within(entry).getByTestId("flavours-compared")).toHaveTextContent("Multi-threaded");
     // Seen in (the pitfall) and Practice it both link to the problem.

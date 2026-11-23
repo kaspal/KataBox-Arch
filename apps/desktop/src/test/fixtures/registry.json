@@ -12115,6 +12115,48 @@
             "flavour": "mobile",
             "overrides": [],
             "sim": null
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": null,
+              "unit_kb": 0.0
+            },
+            "flavour": "iot_device",
+            "overrides": [],
+            "sim": null
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": null,
+              "unit_kb": 0.0
+            },
+            "flavour": "partner_server",
+            "overrides": [],
+            "sim": null
           }
         ],
         "icon": "client",
@@ -12416,6 +12458,34 @@
               "service_ms": 2.0,
               "write_slots": 1.0
             }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_lane_month": 0.0,
+              "per_million": 1.2,
+              "per_million_write": null,
+              "unit_kb": 0.0
+            },
+            "flavour": "akamai",
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 100000.0,
+              "service_ms": 2.0,
+              "write_slots": 1.0
+            }
           }
         ],
         "icon": "cdn",
@@ -12652,6 +12722,95 @@
               "service_ms": 0.5,
               "write_slots": 1.0
             }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": 0.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "envoy_lb",
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 0.5,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": 0.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "traefik",
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 0.5,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 18.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": 0.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "global_accelerator",
+            "overrides": [
+              {
+                "key": "service_ms",
+                "value": 0.2
+              }
+            ],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 0.5,
+              "write_slots": 1.0
+            }
           }
         ],
         "icon": "lb",
@@ -12777,6 +12936,95 @@
             },
             "flavour": "aws_api_gateway",
             "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 256.0,
+              "service_ms": 2.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 686.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": 0.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "azure_apim",
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 256.0,
+              "service_ms": 2.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": 0.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "litellm",
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 256.0,
+              "service_ms": 2.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": 0.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "apollo_router",
+            "overrides": [
+              {
+                "key": "service_ms",
+                "value": 3
+              }
+            ],
             "sim": {
               "failover_s": 0.0,
               "p99_ratio": 4.0,
@@ -13568,6 +13816,76 @@
               "service_ms": 10.0,
               "write_slots": 1.0
             }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": null,
+              "unit_kb": 0.0
+            },
+            "flavour": "aspnet_core",
+            "overrides": [
+              {
+                "key": "service_ms",
+                "value": 6
+              }
+            ],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 64.0,
+              "service_ms": 10.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": null,
+              "unit_kb": 0.0
+            },
+            "flavour": "rails",
+            "overrides": [
+              {
+                "key": "service_ms",
+                "value": 25
+              },
+              {
+                "key": "concurrency",
+                "value": 5
+              }
+            ],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 64.0,
+              "service_ms": 10.0,
+              "write_slots": 1.0
+            }
           }
         ],
         "icon": "app",
@@ -13945,6 +14263,146 @@
               "service_ms": 100.0,
               "write_slots": 1.0
             }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": null,
+              "unit_kb": 0.0
+            },
+            "flavour": "bullmq",
+            "overrides": [
+              {
+                "key": "concurrency",
+                "value": 10
+              }
+            ],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 8.0,
+              "service_ms": 100.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": null,
+              "unit_kb": 0.0
+            },
+            "flavour": "temporal_worker",
+            "overrides": [
+              {
+                "key": "concurrency",
+                "value": 100
+              }
+            ],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 8.0,
+              "service_ms": 100.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": null,
+              "unit_kb": 0.0
+            },
+            "flavour": "ffmpeg",
+            "overrides": [
+              {
+                "key": "service_ms",
+                "value": 10000
+              },
+              {
+                "key": "concurrency",
+                "value": 2
+              }
+            ],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 8.0,
+              "service_ms": 100.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_lane_month": 0.0,
+              "per_million": 7500.0,
+              "per_million_write": null,
+              "unit_kb": 0.0
+            },
+            "flavour": "mediaconvert",
+            "overrides": [
+              {
+                "key": "service_ms",
+                "value": 10000
+              },
+              {
+                "key": "concurrency",
+                "value": 1000
+              }
+            ],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 8.0,
+              "servers_per_instance": 8.0,
+              "service_ms": 100.0,
+              "write_slots": 1.0
+            }
           }
         ],
         "icon": "worker",
@@ -14146,6 +14604,71 @@
                 "value": 8000
               }
             ],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 0.0,
+              "servers_per_instance": 1.0,
+              "service_ms": 20.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.3,
+              "per_million_write": null,
+              "unit_kb": 0.0
+            },
+            "flavour": "cloudflare_workers",
+            "overrides": [
+              {
+                "key": "cold_start_ms",
+                "value": 5
+              },
+              {
+                "key": "service_ms",
+                "value": 10
+              }
+            ],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 0.0,
+              "servers_per_instance": 1.0,
+              "service_ms": 20.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.4,
+              "per_million_write": null,
+              "unit_kb": 0.0
+            },
+            "flavour": "azure_functions",
+            "overrides": [],
             "sim": {
               "failover_s": 0.0,
               "p99_ratio": 4.0,
@@ -15115,6 +15638,175 @@
               "service_ms": 5.0,
               "write_slots": 1.0
             }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 438.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": 0.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "cockroachdb",
+            "overrides": [
+              {
+                "key": "service_ms",
+                "value": 12
+              }
+            ],
+            "sim": {
+              "failover_s": 30.0,
+              "p99_ratio": 5.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 100.0,
+              "service_ms": 5.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 300.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": 0.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "aurora_postgresql",
+            "overrides": [
+              {
+                "key": "replication_lag_ms",
+                "value": 20
+              }
+            ],
+            "sim": {
+              "failover_s": 30.0,
+              "p99_ratio": 5.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 100.0,
+              "service_ms": 5.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 657.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": 0.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "spanner",
+            "overrides": [
+              {
+                "key": "service_ms",
+                "value": 12
+              }
+            ],
+            "sim": {
+              "failover_s": 30.0,
+              "p99_ratio": 5.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 100.0,
+              "service_ms": 5.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 350.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": null,
+              "unit_kb": 0.0
+            },
+            "flavour": "postgis",
+            "overrides": [
+              {
+                "key": "service_ms",
+                "value": 10
+              }
+            ],
+            "sim": {
+              "failover_s": 30.0,
+              "p99_ratio": 5.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 100.0,
+              "service_ms": 5.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 350.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": null,
+              "unit_kb": 0.0
+            },
+            "flavour": "citus",
+            "overrides": [
+              {
+                "key": "service_ms",
+                "value": 5.5
+              },
+              {
+                "key": "shards",
+                "value": 4
+              }
+            ],
+            "sim": {
+              "failover_s": 30.0,
+              "p99_ratio": 5.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 100.0,
+              "service_ms": 5.0,
+              "write_slots": 1.0
+            }
           }
         ],
         "icon": "sql",
@@ -15354,6 +16046,90 @@
               "service_ms": 3.0,
               "write_slots": 1.0
             }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_lane_month": 250.0,
+              "per_million": 0.0,
+              "per_million_write": 0.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "scylladb",
+            "overrides": [],
+            "sim": {
+              "failover_s": 5.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 96.0,
+              "service_ms": 3.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_lane_month": 474.0,
+              "per_million": 0.0,
+              "per_million_write": 0.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "bigtable",
+            "overrides": [],
+            "sim": {
+              "failover_s": 5.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 32.0,
+              "service_ms": 3.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.25,
+              "per_million_write": 1.25,
+              "unit_kb": 0.0
+            },
+            "flavour": "cosmos_db",
+            "overrides": [],
+            "sim": {
+              "failover_s": 5.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 32.0,
+              "service_ms": 3.0,
+              "write_slots": 1.0
+            }
           }
         ],
         "icon": "nosql",
@@ -15517,6 +16293,90 @@
               "service_ms": 0.01,
               "write_slots": 1.0
             }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 18.0,
+              "per_instance_month": 0.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": null,
+              "unit_kb": 0.0
+            },
+            "flavour": "valkey",
+            "overrides": [],
+            "sim": {
+              "failover_s": 15.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 512.0,
+              "servers_per_instance": 1.0,
+              "service_ms": 0.01,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 18.0,
+              "per_instance_month": 0.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": null,
+              "unit_kb": 0.0
+            },
+            "flavour": "dragonfly",
+            "overrides": [],
+            "sim": {
+              "failover_s": 15.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 512.0,
+              "servers_per_instance": 8.0,
+              "service_ms": 0.01,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 18.0,
+              "per_instance_month": 0.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": null,
+              "unit_kb": 0.0
+            },
+            "flavour": "hazelcast",
+            "overrides": [],
+            "sim": {
+              "failover_s": 15.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 512.0,
+              "servers_per_instance": 8.0,
+              "service_ms": 0.01,
+              "write_slots": 1.0
+            }
           }
         ],
         "icon": "cache",
@@ -15675,6 +16535,90 @@
               "service_ms": 50.0,
               "write_slots": 1.0
             }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.44,
+              "per_million_write": 5.5,
+              "unit_kb": 0.0
+            },
+            "flavour": "azure_blob",
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 1000.0,
+              "service_ms": 50.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.36,
+              "per_million_write": 4.5,
+              "unit_kb": 0.0
+            },
+            "flavour": "cloudflare_r2",
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 1000.0,
+              "service_ms": 50.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": 0.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "minio",
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 1000.0,
+              "service_ms": 50.0,
+              "write_slots": 1.0
+            }
           }
         ],
         "icon": "object",
@@ -15750,6 +16694,67 @@
             },
             "flavour": "opensearch",
             "overrides": [],
+            "sim": {
+              "failover_s": 10.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 77.0,
+              "servers_per_instance": 13.0,
+              "service_ms": 20.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 250.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": null,
+              "unit_kb": 0.0
+            },
+            "flavour": "solr",
+            "overrides": [],
+            "sim": {
+              "failover_s": 10.0,
+              "p99_ratio": 4.0,
+              "queue_per_server": 77.0,
+              "servers_per_instance": 13.0,
+              "service_ms": 20.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 150.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": 0.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "meilisearch",
+            "overrides": [
+              {
+                "key": "service_ms",
+                "value": 5
+              }
+            ],
             "sim": {
               "failover_s": 10.0,
               "p99_ratio": 4.0,
@@ -17132,6 +18137,90 @@
               "service_ms": 10.0,
               "write_slots": 1.0
             }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.05,
+              "per_million_write": 0.05,
+              "unit_kb": 0.0
+            },
+            "flavour": "azure_service_bus",
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 2.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 210.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": 0.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "amazon_mq",
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 2.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.5,
+              "per_million_write": 1.5,
+              "unit_kb": 0.0
+            },
+            "flavour": "sqs_fifo",
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 300.0,
+              "service_ms": 20.0,
+              "write_slots": 1.0
+            }
           }
         ],
         "icon": "queue",
@@ -17237,6 +18326,90 @@
               "queue_per_server": 4.0,
               "servers_per_instance": 10000.0,
               "service_ms": 15.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 153.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": 0.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "redpanda",
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 1.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 153.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": 0.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "pulsar",
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 3.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_lane_month": 21.9,
+              "per_million": 0.0,
+              "per_million_write": 0.028,
+              "unit_kb": 0.0
+            },
+            "flavour": "azure_event_hubs",
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 3.0,
               "write_slots": 1.0
             }
           }
@@ -17374,6 +18547,95 @@
               "service_ms": 5.0,
               "write_slots": 1.0
             }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 70.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": 0.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "nats",
+            "overrides": [
+              {
+                "key": "service_ms",
+                "value": 0.5
+              }
+            ],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 5.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": 1.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "azure_web_pubsub",
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 5.0,
+              "write_slots": 1.0
+            }
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": 1.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "eventbridge",
+            "overrides": [],
+            "sim": {
+              "failover_s": 0.0,
+              "p99_ratio": 3.0,
+              "queue_per_server": 4.0,
+              "servers_per_instance": 10000.0,
+              "service_ms": 20.0,
+              "write_slots": 1.0
+            }
           }
         ],
         "icon": "pubsub",
@@ -17493,6 +18755,69 @@
               "unit_kb": 0.0
             },
             "flavour": "airflow",
+            "overrides": [],
+            "sim": null
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 200.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": 0.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "temporal",
+            "overrides": [],
+            "sim": null
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 100.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": 0.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "dagster",
+            "overrides": [],
+            "sim": null
+          },
+          {
+            "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
+              "per_gb_month": 0.0,
+              "per_instance_month": 0.0,
+              "per_lane_month": 0.0,
+              "per_million": 0.0,
+              "per_million_write": 0.0,
+              "unit_kb": 0.0
+            },
+            "flavour": "k8s_cronjob",
             "overrides": [],
             "sim": null
           }

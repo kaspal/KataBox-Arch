@@ -108,6 +108,18 @@ flavour = "mobile"
 title = "Apple Developer Documentation"
 url = "https://developer.apple.com/documentation/"
 
+[[sources]]
+flavour = "iot_device"
+title = "IoT device documentation"
+url = "https://docs.aws.amazon.com/iot/latest/developerguide/what-is-aws-iot.html"
+checked = false
+
+[[sources]]
+flavour = "partner_server"
+title = "Partner server (B2B) documentation"
+url = "https://developer.mozilla.org/en-US/docs/Web/HTTP"
+checked = false
+
 [[quiz]]
 q = "In a problem (not the Sandbox) there are two client cards: web at 300 rps and mobile at 100 rps. What do those numbers decide?"
 q_es = "En un problema (no en el Sandbox) hay dos tarjetas de cliente: web con 300 rps y móvil con 100 rps. ¿Qué deciden esos números?"

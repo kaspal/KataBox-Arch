@@ -431,6 +431,12 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
     twice the limit they are refused. Reads cost 2 ms per hour of `span_h`.
   - **Media Server.** A connection holder (S1) whose capacity is `streams_per_instance`; a push's latency starts
     from glass-to-glass: three segments plus 1 s for a live encoder (`mode = transcode`), 0.2 s for an SFU.
+- **New flavours (M8.3).** Flavours on existing kinds take their own prices and, where the product behaves
+  differently, their own figures (all `source: needed` until the citations): ScyllaDB serves three times
+  Cassandra's requests per node; CockroachDB and Spanner writes take longer (consensus) and, when their cluster
+  spans Regions, pay a cross-region round trip (70 ms); Aurora replicates in about 20 ms; SQS FIFO is capped at
+  300 messages a second per action; Dragonfly and Hazelcast are multi-threaded; Redpanda publishes faster than
+  Kafka; Cloudflare Workers start cold in 5 ms. The others share their kind's behaviour.
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE

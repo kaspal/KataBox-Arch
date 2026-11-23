@@ -131,6 +131,24 @@ flavour = "aws_api_gateway"
 title = "Amazon API Gateway documentation"
 url = "https://docs.aws.amazon.com/apigateway/"
 
+[[sources]]
+flavour = "azure_apim"
+title = "Azure API Management documentation"
+url = "https://learn.microsoft.com/en-us/azure/api-management/"
+checked = false
+
+[[sources]]
+flavour = "litellm"
+title = "LiteLLM (LLM gateway) documentation"
+url = "https://docs.litellm.ai/"
+checked = false
+
+[[sources]]
+flavour = "apollo_router"
+title = "Apollo Router (GraphQL) documentation"
+url = "https://www.apollographql.com/docs/graphos/routing"
+checked = false
+
 [[quiz]]
 q = "During a spike, requests queue at the API gateway while the services behind it sit mostly idle. What is the likely cause?"
 q_es = "Durante un pico, las peticiones se encolan en el API gateway mientras los servicios de detrás están casi ociosos. ¿Cuál es la causa probable?"

@@ -143,6 +143,18 @@ flavour = "cloud_run"
 title = "Cloud Run documentation"
 url = "https://cloud.google.com/run/docs"
 
+[[sources]]
+flavour = "cloudflare_workers"
+title = "Cloudflare Workers documentation"
+url = "https://developers.cloudflare.com/workers/"
+checked = false
+
+[[sources]]
+flavour = "azure_functions"
+title = "Azure Functions documentation"
+url = "https://learn.microsoft.com/en-us/azure/azure-functions/"
+checked = false
+
 [[quiz]]
 q = "A service gets high, steady traffic all day long. Why might always-on servers beat serverless here?"
 q_es = "Un servicio recibe tráfico alto y constante todo el día. ¿Por qué aquí los servidores siempre encendidos podrían ganar a serverless?"
