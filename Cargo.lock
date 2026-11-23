@@ -1918,6 +1918,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ka-web"
+version = "0.1.0"
+dependencies = [
+ "ka-core",
+ "ka-sim",
+ "serde_json",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "katabox-arch-desktop"
 version = "0.1.0"
 dependencies = [

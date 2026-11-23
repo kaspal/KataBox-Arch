@@ -3,7 +3,15 @@ resolver = "3"
 members = ["crates/*", "apps/desktop/src-tauri"]
 # `cargo build` / `cargo test` at the root skip the desktop shell, so the crates build
 # and test without WebKitGTK on Linux. Build the shell with `-p katabox-arch-desktop`.
-default-members = ["crates/*"]
+# ka-web is built for wasm32 only (`cargo build --target wasm32-unknown-unknown -p ka-web`).
+default-members = [
+    "crates/ka-app",
+    "crates/ka-core",
+    "crates/ka-judge",
+    "crates/ka-pack",
+    "crates/ka-sim",
+    "crates/ka-store",
+]
 
 [workspace.package]
 version = "0.1.0"
