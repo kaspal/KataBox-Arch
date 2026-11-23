@@ -1426,7 +1426,12 @@ ttft_p95_ms?: number | null;
 /**
  * S4: every job must finish within this many seconds of its start.
  */
-job_deadline_s?: number | null }
+job_deadline_s?: number | null; 
+/**
+ * S5: the most windowed records that may be late (a share), and the most duplicate
+ * results a crash may emit (a count, usually 0).
+ */
+late_rate?: number | null; duplicates?: number | null }
 /**
  * One step of a path as the UI shows it.
  */
@@ -1675,7 +1680,13 @@ ttft?: Percentiles | null; rate_limited: number;
  * S4: every job run (type, start, seconds to finish; None if it never finished), and
  * tasks started again (failures, spot interruptions).
  */
-jobs: JobResult[]; tasks_retried: number; cost_month: number; per_type: TypeResult[]; nodes: NodeResult[]; 
+jobs: JobResult[]; tasks_retried: number; 
+/**
+ * S5: windowed records that arrived past their window's allowed lateness (not lost,
+ * left out of the results), their share of windowed records, and results emitted twice
+ * after a crash replayed from a checkpoint.
+ */
+late: number; late_rate: number; duplicates: number; cost_month: number; per_type: TypeResult[]; nodes: NodeResult[]; 
 /**
  * One entry per simulated second.
  */

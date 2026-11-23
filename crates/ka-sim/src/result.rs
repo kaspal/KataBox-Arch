@@ -60,6 +60,15 @@ pub struct RunResult {
     pub jobs: Vec<JobResult>,
     #[serde(default, skip_serializing_if = "is_zero")]
     pub tasks_retried: f64,
+    /// S5: windowed records that arrived past their window's allowed lateness (not lost,
+    /// left out of the results), their share of windowed records, and results emitted twice
+    /// after a crash replayed from a checkpoint.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub late: f64,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub late_rate: f64,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub duplicates: f64,
     pub cost_month: f64,
     pub per_type: Vec<TypeResult>,
     pub nodes: Vec<NodeResult>,

@@ -137,6 +137,17 @@ pub struct NodeSpec {
     pub speculation: bool,
     pub salting: u32,
     pub checkpoint: bool,
+    /// S5 stream processors: the window (0 none, 1 tumbling, 2 sliding), its length and
+    /// slide, the watermark delay, the allowed lateness, the checkpoint interval and the
+    /// state each key holds; data cards: idempotent writes.
+    pub window: u8,
+    pub window_us: u64,
+    pub slide_us: u64,
+    pub watermark_us: u64,
+    pub lateness_us: u64,
+    pub checkpoint_us: u64,
+    pub state_kb: f64,
+    pub dedup: bool,
 }
 
 /// The value of `key` for `node`: the card's prop, else its flavour override, else the
@@ -222,7 +233,11 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
             servers
         },
         lanes,
-        service_ms: n("service_ms").unwrap_or(d.service_ms),
+        // S5: a stream processor's slot handles `records_per_s` simple records a second.
+        service_ms: match node.kind {
+            K::Streamproc => 1000.0 / n("records_per_s").unwrap_or(20_000.0).max(1e-6),
+            _ => n("service_ms").unwrap_or(d.service_ms),
+        },
         p99_ratio: d.p99_ratio,
         // S4: a batch card's tasks wait for an executor however many there are.
         queue_cap: if node.kind == K::Batch {
@@ -326,5 +341,17 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
             prop(registry, node, "checkpoint"),
             Some(PropValue::Bool(true))
         ),
+        window: match text(registry, node, "window").as_deref() {
+            Some("tumbling") => 1,
+            Some("sliding") => 2,
+            _ => 0,
+        },
+        window_us: (n("window_s").unwrap_or(60.0).max(1.0) * 1e6) as u64,
+        slide_us: (n("slide_s").unwrap_or(10.0).max(1.0) * 1e6) as u64,
+        watermark_us: (n("watermark_s").unwrap_or(0.0).max(0.0) * 1e6) as u64,
+        lateness_us: (n("allowed_lateness_s").unwrap_or(0.0).max(0.0) * 1e6) as u64,
+        checkpoint_us: (n("checkpoint_s").unwrap_or(60.0).max(1.0) * 1e6) as u64,
+        state_kb: n("state_kb").unwrap_or(1.0).max(0.0),
+        dedup: matches!(prop(registry, node, "dedup"), Some(PropValue::Bool(true))),
     }
 }

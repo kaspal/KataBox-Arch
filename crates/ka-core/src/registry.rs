@@ -1505,6 +1505,8 @@ pub fn registry() -> Registry {
                 int("cdc_buffer_s", 0.0, 3600.0, 300.0, Unit::S),
                 split_failover(),
                 boolean("fencing", false),
+                // S5: idempotent writes (upsert by key): a replayed result isn't a duplicate.
+                boolean("dedup", false),
             ],
         ),
         kind(
@@ -1518,6 +1520,8 @@ pub fn registry() -> Registry {
                 int("cdc_buffer_s", 0.0, 3600.0, 300.0, Unit::S),
                 split_failover(),
                 boolean("fencing", false),
+                // S5: idempotent writes (upsert by key): a replayed result isn't a duplicate.
+                boolean("dedup", false),
             ],
         ),
         kind(
@@ -1590,6 +1594,7 @@ pub fn registry() -> Registry {
                 float("overhead_ms", 1.0, 60_000.0, 1.0, 300.0, Unit::Ms),
                 boolean("result_cache", true),
                 int("auto_suspend_s", 0.0, 3600.0, 60.0, Unit::S),
+                boolean("dedup", false),
             ],
         ),
         kind(
@@ -1623,6 +1628,7 @@ pub fn registry() -> Registry {
                 int("retention_days", 1.0, 3650.0, 30.0, Unit::Days),
                 float("memory_gb", 0.5, 1024.0, 0.5, 16.0, Unit::Gb),
                 service_ms(1.0),
+                boolean("dedup", false),
             ],
         ),
         kind(

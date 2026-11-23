@@ -569,7 +569,8 @@
       "split_failover": "Failover in a split",
       "fencing": "Fencing tokens",
       "reconnect_jitter_s": "Reconnect jitter",
-      "reconnect_backoff_s": "Reconnect backoff"
+      "reconnect_backoff_s": "Reconnect backoff",
+      "dedup": "Idempotent writes (dedup)"
     },
     "choice": {
       "round_robin": "Round robin",

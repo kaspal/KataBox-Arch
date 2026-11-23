@@ -90,6 +90,10 @@ enum Ev {
     JobStart {
         job: u16,
     },
+    /// S5: a record's window closes (end + watermark): its result goes to the sinks.
+    WindowEmit {
+        r: u32,
+    },
     Second(u32),
     /// Chaos event `i` starts / ends (only scheduled when the scenario has chaos).
     Chaos(u16),
@@ -308,6 +312,9 @@ struct NodeRt {
     bill_tout: f64,
     bill_conn_s: f64,
     bill_msgs: f64,
+    /// S5: the checkpoint interval the card is in, and records it processed since.
+    ckpt_idx: u64,
+    since_ckpt: f64,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -443,6 +450,11 @@ pub struct Engine {
     rng_jobs: Rng,
     tasks_retried: f64,
     spot_taken: Vec<(u16, u32, u32)>,
+    /// S5: windowed records, late ones, duplicate results, and event-delay draws.
+    windowed: f64,
+    late: f64,
+    duplicates: f64,
+    rng_s5: Rng,
 }
 
 /// S1: one connection type's state: connections per holder, push backlog per holder,
@@ -626,6 +638,10 @@ impl Engine {
             rng_jobs: Rng::stream(seed, "jobs"),
             tasks_retried: 0.0,
             spot_taken: Vec::new(),
+            windowed: 0.0,
+            late: 0.0,
+            duplicates: 0.0,
+            rng_s5: Rng::stream(seed, "s5"),
             caches: c
                 .nodes
                 .iter()
@@ -939,6 +955,14 @@ impl Engine {
             Ev::Noticed { chaos, node } => self.rollout_noticed(chaos, node),
             Ev::ConnTick => self.conn_tick(),
             Ev::JobStart { job } => self.job_start(job),
+            Ev::WindowEmit { r } => {
+                self.reqs[r as usize].pending -= 1;
+                if self.reqs[r as usize].dead {
+                    self.maybe_free(r);
+                } else {
+                    self.run_calls(r);
+                }
+            }
             Ev::Rollback { chaos } => {
                 for n in self.chaos_targets[chaos as usize].clone() {
                     self.nodes[n as usize].faulty = 0.0;
@@ -1416,6 +1440,19 @@ impl Engine {
         if q.seg >= 1 {
             median *= q.units;
         }
+        if n.kind == ComponentKind::Streamproc && n.spec.window != 0 {
+            // S5: a sliding window updates window ÷ slide results per record; state past
+            // memory spills to disk (×4, a modelling choice).
+            if n.spec.window == 2 {
+                median *= (n.spec.window_us as f64 / n.spec.slide_us.max(1) as f64).max(1.0);
+            }
+            let ct = &self.c.types[q.ty as usize];
+            let keys = (ct.def.key_space as f64).min(ct.rate * n.spec.window_us as f64 / 1e6);
+            let state_gb = keys * n.spec.state_kb / (1024.0 * 1024.0);
+            if state_gb > n.spec.memory_gb * n.spec.instances {
+                median *= 4.0;
+            }
+        }
         if n.spec.semantic {
             // S3: an embedding plus a nearest-neighbour lookup (a modelling choice).
             median += SEMANTIC_LOOKUP_MS;
@@ -1655,6 +1692,13 @@ impl Engine {
             q.step = 0;
         } else {
             self.release(node, lane);
+        }
+        if phase == Phase::Consumer && self.c.nodes[node as usize].kind == ComponentKind::Streamproc
+        {
+            self.count_for_checkpoint(node);
+            if self.c.nodes[node as usize].spec.window != 0 && self.window_wait(r, node) {
+                return;
+            }
         }
         match phase {
             Phase::Hop => self.after_hop(r, node),
@@ -3059,6 +3103,13 @@ impl Engine {
             conn_drops: self.conn_drops,
             ttft: (ttft.total() > 0.0).then(|| pct(&ttft)),
             rate_limited: self.rate_limited,
+            late: self.late,
+            late_rate: if self.windowed > 0.0 {
+                self.late / self.windowed
+            } else {
+                0.0
+            },
+            duplicates: self.duplicates,
             jobs: self
                 .jobs
                 .iter()
@@ -3550,6 +3601,63 @@ impl Engine {
         }
     }
 
+    /// S5: a stream processor counts records toward its next checkpoint.
+    fn count_for_checkpoint(&mut self, node: u32) {
+        let every = self.c.nodes[node as usize].spec.checkpoint_us.max(1);
+        let idx = self.now / every;
+        let w = self.c.weight;
+        let rt = &mut self.nodes[node as usize];
+        if rt.ckpt_idx != idx {
+            rt.ckpt_idx = idx;
+            rt.since_ckpt = 0.0;
+        }
+        rt.since_ckpt += w;
+    }
+
+    /// S5: a windowed record. Its event time (arrival minus the type's event delay) picks its
+    /// window; the result leaves when the window closes (end + watermark). Until then the
+    /// record holds no slot and no stream partition. Past the allowed lateness it is late:
+    /// counted, left out. Returns true when the record waits or is done.
+    fn window_wait(&mut self, r: u32, node: u32) -> bool {
+        let spec = &self.c.nodes[node as usize].spec;
+        let (kind, win, slide, mark, late_ok) = (
+            spec.window,
+            spec.window_us,
+            spec.slide_us,
+            spec.watermark_us,
+            spec.lateness_us,
+        );
+        let q = &self.reqs[r as usize];
+        let delay = self.c.types[q.ty as usize].def.event_delay;
+        let start = q.start;
+        let delay_us = delay.map_or(0.0, |d| {
+            let ratio = (d.p99_ms / d.median_ms.max(1e-9)).max(1.0);
+            self.rng_s5.lognormal(d.median_ms.max(0.0), ratio) * 1000.0
+        }) as u64;
+        let event = start.saturating_sub(delay_us);
+        let step = if kind == 2 { slide } else { win };
+        let emit = (event / step + 1) * step + mark;
+        let w = self.c.weight;
+        self.windowed += w;
+        self.release_caller(r);
+        self.message_done(r);
+        let q = &mut self.reqs[r as usize];
+        q.caller = node;
+        q.step = 0;
+        if self.now <= emit {
+            self.push_req(emit, Ev::WindowEmit { r }, r);
+            return true;
+        }
+        if self.now <= emit + late_ok {
+            // An update to a closed window, within the allowed lateness.
+            self.run_calls(r);
+            return true;
+        }
+        self.late += w;
+        self.finish(r);
+        true
+    }
+
     /// S4: a job run starts. Task sizes follow a Zipf skew (shuffled by the `jobs` stream)
     /// and sum to the job's work; a batch card with `salting` splits the largest 1% of
     /// tasks that many ways.
@@ -3881,6 +3989,14 @@ impl Engine {
     fn kill(&mut self, n: u32) {
         if self.nodes[n as usize].down {
             return;
+        }
+        if self.c.nodes[n as usize].kind == ComponentKind::Streamproc {
+            // S5: restarting from the last checkpoint replays what it processed since; the
+            // sinks receive those results again unless they write idempotently.
+            let replay = std::mem::take(&mut self.nodes[n as usize].since_ckpt);
+            if !self.c.dedup_sinks[n as usize] {
+                self.duplicates += replay;
+            }
         }
         self.nodes[n as usize].down = true;
         let queued: Vec<u32> = self.nodes[n as usize]

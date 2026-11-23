@@ -166,6 +166,8 @@ pub struct Compiled {
     pub scaling: Vec<ScaleGroup>,
     /// S8: distinct dependencies (call targets) per caller, for bulkhead pools.
     pub deps: Vec<u32>,
+    /// S5: a stream processor whose every data sink writes idempotently (`dedup`).
+    pub dedup_sinks: Vec<bool>,
 }
 
 const SYNC: [Protocol; 3] = [Protocol::Http, Protocol::Grpc, Protocol::Ws];
@@ -578,6 +580,19 @@ pub fn compile(
         }
     }
     let deps: Vec<u32> = dep_sets.iter().map(|s| s.len() as u32).collect();
+    let dedup_sinks: Vec<bool> = nodes
+        .iter()
+        .map(|n| {
+            let sinks: Vec<&CNode> = n
+                .out
+                .iter()
+                .filter(|(_, p)| matches!(p, Protocol::Query | Protocol::Publish))
+                .map(|(b, _)| &nodes[*b as usize])
+                .filter(|b| matches!(b.spec.role, Role::Datastore | Role::Cache))
+                .collect();
+            !sinks.is_empty() && sinks.iter().all(|b| b.spec.dedup)
+        })
+        .collect();
 
     let mut feeds: Vec<Vec<u32>> = vec![Vec::new(); n_nodes];
     for (b, n) in nodes.iter().enumerate() {
@@ -611,6 +626,7 @@ pub fn compile(
             .collect(),
         scaling,
         deps,
+        dedup_sinks,
     })
 }
 

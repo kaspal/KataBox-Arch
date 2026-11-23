@@ -80,6 +80,18 @@ pub struct RequestType {
     /// S4: a job type's work (kind = "job").
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub job: Option<JobSpec>,
+    /// S5: how late events arrive after they happen (event time to arrival; lognormal).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub event_delay: Option<Delay>,
+}
+
+/// S5: a delay's median and 99th percentile.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(deny_unknown_fields)]
+pub struct Delay {
+    pub median_ms: f64,
+    pub p99_ms: f64,
 }
 
 /// S4: a batch job: `work_units` executor-seconds split into `tasks`, sized by a Zipf skew
@@ -490,6 +502,12 @@ pub struct PassCriteria {
     /// S4: every job must finish within this many seconds of its start.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub job_deadline_s: Option<f64>,
+    /// S5: the most windowed records that may be late (a share), and the most duplicate
+    /// results a crash may emit (a count, usually 0).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub late_rate: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duplicates: Option<f64>,
 }
 
 /// Completed requests a test needs before its p99 is judged (review A4).
@@ -510,6 +528,8 @@ impl PassCriteria {
             connected_min: over.connected_min.or(self.connected_min),
             ttft_p95_ms: over.ttft_p95_ms.or(self.ttft_p95_ms),
             job_deadline_s: over.job_deadline_s.or(self.job_deadline_s),
+            late_rate: over.late_rate.or(self.late_rate),
+            duplicates: over.duplicates.or(self.duplicates),
         }
     }
 }

@@ -373,6 +373,21 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
   - `jobs` reports each run's start and completion time; `pass.job_deadline_s` fails a test (SLO Breach) when a
     job finishes late or not at all. Job tests run at most an hour of simulated time (plan ★10 asked for a day;
     workloads are scaled and the brief says so).
+- **Windows, lateness and checkpoints (S5, golden i).**
+  - A Stream Processor's slot handles `records_per_s` records a second (sliding windows cost window ÷ slide times
+    that). It consumes a stream like any consumer, so its parallelism is capped by the stream's partitions.
+  - With `window = tumbling|sliding`, each record's event time (its start minus a draw from the type's
+    `event_delay`, lognormal, `s5` stream) picks its window, and its result goes to the sinks when the window
+    closes: window end (or the next slide) + `watermark_s`. Meanwhile it holds no slot and no partition. Every
+    record of a window reaches the sinks together: a burst, as in a real window flush.
+  - A record arriving after its window closed is an update within `allowed_lateness_s`, and `late` beyond it:
+    counted (`late_rate` of windowed records), left out, not lost. `pass.late_rate` fails a test as SLO Breach.
+  - Window state (keys in a window × `state_kb`) beyond `memory_gb × instances` makes processing 4× slower (a
+    modelling choice for spilling to disk).
+  - Checkpoints every `checkpoint_s`: when the processor is killed, the records it processed since the last
+    checkpoint are processed again on restart, and their results reach the sinks twice (`duplicates`), unless every
+    data sink it writes has `dedup` (idempotent upserts). `pass.duplicates` fails a test as Dropped Requests.
+    Exactly-once transactions aren't simulated; the simulator counts the duplicates instead.
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE

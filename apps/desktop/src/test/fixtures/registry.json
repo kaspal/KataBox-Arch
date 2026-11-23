@@ -15225,6 +15225,15 @@
               "type": "bool"
             },
             "unit": "none"
+          },
+          {
+            "calibration": null,
+            "default": false,
+            "key": "dedup",
+            "ty": {
+              "type": "bool"
+            },
+            "unit": "none"
           }
         ]
       },
@@ -15403,6 +15412,15 @@
             "calibration": null,
             "default": false,
             "key": "fencing",
+            "ty": {
+              "type": "bool"
+            },
+            "unit": "none"
+          },
+          {
+            "calibration": null,
+            "default": false,
+            "key": "dedup",
             "ty": {
               "type": "bool"
             },
@@ -16310,6 +16328,15 @@
               "type": "int"
             },
             "unit": "s"
+          },
+          {
+            "calibration": null,
+            "default": false,
+            "key": "dedup",
+            "ty": {
+              "type": "bool"
+            },
+            "unit": "none"
           }
         ]
       },
@@ -16663,6 +16690,15 @@
               "type": "float"
             },
             "unit": "ms"
+          },
+          {
+            "calibration": null,
+            "default": false,
+            "key": "dedup",
+            "ty": {
+              "type": "bool"
+            },
+            "unit": "none"
           }
         ]
       },

@@ -139,6 +139,7 @@ fn verdict(r: &RunResult, limits: &PassCriteria, cost: f64, budget: f64) -> Verd
     if over(r.error_rate, limits.error_rate)
         || r.lost > limits.lost.unwrap_or(0.0)
         || over(r.conflicts, limits.conflicts)
+        || over(r.duplicates, limits.duplicates)
     {
         return Verdict::DroppedRequests;
     }
@@ -148,6 +149,7 @@ fn verdict(r: &RunResult, limits: &PassCriteria, cost: f64, budget: f64) -> Verd
         || over(r.stale_rate, limits.stale_rate)
         || !recovered(r, limits)
         || limits.connected_min.is_some_and(|m| r.connected_min < m)
+        || over(r.late_rate, limits.late_rate)
         || limits
             .ttft_p95_ms
             .is_some_and(|l| r.ttft.is_some_and(|t| t.p95_ms > l))

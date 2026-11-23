@@ -1286,3 +1286,136 @@ fn golden_h_jobs() {
     );
     golden("h", &run(&d, &s, 42));
 }
+
+// --- S5: windows, lateness, checkpoints -----------------------------------------------------
+
+/// client → app → Kafka → Flink (tumbling 10 s window) → TimescaleDB.
+fn stream_job(
+    flink: &[(&str, f64)],
+    window: &str,
+    dedup: bool,
+    delay: Option<(f64, f64)>,
+) -> (Design, Scenario) {
+    let mut f = node("flink", K::Streamproc, Flavour::Flink, flink);
+    set(&mut f, "window", PropValue::Text(window.into()));
+    // Sized for a window flush: every record of a closed window reaches the sink at once.
+    let mut db = node(
+        "tsdb",
+        K::Tsdb,
+        Flavour::Timescaledb,
+        &[("instances", 10.0)],
+    );
+    set(&mut db, "dedup", PropValue::Bool(dedup));
+    let d = design(
+        vec![
+            node("client", K::Client, Flavour::Web, &[]),
+            node("app", K::App, Flavour::Go, &[]),
+            node("kafka", K::Stream, Flavour::Kafka, &[]),
+            f,
+            db,
+        ],
+        vec![
+            edge("client", "app", Protocol::Http),
+            edge("app", "kafka", Protocol::Publish),
+            edge("kafka", "flink", Protocol::Consume),
+            edge("flink", "tsdb", Protocol::Query),
+        ],
+    );
+    let mut t = rtype(
+        "event",
+        1.0,
+        &[
+            "compute",
+            "broker",
+            "worker:streamproc",
+            "datastore:write:tsdb",
+        ],
+    );
+    t.measure = ka_core::scenario::Measure::Completion;
+    t.event_delay = delay.map(|(median_ms, p99_ms)| ka_core::scenario::Delay { median_ms, p99_ms });
+    (d, scenario(500.0, 60.0, vec![t]))
+}
+
+#[test]
+fn s5_a_tumbling_window_adds_its_length_to_completion() {
+    let (d, s) = stream_job(
+        &[("window_s", 10.0), ("watermark_s", 2.0)],
+        "none",
+        false,
+        None,
+    );
+    let none = run(&d, &s, 91);
+    let (d, s) = stream_job(
+        &[("window_s", 10.0), ("watermark_s", 2.0)],
+        "tumbling",
+        false,
+        None,
+    );
+    let win = run(&d, &s, 91);
+    let c = |r: &RunResult| r.completion.expect("completion").p50_ms;
+    assert!(c(&none) < 1000.0, "{}", c(&none));
+    assert!(
+        (5000.0..9000.0).contains(&c(&win)),
+        "half a window plus the watermark: {}",
+        c(&win)
+    );
+}
+
+#[test]
+fn s5_late_events_past_the_allowed_lateness_are_counted() {
+    let mobile = Some((2_000.0, 60_000.0));
+    let (d, s) = stream_job(
+        &[("window_s", 10.0), ("watermark_s", 2.0)],
+        "tumbling",
+        false,
+        mobile,
+    );
+    let strict = run(&d, &s, 92);
+    let (d, s) = stream_job(
+        &[
+            ("window_s", 10.0),
+            ("watermark_s", 2.0),
+            ("allowed_lateness_s", 120.0),
+        ],
+        "tumbling",
+        false,
+        mobile,
+    );
+    let lenient = run(&d, &s, 92);
+    assert!(strict.late_rate > 0.01, "{}", strict.late_rate);
+    assert_eq!(lenient.late, 0.0);
+    assert!(strict.lost == 0.0, "late isn't lost");
+}
+
+#[test]
+fn s5_a_crash_replays_from_the_checkpoint_unless_the_sink_dedups() {
+    let make = |dedup: bool| {
+        let (d, mut s) = stream_job(&[("checkpoint_s", 30.0)], "none", dedup, None);
+        s.chaos = vec![chaos(
+            serde_json::json!({ "kill": { "id": "flink", "at": 50, "for": 5 } }),
+        )];
+        (d, s)
+    };
+    let (d, s) = make(false);
+    assert!(run(&d, &s, 93).duplicates > 1000.0);
+    let (d, s) = make(true);
+    assert_eq!(run(&d, &s, 93).duplicates, 0.0);
+}
+
+#[test]
+fn golden_i_windows() {
+    let (d, mut s) = stream_job(
+        &[
+            ("window_s", 10.0),
+            ("watermark_s", 2.0),
+            ("checkpoint_s", 20.0),
+        ],
+        "tumbling",
+        false,
+        Some((1_000.0, 30_000.0)),
+    );
+    s.chaos = vec![chaos(
+        serde_json::json!({ "kill": { "id": "flink", "at": 30, "for": 5 } }),
+    )];
+    golden("i", &run(&d, &s, 42));
+}

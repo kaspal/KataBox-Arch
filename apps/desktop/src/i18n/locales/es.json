@@ -569,7 +569,8 @@
       "split_failover": "Conmutación en una partición",
       "fencing": "Tokens de exclusión (fencing)",
       "reconnect_jitter_s": "Variación al reconectar",
-      "reconnect_backoff_s": "Espera al reconectar"
+      "reconnect_backoff_s": "Espera al reconectar",
+      "dedup": "Escrituras idempotentes (dedup)"
     },
     "choice": {
       "round_robin": "Round robin",
