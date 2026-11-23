@@ -4388,6 +4388,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
@@ -4401,6 +4409,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
@@ -4438,6 +4454,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
@@ -4458,6 +4482,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
@@ -4517,6 +4549,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
@@ -4537,6 +4577,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
@@ -4557,6 +4605,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
@@ -4601,6 +4657,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 20.0,
               "per_lane_month": 0.0,
@@ -4621,6 +4685,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 20.0,
               "per_lane_month": 0.0,
@@ -4680,6 +4752,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 25.0,
               "per_lane_month": 0.0,
@@ -4700,6 +4780,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 25.0,
               "per_lane_month": 0.0,
@@ -4720,6 +4808,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 25.0,
               "per_lane_month": 0.0,
@@ -4740,6 +4836,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 25.0,
               "per_lane_month": 0.0,
@@ -4818,6 +4922,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 60.0,
               "per_lane_month": 0.0,
@@ -4838,6 +4950,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 60.0,
               "per_lane_month": 0.0,
@@ -4912,6 +5032,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 30.0,
               "per_lane_month": 0.0,
@@ -4932,6 +5060,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 30.0,
               "per_lane_month": 0.0,
@@ -4988,6 +5124,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 70.0,
               "per_lane_month": 0.0,
@@ -5008,6 +5152,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 70.0,
               "per_lane_month": 0.0,
@@ -5028,6 +5180,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 70.0,
               "per_lane_month": 0.0,
@@ -5053,6 +5213,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 70.0,
               "per_lane_month": 0.0,
@@ -5136,6 +5304,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 70.0,
               "per_lane_month": 0.0,
@@ -5210,6 +5386,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 70.0,
               "per_lane_month": 0.0,
@@ -5230,6 +5414,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 70.0,
               "per_lane_month": 0.0,
@@ -5309,6 +5501,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
@@ -5329,6 +5529,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
@@ -5415,6 +5623,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
@@ -5428,6 +5644,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
@@ -5501,6 +5725,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 350.0,
               "per_lane_month": 0.0,
@@ -5521,6 +5753,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 350.0,
               "per_lane_month": 0.0,
@@ -5655,6 +5895,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
@@ -5675,6 +5923,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 250.0,
@@ -5695,6 +5951,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 394.0,
@@ -5791,6 +6055,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 18.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
@@ -5811,6 +6083,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 18.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
@@ -5920,6 +6200,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
@@ -5940,6 +6228,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
@@ -5987,6 +6283,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 250.0,
               "per_lane_month": 0.0,
@@ -6007,6 +6311,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 250.0,
               "per_lane_month": 0.0,
@@ -6078,6 +6390,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 70.0,
               "per_lane_month": 0.0,
@@ -6098,6 +6418,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
@@ -6169,6 +6497,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 153.0,
               "per_lane_month": 0.0,
@@ -6189,6 +6525,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 10.95,
@@ -6260,6 +6604,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
@@ -6280,6 +6632,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
@@ -6300,6 +6660,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 36.0,
               "per_lane_month": 0.0,
@@ -6347,6 +6715,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
@@ -6391,6 +6767,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 20.0,
               "per_lane_month": 0.0,
@@ -6404,6 +6788,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 20.0,
               "per_lane_month": 0.0,
@@ -6441,6 +6833,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 100.0,
               "per_lane_month": 0.0,
@@ -6478,6 +6878,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 150.0,
               "per_lane_month": 0.0,
@@ -6491,6 +6899,14 @@
           },
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 150.0,
               "per_lane_month": 0.0,
@@ -6528,6 +6944,14 @@
         "flavours": [
           {
             "cost": {
+              "active_only": false,
+              "meters": {
+                "conn_minutes_m": 0.0,
+                "messages_m": 0.0,
+                "tb_scanned": 0.0,
+                "tokens_in_m": 0.0,
+                "tokens_out_m": 0.0
+              },
               "per_gb_month": 0.0,
               "per_instance_month": 80.0,
               "per_lane_month": 0.0,

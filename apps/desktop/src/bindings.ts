@@ -785,7 +785,16 @@ export type CalibrationStatus =
 /**
  * A conservative ballpark; its source still has to be confirmed.
  */
-"needed"
+"needed" | 
+/**
+ * A simulator knob no vendor publishes (a tail multiplier, backlog slots, a managed
+ * service's "effectively unlimited" concurrency); the source cell says why.
+ */
+"model" | 
+/**
+ * A rule of thumb rather than a measured figure.
+ */
+"rule_of_thumb"
 /**
  * "p95 latency: ~~400 ms~~ 18 ms". `before` is this run on the previous step's design;
  * `after` is this step's. `validate --run` checks both against the simulator.
@@ -940,7 +949,15 @@ per_million_write: number | null;
  * Billing unit size: a request counts `max(1, payload_kb / unit_kb)` units; 0 counts
  * every request as one.
  */
-unit_kb: number }
+unit_kb: number; 
+/**
+ * Usage meters for products billed by something other than requests (M8).
+ */
+meters?: Meters; 
+/**
+ * Bill instance time only while the card is busy (auto-suspending warehouses).
+ */
+active_only?: boolean }
 export type DecideFlow = { id: string; number: number; title: string; title_es: string; intro: string; intro_es: string; 
 /**
  * The first question's id.
@@ -1190,6 +1207,31 @@ export type MappedService = { service: string; image: string | null; kind: Compo
  */
 export type MetaKind = "region" | "az" | "note"
 export type MetaSpec = { kind: MetaKind; icon: string }
+/**
+ * Prices per unit of usage (M8): tokens, scanned data, connection time, messages. Zero means
+ * the product doesn't bill that way.
+ */
+export type Meters = { 
+/**
+ * Per million input (prompt) tokens.
+ */
+tokens_in_m: number; 
+/**
+ * Per million output (generated) tokens.
+ */
+tokens_out_m: number; 
+/**
+ * Per TB scanned.
+ */
+tb_scanned: number; 
+/**
+ * Per million connection-minutes.
+ */
+conn_minutes_m: number; 
+/**
+ * Per million messages sent to connections.
+ */
+messages_m: number }
 /**
  * The non-functional requirements shown in the brief.
  */
@@ -1744,7 +1786,15 @@ export type TypeResult = { id: string; requests: number; errors: number; latency
 /**
  * The unit shown after a prop's value (`units.<unit>` in the UI).
  */
-export type Unit = "none" | "count" | "ms" | "s" | "h" | "days" | "percent" | "rps" | "gb"
+export type Unit = "none" | "count" | "ms" | "s" | "h" | "days" | "percent" | "rps" | "gb" | "kb" | "mb" | "gbps" | "tokens" | 
+/**
+ * Tokens per second.
+ */
+"tps" | 
+/**
+ * Per minute (request and token limits of hosted models).
+ */
+"per_min"
 /**
  * A test's outcome, in the order the checks run: the first that fails is the verdict.
  */

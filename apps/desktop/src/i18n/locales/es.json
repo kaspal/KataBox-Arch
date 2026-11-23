@@ -215,7 +215,11 @@
     "scaling": "Política de escalado",
     "brief": "Enunciado",
     "learnMore": "Saber más",
-    "tabs": "Panel lateral"
+    "tabs": "Panel lateral",
+    "model": "decisión de modelado",
+    "modelHint": "Un parámetro del simulador que ningún proveedor publica; la Guía y docs/calibration.md explican el valor.",
+    "ruleOfThumb": "regla práctica",
+    "ruleOfThumbHint": "Una regla práctica, no una cifra medida."
   },
   "home": {
     "eyebrow": "Tu mesa de diseño de sistemas",

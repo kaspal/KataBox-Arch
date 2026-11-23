@@ -33,9 +33,9 @@ pub use design::{
 };
 pub use registry::{
     CALIBRATED_PROPS, CITED, CalibrationRef, CalibrationRow, CalibrationStatus, Category,
-    ComponentKind, Cost, Flavour, FlavourSpec, KindSpec, MetaKind, MetaSpec, Placement,
-    PropOverride, PropSpec, PropType, Registry, SimDefaults, Unit, calibration_rows, flavour_id,
-    registry,
+    ComponentKind, Cost, Flavour, FlavourSpec, KindSpec, MODEL, MetaKind, MetaSpec, Meters,
+    Placement, PropOverride, PropSpec, PropType, RULE_OF_THUMB, Registry, SimDefaults, Unit,
+    calibration_rows, calibration_status, flavour_id, registry,
 };
 pub use validate::{DesignIssue, IssueCode, Limits, validate, wire_reason};
 pub use wiring::{KindSet, WiringCell, WiringDenial, WiringReason, WiringRule, WiringTable};

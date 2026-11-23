@@ -36,7 +36,7 @@ pub const COST_FIELDS: [&str; 5] = [
 ];
 /// Props the simulator doesn't read (design notes only): an "In the simulator" row may not
 /// name them. `tests/guide.rs` checks `ka-sim` still ignores each one.
-pub const NOT_SIMULATED: [&str; 9] = [
+pub const NOT_SIMULATED: &[&str] = &[
     "consistency",
     "eviction",
     "interval_s",

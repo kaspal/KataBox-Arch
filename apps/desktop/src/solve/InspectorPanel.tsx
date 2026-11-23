@@ -5,7 +5,8 @@ import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "@tanstack/react-router";
 import { Trash2, BookOpen, RotateCcw } from "lucide-react";
-import type { Edge, Flavour, Group, Node, Note, PropSpec, PropValue, Protocol, Registry, Scaling } from "@/bindings";
+import type { TFunction } from "i18next";
+import type { CalibrationStatus, Edge, Flavour, Group, Node, Note, PropSpec, PropValue, Protocol, Registry, Scaling } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -132,11 +133,7 @@ function PropField({
   // Plain counts and unitless props show no suffix.
   const unit = spec.unit === "none" || spec.unit === "count" ? "" : unitName(t, spec.unit);
   const label = propName(t, spec.key);
-  const tag = spec.calibration
-    ? spec.calibration.status === "cited"
-      ? { text: t("inspector.cited"), title: t("inspector.citedHint") }
-      : { text: t("inspector.ballpark"), title: t("inspector.ballparkHint") }
-    : undefined;
+  const tag = spec.calibration ? calibrationTag(t, spec.calibration.status) : undefined;
   const [draft, setDraft] = useState(String(current));
   const [error, setError] = useState<string | undefined>();
   useEffect(() => {
@@ -216,6 +213,19 @@ function PropField({
       />
     </Field>
   );
+}
+
+function calibrationTag(t: TFunction, status: CalibrationStatus): { text: string; title: string } {
+  switch (status) {
+    case "cited":
+      return { text: t("inspector.cited"), title: t("inspector.citedHint") };
+    case "model":
+      return { text: t("inspector.model"), title: t("inspector.modelHint") };
+    case "rule_of_thumb":
+      return { text: t("inspector.ruleOfThumb"), title: t("inspector.ruleOfThumbHint") };
+    default:
+      return { text: t("inspector.ballpark"), title: t("inspector.ballparkHint") };
+  }
 }
 
 function DeleteButton({ ids }: { ids: string[] }) {

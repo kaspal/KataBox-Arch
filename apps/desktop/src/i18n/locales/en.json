@@ -215,7 +215,11 @@
     "scaling": "Scaling policy",
     "brief": "Brief",
     "learnMore": "Learn more",
-    "tabs": "Side panel"
+    "tabs": "Side panel",
+    "model": "modelling choice",
+    "modelHint": "A simulator knob no vendor publishes; the Guide and docs/calibration.md say why this value.",
+    "ruleOfThumb": "rule of thumb",
+    "ruleOfThumbHint": "A rule of thumb rather than a measured figure."
   },
   "home": {
     "eyebrow": "Your system design desk",

@@ -258,6 +258,14 @@ pub enum Unit {
     Percent,
     Rps,
     Gb,
+    Kb,
+    Mb,
+    Gbps,
+    Tokens,
+    /// Tokens per second.
+    Tps,
+    /// Per minute (request and token limits of hosted models).
+    PerMin,
 }
 
 /// A prop's type and allowed range.
@@ -313,10 +321,15 @@ pub enum CalibrationStatus {
     Cited,
     /// A conservative ballpark; its source still has to be confirmed.
     Needed,
+    /// A simulator knob no vendor publishes (a tail multiplier, backlog slots, a managed
+    /// service's "effectively unlimited" concurrency); the source cell says why.
+    Model,
+    /// A rule of thumb rather than a measured figure.
+    RuleOfThumb,
 }
 
 /// Props whose defaults are calibrated figures rather than design choices.
-pub const CALIBRATED_PROPS: [&str; 9] = [
+pub const CALIBRATED_PROPS: &[&str] = &[
     "service_ms",
     "concurrency",
     "concurrency_limit",
@@ -330,7 +343,7 @@ pub const CALIBRATED_PROPS: [&str; 9] = [
 
 /// Calibration row ids whose source has been confirmed (the planning chat checked these on
 /// 2026-11-22; `docs/calibration.md` quotes each source). Every other row is `source: needed`.
-pub const CITED: [&str; 42] = [
+pub const CITED: &[&str] = &[
     "sql.concurrency",
     "sql.concurrency@mysql",
     "sql.failover_s",
@@ -376,9 +389,20 @@ pub const CITED: [&str; 42] = [
     "dlq.cost.million_write",
 ];
 
-fn calibration_status(id: &str) -> CalibrationStatus {
+/// Calibration row ids that are modelling choices (`model: <why>` in `docs/calibration.md`).
+pub const MODEL: &[&str] = &[];
+
+/// Calibration row ids that are rules of thumb.
+pub const RULE_OF_THUMB: &[&str] = &[];
+
+/// A row's status, from the lists above.
+pub fn calibration_status(id: &str) -> CalibrationStatus {
     if CITED.contains(&id) {
         CalibrationStatus::Cited
+    } else if MODEL.contains(&id) {
+        CalibrationStatus::Model
+    } else if RULE_OF_THUMB.contains(&id) {
+        CalibrationStatus::RuleOfThumb
     } else {
         CalibrationStatus::Needed
     }
@@ -466,6 +490,29 @@ pub struct Cost {
     /// Billing unit size: a request counts `max(1, payload_kb / unit_kb)` units; 0 counts
     /// every request as one.
     pub unit_kb: f64,
+    /// Usage meters for products billed by something other than requests (M8).
+    #[serde(default)]
+    pub meters: Meters,
+    /// Bill instance time only while the card is busy (auto-suspending warehouses).
+    #[serde(default)]
+    pub active_only: bool,
+}
+
+/// Prices per unit of usage (M8): tokens, scanned data, connection time, messages. Zero means
+/// the product doesn't bill that way.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+pub struct Meters {
+    /// Per million input (prompt) tokens.
+    pub tokens_in_m: f64,
+    /// Per million output (generated) tokens.
+    pub tokens_out_m: f64,
+    /// Per TB scanned.
+    pub tb_scanned: f64,
+    /// Per million connection-minutes.
+    pub conn_minutes_m: f64,
+    /// Per million messages sent to connections.
+    pub messages_m: f64,
 }
 
 /// The kind's behaviour where it has no prop (`docs/calibration.md`, rows `<kind>.<field>`).
@@ -1096,7 +1143,8 @@ pub struct CalibrationRow {
 /// - behaviour without a prop: `<kind>.<field>` (`servers_per_instance`, `service_ms` when the
 ///   kind has no such prop, `p99_ratio`, `queue_per_server`, `failover_s` when set), and
 ///   `@<flavour>` where a flavour departs from its kind;
-/// - prices: `<kind>.cost.instance|lane|gb|million|million_write|unit_kb` when non-zero,
+/// - prices: `<kind>.cost.instance|lane|gb|million|million_write|unit_kb` and
+///   `<kind>.cost.meter.<meter>` when non-zero,
 ///   `@<flavour>` where a flavour departs from its kind.
 pub fn calibration_rows(registry: &Registry) -> Vec<CalibrationRow> {
     let mut rows = Vec::new();
@@ -1155,6 +1203,11 @@ pub fn calibration_rows(registry: &Registry) -> Vec<CalibrationRow> {
                 ("million", c.per_million),
                 ("million_write", c.per_million_write.unwrap_or(0.0)),
                 ("unit_kb", c.unit_kb),
+                ("meter.tokens_in", c.meters.tokens_in_m),
+                ("meter.tokens_out", c.meters.tokens_out_m),
+                ("meter.tb_scanned", c.meters.tb_scanned),
+                ("meter.conn_minutes", c.meters.conn_minutes_m),
+                ("meter.messages", c.meters.messages_m),
             ]
         };
         let kc = kind_cost(k.kind);
