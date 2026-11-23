@@ -1141,6 +1141,8 @@
   "export": {
     "menu": "Export",
     "copyMermaid": "Copy as Mermaid",
+    "copyShareLink": "Copy share link",
+    "shareTooLarge": "This design is too big for a link. Share the .kbarch file instead.",
     "saveMermaid": "Save as Mermaid…",
     "copied": "Mermaid diagram copied.",
     "saveSvg": "Save as SVG image…",

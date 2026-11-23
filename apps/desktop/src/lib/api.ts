@@ -176,6 +176,8 @@ export const api = {
   kataboxLinks: (target: string): Promise<KataboxLink[]> => call(commands.kataboxLinks(target)),
   // Mermaid export (M6.6): names are kind, protocol and group names in the user's language.
   mermaidText: (design: Design, names: Record<string, string>): Promise<string> => commands.mermaidText(design, names),
+  /** M13: the design as canonical .kbarch JSON for a share link (checked like Save). */
+  sharePayload: (design: Design): Promise<string> => call(commands.sharePayload(design)),
   saveMermaid: (design: Design, names: Record<string, string>, suggestedName: string): Promise<string | null> =>
     call(commands.saveMermaid(design, names, suggestedName)),
   // Export (M7.3, M7b.2/3): the bytes the UI rendered go as a raw body, the format and name in

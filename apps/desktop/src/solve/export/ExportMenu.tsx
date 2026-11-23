@@ -4,12 +4,13 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { Check, Copy, FileDown, FileImage, Film, Share2 } from "lucide-react";
+import { Check, Copy, FileDown, FileImage, Film, Link2, Share2 } from "lucide-react";
 import type { Registry } from "@/bindings";
 import { useReportError } from "@/app/dialogs";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { api } from "@/lib/api";
+import { ShareTooLarge, shareLink } from "@/lib/share";
 import { useRegistry } from "@/lib/queries";
 import { flavourName, kindName } from "@/solve/registry";
 import { designSvg, readPalette, svgToPng, type SceneNames } from "@/solve/export/scene";
@@ -47,6 +48,17 @@ export function ExportMenu() {
       setTimeout(() => setCopied(false), 2000);
     } catch (e) {
       report(e);
+    }
+  };
+  const [linked, setLinked] = useState(false);
+  const share = async () => {
+    try {
+      const link = await shareLink(await api.sharePayload(design()));
+      await navigator.clipboard.writeText(link);
+      setLinked(true);
+      setTimeout(() => setLinked(false), 2000);
+    } catch (e) {
+      report(e instanceof ShareTooLarge ? new Error(t("export.shareTooLarge")) : e);
     }
   };
   const save = async () => {
@@ -116,6 +128,10 @@ export function ExportMenu() {
           <DropdownMenuItem onSelect={() => void copy()} className="gap-2">
             {copied ? <Check aria-hidden className="size-4" /> : <Copy aria-hidden className="size-4" />}
             {t("export.copyMermaid")}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => void share()} className="gap-2" data-testid="export-share-link">
+            {linked ? <Check aria-hidden className="size-4" /> : <Link2 aria-hidden className="size-4" />}
+            {t("export.copyShareLink")}
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => void save()} className="gap-2">
             <FileDown aria-hidden className="size-4" />

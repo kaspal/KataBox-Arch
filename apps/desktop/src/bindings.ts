@@ -565,6 +565,18 @@ async mermaidText(design: Design, names: Partial<{ [key in string]: string }>) :
     return await TAURI_INVOKE("mermaid_text", { design, names });
 },
 /**
+ * M13 share links: the design as canonical `.kbarch` JSON (the same checks and serializer
+ * as Save). The UI compresses it into the link; nothing leaves the machine here.
+ */
+async sharePayload(design: Design) : Promise<Result<string, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("share_payload", { design }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Show the Save dialog and write the design as a `.mmd` file. `None` when cancelled.
  */
 async saveMermaid(design: Design, names: Partial<{ [key in string]: string }>, suggestedName: string) : Promise<Result<string | null, AppError>> {

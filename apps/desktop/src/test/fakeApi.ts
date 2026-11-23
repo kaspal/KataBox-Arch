@@ -282,6 +282,7 @@ export function createFakeApi(opts: FakeOptions = {}) {
         walkthrough: { ...sample, def: { ...sample.def, id, problem: `outage--${id}` } },
       };
     }),
+    sharePayload: vi.fn(async (design: Design) => JSON.stringify(design)),
     estimateStatuses: vi.fn(async () =>
       [...estimates].map(([key, s]) => {
         const [problem_id, drill_id] = key.split("/");

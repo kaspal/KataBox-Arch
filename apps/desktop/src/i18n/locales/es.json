@@ -1141,6 +1141,8 @@
   "export": {
     "menu": "Exportar",
     "copyMermaid": "Copiar como Mermaid",
+    "copyShareLink": "Copiar enlace para compartir",
+    "shareTooLarge": "Este diseño es demasiado grande para un enlace. Comparte el archivo .kbarch.",
     "saveMermaid": "Guardar como Mermaid…",
     "copied": "Diagrama Mermaid copiado.",
     "saveSvg": "Guardar como imagen SVG…",

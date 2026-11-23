@@ -200,6 +200,16 @@ fn mermaid_text(design: Design, names: std::collections::BTreeMap<String, String
     ka_core::mermaid::to_mermaid(&design, &names)
 }
 
+/// M13 share links: the design as canonical `.kbarch` JSON (the same checks and serializer
+/// as Save). The UI compresses it into the link; nothing leaves the machine here.
+#[tauri::command]
+#[specta::specta]
+fn share_payload(state: State<'_, AppState>, design: Design) -> Res<String> {
+    let app = state.app()?;
+    let bytes = ka_app::kbarch::to_bytes(&design, app.registry())?;
+    String::from_utf8(bytes).map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))
+}
+
 /// Show the Save dialog and write the design as a `.mmd` file. `None` when cancelled.
 #[tauri::command]
 #[specta::specta]
@@ -872,6 +882,7 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         pick_pdf_path,
         print_pdf,
         mermaid_text,
+        share_payload,
         save_mermaid,
         preview_pack,
         apply_pack,
