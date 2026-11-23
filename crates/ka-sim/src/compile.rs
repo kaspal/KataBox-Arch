@@ -168,6 +168,8 @@ pub struct Compiled {
     pub deps: Vec<u32>,
     /// S5: a stream processor whose every data sink writes idempotently (`dedup`).
     pub dedup_sinks: Vec<bool>,
+    /// S6: the lake table a warehouse reads in place (its first external-table edge).
+    pub table_of: Vec<Option<u32>>,
 }
 
 const SYNC: [Protocol; 3] = [Protocol::Http, Protocol::Grpc, Protocol::Ws];
@@ -580,6 +582,22 @@ pub fn compile(
         }
     }
     let deps: Vec<u32> = dep_sets.iter().map(|s| s.len() as u32).collect();
+    let table_of: Vec<Option<u32>> = nodes
+        .iter()
+        .map(|n| {
+            (n.kind == ComponentKind::Warehouse)
+                .then(|| {
+                    n.out
+                        .iter()
+                        .find(|(b, p)| {
+                            *p == Protocol::Query
+                                && nodes[*b as usize].kind == ComponentKind::Lakehouse
+                        })
+                        .map(|(b, _)| *b)
+                })
+                .flatten()
+        })
+        .collect();
     let dedup_sinks: Vec<bool> = nodes
         .iter()
         .map(|n| {
@@ -627,6 +645,7 @@ pub fn compile(
         scaling,
         deps,
         dedup_sinks,
+        table_of,
     })
 }
 

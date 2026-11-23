@@ -1419,3 +1419,111 @@ fn golden_i_windows() {
     )];
     golden("i", &run(&d, &s, 42));
 }
+
+// --- S6: scans ---------------------------------------------------------------------------------
+
+/// client → app → BigQuery, reading an Iceberg table; queries filter one day of a year.
+fn lake(partitioning: &str, compaction: &str, flavour: Flavour, repeat: f64) -> (Design, Scenario) {
+    let mut table = node("events", K::Lakehouse, Flavour::Iceberg, &[]);
+    set(
+        &mut table,
+        "partitioning",
+        PropValue::Text(partitioning.into()),
+    );
+    set(&mut table, "compaction", PropValue::Text(compaction.into()));
+    let d = design(
+        vec![
+            node(
+                "client",
+                K::Client,
+                Flavour::Web,
+                &[("timeout_ms", 60_000.0)],
+            ),
+            node("app", K::App, Flavour::Go, &[]),
+            node(
+                "wh",
+                K::Warehouse,
+                flavour,
+                &[("instances", 4.0), ("concurrency", 16.0)],
+            ),
+            table,
+        ],
+        vec![
+            edge("client", "app", Protocol::Http),
+            edge("app", "wh", Protocol::Query),
+            edge("wh", "events", Protocol::Query),
+        ],
+    );
+    let mut t = rtype("report", 1.0, &["compute", "datastore:warehouse"]);
+    t.scan = Some(ka_core::scenario::Scan {
+        gb: 20.0,
+        range_share: 1.0 / 365.0,
+        span_days: 365.0,
+        repeat_share: repeat,
+        small_file_mb: 8.0,
+    });
+    (d, scenario(0.5, 120.0, vec![t]))
+}
+
+fn p50(r: &RunResult) -> f64 {
+    r.latency.p50_ms
+}
+
+#[test]
+fn s6_partition_pruning_cuts_scan_time_and_cost() {
+    let (d, s) = lake("none", "daily", Flavour::Bigquery, 0.0);
+    let full = run(&d, &s, 101);
+    let (d, s) = lake("day", "daily", Flavour::Bigquery, 0.0);
+    let pruned = run(&d, &s, 101);
+    assert!(
+        p50(&pruned) < p50(&full) / 20.0,
+        "{} vs {}",
+        p50(&pruned),
+        p50(&full)
+    );
+    assert!(
+        pruned.cost_month < full.cost_month / 20.0,
+        "{} vs {}",
+        pruned.cost_month,
+        full.cost_month
+    );
+}
+
+#[test]
+fn s6_small_files_slow_scans_until_compaction() {
+    let (d, s) = lake("none", "none", Flavour::Bigquery, 0.0);
+    let small = run(&d, &s, 102);
+    let (d, s) = lake("none", "daily", Flavour::Bigquery, 0.0);
+    let compacted = run(&d, &s, 102);
+    assert!(
+        p50(&small) > p50(&compacted) * 1.2,
+        "{} vs {}",
+        p50(&small),
+        p50(&compacted)
+    );
+}
+
+#[test]
+fn s6_the_result_cache_answers_repeats() {
+    let (d, s) = lake("none", "daily", Flavour::Bigquery, 0.8);
+    let cached = run(&d, &s, 103);
+    let (d, s) = lake("none", "daily", Flavour::Bigquery, 0.0);
+    let cold = run(&d, &s, 103);
+    assert!(p50(&cached) < p50(&cold) / 10.0);
+}
+
+/// An auto-suspending warehouse bills only the time it runs (plus its suspend delay).
+#[test]
+fn s6_auto_suspend_bills_busy_time() {
+    let (d, s) = lake("day", "daily", Flavour::Snowflake, 0.0);
+    let r = run(&d, &s, 104);
+    let wh = r.nodes.iter().find(|n| n.id == "wh").unwrap().cost_month;
+    assert!(wh < 1460.0 * 4.0, "billed while busy only: {wh}");
+    assert!(wh > 0.0);
+}
+
+#[test]
+fn golden_j_scans() {
+    let (d, s) = lake("day", "none", Flavour::Bigquery, 0.3);
+    golden("j", &run(&d, &s, 42));
+}

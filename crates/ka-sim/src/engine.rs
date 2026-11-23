@@ -315,6 +315,8 @@ struct NodeRt {
     /// S5: the checkpoint interval the card is in, and records it processed since.
     ckpt_idx: u64,
     since_ckpt: f64,
+    /// S6: terabytes scanned (billed by `tb_scanned`).
+    bill_tb: f64,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -468,6 +470,9 @@ struct ConnRt {
     pending: f64,
     min_share: Vec<f64>,
 }
+
+/// S6: opening one file of a table in object storage (a GET and its metadata; model).
+const SCAN_FILE_S: f64 = 0.020;
 
 /// S3: what one semantic-cache lookup adds (an embedding and an ANN search; model).
 const SEMANTIC_LOOKUP_MS: f64 = 15.0;
@@ -1425,6 +1430,13 @@ impl Engine {
         }
         if self.c.nodes[node as usize].kind == ComponentKind::Infer {
             return self.model_us(r, node);
+        }
+        if matches!(
+            self.c.nodes[node as usize].kind,
+            ComponentKind::Warehouse | ComponentKind::Lakehouse
+        ) && let Some(scan) = self.c.types[self.reqs[r as usize].ty as usize].def.scan
+        {
+            return self.scan_us(r, node, scan);
         }
         let n = &self.c.nodes[node as usize];
         let q = &self.reqs[r as usize];
@@ -3601,6 +3613,58 @@ impl Engine {
         }
     }
 
+    /// S6: a scan. Data scanned = the query's `gb`, pruned by a lake table's partitioning
+    /// (day: what its time range needs, at least a day; hour: just its range); a table
+    /// without compaction holds small files. Time = overhead + scanned ÷ scan rate + 20 ms per
+    /// file over 8 parallel readers. A warehouse's result cache answers a repeat in a tenth of
+    /// the overhead. A batch task reading a table splits the scan over the job's tasks.
+    fn scan_us(&mut self, r: u32, node: u32, scan: ka_core::scenario::Scan) -> u64 {
+        let n = &self.c.nodes[node as usize];
+        let ty = self.reqs[r as usize].ty as usize;
+        let table = if n.kind == ComponentKind::Lakehouse {
+            Some(node)
+        } else {
+            self.c.table_of[node as usize]
+        };
+        let mut gb = scan.gb;
+        if let Some(job) = &self.c.types[ty].def.job {
+            gb /= f64::from(job.tasks.max(1));
+        }
+        let (scanned, file_mb) = match table {
+            Some(t) => {
+                let ts = &self.c.nodes[t as usize].spec;
+                let span = scan.span_days.max(1e-6);
+                let prune = match ts.partitioning {
+                    1 => scan.range_share.max(1.0 / span),
+                    2 => scan.range_share.max(1.0 / (span * 24.0)),
+                    _ => 1.0,
+                };
+                let file = if ts.compaction {
+                    ts.target_file_mb
+                } else {
+                    ts.target_file_mb.min(scan.small_file_mb)
+                };
+                (gb * prune.min(1.0), file)
+            }
+            None => (gb, 1024.0),
+        };
+        let spec = &n.spec;
+        let overhead_s = spec.overhead_ms / 1000.0;
+        if n.kind == ComponentKind::Warehouse
+            && spec.result_cache
+            && self.rng_s8.uniform() < scan.repeat_share
+        {
+            return ((overhead_s / 10.0) * 1e6) as u64 + 1;
+        }
+        let files = scanned * 1024.0 / file_mb.max(1e-3);
+        let secs = overhead_s + scanned / spec.scan_gbps + files * SCAN_FILE_S / 8.0;
+        let w = self.c.weight;
+        self.nodes[node as usize].bill_tb += scanned / 1024.0 * w;
+        (secs * 1e6 * self.nodes[node as usize].stretch) as u64
+            + self.nodes[node as usize].add_us
+            + 1
+    }
+
     /// S5: a stream processor counts records toward its next checkpoint.
     fn count_for_checkpoint(&mut self, node: u32) {
         let every = self.c.nodes[node as usize].spec.checkpoint_us.max(1);
@@ -4157,12 +4221,40 @@ impl Engine {
         let (n, rt) = (&self.c.nodes[i], &self.nodes[i]);
         let c = &n.cost;
         let per_month = MONTH_S / secs.max(1e-6) / 1e6 * n.spec.bill_ratio;
-        c.per_instance_month * self.mean_instances(i).max(1.0) * n.spec.cost_lanes
+        c.per_instance_month
+            * self.mean_instances(i).max(1.0)
+            * n.spec.cost_lanes
+            * self.active_share(i)
             + c.per_lane_month * n.spec.bill_lanes
             + c.per_gb_month * n.spec.memory_gb
             + (c.per_million * rt.bill_r + c.per_million_write.unwrap_or(c.per_million) * rt.bill_w)
                 * per_month
             + self.meter_cost(i) * per_month
+    }
+
+    /// S6: the share of the run an `active_only` card (an auto-suspending warehouse) is billed:
+    /// seconds it was busy, each extended by its `auto_suspend_s`. 1 for every other card.
+    fn active_share(&self, i: usize) -> f64 {
+        let n = &self.c.nodes[i];
+        if !n.cost.active_only {
+            return 1.0;
+        }
+        let series = &self.nodes[i].util_series;
+        if series.is_empty() {
+            return 1.0;
+        }
+        let tail = n.spec.auto_suspend_s.ceil() as usize;
+        let mut until = 0usize;
+        let mut billed = 0usize;
+        for (s, u) in series.iter().enumerate() {
+            if *u > 0.0 {
+                until = s + 1 + tail;
+            }
+            if s < until {
+                billed += 1;
+            }
+        }
+        billed as f64 / series.len() as f64
     }
 
     /// M8 usage meters, in millions of units over the run (per_month turns them monthly):
@@ -4174,6 +4266,8 @@ impl Engine {
         (m.tokens_in_m * rt.bill_tin + m.tokens_out_m * rt.bill_tout) * batch
             + m.conn_minutes_m * rt.bill_conn_s / 60.0
             + m.messages_m * rt.bill_msgs
+            // A price per TB, over per_month's per-million scale.
+            + m.tb_scanned * rt.bill_tb * 1e6
     }
 
     /// Billing units one request of type `ty` counts at card `node`.

@@ -83,6 +83,35 @@ pub struct RequestType {
     /// S5: how late events arrive after they happen (event time to arrival; lognormal).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub event_delay: Option<Delay>,
+    /// S6: what a query scans (a warehouse or lake read).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scan: Option<Scan>,
+}
+
+/// S6: a query over `gb` of table data whose time filter needs `range_share` of it (the
+/// table spans `span_days`); `repeat_share` of the queries repeat an earlier one (what a
+/// result cache can answer); streaming ingest leaves files of `small_file_mb` until
+/// compaction merges them.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(deny_unknown_fields)]
+pub struct Scan {
+    pub gb: f64,
+    #[serde(default = "one")]
+    pub range_share: f64,
+    #[serde(default = "year")]
+    pub span_days: f64,
+    #[serde(default)]
+    pub repeat_share: f64,
+    #[serde(default = "small_files")]
+    pub small_file_mb: f64,
+}
+
+fn year() -> f64 {
+    365.0
+}
+fn small_files() -> f64 {
+    8.0
 }
 
 /// S5: a delay's median and 99th percentile.

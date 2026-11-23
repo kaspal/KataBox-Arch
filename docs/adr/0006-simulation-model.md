@@ -388,6 +388,18 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
     checkpoint are processed again on restart, and their results reach the sinks twice (`duplicates`), unless every
     data sink it writes has `dedup` (idempotent upserts). `pass.duplicates` fails a test as Dropped Requests.
     Exactly-once transactions aren't simulated; the simulator counts the duplicates instead.
+- **Scans (S6, golden j).**
+  - A request type may declare `scan = { gb, range_share, span_days, repeat_share, small_file_mb }`: a query over
+    `gb` of table data whose time filter needs `range_share` of it. Its warehouse call (or a lake table read)
+    takes overhead (`overhead_ms`) + scanned GB ÷ `scan_gbps` + 20 ms per file over 8 parallel readers (opening an
+    object-store file; a modelling choice).
+  - A warehouse reading a Lakehouse Table in place (Query edge) scans `gb` pruned by the table's partitioning
+    (`day`: what the range needs, at least a day; `hour`: just the range; `none`: everything), in files of
+    `target_file_mb`, or of the ingest's `small_file_mb` without compaction. Native storage reads 1 GB files.
+  - With `result_cache`, `repeat_share` of the queries are answered in a tenth of the overhead, scanning nothing.
+  - A batch task reading a table splits the job's scan over its tasks.
+  - Billing: `tb_scanned` per TB scanned (BigQuery); `active_only` instances (Snowflake, Databricks SQL) bill the
+    seconds they were busy, each extended by `auto_suspend_s`; a lake table bills `stored_tb` per GB-month.
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE

@@ -148,6 +148,16 @@ pub struct NodeSpec {
     pub checkpoint_us: u64,
     pub state_kb: f64,
     pub dedup: bool,
+    /// S6 warehouses: scan rate per query, overhead per query, the result cache and the
+    /// auto-suspend tail; lake tables: file size, partitioning (0 none, 1 day, 2 hour) and
+    /// compaction.
+    pub scan_gbps: f64,
+    pub overhead_ms: f64,
+    pub result_cache: bool,
+    pub auto_suspend_s: f64,
+    pub target_file_mb: f64,
+    pub partitioning: u8,
+    pub compaction: bool,
 }
 
 /// The value of `key` for `node`: the card's prop, else its flavour override, else the
@@ -247,7 +257,11 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         },
         holds: role.is_caller(),
         cold_start_ms: n("cold_start_ms").unwrap_or(0.0),
-        memory_gb: n("memory_gb").unwrap_or(0.0),
+        // S6: a lake table bills its stored data per GB.
+        memory_gb: match node.kind {
+            K::Lakehouse => n("stored_tb").unwrap_or(0.0) * 1024.0,
+            _ => n("memory_gb").unwrap_or(0.0),
+        },
         ttl_s: n("ttl_s").unwrap_or(0.0),
         max_depth: n("max_depth").unwrap_or(100_000.0),
         max_retries: n("max_retries").unwrap_or(3.0) as u32,
@@ -353,5 +367,21 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         checkpoint_us: (n("checkpoint_s").unwrap_or(60.0).max(1.0) * 1e6) as u64,
         state_kb: n("state_kb").unwrap_or(1.0).max(0.0),
         dedup: matches!(prop(registry, node, "dedup"), Some(PropValue::Bool(true))),
+        scan_gbps: n("scan_gbps").unwrap_or(0.5).max(1e-6),
+        overhead_ms: n("overhead_ms").unwrap_or(0.0).max(0.0),
+        result_cache: matches!(
+            prop(registry, node, "result_cache"),
+            Some(PropValue::Bool(true))
+        ),
+        auto_suspend_s: n("auto_suspend_s").unwrap_or(0.0).max(0.0),
+        target_file_mb: n("target_file_mb").unwrap_or(1024.0).max(1e-3),
+        partitioning: match text(registry, node, "partitioning").as_deref() {
+            Some("day") => 1,
+            Some("hour") => 2,
+            _ => 0,
+        },
+        compaction: text(registry, node, "compaction")
+            .as_deref()
+            .is_some_and(|c| c != "none"),
     }
 }
