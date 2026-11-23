@@ -1,0 +1,37 @@
+# Estimation drills for A Join with One Giant Key.
+
+[[drill]]
+id = "even-job-time"
+kind = "capacity"
+prompt = "A job is {work_s} executor-seconds of work, spread evenly over many small tasks. The cluster has {nodes} nodes with {executors} executors each. About how long does the job take, ignoring overhead?"
+prompt_es = "Un trabajo son {work_s} segundos-ejecutor, repartidos por igual entre muchas tareas pequeñas. El clúster tiene {nodes} nodos con {executors} ejecutores cada uno. ¿Cuánto tarda más o menos el trabajo, sin contar la sobrecarga?"
+inputs = { work_s = 2700, nodes = 6, executors = 4 }
+formula = "work_s / (nodes * executors)"
+unit = "s"
+tolerance = 0.1
+solution = "{work_s} / ({nodes} × {executors}) = {work_s} / 24 ≈ {answer} s. That is what the job takes only if the work really is even; one task holding 330 s of it makes the job at least 330 s long, however many nodes there are."
+solution_es = "{work_s} / ({nodes} × {executors}) = {work_s} / 24 ≈ {answer} s. Eso es lo que tarda el trabajo solo si el trabajo es de verdad uniforme; una tarea con 330 s de él hace que el trabajo dure al menos 330 s, haya los nodos que haya."
+
+[[drill]]
+id = "hot-task"
+kind = "capacity"
+prompt = "A join is {work_s} executor-seconds of work, and one seller holds {hot_percent}% of the rows, all in one task. How many seconds is that task on its own executor?"
+prompt_es = "Un join son {work_s} segundos-ejecutor de trabajo, y un vendedor tiene el {hot_percent} % de las filas, todas en una tarea. ¿Cuántos segundos dura esa tarea en su ejecutor?"
+inputs = { work_s = 2700, hot_percent = 12 }
+formula = "work_s * hot_percent / 100"
+unit = "s"
+tolerance = 0.1
+solution = "{work_s} × {hot_percent}% ≈ {answer} s on a single executor, before any noise. With a 480 s deadline, one restart of that task from zero late in the night is enough to miss it."
+solution_es = "{work_s} × {hot_percent} % ≈ {answer} s en un solo ejecutor, antes de cualquier ruido. Con un plazo de 480 s, basta con que esa tarea vuelva a empezar desde cero una vez al final de la noche para no llegar."
+
+[[drill]]
+id = "salt-pieces"
+kind = "capacity"
+prompt = "The hot task is {hot_s} s of work. You want no piece longer than {piece_s} s, so an interruption costs little. Into how many pieces must salting split it?"
+prompt_es = "La tarea caliente son {hot_s} s de trabajo. Quieres que ninguna pieza pase de {piece_s} s, para que una interrupción cueste poco. ¿En cuántas piezas tiene que dividirla el salting?"
+inputs = { hot_s = 330, piece_s = 25 }
+formula = "hot_s / piece_s"
+unit = "count"
+tolerance = 0.1
+solution = "{hot_s} / {piece_s} ≈ {answer}, so round up to 14 pieces or more; the reference uses 16, about 21 s each. The pieces run on different executors at once, so the hot seller's share takes about as long as any other task."
+solution_es = "{hot_s} / {piece_s} ≈ {answer}, así que redondea a 14 piezas o más; la referencia usa 16, de unos 21 s cada una. Las piezas corren a la vez en ejecutores distintos, así que la parte del vendedor caliente tarda más o menos lo mismo que cualquier otra tarea."

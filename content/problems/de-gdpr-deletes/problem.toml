@@ -1,0 +1,51 @@
+id = "de-gdpr-deletes"
+track = "de"
+number = 13
+set = 1
+difficulty = "medium"
+title = "Right-to-Erasure Deletes"
+title_es = "Borrados por derecho de supresión"
+teaches = "Fan a deletion request out to every store through a queue, and size the workers so the backlog never outlives the deadline"
+teaches_es = "Repartir una petición de borrado a todos los almacenes a través de una cola, y dimensionar los workers para que el atasco nunca dure más que el plazo"
+tags = ["queues", "deadlines", "throughput", "lakehouse", "privacy"]
+
+[nfr]
+peak_rps = 20
+p95_ms = 30000
+availability = 0.999
+budget_usd = 6500
+
+[[request_types]]
+id = "erase"
+name = "Delete my data"
+name_es = "Borrar mis datos"
+share = 1.0
+route = ["edge?", "compute", "broker", "worker", "datastore:write:lakehouse", "datastore:write:warehouse", "datastore:write:nosql"]
+key_space = 10000000
+measure = "completion"
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "surge"
+name = "A privacy story goes viral"
+name_es = "Una noticia sobre privacidad se hace viral"
+hidden = true
+duration_s = 90
+traffic = { spike = { at = 10, x = 3, for = 40 } }
+
+[[tests]]
+id = "slow-lake"
+name = "The lake table's rewrites slow down"
+name_es = "Las reescrituras de la tabla del lago se ralentizan"
+hidden = true
+duration_s = 90
+chaos = [{ latency = { kind = "lakehouse", add_ms = 3000, at = 15, for = 50 } }]
+
+[pass]
+p99_ms = 30000
+error_rate = 0.001
+lost = 0

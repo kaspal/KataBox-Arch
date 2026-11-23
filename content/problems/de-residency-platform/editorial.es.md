@@ -1,0 +1,51 @@
+# Solución comentada
+
+## Adónde va la carga
+
+Dos cosas deciden este diseño: qué tarjetas guardan el evento de un usuario de la UE, y adónde va cada una en un mal día.
+
+Primero, cuenta los sitios. Un evento se publica en un stream, su registro de consentimiento se lee de un Almacén NoSQL y el evento se escribe en una tabla del lago. Los tres guardan datos de la UE, así que se comprueban los tres. Los App Servers y el procesador de streams solo pasan el evento. En el pico llegan unos 400 eventos de la UE por segundo, pero una tarjeta DNS no los distingue de los 595 de EE. UU.: cada colector, stream, tabla de consentimientos y lago que pueda recibir un evento recibirá eventos de la UE. La única forma de mantener los datos de la UE en la UE es poner todo el camino del evento en regiones etiquetadas `eu`. Los eventos de EE. UU. no tienen regla, así que pueden compartirlo. El almacén de datos solo guarda agregados, que pueden estar en EE. UU.; el panel nunca toca un evento.
+
+Después, los malos días. Cuando se pierde una región, los eventos que habrían caído allí tienen que caer en otra región de la UE, y esa región tiene que aguantar el pico entero. Cuando falla el primario de la tabla de consentimientos, se promueve una réplica, así que la región de la réplica importa tanto como la del primario. Y una réplica no es solo un respaldo: un procesador de streams lee de la copia de su propia región, o de cualquier copia cuando su región no tiene ninguna.
+
+El tamaño del procesador de streams sale de la consulta. Cada evento ocupa un hueco unos 65 ms cuando la tabla de consentimientos está en su región, y unos 70 ms más en cada sentido cuando la consulta cruza a otra región. Una región que lleva los 995 eventos por segundo necesita unos 65 huecos con consultas locales y unos 205 cuando todas las consultas cruzan de región. Kafka entrega un registro por partición a la vez, así que el stream necesita al menos tantas particiones como huecos ocupados.
+
+## El diseño de referencia
+
+Un Cliente con 2 reintentos, una espera entre reintentos de 200 ms y la variación de la espera en Completa (espera aleatoria) llama a una tarjeta DNS Route 53 (TTL de 30 s, Round robin). Apunta a dos regiones, **eu-west** y **eu-central**, las dos con la etiqueta de residencia `eu`. Cada una tiene un pipeline completo: un AWS ALB, 2 Go App Servers, un Stream Apache Kafka con 256 particiones, un Procesador de streams Apache Flink con 2 instancias y una Concurrencia por instancia de 128, un Almacén NoSQL DynamoDB y una Tabla lakehouse Apache Iceberg (Particionado Por día, Compactación Cada hora). El DynamoDB de eu-west es el primario de la tabla de consentimientos, conectado con Replicar al de eu-central. Una tercera región, **us-east** (etiqueta de residencia `us`), tiene un AWS ALB, 2 Go App Servers y un Almacén de datos Snowflake con los agregados; el Cliente llama a ese ALB directamente para el panel.
+
+Cuesta unos 3352 $ al mes: 1460 $ el almacén de datos, 472 $ las dos tablas del lago, 420 $ los seis App Servers, 330 $ las dos tablas DynamoDB, 306 $ los dos Streams Kafka, 280 $ las dos tarjetas Flink, 75 $ los tres ALB y 11 $ el DNS. En el simulador no se cobran las particiones de Kafka ni los huecos de Flink; la tarjeta Flink se cobra por instancia.
+
+Un día normal, cada tarjeta Flink está ocupada en torno a un 13 %, el p95 de un evento (hasta que está en el lago) es de unos 152 ms, y no hay errores ni infracciones de residencia. El almacén de datos está ocupado en torno a un 54 %.
+
+«Se pierde la región del primario de la tabla de consentimientos» pierde eu-west a los 30 segundos de una ejecución de 3 minutos, para siempre: su ALB, sus App Servers, su stream, su tarjeta Flink, su lago y el primario de la tabla de consentimientos. Durante unos segundos la tarjeta DNS sigue mandando allí la mitad de las apps, hasta que dos comprobaciones de salud seguidas la encuentran caída; los reintentos del Cliente llevan la mayoría de esos eventos a eu-central. La réplica de consentimientos de eu-central se promueve, todavía en la UE, y eu-central lleva los 995 eventos por segundo. La ejecución termina con un 0,12 % de errores más o menos, un p95 de unos 158 ms y ninguna infracción de residencia.
+
+«Un día de auditoría solo con la UE: falla el primario de la tabla de consentimientos» manda todos los eventos desde usuarios de la UE al mismo ritmo total, así que todos tienen que quedarse en la UE. El primario DynamoDB de eu-west se detiene a los 30 segundos, para siempre. La réplica de eu-central se promueve, y desde entonces la tarjeta Flink de eu-west lee cada registro de consentimiento de la otra región: esos eventos tardan unos 140 ms más, y el p95 sube a unos 265 ms. Ningún error, ninguna infracción de residencia.
+
+No hay reto de coste en este problema: la búsqueda de un diseño más barato que supere todas las pruebas encontró uno al 86 % del coste de la referencia, por encima del 80 % que necesita un reto.
+
+## Por qué falla el primer intento
+
+Un primer intento habitual mantiene los datos donde deben estar en un día normal. Su tarjeta DNS usa el enrutado Conmutación (el primero sano): todas las apps van a un pipeline en eu-west, igual al de la referencia, y un segundo pipeline idéntico espera en us-east, donde la empresa ya tiene su plataforma de EE. UU., con una réplica de la tabla de consentimientos allí para recuperación ante desastres. Cuesta lo mismo, 3352 $ al mes, y supera «Un día normal» con los números de la referencia: el pipeline de EE. UU. está parado y ningún evento de la UE sale de la UE.
+
+Cuando se pierde eu-west, la tarjeta DNS pasa a us-east, la réplica de consentimientos de allí se promueve, y desde entonces cada evento de la UE se publica en un stream de EE. UU., se consulta en una tabla de EE. UU. y se escribe en un lago de EE. UU. Los errores quedan por debajo del límite (un 5,2 % más o menos, mientras caducan las respuestas DNS que guardan los clientes), la latencia está bien, y la prueba falla igualmente: unas 167 000 infracciones de residencia, porque cada evento de la UE cuenta una vez en cada tarjeta que lo guarda. En la prueba de auditoría, la réplica de EE. UU. se promueve cuando se detiene el primario, y la tarjeta Flink de eu-west consulta el consentimiento de cada usuario de la UE en us-east: unas 150 000 infracciones, una por cada evento desde el segundo 30, y un p95 de unos 443 ms porque las consultas cruzan el océano. El respaldo llevó los datos al único sitio adonde no pueden ir.
+
+Otros primeros intentos fallan de formas que enseñan algo:
+
+- **Un pipeline por continente.** Los mismos dos pipelines detrás de una tarjeta DNS en Round robin fallan «Un día normal» enseguida: la mitad de los eventos de la UE caen en us-east.
+- **La réplica de consentimientos en EE. UU.** La referencia con su DynamoDB de eu-central movido a us-east también falla «Un día normal»: la tarjeta Flink de eu-central no tiene copia en su región, así que lee de las dos copias por turnos, y la mitad de sus consultas van a us-east.
+- **La mitad de los huecos de Flink.** Con 128 particiones y una Concurrencia por instancia de 64 se siguen superando todas las pruebas: una región en el pico con consultas locales necesita unos 65 huecos. La referencia guarda el doble para que una región pueda llevar el pico aunque todas las consultas crucen de región; aquí no cuesta nada, porque las particiones y los huecos no se cobran.
+
+La idea es esta: la residencia cubre cada tarjeta que guarda los datos, y cada sitio adonde pueden ir. Un stream y una tabla de consulta guardan eventos igual que un lago, una región de respaldo pasa a ser la principal en un mal día, y una réplica sirve lecturas. Pon todas en regiones con la misma etiqueta, y saca de la UE solo lo que está autorizado a salir, como los agregados.
+
+## Lo que el simulador deja fuera
+
+Los usuarios no tienen ubicación: una tarjeta DNS reparte las apps entre las regiones por turnos, sin enrutar por geografía, así que un diseño no puede mandar los eventos de la UE a la UE y los de EE. UU. a EE. UU., como haría una plataforma real con enrutado por geolocalización o con puntos de entrada separados. Por eso la referencia guarda también en la UE los eventos de EE. UU. La residencia solo se comprueba cuando un stream, un almacén de datos o una caché guarda o sirve una petición; copiar datos por replicación no cuenta, así que la réplica en EE. UU. del primer intento no rompe ninguna regla hasta que se promueve, mientras que en la realidad guarda una copia de cada registro de consentimiento de la UE desde el principio. El procesamiento en sí, los logs, las copias de seguridad y las métricas no se comprueban. Las reglas de residencia reales vienen de contratos y de leyes como el RGPD, que a menudo cubren también el tratamiento y el acceso; la regla de este problema es la de su enunciado, no un consejo legal.
+
+Los agregados y el trabajo horario que los construye no se simulan: el panel lee un almacén de datos sin relación con los eventos. Los eventos que ya estaban en el stream y el lago de eu-west cuando se pierde quedan fuera de alcance hasta que vuelve; la prueba no los lee. Una región se pierde entera de golpe y no vuelve; las caídas reales suelen ser parciales. Los 70 ms entre regiones son una sola cifra para cada par, mientras que en la realidad eu-west y eu-central están mucho más cerca que eu-west y us-east. Los precios son las cifras didácticas del registro, no presupuestos.
+
+## Para probar
+
+- Cambia la tarjeta DNS de la referencia al enrutado Conmutación (el primero sano) y ejecuta «Se pierde la región del primario de la tabla de consentimientos». Sigue superándola, porque el respaldo está en la UE, pero los errores suben a un 5,2 % más o menos mientras caducan las respuestas guardadas, frente al 0,12 % cuando las dos regiones ya reciben tráfico.
+- Mueve el DynamoDB de eu-central de la referencia a us-east y ejecuta «Un día normal». Mira cómo las consultas se alternan entre las copias.
+- Pon 64 particiones en los Streams Kafka de la referencia y una Concurrencia por instancia de 32 en sus tarjetas Flink, y ejecuta las dos pruebas ocultas. Una región con el pico entero, o con sus consultas cruzando de región, necesita más huecos que esos, y el atasco crece durante el resto de la ejecución.

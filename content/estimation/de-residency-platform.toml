@@ -1,0 +1,34 @@
+# Estimation drills for One Data Platform, Two Jurisdictions.
+
+[[drill]]
+id = "eu-events-per-second"
+kind = "qps"
+prompt = "Your platform takes {peak_rps} events a second at peak, and {eu_share_pct}% of them come from EU users. How many EU events a second must land in EU Regions?"
+prompt_es = "Tu plataforma recibe {peak_rps} eventos por segundo en el pico, y el {eu_share_pct} % viene de usuarios de la UE. ¿Cuántos eventos de la UE por segundo tienen que acabar en regiones de la UE?"
+inputs = { peak_rps = 995, eu_share_pct = 40 }
+formula = "peak_rps * eu_share_pct / 100"
+unit = "rps"
+solution = "{peak_rps} × {eu_share_pct}% ≈ {answer} events a second. But a DNS card can't tell them apart from US events, so in practice the EU pipeline must be ready to take all {peak_rps}, as the audit day shows."
+solution_es = "{peak_rps} × {eu_share_pct} % ≈ {answer} eventos por segundo. Pero una tarjeta DNS no los distingue de los de EE. UU., así que en la práctica el pipeline de la UE tiene que estar listo para recibir los {peak_rps}, como muestra el día de auditoría."
+
+[[drill]]
+id = "slots-cross-region"
+kind = "capacity"
+prompt = "A Stream Processor handles {rps} events a second. Each event holds a slot for {local_ms} ms when its consent lookup is in the same Region, and the lookup's Region is {hop_ms} ms away each way when it is not. How many slots are busy when every lookup goes to another Region?"
+prompt_es = "Un procesador de streams atiende {rps} eventos por segundo. Cada evento ocupa un hueco {local_ms} ms cuando su consulta de consentimiento está en la misma región, y la región de la consulta está a {hop_ms} ms en cada sentido cuando no lo está. ¿Cuántos huecos están ocupados cuando todas las consultas van a otra región?"
+inputs = { rps = 1000, local_ms = 65, hop_ms = 70 }
+formula = "rps * (local_ms + 2 * hop_ms) / 1000"
+unit = "count"
+solution = "Each event holds its slot for {local_ms} + 2 × {hop_ms} ms, so {rps} × that ÷ 1,000 ≈ {answer} slots, about three times the {rps} × {local_ms} ÷ 1,000 = 65 of a local lookup. Kafka hands out one record per partition at a time, so the stream needs at least as many partitions as busy slots."
+solution_es = "Cada evento ocupa su hueco {local_ms} + 2 × {hop_ms} ms, así que {rps} × eso ÷ 1000 ≈ {answer} huecos, unas tres veces los {rps} × {local_ms} ÷ 1000 = 65 de una consulta local. Kafka entrega un registro por partición a la vez, así que el stream necesita al menos tantas particiones como huecos ocupados."
+
+[[drill]]
+id = "regions-for-the-peak"
+kind = "servers"
+prompt = "Your EU pipeline runs in {regions} Regions behind a round-robin DNS card, and the peak is {peak_rps} events a second. When one Region is lost, how many events a second must each surviving Region take?"
+prompt_es = "Tu pipeline de la UE funciona en {regions} regiones detrás de una tarjeta DNS en round robin, y el pico es de {peak_rps} eventos por segundo. Cuando se pierde una región, ¿cuántos eventos por segundo tiene que recibir cada región que queda?"
+inputs = { regions = 2, peak_rps = 995 }
+formula = "peak_rps / (regions - 1)"
+unit = "rps"
+solution = "{peak_rps} ÷ ({regions} − 1) = {answer} events a second: with two Regions, the survivor takes the whole peak. Size each EU Region for all of it, not for its half."
+solution_es = "{peak_rps} ÷ ({regions} − 1) = {answer} eventos por segundo: con dos regiones, la que queda recibe el pico entero. Dimensiona cada región de la UE para todo, no para su mitad."

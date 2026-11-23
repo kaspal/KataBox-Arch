@@ -1,0 +1,174 @@
+{
+  "schema_version": 4,
+  "id": "naive",
+  "name": "Kappa reprocessing first try",
+  "problem_id": "de-kappa-reprocessing",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "api",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "kafka",
+      "kind": "stream",
+      "flavour": "kafka",
+      "label": "kafka",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {
+        "partitions": 16,
+        "retention_h": 720
+      },
+      "group_id": null
+    },
+    {
+      "id": "flink-a",
+      "kind": "streamproc",
+      "flavour": "flink",
+      "label": "flink-a",
+      "position": {
+        "x": 912,
+        "y": 112
+      },
+      "props": {
+        "instances": 2,
+        "concurrency": 4,
+        "records_per_s": 200
+      },
+      "group_id": null
+    },
+    {
+      "id": "flink-b",
+      "kind": "streamproc",
+      "flavour": "flink",
+      "label": "flink-b",
+      "position": {
+        "x": 912,
+        "y": 224
+      },
+      "props": {
+        "instances": 2,
+        "concurrency": 4,
+        "records_per_s": 200
+      },
+      "group_id": null
+    },
+    {
+      "id": "replay",
+      "kind": "scheduler",
+      "flavour": "airflow",
+      "label": "replay",
+      "position": {
+        "x": 0,
+        "y": 112
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "pg",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "pg",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-api-http",
+      "from": "lb",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e-api-kafka-publish",
+      "from": "api",
+      "to": "kafka",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-replay-kafka-publish",
+      "from": "replay",
+      "to": "kafka",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-kafka-flink-a-consume",
+      "from": "kafka",
+      "to": "flink-a",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-kafka-flink-b-consume",
+      "from": "kafka",
+      "to": "flink-b",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-flink-a-pg-query",
+      "from": "flink-a",
+      "to": "pg",
+      "protocol": "query"
+    },
+    {
+      "id": "e-flink-b-pg-query",
+      "from": "flink-b",
+      "to": "pg",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

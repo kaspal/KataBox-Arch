@@ -1,0 +1,34 @@
+# Estimation drills for Right-to-Erasure Deletes.
+
+[[drill]]
+id = "slow-lake-workers"
+kind = "servers"
+prompt = "Deletion requests arrive at {rps} a second. While the lake table is slow, each one holds a Worker slot for about {slot_s} s (its own work plus three writes). Each Worker instance has {concurrency} slots. How many instances are fully busy?"
+prompt_es = "Llegan {rps} peticiones de borrado por segundo. Mientras la tabla del lago va lenta, cada una ocupa un hueco de Worker unos {slot_s} s (su propio trabajo más tres escrituras). Cada instancia de Worker tiene {concurrency} huecos. ¿Cuántas instancias están ocupadas del todo?"
+inputs = { rps = 20, slot_s = 3.46, concurrency = 8 }
+formula = "rps * slot_s / concurrency"
+unit = "count"
+solution = "{rps} × {slot_s} s ≈ 69 slots in use, and 69 / {concurrency} ≈ {answer} instances with no room to spare. The default 2 instances finish fewer than 5 deletions a second, and the backlog grows by 15 a second. The reference's 8 instances come close enough that the small backlog clears soon after the lake recovers."
+solution_es = "{rps} × {slot_s} s ≈ 69 huecos en uso, y 69 / {concurrency} ≈ {answer} instancias sin ningún margen. Las 2 instancias por defecto terminan menos de 5 borrados por segundo, y el atasco crece 15 por segundo. Las 8 instancias de la referencia se acercan lo bastante para que el pequeño atasco se despeje poco después de que el lago se recupere."
+
+[[drill]]
+id = "warehouse-deletes"
+kind = "qps"
+prompt = "A Data Warehouse instance runs {concurrency} queries at once, and each row-level delete takes {delete_s} s. With {instances} instances, about how many deletes a second can it finish?"
+prompt_es = "Una instancia del Almacén de datos ejecuta {concurrency} consultas a la vez, y cada borrado por filas tarda {delete_s} s. Con {instances} instancias, ¿cuántos borrados por segundo puede terminar más o menos?"
+inputs = { concurrency = 8, delete_s = 0.3, instances = 2 }
+formula = "instances * concurrency / delete_s"
+unit = "rps"
+solution = "{instances} × {concurrency} / {delete_s} s ≈ {answer} deletes a second, a little less with slow tails. That is under the surge's 60 a second, so the queue grows during it; one instance (about 27 a second) would fall behind by more than 30 a second and never catch up before the deadline."
+solution_es = "{instances} × {concurrency} / {delete_s} s ≈ {answer} borrados por segundo, algo menos con las colas lentas. Queda por debajo de los 60 por segundo de la avalancha, así que la cola crece durante ella; una sola instancia (unos 27 por segundo) se quedaría atrás más de 30 por segundo y no se pondría al día antes del plazo."
+
+[[drill]]
+id = "surge-drain"
+kind = "capacity"
+prompt = "During a surge, {surge_rps} deletions a second arrive for {surge_s} s, and your pipeline finishes {capacity_rps} a second. Afterwards {normal_rps} a second arrive. How many seconds after the surge ends is the backlog gone?"
+prompt_es = "Durante una avalancha llegan {surge_rps} borrados por segundo durante {surge_s} s, y tu pipeline termina {capacity_rps} por segundo. Después llegan {normal_rps} por segundo. ¿Cuántos segundos después de acabar la avalancha desaparece el atasco?"
+inputs = { surge_rps = 60, surge_s = 40, capacity_rps = 50, normal_rps = 20 }
+formula = "(surge_rps - capacity_rps) * surge_s / (capacity_rps - normal_rps)"
+unit = "s"
+solution = "The backlog grows by {surge_rps} - {capacity_rps} = 10 a second for {surge_s} s, about 400 requests. It drains at {capacity_rps} - {normal_rps} = 30 a second, so it is gone {answer} s later. The deadline only needs the backlog to clear while its oldest request is younger than 30 s: room for the average, plus spare capacity to drain, not room for the whole peak."
+solution_es = "El atasco crece {surge_rps} - {capacity_rps} = 10 por segundo durante {surge_s} s, unas 400 peticiones. Se vacía a {capacity_rps} - {normal_rps} = 30 por segundo, así que desaparece {answer} s después. El plazo solo necesita que el atasco se despeje mientras su petición más antigua tiene menos de 30 s: sitio para la media, más capacidad de sobra para vaciar, no sitio para todo el pico."

@@ -1,0 +1,63 @@
+id = "de-kappa-reprocessing"
+number = 19
+set = 1
+track = "de"
+difficulty = "hard"
+title = "Kappa Reprocessing"
+title_es = "Reprocesar en Kappa"
+teaches = "Replay a long-retention stream through fixed code in its own consumer group and processor, so the replay can neither slow down nor take down the live pipeline"
+teaches_es = "Reprocesar un stream de retención larga con el código corregido en su propio grupo de consumidores y procesador, para que el reproceso no pueda ni frenar ni tumbar el pipeline en vivo"
+tags = ["streams", "stream-processing", "kappa", "reprocessing", "isolation", "freshness"]
+requires = ["stream", "streamproc", "scheduler", "sql"]
+
+[nfr]
+peak_rps = 600
+p95_ms = 5000
+availability = 0.999
+budget_usd = 2200
+
+# Live records are measured by completion (in the serving table), the replay by response
+# (read back into the processing pipeline), as content/problems/de-backfill does. The replay's
+# records are old records of the same log, so they are not `bulk`: nothing can put the live
+# records ahead of them inside one consumer group.
+[[request_types]]
+id = "live"
+name = "Process a live event"
+name_es = "Procesar un evento en vivo"
+share = 0.5
+route = ["edge?", "compute", "broker", "worker", "datastore:write"]
+key_space = 1000000
+measure = "completion"
+
+[[request_types]]
+id = "replay"
+name = "Reprocess a retained event (replay)"
+name_es = "Reprocesar un evento retenido (reproceso)"
+share = 0.5
+route = ["broker", "worker", "datastore:write"]
+source = "scheduler"
+key_space = 1000000
+
+[[tests]]
+id = "normal"
+name = "A normal hour, with the replay at its pace"
+name_es = "Una hora normal, con el reproceso a su ritmo"
+
+[[tests]]
+id = "rush"
+name = "The evening peak, with the replay sped up to 6 times its pace"
+name_es = "El pico de la tarde, con el reproceso acelerado a 6 veces su ritmo"
+hidden = true
+type_multipliers = { live = 2.5, replay = 6 }
+
+[[tests]]
+id = "lost"
+name = "A Stream Processor is lost during the replay"
+name_es = "Se pierde un procesador de streams durante el reproceso"
+hidden = true
+duration_s = 120
+chaos = [{ kill = { kind = "streamproc", at = 20 } }]
+
+[pass]
+error_rate = 0.001
+lost = 0

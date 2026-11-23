@@ -1,0 +1,59 @@
+id = "de-warehouse-outage"
+number = 20
+set = 1
+track = "de"
+difficulty = "hard"
+title = "The Warehouse Goes Down"
+title_es = "El almacén de datos se cae"
+teaches = "Buffer warehouse loads in a stream so an outage loses nothing, and size the catch-up capacity well above the live rate, because only the spare capacity drains the backlog"
+teaches_es = "Amortiguar las cargas al almacén de datos en un stream para que una caída no pierda nada, y dimensionar la capacidad de recuperación muy por encima del ritmo en vivo, porque solo la capacidad sobrante vacía el atasco"
+tags = ["streams", "data-warehouse", "backlog", "catch-up"]
+requires = ["warehouse"]
+
+# No challenge: the search found nothing under 80% of the reference (best $6298, 99%).
+
+[nfr]
+peak_rps = 30
+p95_ms = 10000
+availability = 0.999
+budget_usd = 11000
+
+[[request_types]]
+id = "batch"
+name = "Load a batch of events"
+name_es = "Cargar un lote de eventos"
+share = 1.0
+route = ["edge?", "compute", "broker?", "worker", "datastore:write:warehouse"]
+key_space = 1_000_000
+measure = "completion"
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+# The outage tests run 600 s: the 60 s outage and its catch-up are a fixed share of the batches, so a
+# whole-test p95 of 60 s holds for any design that drains; the catch-up itself is judged by
+# recovered_by_s (50 s after the warehouse is back), the drain time the problem teaches.
+[[tests]]
+id = "outage"
+name = "The warehouse is down for 60 s"
+name_es = "El almacén de datos cae durante 60 s"
+hidden = true
+duration_s = 600
+chaos = [{ kill = { kind = "warehouse", at = 20, for = 60 } }]
+pass = { p95_ms = 60000 }
+
+[[tests]]
+id = "peak-outage"
+name = "The warehouse is down for 60 s at the evening peak: 1.5 times the events"
+name_es = "El almacén de datos cae durante 60 s en el pico de la tarde: 1,5 veces los eventos"
+hidden = true
+duration_s = 600
+traffic = { flat = 1.5 }
+chaos = [{ kill = { kind = "warehouse", at = 20, for = 60 } }]
+pass = { p95_ms = 60000, recovered_by_s = 130 }
+
+[pass]
+error_rate = 0.001
+lost = 0

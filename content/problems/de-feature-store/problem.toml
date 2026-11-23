@@ -1,0 +1,74 @@
+id = "de-feature-store"
+number = 14
+set = 1
+track = "de"
+difficulty = "medium"
+title = "ML Feature Store"
+title_es = "Almacén de características para ML"
+teaches = "Serve online feature reads from a store that holds every user, kept fresh by a stream processor with headroom, and keep the warehouse for training reads"
+teaches_es = "Servir las lecturas de características en línea desde un almacén que tiene a todos los usuarios, mantenido al día por un procesador de streams con margen, y dejar el almacén de datos para las lecturas de entrenamiento"
+tags = ["feature-store", "streaming", "nosql", "data-warehouse", "freshness"]
+requires = ["streamproc"]
+
+[nfr]
+peak_rps = 1000
+p95_ms = 50
+availability = 0.999
+budget_usd = 4000
+
+[[request_types]]
+id = "online"
+name = "Read a user's features for a prediction"
+name_es = "Leer las características de un usuario para una predicción"
+share = 0.8
+route = ["edge?", "compute:app", "cache?", "datastore:nosql|datastore:warehouse"]
+key_space = 1_000_000
+key_skew = { zipf = 1.2 }
+value_kb = 2
+
+[[request_types]]
+id = "update"
+name = "Update a user's features from an event"
+name_es = "Actualizar las características de un usuario con un evento"
+share = 0.198
+route = ["edge?", "compute:app", "broker", "worker:streamproc", "cache:write|datastore:write:nosql"]
+key_space = 1_000_000
+key_skew = { zipf = 1.2 }
+measure = "completion"
+
+[[request_types]]
+id = "offline"
+name = "Read training features"
+name_es = "Leer características para entrenar"
+share = 0.002
+route = ["edge?", "compute:micro", "datastore:warehouse"]
+key_space = 1000
+scan = { gb = 0.5, repeat_share = 0.0 }
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "spike"
+name = "A sale: three times the traffic for 30 s"
+name_es = "Unas rebajas: el triple de tráfico durante 30 s"
+hidden = true
+duration_s = 90
+traffic = { spike = { at = 20, x = 3, for = 30 } }
+
+[[tests]]
+id = "slow-processor"
+name = "The stream processor slows down for 30 s: features must still arrive within 1 s"
+name_es = "El procesador de streams se ralentiza durante 30 s: las características deben llegar igualmente en 1 s"
+hidden = true
+duration_s = 90
+chaos = [{ latency = { kind = "streamproc", all = true, at = 20, for = 30, add_ms = 100 } }]
+# Every update takes at least 100 ms longer here by design: the limit judges whether the
+# backlog stays bounded (features within 1 s), not the slowdown itself.
+pass = { p95_ms = 1000 }
+
+[pass]
+error_rate = 0.001
+lost = 0

@@ -235,3 +235,36 @@ items = [
   "problem:ai-gpu-job-scheduler",
   "problem:ai-answer-engine",
 ]
+
+[[path]]
+id = "data-engineering"
+number = 8
+title = "Data engineering"
+title_es = "Ingeniería de datos"
+blurb = "Pipelines from source to dashboard: replicas and exports, streams and windows, lake tables and compaction, warehouses and concurrency, CDC, deadlines, idempotence, residency and recovery."
+blurb_es = "Pipelines de la fuente al panel: réplicas y exportaciones, streams y ventanas, tablas de lago y compactación, almacenes y concurrencia, CDC, plazos, idempotencia, residencia y recuperación."
+items = [
+  "guide:warehouse",
+  "guide:lakehouse",
+  "guide:streamproc",
+  "problem:de-nightly-etl",
+  "problem:de-clickstream-to-lake",
+  "problem:de-daily-dashboard",
+  "problem:de-iot-telemetry",
+  "problem:de-partner-file-import",
+  "problem:de-log-partitioning",
+  "problem:de-cdc-to-warehouse",
+  "problem:de-realtime-metrics",
+  "problem:de-lakehouse-compaction",
+  "problem:de-bi-concurrency",
+  "problem:de-sessionization",
+  "problem:de-backfill",
+  "problem:de-gdpr-deletes",
+  "problem:de-feature-store",
+  "problem:de-dedup-pipeline",
+  "problem:de-skewed-join",
+  "problem:de-residency-platform",
+  "problem:de-anomaly-detection",
+  "problem:de-kappa-reprocessing",
+  "problem:de-warehouse-outage",
+]

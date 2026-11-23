@@ -1,0 +1,54 @@
+id = "de-dedup-pipeline"
+number = 15
+set = 1
+track = "de"
+difficulty = "hard"
+title = "Billing Events, Exactly Once"
+title_es = "Eventos de facturación, exactamente una vez"
+teaches = "Make a pipeline's effect exactly once: checkpoints shrink what a crash replays, but only an idempotent sink makes the replay harmless"
+teaches_es = "Hacer que el efecto de un pipeline sea exactamente una vez: los checkpoints reducen lo que repite una caída, pero solo un destino idempotente hace inofensiva la repetición"
+tags = ["streams", "stream-processing", "idempotence", "exactly-once", "data-warehouse"]
+requires = ["streamproc", "warehouse"]
+
+challenge_ratio = 0.55
+[nfr]
+peak_rps = 40
+p95_ms = 30000
+availability = 0.999
+budget_usd = 4000
+
+[[request_types]]
+id = "event"
+name = "Record a billing event"
+name_es = "Registrar un evento de facturación"
+share = 1.0
+route = ["edge?", "compute", "broker", "worker:streamproc", "datastore:write:warehouse"]
+key_space = 10_000_000
+measure = "completion"
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "crash"
+name = "The stream processor crashes"
+name_es = "El procesador de streams se cae"
+hidden = true
+duration_s = 120
+chaos = [{ kill = { kind = "streamproc", at = 50, for = 10 } }]
+
+[[tests]]
+id = "retry-storm"
+name = "A retry storm: 3 times the events for 30 s, and the processor crashes in the middle"
+name_es = "Una tormenta de reintentos: 3 veces los eventos durante 30 s, y el procesador se cae en medio"
+hidden = true
+duration_s = 120
+traffic = { spike = { at = 30, x = 3, for = 30 } }
+chaos = [{ kill = { kind = "streamproc", at = 45, for = 10 } }]
+
+[pass]
+error_rate = 0.001
+lost = 0
+duplicates = 0
