@@ -86,6 +86,9 @@ pub struct RequestType {
     /// S6: what a query scans (a warehouse or lake read).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scan: Option<Scan>,
+    /// S9: these requests' data must stay in Regions with this residency tag (e.g. `eu`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub residency: Option<String>,
 }
 
 /// S6: a query over `gb` of table data whose time filter needs `range_share` of it (the
@@ -537,6 +540,9 @@ pub struct PassCriteria {
     pub late_rate: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub duplicates: Option<f64>,
+    /// S9: data stored or sent outside its residency (usually 0).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub residency_violations: Option<f64>,
 }
 
 /// Completed requests a test needs before its p99 is judged (review A4).
@@ -559,6 +565,7 @@ impl PassCriteria {
             job_deadline_s: over.job_deadline_s.or(self.job_deadline_s),
             late_rate: over.late_rate.or(self.late_rate),
             duplicates: over.duplicates.or(self.duplicates),
+            residency_violations: over.residency_violations.or(self.residency_violations),
         }
     }
 }

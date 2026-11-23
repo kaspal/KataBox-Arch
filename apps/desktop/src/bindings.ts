@@ -1431,7 +1431,11 @@ job_deadline_s?: number | null;
  * S5: the most windowed records that may be late (a share), and the most duplicate
  * results a crash may emit (a count, usually 0).
  */
-late_rate?: number | null; duplicates?: number | null }
+late_rate?: number | null; duplicates?: number | null; 
+/**
+ * S9: data stored or sent outside its residency (usually 0).
+ */
+residency_violations?: number | null }
 /**
  * One step of a path as the UI shows it.
  */
@@ -1686,7 +1690,11 @@ jobs: JobResult[]; tasks_retried: number;
  * left out of the results), their share of windowed records, and results emitted twice
  * after a crash replayed from a checkpoint.
  */
-late: number; late_rate: number; duplicates: number; cost_month: number; per_type: TypeResult[]; nodes: NodeResult[]; 
+late: number; late_rate: number; duplicates: number; 
+/**
+ * S9: requests whose data a store, cache or broker outside their residency held.
+ */
+residency_violations: number; cost_month: number; per_type: TypeResult[]; nodes: NodeResult[]; 
 /**
  * One entry per simulated second.
  */

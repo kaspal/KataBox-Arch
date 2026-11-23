@@ -457,6 +457,8 @@ pub struct Engine {
     late: f64,
     duplicates: f64,
     rng_s5: Rng,
+    /// S9: requests whose data left their residency.
+    residency_violations: f64,
 }
 
 /// S1: one connection type's state: connections per holder, push backlog per holder,
@@ -647,6 +649,7 @@ impl Engine {
             late: 0.0,
             duplicates: 0.0,
             rng_s5: Rng::stream(seed, "s5"),
+            residency_violations: 0.0,
             caches: c
                 .nodes
                 .iter()
@@ -2107,6 +2110,9 @@ impl Engine {
         if write && role == Role::Datastore && !self.s7_write_ok(r, node, key) {
             return;
         }
+        if matches!(role, Role::Datastore | Role::Cache) {
+            self.check_residency(r, node);
+        }
         match role {
             // A write-through: the cache holds the new value for every reader of the key.
             Role::Cache if write => {
@@ -2448,6 +2454,7 @@ impl Engine {
             self.publish_failed(r, b);
             return;
         }
+        self.check_residency(r, b);
         let depth = self.brokers[b as usize].queue.len() as f64;
         if depth >= (self.c.nodes[b as usize].spec.max_depth * self.c.sample).max(1.0) {
             let w = self.c.weight;
@@ -3122,6 +3129,7 @@ impl Engine {
                 0.0
             },
             duplicates: self.duplicates,
+            residency_violations: self.residency_violations,
             jobs: self
                 .jobs
                 .iter()
@@ -3663,6 +3671,21 @@ impl Engine {
         (secs * 1e6 * self.nodes[node as usize].stretch) as u64
             + self.nodes[node as usize].add_us
             + 1
+    }
+
+    /// S9: a store, cache or broker holds this request's data: outside a Region tagged with
+    /// the request's residency (or in no tagged Region at all), that's a violation.
+    fn check_residency(&mut self, r: u32, node: u32) {
+        let ty = self.reqs[r as usize].ty as usize;
+        let Some(want) = self.c.types[ty].def.residency.as_deref() else {
+            return;
+        };
+        let tag = self.c.nodes[node as usize]
+            .region
+            .and_then(|z| self.c.zones[z as usize].tag.as_deref());
+        if tag != Some(want) {
+            self.residency_violations += self.c.weight;
+        }
     }
 
     /// S5: a stream processor counts records toward its next checkpoint.

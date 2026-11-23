@@ -69,6 +69,9 @@ pub struct RunResult {
     pub late_rate: f64,
     #[serde(default, skip_serializing_if = "is_zero")]
     pub duplicates: f64,
+    /// S9: requests whose data a store, cache or broker outside their residency held.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub residency_violations: f64,
     pub cost_month: f64,
     pub per_type: Vec<TypeResult>,
     pub nodes: Vec<NodeResult>,

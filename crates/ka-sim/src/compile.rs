@@ -131,6 +131,8 @@ pub struct CSource {
 pub struct Zone {
     pub id: String,
     pub label: String,
+    /// S9: a Region's residency tag.
+    pub tag: Option<String>,
 }
 
 /// An autoscaling wrapper: the compute cards inside it and its policy.
@@ -640,6 +642,7 @@ pub fn compile(
             .map(|g| Zone {
                 id: g.id.clone(),
                 label: g.label.clone(),
+                tag: g.region_tag.clone(),
             })
             .collect(),
         scaling,

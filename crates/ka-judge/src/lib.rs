@@ -140,6 +140,7 @@ fn verdict(r: &RunResult, limits: &PassCriteria, cost: f64, budget: f64) -> Verd
         || r.lost > limits.lost.unwrap_or(0.0)
         || over(r.conflicts, limits.conflicts)
         || over(r.duplicates, limits.duplicates)
+        || over(r.residency_violations, limits.residency_violations)
     {
         return Verdict::DroppedRequests;
     }

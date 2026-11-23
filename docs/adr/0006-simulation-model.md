@@ -400,6 +400,11 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
   - A batch task reading a table splits the job's scan over its tasks.
   - Billing: `tb_scanned` per TB scanned (BigQuery); `active_only` instances (Snowflake, Databricks SQL) bill the
     seconds they were busy, each extended by `auto_suspend_s`; a lake table bills `stored_tb` per GB-month.
+- **Data residency (S9, golden m).** A Region may carry a `region_tag` (`.kbarch` v4). A request type with
+  `residency = "<tag>"` counts a `residency_violation` each time a data store or cache serves or writes it, or a
+  broker accepts it, outside a Region with that tag. A card in no tagged Region counts as outside: tag your Regions.
+  Routing doesn't prevent it; the design must. `pass.residency_violations` (usually 0) fails a test as Dropped
+  Requests.
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE

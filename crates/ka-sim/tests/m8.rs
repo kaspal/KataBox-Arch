@@ -1527,3 +1527,47 @@ fn golden_j_scans() {
     let (d, s) = lake("day", "none", Flavour::Bigquery, 0.3);
     golden("j", &run(&d, &s, 42));
 }
+
+// --- S9: data residency --------------------------------------------------------------------
+
+/// EU clients write through an app to a database in Region `r-db` (tagged `tag`).
+fn residency(tag: Option<&str>) -> (Design, Scenario) {
+    let mut d = design(
+        vec![
+            in_group(node("client", K::Client, Flavour::Web, &[]), "r-eu"),
+            in_group(node("app", K::App, Flavour::Go, &[]), "r-eu"),
+            in_group(node("db", K::Sql, Flavour::Postgresql, &[]), "r-db"),
+        ],
+        vec![
+            edge("client", "app", Protocol::Http),
+            edge("app", "db", Protocol::Query),
+        ],
+    );
+    let mut eu = region("r-eu");
+    eu.region_tag = Some("eu".into());
+    let mut db = region("r-db");
+    db.region_tag = tag.map(str::to_owned);
+    d.groups = vec![eu, db];
+    let mut t = rtype("save", 1.0, &["compute", "datastore:write"]);
+    t.residency = Some("eu".into());
+    (d, scenario(100.0, 30.0, vec![t]))
+}
+
+#[test]
+fn s9_data_outside_its_region_is_a_violation() {
+    let (d, s) = residency(Some("us"));
+    assert!(run(&d, &s, 111).residency_violations > 2000.0);
+    let (d, s) = residency(None);
+    assert!(
+        run(&d, &s, 111).residency_violations > 0.0,
+        "untagged counts as outside"
+    );
+    let (d, s) = residency(Some("eu"));
+    assert_eq!(run(&d, &s, 111).residency_violations, 0.0);
+}
+
+#[test]
+fn golden_m_residency() {
+    let (d, s) = residency(Some("us"));
+    golden("m", &run(&d, &s, 42));
+}
