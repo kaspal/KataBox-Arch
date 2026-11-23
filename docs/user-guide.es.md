@@ -212,6 +212,12 @@ El menú **Exportar** de la barra de herramientas convierte el diseño en:
 
 - **Copiar como Mermaid** y **Guardar como Mermaid…**: un diagrama Mermaid que puedes pegar en documentos Markdown.
 - **Guardar como imagen SVG…** y **Guardar como imagen PNG…**: una imagen del diseño.
+- **Guardar animación (WebM)…**: un vídeo de la ejecución, con las peticiones en movimiento, la carga de cada tarjeta y
+  una línea con el tiempo, el p95, el rendimiento y los errores. Elige un inicio y una duración (hasta 60 s); se graba en
+  tiempo real, así que mantén la ventana abierta. Muestra el tráfico del Sandbox, o la prueba que esté reproduciendo
+  Ejecutar.
+- En **Resultados**, una prueba fallida tiene **Exportar repetición** junto a Repetir: el mismo vídeo de la parte que
+  muestra la repetición, también en pruebas ocultas (nunca se muestra nada antes de donde empieza la repetición).
 
 ## Aprender: la Guía, los patrones y el glosario
 

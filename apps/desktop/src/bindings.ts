@@ -507,18 +507,6 @@ async mermaidText(design: Design, names: Partial<{ [key in string]: string }>) :
     return await TAURI_INVOKE("mermaid_text", { design, names });
 },
 /**
- * Show the Save dialog and write an image export the UI rendered (M7.3). `None` when
- * cancelled.
- */
-async saveExport(format: ExportFormat, data: number[], suggestedName: string) : Promise<Result<string | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("save_export", { format, data, suggestedName }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
  * Show the Save dialog and write the design as a `.mmd` file. `None` when cancelled.
  */
 async saveMermaid(design: Design, names: Partial<{ [key in string]: string }>, suggestedName: string) : Promise<Result<string | null, AppError>> {
@@ -683,7 +671,15 @@ export type AppErrorCode =
 /**
  * A docker-compose file isn't valid YAML or has no services.
  */
-"compose_invalid"
+"compose_invalid" | 
+/**
+ * An export of a hidden test asked for more than Results shows (review A7).
+ */
+"export_hidden_refused" | 
+/**
+ * An export is already being prepared.
+ */
+"export_busy"
 export type AppInfo = { version: string; dev_data: boolean }
 export type Bottleneck = { node: string; kind: ComponentKind; from_s: number; utilisation: number; reason: BottleneckReason }
 /**
@@ -959,10 +955,6 @@ solution: string; solution_es: string; inputs: Partial<{ [key in string]: number
  * One drill's record: how many checks, and whether any was within its band.
  */
 export type EstimateStatus = { problem_id: string; drill_id: string; tries: number; done: boolean }
-/**
- * What an image export is (M7.3).
- */
-export type ExportFormat = "svg" | "png"
 export type ExternalBrief = { name: string; median_ms: number; p99_ms: number; rate_limit: number | null }
 /**
  * Why the first card failed.

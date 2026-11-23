@@ -21,8 +21,8 @@ Tauri adds the runtime dependencies to the `.deb` (`libwebkit2gtk-4.1-0`, `libgt
   portal on Flatpak-like setups).
 - **Clipboard:** "Copy as Mermaid" uses the web clipboard API; WebKitGTK allows it after a click.
 - **PNG export:** draws an SVG `data:` image on a canvas; check WebKitGTK decodes it (the CSP allows `data:` images).
-- **Animated exports (later):** `MediaRecorder` support varies in WebKitGTK; the plan is to disable WebM there with a
-  tooltip and keep GIF.
+- **Animated exports:** WebM needs `MediaRecorder` and `canvas.captureStream`, which WebKitGTK may lack; the menu item
+  is then disabled with a note ("This system's web view can't record video"). GIF, when it lands, won't need either.
 - **Data folder:** `~/.local/share/dev.katabox.arch` (`-dev` for debug builds).
 - **Reduced motion:** GNOME's "Reduce animation" setting should reach `prefers-reduced-motion`.
 

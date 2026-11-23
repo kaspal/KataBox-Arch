@@ -1,8 +1,10 @@
 // Results of a submission: the verdict, the score parts, each test (hidden ones too, by name
 // and numbers), the bottleneck of a failing test with "Replay at failure", and a placeholder
 // for the AI review (M4). Every verdict colour comes with an icon and words.
+import { openAnimation } from "@/solve/export/animationStore";
+import { webmType } from "@/solve/export/animation";
 import { useTranslation } from "react-i18next";
-import { AlertTriangle, CheckCircle2, Lightbulb, Lock, RotateCcw, Sparkles, Timer, Wallet, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Lightbulb, Lock, Film, RotateCcw, Sparkles, Timer, Wallet, XCircle } from "lucide-react";
 import type { SubmitResult, TestResult, Verdict } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -50,7 +52,7 @@ function ScoreBar({ label, value, max }: { label: string; value: number; max: nu
   );
 }
 
-function TestRow({ test, onReplay }: { test: TestResult; onReplay: (t: TestResult) => void }) {
+function TestRow({ test, onReplay, onExport }: { test: TestResult; onReplay: (t: TestResult) => void; onExport?: (t: TestResult) => void }) {
   const { t, i18n } = useTranslation();
   const es = i18n.language.startsWith("es");
   const nodes = useEditor((s) => s.doc.nodes);
@@ -120,10 +122,18 @@ function TestRow({ test, onReplay }: { test: TestResult; onReplay: (t: TestResul
         <div className="flex items-center justify-between gap-2 rounded bg-muted/60 p-2 text-xs" data-testid="bottleneck">
           <span>{t(`results.bottleneck.${b.reason}`, { name: bName, at: b.from_s })}</span>
           {test.replay_at_s !== null && (
-            <Button size="sm" variant="outline" className="h-7 gap-1" onClick={() => onReplay(test)}>
-              <RotateCcw aria-hidden className="size-3.5" />
-              {t("results.replay")}
-            </Button>
+            <span className="flex gap-1">
+              <Button size="sm" variant="outline" className="h-7 gap-1" onClick={() => onReplay(test)}>
+                <RotateCcw aria-hidden className="size-3.5" />
+                {t("results.replay")}
+              </Button>
+              {onExport && (
+                <Button size="sm" variant="outline" className="h-7 gap-1" onClick={() => onExport(test)}>
+                  <Film aria-hidden className="size-3.5" />
+                  {t("results.exportReplay")}
+                </Button>
+              )}
+            </span>
           )}
         </div>
       )}
@@ -144,6 +154,18 @@ export function ResultsDialog({
   const usd = new Intl.NumberFormat(i18n.language, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
   const es = i18n.language.startsWith("es");
   const j = result?.judgement;
+  const mode = useProblemMode();
+  // A failed test exports Replay's window as a video (M7b.2); hidden tests only this way.
+  const canExport = webmType() !== null;
+  const exportReplay = (test: TestResult) => {
+    if (!result || test.replay_at_s === null) return;
+    openAnimation({
+      source: { type: "submission", submission_id: result.submission_id, test_id: test.id },
+      label: es ? test.name_es : test.name,
+      minStart: test.replay_at_s,
+      durationS: mode?.brief.tests.find((x) => x.id === test.id)?.duration_s ?? 60,
+    });
+  };
   return (
     <Dialog open={!!result} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl" data-testid="results">
@@ -186,7 +208,7 @@ export function ResultsDialog({
             </section>
             <ul className="space-y-2">
               {j.tests.map((x) => (
-                <TestRow key={x.id} test={x} onReplay={onReplay} />
+                <TestRow key={x.id} test={x} onReplay={onReplay} onExport={canExport ? exportReplay : undefined} />
               ))}
             </ul>
             <ResultsExtras accepted={j.verdict === "accepted"} />

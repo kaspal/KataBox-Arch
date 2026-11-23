@@ -53,6 +53,10 @@ pub enum AppErrorCode {
     ComposeUnsupported,
     /// A docker-compose file isn't valid YAML or has no services.
     ComposeInvalid,
+    /// An export of a hidden test asked for more than Results shows (review A7).
+    ExportHiddenRefused,
+    /// An export is already being prepared.
+    ExportBusy,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, thiserror::Error)]

@@ -86,7 +86,9 @@ export function routeLength(r: Route): number {
   return len;
 }
 
-export function pushFrame(ring: Ring, f: Frame, clock: number) {
+/** Append a frame's packets, spread over `frameMs` of clock (a live frame arrives about every
+ * 33 ms; an export's frames are `1000 / fps` apart). */
+export function pushFrame(ring: Ring, f: Frame, clock: number, frameMs = FRAME_MS) {
   if (f.windowMs <= 0) return;
   let hits = 0;
   let drops = 0;
@@ -95,7 +97,7 @@ export function pushFrame(ring: Ring, f: Frame, clock: number) {
     if (t & PACKET_HIT && ++hits > MAX_HITS_PER_FRAME) continue;
     if (t & PACKET_DROP && ++drops > MAX_DROPS_PER_FRAME) continue;
     const edge = f.packetEdge[i];
-    const start = clock + (f.packetStart[i] / f.windowMs) * FRAME_MS;
+    const start = clock + (f.packetStart[i] / f.windowMs) * frameMs;
     if (!(t & (PACKET_HIT | PACKET_DROP)) && edge >= 0 && edge < MAX_EDGES) {
       // Too close behind the last dot on this connection and direction: skip it. Edge labels
       // still carry the real rate.
@@ -125,6 +127,94 @@ export function visible(ring: Ring, clock: number): number {
 }
 
 const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+
+/** What `forEachMark` hands out: a dot, a hit ring or a drop cross. */
+export const MARK_DOT = 0;
+export const MARK_RING = 1;
+export const MARK_CROSS = 2;
+/** `color` for a drop: the danger colour, not a request type's. */
+export const COLOR_DANGER = -1;
+
+/**
+ * Every mark on screen at `clock`, in ring order, as plain arguments (no object per mark):
+ * the packet layer and the animated export (M7b.2) both draw from this, so they show the
+ * same picture. `size` is the radius (dots, rings) or half the cross's arm.
+ */
+export function forEachMark(
+  ring: Ring,
+  routes: readonly (Route | null)[],
+  clock: number,
+  visit: (kind: number, x: number, y: number, size: number, alpha: number, color: number) => void,
+) {
+  for (let i = 0; i < RING; i++) {
+    const e = ring.edge[i];
+    if (e < 0) continue;
+    const s = ring.start[i];
+    const d = ring.dur[i];
+    if (clock < s || clock >= s + d) continue;
+    const r = routes[e];
+    if (!r) continue;
+    const ty8 = ring.type[i];
+    const t = (clock - s) / d;
+    const rev = (ty8 & PACKET_REVERSE) !== 0;
+    if (ty8 & (PACKET_HIT | PACKET_DROP)) {
+      // Marks sit where the packet arrives.
+      const p = rev ? r.p0 : r.p3;
+      if (ty8 & PACKET_DROP) visit(MARK_CROSS, p.x, p.y, 3 + 7 * t, 1 - t, COLOR_DANGER);
+      else visit(MARK_RING, p.x, p.y, 4 + 9 * t, 0.6 * (1 - t), ty8 & 7);
+      continue;
+    }
+    const tail = ty8 & PACKET_ASYNC ? 3 : 1;
+    for (let k = 0; k < tail; k++) {
+      let u = ease(Math.max(0, t - k * 0.06));
+      if (rev) u = 1 - u;
+      // Leave the protocol chip clear.
+      if (u > CHIP_GAP[0] && u < CHIP_GAP[1]) continue;
+      const v = 1 - u;
+      // The cubic Bézier, inline (no objects per packet).
+      const x = v * v * v * r.p0.x + 3 * v * v * u * r.p1.x + 3 * v * u * u * r.p2.x + u * u * u * r.p3.x;
+      const y = v * v * v * r.p0.y + 3 * v * v * u * r.p1.y + 3 * v * u * u * r.p2.y + u * u * u * r.p3.y;
+      visit(MARK_DOT, x, y, k === 0 ? RADIUS : RADIUS * 0.8, k === 0 ? 1 : 0.45 / k, ty8 & 7);
+    }
+  }
+}
+
+/** Paint one mark on a 2D context (the packet layer and the export's canvas backend). */
+export function paintMark(
+  ctx: CanvasRenderingContext2D,
+  colors: readonly string[],
+  danger: string,
+  kind: number,
+  x: number,
+  y: number,
+  size: number,
+  alpha: number,
+  color: number,
+) {
+  ctx.globalAlpha = alpha;
+  const c = color === COLOR_DANGER ? danger : colors[color % colors.length]!;
+  if (kind === MARK_CROSS) {
+    ctx.strokeStyle = c;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x - size, y - size);
+    ctx.lineTo(x + size, y + size);
+    ctx.moveTo(x + size, y - size);
+    ctx.lineTo(x - size, y + size);
+    ctx.stroke();
+  } else if (kind === MARK_RING) {
+    ctx.strokeStyle = c;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = c;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
 
 export function PacketLayer() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -191,57 +281,9 @@ export function PacketLayer() {
       ensureRoutes();
       const [tx, ty, zoom] = store.getState().transform;
       ctx.setTransform(dpr * zoom, 0, 0, dpr * zoom, dpr * tx, dpr * ty);
-      for (let i = 0; i < RING; i++) {
-        const e = ring.edge[i];
-        if (e < 0) continue;
-        const s = ring.start[i];
-        const d = ring.dur[i];
-        if (clock < s || clock >= s + d) continue;
-        const r = routes[e];
-        if (!r) continue;
-        const ty8 = ring.type[i];
-        const t = (clock - s) / d;
-        const rev = (ty8 & PACKET_REVERSE) !== 0;
-        if (ty8 & (PACKET_HIT | PACKET_DROP)) {
-          // Marks sit where the packet arrives.
-          const p = rev ? r.p0 : r.p3;
-          ctx.globalAlpha = ty8 & PACKET_DROP ? 1 - t : 0.6 * (1 - t);
-          if (ty8 & PACKET_DROP) {
-            const k = 3 + 7 * t;
-            ctx.strokeStyle = danger;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(p.x - k, p.y - k);
-            ctx.lineTo(p.x + k, p.y + k);
-            ctx.moveTo(p.x + k, p.y - k);
-            ctx.lineTo(p.x - k, p.y + k);
-            ctx.stroke();
-          } else {
-            ctx.strokeStyle = colors[(ty8 & 7) % colors.length];
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, 4 + 9 * t, 0, Math.PI * 2);
-            ctx.stroke();
-          }
-          continue;
-        }
-        ctx.fillStyle = colors[(ty8 & 7) % colors.length];
-        const tail = ty8 & PACKET_ASYNC ? 3 : 1;
-        for (let k = 0; k < tail; k++) {
-          let u = ease(Math.max(0, t - k * 0.06));
-          if (rev) u = 1 - u;
-          // Leave the protocol chip clear.
-          if (u > CHIP_GAP[0] && u < CHIP_GAP[1]) continue;
-          const v = 1 - u;
-          // The cubic Bézier, inline (no objects per packet).
-          const x = v * v * v * r.p0.x + 3 * v * v * u * r.p1.x + 3 * v * u * u * r.p2.x + u * u * u * r.p3.x;
-          const y = v * v * v * r.p0.y + 3 * v * v * u * r.p1.y + 3 * v * u * u * r.p2.y + u * u * u * r.p3.y;
-          ctx.globalAlpha = k === 0 ? 1 : 0.45 / k;
-          ctx.beginPath();
-          ctx.arc(x, y, k === 0 ? RADIUS : RADIUS * 0.8, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
+      forEachMark(ring, routes, clock, (kind, x, y, size, alpha, color) =>
+        paintMark(ctx, colors, danger, kind, x, y, size, alpha, color),
+      );
       ctx.globalAlpha = 1;
       cleared = false;
     };

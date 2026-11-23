@@ -68,7 +68,9 @@
     "compose_too_complex": "Este archivo docker-compose es demasiado complejo para importarlo (demasiadas partes, alias o niveles).",
     "compose_too_many_services": "Este archivo docker-compose tiene más de 200 servicios, así que no se ha importado.",
     "compose_unsupported": "Este archivo docker-compose usa YAML que la importación no lee, como anclas o alias en las claves.",
-    "compose_invalid": "Este no es un archivo docker-compose que la importación pueda leer: el YAML no es válido o no tiene servicios."
+    "compose_invalid": "Este no es un archivo docker-compose que la importación pueda leer: el YAML no es válido o no tiene servicios.",
+    "export_hidden_refused": "Una prueba oculta solo se puede exportar desde sus Resultados, dentro de la parte que muestra la repetición.",
+    "export_busy": "Ya se está preparando una animación. Espera a que termine."
   },
   "files": {
     "unsaved": {
@@ -577,7 +579,8 @@
     "retried_one": "{{n}} intento falló y se reintentó: no es un error, porque el mensaje se entregó o se guardó igualmente.",
     "retried_other": "{{n}} intentos fallaron y se reintentaron: no son errores, porque los mensajes se entregaron o se guardaron igualmente.",
     "costNote": "Coste mensual con la carga de «{{test}}», a precios de lista: sin niveles gratuitos, descuentos ni transferencia de datos.",
-    "lost": "{{n}} mensajes perdidos (límite {{limit}})"
+    "lost": "{{n}} mensajes perdidos (límite {{limit}})",
+    "exportReplay": "Exportar repetición"
   },
   "compare": {
     "open": "Comparar con la referencia",
@@ -842,7 +845,9 @@
     "saveMermaid": "Guardar como Mermaid…",
     "copied": "Diagrama Mermaid copiado.",
     "saveSvg": "Guardar como imagen SVG…",
-    "savePng": "Guardar como imagen PNG…"
+    "savePng": "Guardar como imagen PNG…",
+    "saveWebm": "Guardar animación (WebM)…",
+    "webmUnsupported": "La vista web de este sistema no puede grabar vídeo."
   },
   "katabox": {
     "title": "Relacionado en KataBox",
@@ -880,5 +885,21 @@
     "skipped_other": "{{count}} dependencias no dibujadas",
     "unknownService": "En el archivo no hay ningún servicio con ese nombre.",
     "done": "Hecho"
+  },
+  "animation": {
+    "title": "Guardar una animación",
+    "sandbox": "Sandbox",
+    "start": "Inicio (s)",
+    "length": "Duración (s, como mucho {{max}})",
+    "realTime": "El vídeo se graba en tiempo real: un clip de 30 segundos tarda unos 30 segundos. Mantén esta ventana abierta.",
+    "record": "Grabar",
+    "preparing": "Preparando los fotogramas…",
+    "recording": "Grabando el fotograma {{done}} de {{total}}…",
+    "progress": "Progreso de la grabación",
+    "saving": "Guardando…",
+    "saved": "Animación guardada.",
+    "cancelled": "Grabación cancelada.",
+    "hidden": "La grabación se detuvo porque la ventana quedó oculta.",
+    "hud": "{{label}} · {{t}} s · p95 {{p95}} ms · {{rps}} pet/s · errores {{errors}}"
   }
 }

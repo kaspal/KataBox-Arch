@@ -21,7 +21,7 @@ use std::sync::Arc;
 
 pub use breaking::{BreakingPoint, FailureReason, FirstFailure, Limits, find_limit};
 pub use compile::{Compiled, SAMPLE_CAP_RPS, ScaleGroup, SimError, SimOptions, Zone, compile};
-pub use engine::{Engine, NodeSnap, Packet, Snapshot};
+pub use engine::{DRAIN_US, Engine, NodeSnap, Packet, Snapshot};
 pub use result::{NodeResult, Percentiles, RunResult, SecondResult, TypeResult};
 
 use ka_core::scenario::Scenario;

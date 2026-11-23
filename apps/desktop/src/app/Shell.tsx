@@ -10,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { CommandPalette } from "@/app/CommandPalette";
 import { Notice, UnsavedDialog, askUnsaved } from "@/app/dialogs";
 import { ComposeSummary } from "@/solve/ComposeSummary";
+import { AnimationDialog } from "@/solve/export/AnimationDialog";
 import { NAV, SETTINGS_NAV, type NavItem } from "@/app/nav";
 import { api } from "@/lib/api";
 import { useAppInfo } from "@/lib/queries";
@@ -164,6 +165,7 @@ export function Shell() {
       <UnsavedDialog />
       <Notice />
       <ComposeSummary />
+      <AnimationDialog />
     </div>
   );
 }

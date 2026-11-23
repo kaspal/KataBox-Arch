@@ -5,6 +5,7 @@
 pub mod compose;
 pub mod decide;
 pub mod error;
+pub mod frames;
 pub mod guide;
 pub mod kbarch;
 pub mod live;
@@ -43,13 +44,64 @@ pub const MAX_EXPORT_BYTES: usize = 256 * 1024 * 1024;
 pub enum ExportFormat {
     Svg,
     Png,
+    /// Animated export (M7b.2).
+    Webm,
+    Gif,
+    /// The print-ready Guide (M7b.3).
+    Html,
+}
+
+/// Decode `%XX` escapes (the UI sends the suggested file name URI-encoded in a header).
+pub fn percent_decode(s: &str) -> String {
+    let b = s.as_bytes();
+    let mut out = Vec::with_capacity(b.len());
+    let mut i = 0;
+    while i < b.len() {
+        let hex = |c: u8| (c as char).to_digit(16);
+        if b[i] == b'%'
+            && i + 2 < b.len()
+            && let (Some(h), Some(l)) = (hex(b[i + 1]), hex(b[i + 2]))
+        {
+            out.push((h * 16 + l) as u8);
+            i += 3;
+        } else {
+            out.push(b[i]);
+            i += 1;
+        }
+    }
+    String::from_utf8_lossy(&out).into_owned()
 }
 
 impl ExportFormat {
+    pub fn from_id(id: &str) -> Option<ExportFormat> {
+        Some(match id {
+            "svg" => ExportFormat::Svg,
+            "png" => ExportFormat::Png,
+            "webm" => ExportFormat::Webm,
+            "gif" => ExportFormat::Gif,
+            "html" => ExportFormat::Html,
+            _ => return None,
+        })
+    }
+
+    /// The Save dialog's filter name.
+    pub fn filter_name(self) -> &'static str {
+        match self {
+            ExportFormat::Svg => "SVG image",
+            ExportFormat::Png => "PNG image",
+            ExportFormat::Webm => "WebM video",
+            ExportFormat::Gif => "GIF animation",
+            ExportFormat::Html => "HTML page",
+        }
+    }
+
     pub fn extension(self) -> &'static str {
         match self {
             ExportFormat::Svg => "svg",
             ExportFormat::Png => "png",
+            ExportFormat::Webm => "webm",
+            ExportFormat::Gif => "gif",
+            ExportFormat::Html => "html",
         }
     }
 }
@@ -105,6 +157,8 @@ pub struct App {
     /// The live run, if one is playing (one at a time), and the id of the next.
     live: Mutex<Option<(u32, live::LiveRun)>>,
     next_run: std::sync::atomic::AtomicU32,
+    /// An export's frames are being computed (one at a time).
+    exporting: std::sync::atomic::AtomicBool,
 }
 
 fn path_string(path: &Path) -> String {
@@ -132,6 +186,7 @@ impl App {
             session_paths: Mutex::new(HashSet::new()),
             live: Mutex::new(None),
             next_run: std::sync::atomic::AtomicU32::new(1),
+            exporting: std::sync::atomic::AtomicBool::new(false),
         })
     }
 
@@ -510,6 +565,24 @@ mod tests {
             .write_export(dir.join("big"), ExportFormat::Png, &huge)
             .unwrap_err();
         assert_eq!(e.code, AppErrorCode::FileTooLarge);
+        let webm = app
+            .write_export(dir.join("run"), ExportFormat::Webm, &[26, 69])
+            .unwrap();
+        assert!(webm.ends_with("run.webm"), "{webm}");
         app.close().await;
+    }
+
+    #[test]
+    fn export_headers_decode() {
+        for id in ["svg", "png", "webm", "gif", "html"] {
+            assert_eq!(ExportFormat::from_id(id).unwrap().extension(), id);
+        }
+        assert_eq!(ExportFormat::from_id("exe"), None);
+        assert_eq!(
+            percent_decode("Caf%C3%A9%20%26%20co.webm"),
+            "Café & co.webm"
+        );
+        assert_eq!(percent_decode("100%"), "100%");
+        assert_eq!(percent_decode("%zz"), "%zz");
     }
 }

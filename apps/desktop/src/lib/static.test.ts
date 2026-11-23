@@ -57,6 +57,8 @@ describe("i18n resources", () => {
       compose_too_many_services: true,
       compose_unsupported: true,
       compose_invalid: true,
+      export_hidden_refused: true,
+      export_busy: true,
     } satisfies Record<AppErrorCode, true>;
     expect(Object.keys(codes).filter((c) => !has(en, `errors.${c}`))).toEqual([]);
   });
@@ -124,6 +126,14 @@ describe("source rules", () => {
     const bad = appCode.filter((f) => {
       const text = readFileSync(f, "utf8");
       return /import\s*\{[^}]*\bcommands\b[^}]*\}\s*from\s*"@\/bindings"/.test(text) && !f.endsWith(path.join("lib", "api.ts"));
+    });
+    expect(bad).toEqual([]);
+  });
+
+  it("only lib/api.ts (and the generated bindings) call into Tauri, raw commands included", () => {
+    const bad = appCode.filter((f) => {
+      const text = readFileSync(f, "utf8");
+      return /from\s*"@tauri-apps\/api/.test(text) && !f.endsWith(path.join("lib", "api.ts")) && !f.endsWith("bindings.ts");
     });
     expect(bad).toEqual([]);
   });

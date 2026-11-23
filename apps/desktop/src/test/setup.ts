@@ -5,6 +5,7 @@ import i18n from "i18next";
 import { initI18n } from "@/i18n";
 import { resetDialogs } from "@/app/dialogs";
 import { resetComposeSummary } from "@/solve/ComposeSummary";
+import { resetAnimation } from "@/solve/export/animationStore";
 import { useEditor } from "@/solve/store";
 
 // jsdom lacks a few browser APIs that Radix, cmdk and the virtualizer use.
@@ -73,6 +74,7 @@ afterEach(() => {
   // Module-level stores outlive a render: start each test with a fresh design.
   resetDialogs();
   resetComposeSummary();
+  resetAnimation();
   useEditor.getState().newDesign("Untitled design");
   localStorage.clear();
   document.documentElement.classList.remove("dark");

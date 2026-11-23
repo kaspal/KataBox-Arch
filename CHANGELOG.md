@@ -13,7 +13,8 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
 - **Problem packs:** import a `.kbpack` with a preview (author as stated, SHA-256, problems); every pack is checked
   (files, text and a judged run of every design) before it installs; a badge and a source filter on Problems;
   uninstall in Settings keeps your history. `ka-pack pack` builds packs.
-- **Export:** copy or save a design as a Mermaid diagram; save it as an SVG or PNG image.
+- **Export:** copy or save a design as a Mermaid diagram; save it as an SVG or PNG image; save a run as a WebM video
+  (up to 60 s, in real time), including a failed test's replay from Results.
 - **docker-compose import:** a `docker-compose.yml` becomes a new design, with services mapped by image,
   `depends_on`/`links` as connections the wiring rules allow, and a summary of what was guessed, clamped or left out.
   Oversized and alias-bomb files are refused.

@@ -3,9 +3,10 @@
 import { vi } from "vitest";
 import type { FlawSummary, PackInfo, PackPreview, PathView, AppError, ComposeImport, Design, JsonValue, OpenedDesign, ProblemBrief, RecentEntry, Registry, RunControl, SubmissionSummary, SubmitResult } from "@/bindings";
 import { FAKE_BRIEF, FAKE_REFERENCE, fakeJudgement } from "@/test/fakeProblems";
+import { fakeFrames } from "@/test/fakeFrames";
 import { FAKE_SAMPLE, FAKE_SAMPLE_SUMMARY } from "@/test/fakeSamples";
 import { FAKE_DRILLS, FAKE_QUIZ, FAKE_FLOW, FAKE_GUIDE, FAKE_NUMBERS, FAKE_PATTERN, FAKE_TEMPLATE, FAKE_TERMS } from "@/test/fakeGuide";
-import type { Api, RunOptions } from "@/lib/api";
+import type { Api, FramesRequest, RunOptions } from "@/lib/api";
 import fixture from "@/test/fixtures/registry.json";
 
 export const REGISTRY = fixture.registry as unknown as Registry;
@@ -101,6 +102,9 @@ export function createFakeApi(opts: FakeOptions = {}) {
     }),
     openDesignDialog: vi.fn(async () => (opts.openPick ? opened(opts.openPick) : null)),
     importComposeDialog: vi.fn(async () => opts.composeImport ?? null),
+    runFrames: vi.fn(async (req: FramesRequest) =>
+      fakeFrames(req.source.type === "submission" ? FAKE_REFERENCE : req.source.design, Math.round(req.seconds * req.fps), req.from_s),
+    ),
     openRecent: vi.fn(async (path: string) => {
       if (!recent.some((r) => r.path === path)) throw err("path_not_allowed");
       return opened(path);

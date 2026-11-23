@@ -7,7 +7,10 @@ it matters.
 ## Not built yet
 - **AI review, Explain my design and the mock interview** arrive in M4. The buttons say so; the AI will never change
   a score.
-- **Animated exports (GIF, WebM)** and the **printable Guide (PDF)** are planned; images (SVG, PNG) and Mermaid work.
+- **GIF export** is planned; WebM video, images (SVG, PNG) and Mermaid work.
+- **WebM records in real time** (a 30-second clip takes about 30 seconds) and stops if the window is hidden. Web
+  views without `MediaRecorder` (WebKitGTK on Linux) can't record it; the menu says so.
+- **Exported images name their fonts but don't embed them;** another computer shows them in its own fallback fonts.
 - **The in-app problem editor** is planned; authors use `ka-pack new`, `try`, `validate` and `pack`
   ([pack-authoring.md](pack-authoring.md)).
 - **The Progress page** is a placeholder; progress shows on Home, the Problems list, the Guide and pattern counts and the drill pages.

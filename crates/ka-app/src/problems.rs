@@ -745,4 +745,184 @@ error_rate = 0.001
             AppErrorCode::ContentMissing
         );
     }
+
+    // --- Animated export frames (M7b.2, review A7) -------------------------------------
+
+    use crate::frames::{FramesRequest, FramesSource, step_frames};
+
+    fn frames_req(source: FramesSource, from_s: f64, seconds: f64) -> FramesRequest {
+        FramesRequest {
+            source,
+            from_s,
+            seconds,
+            fps: 30,
+        }
+    }
+
+    fn sandbox() -> FramesSource {
+        FramesSource::Sandbox {
+            design: design(),
+            preset: SandboxPreset::Normal,
+        }
+    }
+
+    /// FNV-1a over the packed bytes: the golden for frames (any engine or frame-format change
+    /// shows up here; `KA_UPDATE_GOLDENS=1` rewrites it).
+    fn fnv(bytes: &[u8]) -> u64 {
+        bytes.iter().fold(0xcbf2_9ce4_8422_2325, |h, b| {
+            (h ^ u64::from(*b)).wrapping_mul(0x0100_0000_01b3)
+        })
+    }
+
+    #[tokio::test]
+    async fn export_frames_are_deterministic_and_match_a_live_run() {
+        let app = app().await;
+        let a = app
+            .run_frames(frames_req(sandbox(), 1.0, 2.0))
+            .await
+            .unwrap();
+        let b = app
+            .run_frames(frames_req(sandbox(), 1.0, 2.0))
+            .await
+            .unwrap();
+        assert_eq!(a, b, "the same request gives the same bytes");
+        // The frames are what a live run stepped at 1/30 s from 1 s shows.
+        let d = design();
+        let r = app.registry().clone();
+        let scenario = crate::sandbox::sandbox_scenario(&d, &r, SandboxPreset::Normal).unwrap();
+        let compiled = std::sync::Arc::new(
+            ka_sim::compile(&d, &r, &scenario, &ka_sim::SimOptions::default()).unwrap(),
+        );
+        let frames = step_frames(
+            crate::live::LiveCore::new(compiled.clone(), &d, crate::runs::SANDBOX_SEED),
+            1.0,
+            2.0,
+            30,
+        );
+        assert_eq!(frames.len(), 60);
+        assert!(frames.iter().all(|f| &f[..4] == b"KAF1"));
+        let info_len = u32::from_le_bytes(a[..4].try_into().unwrap()) as usize;
+        assert!(
+            a[4 + info_len..] == pack_frames_only(&frames)[..],
+            "packed frames differ"
+        );
+        let golden =
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/golden/frames.fnv");
+        let got = format!("{:016x}\n", fnv(&a));
+        if std::env::var_os("KA_UPDATE_GOLDENS").is_some() {
+            std::fs::create_dir_all(golden.parent().unwrap()).unwrap();
+            std::fs::write(&golden, &got).unwrap();
+        }
+        let want = std::fs::read_to_string(&golden)
+            .unwrap_or_default()
+            .replace("\r\n", "\n");
+        assert_eq!(
+            got, want,
+            "export frames changed; review, then KA_UPDATE_GOLDENS=1"
+        );
+    }
+
+    /// The frames part of `pack`: `u32 n | (u32 len | frame)*`.
+    fn pack_frames_only(frames: &[Vec<u8>]) -> Vec<u8> {
+        let mut out = (frames.len() as u32).to_le_bytes().to_vec();
+        for f in frames {
+            out.extend_from_slice(&(f.len() as u32).to_le_bytes());
+            out.extend_from_slice(f);
+        }
+        out
+    }
+
+    #[tokio::test]
+    async fn exports_of_hidden_tests_stay_inside_what_results_show() {
+        let app = app().await;
+        let code = |r: Result<Vec<u8>>| r.unwrap_err().code;
+        // A hidden test can't be asked for with any design.
+        let hidden = FramesSource::Test {
+            design: design(),
+            problem_id: "demo".into(),
+            test_id: "dbdies".into(),
+        };
+        assert_eq!(
+            code(app.run_frames(frames_req(hidden, 0.0, 2.0)).await),
+            AppErrorCode::ExportHiddenRefused
+        );
+        // A visible test can.
+        let visible = FramesSource::Test {
+            design: design(),
+            problem_id: "demo".into(),
+            test_id: "normal".into(),
+        };
+        assert!(app.run_frames(frames_req(visible, 0.0, 2.0)).await.is_ok());
+        // A submission whose hidden test failed: only Replay's window, from 3 s.
+        let (def, ref_cost) = app.problem_for_judging("demo").await.unwrap();
+        let mut j = judge_design(&def, &design(), app.registry(), ref_cost);
+        let accepted = app
+            .record_submission(&design(), j.clone(), "2026-11-22")
+            .await
+            .unwrap();
+        let t = j.tests.iter_mut().find(|t| t.id == "dbdies").unwrap();
+        t.verdict = Verdict::DroppedRequests;
+        t.replay_at_s = Some(3.0);
+        let failed = app
+            .record_submission(&design(), j, "2026-11-22")
+            .await
+            .unwrap();
+        let sub = |id: i64| FramesSource::Submission {
+            submission_id: id,
+            test_id: "dbdies".into(),
+        };
+        assert!(
+            app.run_frames(frames_req(sub(failed.submission_id), 3.0, 7.0))
+                .await
+                .is_ok()
+        );
+        for (from, len) in [(2.0, 2.0), (9.0, 2.0)] {
+            assert_eq!(
+                code(
+                    app.run_frames(frames_req(sub(failed.submission_id), from, len))
+                        .await
+                ),
+                AppErrorCode::ExportHiddenRefused,
+                "{from}+{len}"
+            );
+        }
+        // An Accepted test has no Replay, so no export from Results.
+        assert_eq!(
+            code(
+                app.run_frames(frames_req(sub(accepted.submission_id), 0.0, 2.0))
+                    .await
+            ),
+            AppErrorCode::ExportHiddenRefused
+        );
+        assert_eq!(
+            code(app.run_frames(frames_req(sub(999), 0.0, 2.0)).await),
+            AppErrorCode::NotFound
+        );
+    }
+
+    #[tokio::test]
+    async fn export_frames_are_capped_and_one_at_a_time() {
+        let app = app().await;
+        let code = |r: Result<Vec<u8>>| r.unwrap_err().code;
+        let mut bad = frames_req(sandbox(), 0.0, 2.0);
+        bad.fps = 24;
+        assert_eq!(code(app.run_frames(bad).await), AppErrorCode::InvalidInput);
+        assert_eq!(
+            code(app.run_frames(frames_req(sandbox(), 0.0, 61.0)).await),
+            AppErrorCode::InvalidInput
+        );
+        app.exporting
+            .store(true, std::sync::atomic::Ordering::Release);
+        assert_eq!(
+            code(app.run_frames(frames_req(sandbox(), 0.0, 1.0)).await),
+            AppErrorCode::ExportBusy
+        );
+        app.exporting
+            .store(false, std::sync::atomic::Ordering::Release);
+        assert!(
+            app.run_frames(frames_req(sandbox(), 0.0, 1.0))
+                .await
+                .is_ok()
+        );
+    }
 }

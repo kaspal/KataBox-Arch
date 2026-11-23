@@ -68,7 +68,9 @@
     "compose_too_complex": "This docker-compose file is too complex to import (too many parts, aliases or levels).",
     "compose_too_many_services": "This docker-compose file has more than 200 services, so it wasn't imported.",
     "compose_unsupported": "This docker-compose file uses YAML the import doesn't read, such as anchors or aliases as keys.",
-    "compose_invalid": "This isn't a docker-compose file the import can read: the YAML is invalid or it has no services."
+    "compose_invalid": "This isn't a docker-compose file the import can read: the YAML is invalid or it has no services.",
+    "export_hidden_refused": "A hidden test can only be exported from its Results, within the part Replay shows.",
+    "export_busy": "An animation is already being prepared. Wait for it to finish."
   },
   "files": {
     "unsaved": {
@@ -577,7 +579,8 @@
     "retried_one": "{{n}} attempt failed and was retried: not an error, since the message was still delivered or kept.",
     "retried_other": "{{n}} attempts failed and were retried: not errors, since the messages were still delivered or kept.",
     "costNote": "Monthly cost at the load of “{{test}}”, at list prices: no free tiers, discounts or data transfer.",
-    "lost": "{{n}} messages lost (limit {{limit}})"
+    "lost": "{{n}} messages lost (limit {{limit}})",
+    "exportReplay": "Export replay"
   },
   "compare": {
     "open": "Compare with reference",
@@ -842,7 +845,9 @@
     "saveMermaid": "Save as Mermaid…",
     "copied": "Mermaid diagram copied.",
     "saveSvg": "Save as SVG image…",
-    "savePng": "Save as PNG image…"
+    "savePng": "Save as PNG image…",
+    "saveWebm": "Save animation (WebM)…",
+    "webmUnsupported": "This system's web view can't record video."
   },
   "katabox": {
     "title": "Related in KataBox",
@@ -880,5 +885,21 @@
     "skipped_other": "{{count}} dependencies not drawn",
     "unknownService": "No service with that name is in the file.",
     "done": "Done"
+  },
+  "animation": {
+    "title": "Save an animation",
+    "sandbox": "Sandbox",
+    "start": "Start (s)",
+    "length": "Length (s, at most {{max}})",
+    "realTime": "The video records in real time: a 30-second clip takes about 30 seconds. Keep this window open.",
+    "record": "Record",
+    "preparing": "Preparing the frames…",
+    "recording": "Recording frame {{done}} of {{total}}…",
+    "progress": "Recording progress",
+    "saving": "Saving…",
+    "saved": "Animation saved.",
+    "cancelled": "Recording cancelled.",
+    "hidden": "Recording stopped because the window was hidden.",
+    "hud": "{{label}} · {{t}} s · p95 {{p95}} ms · {{rps}} req/s · errors {{errors}}"
   }
 }

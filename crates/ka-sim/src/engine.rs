@@ -20,7 +20,7 @@ const NONE: u32 = u32::MAX;
 /// Clients give up on a synchronous request after this long.
 pub const TIMEOUT_US: u64 = 5_000_000;
 /// After the last arrival, in-flight work may finish for this long.
-const DRAIN_US: u64 = 30_000_000;
+pub const DRAIN_US: u64 = 30_000_000;
 /// A provider that is down fails a call after this connect timeout.
 const EXTERNAL_DOWN_US: u64 = 1_000_000;
 /// Seconds in a 30.4-day month, for per-request prices.

@@ -212,6 +212,11 @@ The **Export** menu in the toolbar turns the design into:
 
 - **Copy as Mermaid** and **Save as Mermaid…**: a Mermaid diagram you can paste into Markdown documents.
 - **Save as SVG image…** and **Save as PNG image…**: a picture of the design.
+- **Save animation (WebM)…**: a video of the run, with moving requests, each card's load and a line with the time,
+  p95, throughput and errors. Pick a start and a length (up to 60 s); it records in real time, so keep the window open.
+  It shows the Sandbox's traffic, or the problem test Run is playing.
+- In **Results**, a failed test has **Export replay** next to Replay: the same video of the part Replay shows, hidden
+  tests included (nothing before Replay's start is ever shown).
 
 ## Learning: the Guide, patterns and glossary
 
