@@ -23,7 +23,7 @@ El coste mensual es lo que costaría el ritmo de la ejecución si durara un mes 
 
 - **Resumir un documento** (100 %). Un Planificador publica cada documento en una Cola. Un Worker lo toma de la Cola y llama a una tarjeta de Inferencia de modelos (un modelo de chat). El tiempo que se mide va desde que el documento entra en la cola hasta que su resumen está hecho.
 
-Un documento tiene unos 600 tokens (1200 en el p95), y su resumen unos 100 tokens (200 en el p95). La cuenta del proveedor del modelo permite 4000 peticiones y 400 000 tokens por minuto en tiempo real (el "Límite de peticiones por minuto" y el "Límite de tokens por minuto" de la tarjeta); son los límites de tu cuenta, y no puedes subirlos para este trabajo. Una llamada por encima de un límite se rechaza con un HTTP 429. Un Worker conserva su hueco durante toda la llamada al modelo.
+Un documento tiene unos 600 tokens (1200 en el p95), y su resumen unos 100 tokens (200 en el p95). La cuenta del proveedor del modelo permite 4000 peticiones y 400 000 tokens por minuto en tiempo real (el "Límite de peticiones por minuto" y el "Límite de tokens por minuto" de la tarjeta); son los límites de tu cuenta, y no puedes subirlos para este trabajo: el simulador los aplica a cada tarjeta de API de Claude (el Inspector los muestra, sin poder cambiarlos). Una llamada por encima de un límite se rechaza con un HTTP 429. Un Worker conserva su hueco durante toda la llamada al modelo.
 
 ## Las pruebas
 

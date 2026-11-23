@@ -59,6 +59,11 @@ note = "Tokens added each second to every key's bucket: the steady rate one key 
 note_es = "Tokens que se añaden cada segundo a la cubeta de cada clave: el ritmo constante que puede enviar una clave."
 
 [[sim]]
+prop = "unit"
+note = "What a request spends from its key's bucket: one token per request, or its prompt and answer tokens (for a per-team quota at an LLM gateway; the limit and burst are then tokens per second and tokens)."
+note_es = "Lo que gasta una petición de la cubeta de su clave: una ficha por petición, o los tokens de su prompt y su respuesta (para la cuota de un equipo en una pasarela de LLM; el límite y la ráfaga pasan a ser tokens por segundo y tokens)."
+
+[[sim]]
 prop = "burst"
 note = "The size of each bucket: how many requests a key may send at once after a quiet spell."
 note_es = "El tamaño de cada cubeta: cuántas peticiones puede enviar una clave de golpe tras un rato de calma."

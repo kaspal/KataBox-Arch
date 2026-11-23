@@ -498,6 +498,13 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
   (the stale holders now reach the promoted replica and are refused there); replay 10's last step was rewritten
   (the majority side now keeps writing: 6.4% errors instead of 8.2%). Set 3 #36 keeps `conditional_writes`, the
   answer it teaches.
+- **Hardening H2 (AI-track honesty).** Problems pin hosted model limits (`[[model_limits]]`: flavour, `rpm`, `tpm`),
+  which override the cards' props (read-only in the Inspector). Chaos `model_rate` cuts selected Model Inference
+  cards' `rpm`/`tpm` (a provider lowering a tier), restored at `for`. TTFT is recorded only for chat calls (not
+  `embed`/`classify`), and only when the call completes: a call the caller abandoned records none (golden f2's TTFT
+  p50 fell from 5.2 s to 0.39 s, the bias this removes). Residency (S9) covers model calls: a Model Inference card
+  outside the request's residency counts a violation (AI 16 reworked to test it). The Rate Limiter has
+  `unit = requests | tokens`; with tokens each request debits its prompt + answer tokens (AI 6).
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE

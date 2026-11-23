@@ -20,7 +20,7 @@ You run a web answer engine. Someone types a question, and instead of ten links 
 
 There are about 20 million distinct questions, and some are typed far more often than others (a Zipf popularity of 0.95): people pick them from the search box's suggestions, so a popular question arrives word for word. About a quarter of all questions mean the same as an earlier one in other words. An answer with its sources is about 4 KB. The vector index holds 100 million passages.
 
-A question sends about 1,500 tokens to the chat model (2,500 at p95: the question, the instructions and the passages found) and gets about 250 back (500 at p95). The chat model is the Claude API on your account's tier: a Requests per minute limit of 16,000 and a Tokens per minute limit of 30,000,000. You can't raise that tier this quarter, and someone is waiting for every answer, so the API mode stays Real time. A call over a limit is refused with a 429 and counts as a failed request.
+A question sends about 1,500 tokens to the chat model (2,500 at p95: the question, the instructions and the passages found) and gets about 250 back (500 at p95). The chat model is the Claude API on your account's tier: a Requests per minute limit of 16,000 and a Tokens per minute limit of 30,000,000. You can't raise that tier this quarter (the simulator applies them to every Claude API card (the Inspector shows them, read-only)), and someone is waiting for every answer, so the API mode stays Real time. A call over a limit is refused with a 429 and counts as a failed request.
 
 Two more rules:
 

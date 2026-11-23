@@ -192,3 +192,30 @@ describe("solving a problem", () => {
     expect(within(brief).getByRole("button", { name: "Compare with reference" })).toBeInTheDocument();
   });
 });
+
+describe("pinned model limits (H2)", () => {
+  it("shows a hosted model's account limits read-only when the problem sets them", async () => {
+    const base = await fake().api.problemBrief("url-shortener");
+    const draft: Design = {
+      ...FAKE_DESIGN,
+      problem_id: "url-shortener",
+      nodes: [
+        { id: "m1", kind: "infer", flavour: "claude_api", label: "", position: { x: 0, y: 0 }, props: { rpm: 99999 }, group_id: null },
+        { id: "m2", kind: "infer", flavour: "openai_api", label: "", position: { x: 300, y: 0 }, props: {}, group_id: null },
+      ],
+    };
+    vi.mocked(fake().api.problemBrief).mockResolvedValue({ ...base, draft, model_limits: [{ flavour: "claude_api", rpm: 4000, tpm: 400000 }] });
+    const { user } = renderApp("/problems/url-shortener");
+    await screen.findByTestId("brief");
+    await waitFor(() => expect(useEditor.getState().doc.nodes).toHaveLength(2));
+    act(() => useEditor.getState().setSelection(["m1"]));
+    await user.click(screen.getByRole("tab", { name: "Inspect" }));
+    const pinned = await screen.findAllByTestId("prop-pinned");
+    expect(pinned.map((p) => (p as HTMLInputElement).value)).toEqual(["4000", "400000"]);
+    expect(pinned[0]).toHaveAttribute("readonly");
+    expect(screen.getAllByText("set by the problem")).toHaveLength(2);
+    // Another provider's card keeps its own, editable limits.
+    act(() => useEditor.getState().setSelection(["m2"]));
+    await waitFor(() => expect(screen.queryByTestId("prop-pinned")).not.toBeInTheDocument());
+  });
+});

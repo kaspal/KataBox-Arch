@@ -53,6 +53,9 @@ pub struct NodeSpec {
     /// Rate limiters, per API key.
     pub limit_rps: f64,
     pub burst: f64,
+    /// H2: a rate limiter that counts tokens (prompt + answer) instead of requests: its
+    /// limit and burst are then tokens per second and tokens.
+    pub limit_tokens: bool,
     /// Load balancers: "round_robin" | "least_conn" | "key_hash" (sticky by request key).
     pub algorithm: String,
     /// Data clusters.
@@ -312,6 +315,7 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         partitions: n("partitions").unwrap_or(f64::INFINITY),
         limit_rps: n("limit_rps").unwrap_or(f64::INFINITY),
         burst: n("burst").unwrap_or(1.0),
+        limit_tokens: text(registry, node, "unit").as_deref() == Some("tokens"),
         algorithm: match text(registry, node, "algorithm").as_deref() {
             // `ip_hash` is the name files before `.kbarch` v3 used.
             Some("key_hash" | "ip_hash") => "key_hash".into(),

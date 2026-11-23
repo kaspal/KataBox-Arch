@@ -26,6 +26,28 @@ key_space = 100000
 tokens_in = { mean = 800, p95 = 1600 }
 tokens_out = { mean = 300, p95 = 600 }
 
+# The statement's account tier (already raised for the launch, the top one): every hosted
+# Model Inference card has it, whatever its own props say.
+[[model_limits]]
+flavour = "claude_api"
+rpm = 4000
+tpm = 1000000
+
+[[model_limits]]
+flavour = "bedrock"
+rpm = 4000
+tpm = 1000000
+
+[[model_limits]]
+flavour = "openai_api"
+rpm = 4000
+tpm = 1000000
+
+[[model_limits]]
+flavour = "gemini_api"
+rpm = 4000
+tpm = 1000000
+
 [[tests]]
 id = "normal"
 name = "A normal day"
@@ -33,11 +55,11 @@ name_es = "Un día normal"
 
 [[tests]]
 id = "launch"
-name = "Launch day: 4 times the traffic for 3 minutes"
-name_es = "Día de lanzamiento: 4 veces el tráfico durante 3 minutos"
+name = "Launch day: 4 times the traffic for 4 minutes"
+name_es = "Día de lanzamiento: 4 veces el tráfico durante 4 minutos"
 hidden = true
-duration_s = 240
-traffic = { spike = { at = 30, x = 4, for = 180 } }
+duration_s = 300
+traffic = { spike = { at = 30, x = 4, for = 240 } }
 pass = { error_rate = 0.05, availability = 0.95 }
 
 [[tests]]
@@ -47,6 +69,15 @@ name_es = "El proveedor del modelo se satura durante 20 s"
 hidden = true
 duration_s = 90
 chaos = [{ kill = { kind = "infer", at = 20, for = 20 } }]
+pass = { error_rate = 0.02, availability = 0.98 }
+
+[[tests]]
+id = "rate-cut"
+name = "The model provider cuts your limit for 40 s"
+name_es = "El proveedor del modelo te recorta el límite durante 40 s"
+hidden = true
+duration_s = 90
+chaos = [{ model_rate = { kind = "infer", at = 20, for = 40, tpm = 50000 } }]
 pass = { error_rate = 0.02, availability = 0.98 }
 
 [pass]

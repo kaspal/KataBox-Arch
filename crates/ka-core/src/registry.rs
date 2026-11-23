@@ -1705,6 +1705,9 @@ pub fn registry() -> Registry {
                 // M10: when the limiter can't reach its state (a dead card), refuse every
                 // request (`closed`) or let them through unlimited (`open`).
                 choice("on_failure", &["closed", "open"], "closed"),
+                // H2: count requests, or tokens (prompt + answer) for an LLM gateway; with
+                // tokens, the limit and burst are tokens per second and tokens.
+                choice("unit", &["requests", "tokens"], "requests"),
             ],
         ),
         kind(

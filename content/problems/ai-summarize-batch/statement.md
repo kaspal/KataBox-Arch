@@ -23,7 +23,7 @@ The monthly cost is what the run's rate would cost if it went on for a whole mon
 
 - **Summarise a document** (100%). A Scheduler publishes each document to a Queue. A Worker takes it from the Queue and calls a Model Inference card (a chat model). The time measured is from the moment the document is queued until its summary is done.
 
-A document is about 600 tokens long (1,200 at p95), and its summary about 100 tokens (200 at p95). The model provider's account allows 4,000 requests and 400,000 tokens a minute in real time (the card's "Requests per minute limit" and "Tokens per minute limit"); those are your account's limits, and you can't raise them for this job. A call past a limit is refused with an HTTP 429. A Worker keeps its slot for the whole model call.
+A document is about 600 tokens long (1,200 at p95), and its summary about 100 tokens (200 at p95). The model provider's account allows 4,000 requests and 400,000 tokens a minute in real time (the card's "Requests per minute limit" and "Tokens per minute limit"); those are your account's limits, and you can't raise them for this job: the simulator applies them to every Claude API card (the Inspector shows them, read-only). A call past a limit is refused with an HTTP 429. A Worker keeps its slot for the whole model call.
 
 ## The tests
 

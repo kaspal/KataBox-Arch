@@ -82,6 +82,7 @@ pub fn scenario(peak_rps: f64, duration_s: f64, types: Vec<RequestType>) -> Scen
         duration_s,
         request_types: types,
         externals: Vec::new(),
+        model_limits: Vec::new(),
         traffic: Curve::Flat(1.0),
         chaos: Vec::new(),
         type_multipliers: BTreeMap::new(),

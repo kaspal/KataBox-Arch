@@ -11,7 +11,7 @@
       "label": "client",
       "position": {
         "x": 0,
-        "y": 0
+        "y": 112
       },
       "props": {
         "timeout_ms": 30000,
@@ -28,12 +28,39 @@
       "label": "dns",
       "position": {
         "x": 304,
+        "y": 112
+      },
+      "props": {
+        "ttl_s": 30,
+        "routing": "failover"
+      },
+      "group_id": null
+    },
+    {
+      "id": "lb_eu",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb_eu",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {},
+      "group_id": "eu"
+    },
+    {
+      "id": "app_eu",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app_eu",
+      "position": {
+        "x": 912,
         "y": 0
       },
       "props": {
-        "ttl_s": 30
+        "instances": 4
       },
-      "group_id": null
+      "group_id": "eu"
     },
     {
       "id": "lb_us",
@@ -41,8 +68,8 @@
       "flavour": "aws_alb",
       "label": "lb_us",
       "position": {
-        "x": 304,
-        "y": 112
+        "x": 608,
+        "y": 224
       },
       "props": {},
       "group_id": "us"
@@ -53,8 +80,8 @@
       "flavour": "go",
       "label": "app_us",
       "position": {
-        "x": 608,
-        "y": 0
+        "x": 912,
+        "y": 224
       },
       "props": {
         "instances": 4
@@ -67,8 +94,8 @@
       "flavour": "vllm",
       "label": "gpu_us",
       "position": {
-        "x": 608,
-        "y": 112
+        "x": 1216,
+        "y": 224
       },
       "props": {
         "instances": 4,
@@ -77,39 +104,13 @@
       "group_id": "us"
     },
     {
-      "id": "lb_eu",
-      "kind": "lb",
-      "flavour": "aws_alb",
-      "label": "lb_eu",
-      "position": {
-        "x": 304,
-        "y": 224
-      },
-      "props": {},
-      "group_id": "eu"
-    },
-    {
-      "id": "app_eu",
-      "kind": "app",
-      "flavour": "go",
-      "label": "app_eu",
-      "position": {
-        "x": 608,
-        "y": 224
-      },
-      "props": {
-        "instances": 4
-      },
-      "group_id": "eu"
-    },
-    {
       "id": "gpu_eu",
       "kind": "infer",
       "flavour": "vllm",
       "label": "gpu_eu",
       "position": {
-        "x": 608,
-        "y": 336
+        "x": 1216,
+        "y": 0
       },
       "props": {
         "instances": 4,
@@ -123,7 +124,7 @@
       "flavour": "postgresql",
       "label": "db_eu",
       "position": {
-        "x": 1216,
+        "x": 1520,
         "y": 0
       },
       "props": {
@@ -132,18 +133,18 @@
       "group_id": "eu"
     },
     {
-      "id": "db_us",
+      "id": "db_eu2",
       "kind": "sql",
       "flavour": "postgresql",
-      "label": "db_us",
+      "label": "db_eu2",
       "position": {
-        "x": 1216,
-        "y": 112
+        "x": 1520,
+        "y": 224
       },
       "props": {
         "failover_s": 10
       },
-      "group_id": "us"
+      "group_id": "eu2"
     }
   ],
   "edges": [
@@ -154,21 +155,15 @@
       "protocol": "http"
     },
     {
-      "id": "e-dns-lb_us-http",
-      "from": "dns",
-      "to": "lb_us",
-      "protocol": "http"
-    },
-    {
       "id": "e-dns-lb_eu-http",
       "from": "dns",
       "to": "lb_eu",
       "protocol": "http"
     },
     {
-      "id": "e-lb_us-app_us-http",
-      "from": "lb_us",
-      "to": "app_us",
+      "id": "e-dns-lb_us-http",
+      "from": "dns",
+      "to": "lb_us",
       "protocol": "http"
     },
     {
@@ -178,15 +173,9 @@
       "protocol": "http"
     },
     {
-      "id": "e-app_us-gpu_us-http",
-      "from": "app_us",
-      "to": "gpu_us",
-      "protocol": "http"
-    },
-    {
-      "id": "e-app_us-gpu_eu-http",
-      "from": "app_us",
-      "to": "gpu_eu",
+      "id": "e-lb_us-app_us-http",
+      "from": "lb_us",
+      "to": "app_us",
       "protocol": "http"
     },
     {
@@ -196,16 +185,10 @@
       "protocol": "http"
     },
     {
-      "id": "e-app_eu-gpu_us-http",
-      "from": "app_eu",
+      "id": "e-app_us-gpu_us-http",
+      "from": "app_us",
       "to": "gpu_us",
       "protocol": "http"
-    },
-    {
-      "id": "e-app_us-db_eu-query",
-      "from": "app_us",
-      "to": "db_eu",
-      "protocol": "query"
     },
     {
       "id": "e-app_eu-db_eu-query",
@@ -214,42 +197,63 @@
       "protocol": "query"
     },
     {
-      "id": "e-db_eu-db_us-replicate",
+      "id": "e-app_us-db_eu-query",
+      "from": "app_us",
+      "to": "db_eu",
+      "protocol": "query"
+    },
+    {
+      "id": "e-db_eu-db_eu2-replicate",
       "from": "db_eu",
-      "to": "db_us",
+      "to": "db_eu2",
       "protocol": "replicate"
     }
   ],
   "groups": [
     {
-      "id": "us",
-      "kind": "region",
-      "label": "us-east",
-      "position": {
-        "x": 280,
-        "y": -40
-      },
-      "size": {
-        "w": 1168,
-        "h": 240
-      },
-      "parent_id": null,
-      "region_tag": "us"
-    },
-    {
       "id": "eu",
       "kind": "region",
       "label": "eu-west",
       "position": {
-        "x": 280,
+        "x": 584,
         "y": -40
       },
       "size": {
         "w": 1168,
-        "h": 464
+        "h": 128
       },
       "parent_id": null,
       "region_tag": "eu"
+    },
+    {
+      "id": "eu2",
+      "kind": "region",
+      "label": "eu-central",
+      "position": {
+        "x": 1496,
+        "y": 184
+      },
+      "size": {
+        "w": 256,
+        "h": 128
+      },
+      "parent_id": null,
+      "region_tag": "eu"
+    },
+    {
+      "id": "us",
+      "kind": "region",
+      "label": "us-east",
+      "position": {
+        "x": 584,
+        "y": 184
+      },
+      "size": {
+        "w": 864,
+        "h": 128
+      },
+      "parent_id": null,
+      "region_tag": "us"
     }
   ],
   "notes": [],

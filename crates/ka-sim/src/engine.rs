@@ -205,6 +205,9 @@ struct Req {
     /// S2: the request's prompt and answer tokens (drawn at its first model call; -1: not yet).
     tin: f64,
     tout: f64,
+    /// H2: the time to first token of the chat call in progress, recorded when the call
+    /// completes (never for a call its caller abandoned); -1: none.
+    ttft_us: f64,
     /// S4: a job task (job run `job`, task `task`): its executor time, when it started
     /// running, and whether a spot interruption already freed its executor.
     job: u16,
@@ -327,6 +330,9 @@ struct NodeRt {
     rpm_left: f64,
     tpm_left: f64,
     bucket_at: u64,
+    /// H2: a provider's cut to this card's per-minute limits (chaos `model_rate`).
+    rpm_cut: Option<f64>,
+    tpm_cut: Option<f64>,
     bill_tin: f64,
     bill_tout: f64,
     bill_conn_s: f64,
@@ -1137,6 +1143,7 @@ impl Engine {
             lock_stale: false,
             shadow: false,
             tin: -1.0,
+            ttft_us: -1.0,
             tout: 0.0,
             job: NO_JOB,
             task: 0,
@@ -1808,11 +1815,12 @@ impl Engine {
         if !spec.hosted {
             return true;
         }
-        let (rpm, tpm, sample) = (
-            spec.rpm * self.c.sample,
-            spec.tpm * self.c.sample,
-            self.c.sample,
+        let rt = &self.nodes[node as usize];
+        let (rpm, tpm) = (
+            rt.rpm_cut.map_or(spec.rpm, |c| c.min(spec.rpm)),
+            rt.tpm_cut.map_or(spec.tpm, |c| c.min(spec.tpm)),
         );
+        let (rpm, tpm, sample) = (rpm * self.c.sample, tpm * self.c.sample, self.c.sample);
         let tokens = self.reqs[r as usize].tin + self.reqs[r as usize].tout;
         let now = self.now;
         let rt = &mut self.nodes[node as usize];
@@ -1854,11 +1862,14 @@ impl Engine {
         let stretch = self.nodes[node as usize].stretch;
         let add = self.nodes[node as usize].add_us;
         let first = self.now + (ttft_s * 1e6 * stretch) as u64 + add;
-        let q = &self.reqs[r as usize];
-        let lat = (first - q.start + q.net) as f64;
-        let ty = q.ty as usize;
-        let w = self.c.weight;
-        self.types[ty].ttft.add(lat, w);
+        let q = &mut self.reqs[r as usize];
+        // H2: only a chat answer has a first token worth waiting for (an embedding or a
+        // label arrives whole); it is recorded when the call completes.
+        q.ttft_us = if spec.model_type == "embed" || spec.model_type == "classify" {
+            -1.0
+        } else {
+            (first - q.start + q.net) as f64
+        };
         ((ttft_s + decode_s) * 1e6 * stretch) as u64 + add + 1
     }
 
@@ -2569,7 +2580,13 @@ impl Engine {
         if write && role == Role::Datastore {
             self.note_commit(node);
         }
-        if matches!(role, Role::Datastore | Role::Cache) {
+        let ttft = std::mem::replace(&mut self.reqs[r as usize].ttft_us, -1.0);
+        if ttft >= 0.0 {
+            let w = self.c.weight;
+            self.types[ty].ttft.add(ttft, w);
+        }
+        // H2: a model call is processing too: a card outside the request's residency counts.
+        if matches!(role, Role::Datastore | Role::Cache | Role::Model) {
             self.check_residency(r, node);
         }
         if write && self.c.nodes[node as usize].kind == ComponentKind::Tsdb {
@@ -3485,14 +3502,23 @@ impl Engine {
             Some(k) if k > 0 => (u64::from(q.ty) << 40) | (q.key % u64::from(k)),
             _ => u64::from(q.ty) << 40,
         };
+        let cost = if spec.limit_tokens {
+            // H2: debit the request's tokens (prompt + answer), drawn now for its model call.
+            self.draw_tokens(r);
+            let q = &self.reqs[r as usize];
+            (q.tin + q.tout).max(1.0)
+        } else {
+            1.0
+        };
+        let spec = &self.c.nodes[node as usize].spec;
         let rate = spec.limit_rps * self.c.sample;
         let cap = (spec.burst * self.c.sample).max(1.0);
         let now = self.now;
         let b = self.buckets[node as usize].entry(id).or_insert((cap, now));
         b.0 = (b.0 + rate * (now - b.1) as f64 / 1e6).min(cap);
         b.1 = now;
-        if b.0 >= 1.0 {
-            b.0 -= 1.0;
+        if b.0 >= cost.min(cap) {
+            b.0 -= cost;
             true
         } else {
             false
@@ -3800,6 +3826,28 @@ impl Engine {
                 }
                 for_s = *f;
             }
+            C::ModelRate {
+                target,
+                for_s: f,
+                rpm,
+                tpm,
+                ..
+            } => {
+                targets = self.resolve(target);
+                let sample = self.c.sample;
+                for &n in &targets {
+                    let rt = &mut self.nodes[n as usize];
+                    if let Some(rpm) = rpm {
+                        rt.rpm_cut = Some(rpm.max(0.0));
+                        rt.rpm_left = rt.rpm_left.min(rpm.max(0.0) * sample);
+                    }
+                    if let Some(tpm) = tpm {
+                        rt.tpm_cut = Some(tpm.max(0.0));
+                        rt.tpm_left = rt.tpm_left.min(tpm.max(0.0) * sample);
+                    }
+                }
+                for_s = *f;
+            }
             C::Split { zone, for_s: f, .. } => {
                 let zone = self.resolve_zone(zone);
                 self.splits.push(SplitRt {
@@ -3947,6 +3995,13 @@ impl Engine {
                     if rate.is_some() {
                         ext.rate_cut = None;
                     }
+                }
+            }
+            C::ModelRate { .. } => {
+                for &n in &targets {
+                    let rt = &mut self.nodes[n as usize];
+                    rt.rpm_cut = None;
+                    rt.tpm_cut = None;
                 }
             }
             C::Split { .. } => {

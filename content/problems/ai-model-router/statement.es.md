@@ -26,7 +26,7 @@ Las etiquetas del enrutador vienen con el tráfico: las preguntas fáciles siemp
 
 Hay dos modelos disponibles:
 
-- **El modelo grande**: una tarjeta API de Claude. Se factura por token y escribe unos 80 tokens por segundo (el valor por defecto de la tarjeta). El nivel de tu cuenta permite 4000 peticiones y 1 500 000 tokens por minuto, y el proveedor no lo subirá este trimestre: deja el Límite de tokens por minuto en 1 500 000. Una llamada por encima del límite se rechaza con un HTTP 429.
+- **El modelo grande**: una tarjeta API de Claude. Se factura por token y escribe unos 80 tokens por segundo (el valor por defecto de la tarjeta). El nivel de tu cuenta permite 4000 peticiones y 1 500 000 tokens por minuto, y el proveedor no lo subirá este trimestre: el simulador los aplica a cada tarjeta de API de Claude (el Inspector los muestra, sin poder cambiarlos). Una llamada por encima del límite se rechaza con un HTTP 429.
 - **El modelo pequeño**: un modelo de pesos abiertos que ejecutas tú mismo en una tarjeta vLLM en GPU. Cada instancia de GPU se factura por mes, sirva lo que sirva, y trabaja en varias respuestas a la vez (sus Huecos de lote por GPU). El modelo pequeño es rápido: pon su Velocidad de salida en 150 tokens por segundo.
 
 Una respuesta difícil tarda muchos segundos en llegar, así que la ventana de ayuda (la tarjeta Cliente) la espera hasta 60 s: pon el Tiempo límite del Cliente en 60 000 ms.

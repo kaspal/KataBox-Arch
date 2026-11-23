@@ -24,9 +24,9 @@ Each team has agreed to a share of 55,000 tokens a minute. One of the teams some
 
 A typical request sends about 400 tokens of prompt (1,000 at p95) and gets about 60 tokens back (120 at p95); the long ones pull the average a little higher. Each request passes a Load Balancer and the API Gateway (and any Rate Limiter you put on the way), then an App Server calls the Model Inference card and waits for the whole answer. In the simulator a gateway card passes requests on but can't call a model itself, so the App Server stands for the gateway's worker that makes the provider call.
 
-The Model Inference card's "Requests per minute limit" and "Tokens per minute limit" are your account's limits with the provider: keep them at their defaults (4,000 and 400,000). Changing the prop doesn't change the contract.
+The Model Inference card's "Requests per minute limit" and "Tokens per minute limit" are your account's limits with the provider, 4,000 and 400,000: the simulator applies them to every Claude API card (the Inspector shows them, read-only).
 
-A Rate Limiter keeps a token bucket for each API key: its Limit is requests a second per key, and its Burst is how many a key may send at once. It counts requests, not tokens. A request it refuses gets a 429. For the nine ordinary teams that is an error; for the team that floods, a refusal is exactly what should happen, so it counts as a success.
+A Rate Limiter keeps a token bucket for each API key. Its Count says what the bucket counts: Requests, or Tokens (prompt + answer). With Tokens, each request takes its prompt and answer tokens from the bucket, the Limit is tokens a second per key, and the Burst is how many tokens a key may spend at once. A request it refuses gets a 429. For the nine ordinary teams that is an error; for the team that floods, a refusal is exactly what should happen, so it counts as a success.
 
 ## The tests
 

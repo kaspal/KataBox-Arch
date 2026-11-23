@@ -23,7 +23,7 @@ Hay un tipo de petición.
 
 La latencia se mide hasta completar: desde que llega la subida hasta que el vector queda guardado. Un documento típico tiene unos 500 tokens; uno de cada veinte pasa de 1500 tokens. Por esos documentos largos, la media es de unos 625 tokens.
 
-La API de embeddings es el sabor API de OpenAI. Deja su Tiempo hasta el primer token (500 ms) y su Velocidad del prompt (5000 tokens por segundo) como están: describen al proveedor, no tu diseño. Los límites de tu cuenta son **3000 peticiones por minuto** y **600 000 tokens por minuto**. Pon esos números en el "Límite de peticiones por minuto" y el "Límite de tokens por minuto" de la tarjeta; subirlos no es una decisión de diseño. Una llamada por encima de un límite se rechaza con un error de límite (un HTTP 429). Usa el Modo de API Tiempo real: la API por lotes devuelve sus resultados horas después, muy por encima del objetivo de 30 s.
+La API de embeddings es el sabor API de OpenAI. Deja su Tiempo hasta el primer token (500 ms) y su Velocidad del prompt (5000 tokens por segundo) como están: describen al proveedor, no tu diseño. Los límites de tu cuenta son **3000 peticiones por minuto** y **600 000 tokens por minuto**. No son una decisión de diseño: el simulador los aplica a cada tarjeta de API de OpenAI (el Inspector los muestra, sin poder cambiarlos). Una llamada por encima de un límite se rechaza con un error de límite (un HTTP 429). Usa el Modo de API Tiempo real: la API por lotes devuelve sus resultados horas después, muy por encima del objetivo de 30 s.
 
 ## Las pruebas
 

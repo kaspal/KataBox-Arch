@@ -20,7 +20,7 @@ You run a writing assistant: people chat with it, and your backend sends each me
 
 An answer takes several seconds to arrive in full, so the chat window (the Client card) waits up to 30 s for it: set the Client's Timeout to 30,000 ms.
 
-Your model account allows 4,000 requests and 2,000,000 tokens a minute: set them as the Model Inference card's Requests per minute limit and Tokens per minute limit. A warehouse is built for big scans, not for small writes: writing one trace holds a warehouse slot for about 300 ms. A Snowflake warehouse has 8 slots per instance and is billed only while it runs.
+Your model account allows 4,000 requests and 2,000,000 tokens a minute: the simulator applies them to every Claude API card (the Inspector shows them, read-only). A warehouse is built for big scans, not for small writes: writing one trace holds a warehouse slot for about 300 ms. A Snowflake warehouse has 8 slots per instance and is billed only while it runs.
 
 ## The tests
 

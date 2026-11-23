@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::registry::ComponentKind;
+use crate::registry::{ComponentKind, Flavour};
 
 /// One kind of request a problem's traffic is made of (e.g. `redirect`, `create`).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -290,6 +290,21 @@ pub struct External {
     pub rate_limit: Option<f64>,
 }
 
+/// H2: a hosted model's account limits, set by the problem (the tier its statement names):
+/// every hosted Model Inference card of this flavour gets them, whatever its own props say.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(deny_unknown_fields)]
+pub struct ModelLimit {
+    pub flavour: Flavour,
+    /// Requests per minute.
+    #[serde(default)]
+    pub rpm: Option<f64>,
+    /// Tokens (in + out) per minute.
+    #[serde(default)]
+    pub tpm: Option<f64>,
+}
+
 /// The load over time, as a multiplier of the peak rate.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
@@ -456,6 +471,19 @@ pub enum ChaosEvent {
         #[serde(default)]
         rate: Option<f64>,
     },
+    /// H2: a hosted model provider cuts the selected Model Inference cards' per-minute
+    /// limits to `rpm` / `tpm` (for `for` seconds, else to the end).
+    ModelRate {
+        #[serde(flatten)]
+        target: Selector,
+        at: f64,
+        #[serde(default, rename = "for")]
+        for_s: Option<f64>,
+        #[serde(default)]
+        rpm: Option<f64>,
+        #[serde(default)]
+        tpm: Option<f64>,
+    },
     /// S8: a bad build is deployed to the compute cards selected. Its instances fail
     /// `error_rate` of their requests and add `add_ms`. It rolls out by each card's
     /// `rollout_percent` every `bake_s`, rolls back by itself with `auto_rollback`, and is
@@ -528,6 +556,7 @@ impl ChaosEvent {
             | ChaosEvent::Traffic { at, .. }
             | ChaosEvent::Flush { at, .. }
             | ChaosEvent::External { at, .. }
+            | ChaosEvent::ModelRate { at, .. }
             | ChaosEvent::Deploy { at, .. }
             | ChaosEvent::ConfigPush { at, .. }
             | ChaosEvent::DnsOutage { at, .. }
@@ -623,6 +652,9 @@ pub struct Scenario {
     pub request_types: Vec<RequestType>,
     #[serde(default)]
     pub externals: Vec<External>,
+    /// H2: hosted model limits the problem pins.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub model_limits: Vec<ModelLimit>,
     #[serde(default)]
     pub traffic: Curve,
     #[serde(default)]

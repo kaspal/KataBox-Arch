@@ -120,6 +120,10 @@ pub struct ProblemDef {
     pub request_types: Vec<RequestType>,
     #[serde(default)]
     pub externals: Vec<External>,
+    /// H2: hosted model limits (the account tier the statement names), enforced whatever
+    /// the cards say.
+    #[serde(default)]
+    pub model_limits: Vec<crate::scenario::ModelLimit>,
     pub tests: Vec<TestDef>,
     pub pass: PassCriteria,
     /// Simulated arrivals per second above which the simulator samples (ADR 0006). Set only
@@ -151,6 +155,7 @@ impl ProblemDef {
             duration_s: test.duration_s,
             request_types: self.request_types.clone(),
             externals: self.externals.clone(),
+            model_limits: self.model_limits.clone(),
             traffic: test.traffic.clone(),
             chaos: test.chaos.clone(),
             type_multipliers: test.type_multipliers.clone(),

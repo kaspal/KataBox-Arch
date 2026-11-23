@@ -13197,6 +13197,19 @@
               "type": "choice"
             },
             "unit": "none"
+          },
+          {
+            "calibration": null,
+            "default": "requests",
+            "key": "unit",
+            "ty": {
+              "options": [
+                "requests",
+                "tokens"
+              ],
+              "type": "choice"
+            },
+            "unit": "none"
           }
         ]
       },

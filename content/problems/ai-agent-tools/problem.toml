@@ -34,6 +34,11 @@ name = "payments"
 median_ms = 200
 p99_ms = 800
 
+[[model_limits]]
+flavour = "claude_api"
+rpm = 4000
+tpm = 2000000
+
 [[request_types]]
 id = "question"
 name = "Answer an order question"

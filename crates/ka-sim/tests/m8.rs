@@ -2361,3 +2361,145 @@ fn h4_a_cache_aside_cache_is_not_a_lock() {
     ];
     assert!(simulate(&d, &registry(), &s, 42, &SimOptions::default()).is_ok());
 }
+
+// --- H2: AI-track honesty ------------------------------------------------------------------------
+
+/// A problem pins the account's limits: raising the card's own `tpm` doesn't help.
+#[test]
+fn h2_pinned_model_limits_override_the_card() {
+    let m = node(
+        "llm",
+        K::Infer,
+        Flavour::ClaudeApi,
+        &[("tpm", 10_000_000.0)],
+    );
+    let (d, mut s) = llm(m, 5.0);
+    assert_eq!(
+        run(&d, &s, 62).rate_limited,
+        0.0,
+        "the card's own limit is huge"
+    );
+    s.model_limits = vec![ka_core::scenario::ModelLimit {
+        flavour: Flavour::ClaudeApi,
+        rpm: None,
+        tpm: Some(100_000.0),
+    }];
+    let pinned = run(&d, &s, 62);
+    assert!(pinned.rate_limited > 0.0 && pinned.errors > 0.0);
+    // Another provider's cards are untouched.
+    let m = node(
+        "llm",
+        K::Infer,
+        Flavour::OpenaiApi,
+        &[("tpm", 10_000_000.0)],
+    );
+    let (d, _) = llm(m, 5.0);
+    assert_eq!(run(&d, &s, 62).rate_limited, 0.0);
+}
+
+/// The provider cuts the limits mid-run (`model_rate`), then restores them.
+#[test]
+fn h2_a_provider_rate_cut_hits_model_cards() {
+    let m = node("llm", K::Infer, Flavour::ClaudeApi, &[]);
+    let (mut d, mut s) = llm(m, 5.0);
+    // Long answers: the client waits for them.
+    d.nodes[0]
+        .props
+        .insert("timeout_ms".into(), PropValue::Number(60_000.0));
+    assert_eq!(run(&d, &s, 64).rate_limited, 0.0);
+    s.chaos = vec![chaos(serde_json::json!(
+        { "model_rate": { "kind": "infer", "all": true, "at": 10, "for": 30, "tpm": 50000 } }
+    ))];
+    let cut = run(&d, &s, 64);
+    assert!(cut.rate_limited > 0.0);
+    let bad: Vec<_> = cut.series.iter().filter(|x| x.errors > 0.0).collect();
+    assert!(!bad.is_empty());
+    assert!(
+        bad.iter().all(|x| x.t >= 10),
+        "nothing fails before the cut"
+    );
+}
+
+/// TTFT is a chat measure: embeddings and labels arrive whole, and a call the caller gave up
+/// on never showed its user a first token.
+#[test]
+fn h2_ttft_only_for_completed_chat_calls() {
+    let m = node("llm", K::Infer, Flavour::ClaudeApi, &[]);
+    let (d, s) = llm(m, 5.0);
+    assert!(run(&d, &s, 61).ttft.is_some());
+    let mut m = node("llm", K::Infer, Flavour::ClaudeApi, &[]);
+    m.props
+        .insert("model_type".into(), PropValue::Text("embed".into()));
+    let (d, s) = llm(m, 5.0);
+    assert!(
+        run(&d, &s, 61).ttft.is_none(),
+        "an embedding has no first token"
+    );
+    // A 1 s client timeout gives up on every ~4.5 s answer.
+    let (mut d, s) = llm(node("llm", K::Infer, Flavour::ClaudeApi, &[]), 5.0);
+    d.nodes[0]
+        .props
+        .insert("timeout_ms".into(), PropValue::Number(1000.0));
+    assert!(
+        run(&d, &s, 61).ttft.is_none(),
+        "abandoned calls record no TTFT"
+    );
+}
+
+/// Residency covers model calls: an EU request answered by a model outside the EU counts.
+#[test]
+fn h2_residency_covers_model_calls() {
+    let tagged = |tag: &str| {
+        let (mut d, mut s) = llm(node("llm", K::Infer, Flavour::ClaudeApi, &[]), 5.0);
+        let mut g = region("r");
+        g.region_tag = Some(tag.into());
+        d.groups = vec![g];
+        for n in &mut d.nodes {
+            n.group_id = Some("r".into());
+        }
+        s.request_types[0].residency = Some("eu".into());
+        run(&d, &s, 65).residency_violations
+    };
+    assert_eq!(tagged("eu"), 0.0);
+    assert!(tagged("us") > 0.0);
+}
+
+/// A rate limiter with `unit = tokens` debits each request's prompt + answer tokens.
+#[test]
+fn h2_a_token_rate_limiter_counts_tokens() {
+    let limited = |unit: &str| {
+        let mut rl = node(
+            "rl",
+            K::Ratelimit,
+            Flavour::Envoy,
+            &[("limit_rps", 3_000.0), ("burst", 3_000.0)],
+        );
+        rl.props.insert("unit".into(), PropValue::Text(unit.into()));
+        let d = design(
+            vec![
+                node(
+                    "client",
+                    K::Client,
+                    Flavour::Web,
+                    &[("timeout_ms", 60_000.0)],
+                ),
+                rl,
+                node("app", K::App, Flavour::Go, &[]),
+                node("llm", K::Infer, Flavour::ClaudeApi, &[]),
+            ],
+            vec![
+                edge("client", "rl", Protocol::Http),
+                edge("rl", "app", Protocol::Http),
+                edge("app", "llm", Protocol::Http),
+            ],
+        );
+        let mut t = chat_type(800.0, 300.0);
+        t.route = vec!["edge".into(), "compute".into(), "model".into()];
+        t.measure = ka_core::scenario::Measure::Response;
+        let s = scenario(5.0, 30.0, vec![t]);
+        run(&d, &s, 66).errors
+    };
+    // 5 requests/s is far under 3,000/s; ~5,500 tokens/s is over 3,000 tokens/s.
+    assert_eq!(limited("requests"), 0.0);
+    assert!(limited("tokens") > 0.0);
+}

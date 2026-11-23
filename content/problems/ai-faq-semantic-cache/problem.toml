@@ -16,6 +16,11 @@ p95_ms = 5000
 availability = 0.99
 budget_usd = 80000
 
+[[model_limits]]
+flavour = "claude_api"
+rpm = 4000
+tpm = 400000
+
 [[request_types]]
 id = "ask"
 name = "Ask the help centre a question"

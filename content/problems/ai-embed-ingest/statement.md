@@ -23,7 +23,7 @@ There is one request type.
 
 Latency is measured to completion: from the moment the upload arrives until the vector is stored. A typical document is about 500 tokens long; one in twenty is longer than 1,500 tokens. Because of those long ones, the average is about 625 tokens.
 
-The embeddings API is the OpenAI API flavour. Keep its Time to first token (500 ms) and Prompt speed (5,000 tokens a second) as they are: they describe the provider, not your design. Your account's limits are **3,000 requests a minute** and **600,000 tokens a minute**. Set the card's "Requests per minute limit" and "Tokens per minute limit" to those numbers; raising them is not a design choice. A call over a limit is refused with a rate-limit error (an HTTP 429). Use the Real time API mode: the batch API returns its results hours later, far past the 30 s goal.
+The embeddings API is the OpenAI API flavour. Keep its Time to first token (500 ms) and Prompt speed (5,000 tokens a second) as they are: they describe the provider, not your design. Your account's limits are **3,000 requests a minute** and **600,000 tokens a minute**. They are not a design choice: the simulator applies them to every OpenAI API card (the Inspector shows them, read-only). A call over a limit is refused with a rate-limit error (an HTTP 429). Use the Real time API mode: the batch API returns its results hours later, far past the 30 s goal.
 
 ## The tests
 

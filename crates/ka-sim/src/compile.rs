@@ -319,6 +319,21 @@ pub fn compile(
             }
         })
         .collect();
+    // H2: a problem pins its hosted models' account limits; the cards' own props don't count.
+    for n in nodes.iter_mut().filter(|n| n.spec.hosted) {
+        for lim in scenario
+            .model_limits
+            .iter()
+            .filter(|l| l.flavour == n.flavour)
+        {
+            if let Some(rpm) = lim.rpm {
+                n.spec.rpm = rpm;
+            }
+            if let Some(tpm) = lim.tpm {
+                n.spec.tpm = tpm;
+            }
+        }
+    }
     for e in &design.edges {
         if let (Some(&a), Some(&b)) = (index.get(e.from.as_str()), index.get(e.to.as_str())) {
             nodes[a as usize].out.push((b, e.protocol));

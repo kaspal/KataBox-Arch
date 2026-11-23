@@ -62,8 +62,9 @@
         "y": 336
       },
       "props": {
-        "limit_rps": 2,
-        "burst": 10
+        "limit_rps": 917,
+        "burst": 10000,
+        "unit": "tokens"
       },
       "group_id": null
     },

@@ -16,6 +16,11 @@ p95_ms = 30000
 availability = 0.999
 budget_usd = 320000
 
+[[model_limits]]
+flavour = "claude_api"
+rpm = 4000
+tpm = 1500000
+
 [[request_types]]
 id = "easy"
 name = "Ask an easy question"

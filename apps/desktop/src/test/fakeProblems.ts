@@ -29,6 +29,7 @@ export const FAKE_BRIEF: ProblemBrief = {
     { id: "create", name: "Create a link", name_es: "Crear un enlace", share: 0.05 },
   ],
   externals: [],
+  model_limits: [],
   tests: [
     { id: "normal", name: "Normal day", name_es: "Un día normal", hidden: false, duration_s: 60, availability: 0.99 },
     { id: "viral", name: "Link goes viral", name_es: "El enlace se hace viral", hidden: true, duration_s: 60, availability: null },

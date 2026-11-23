@@ -21,7 +21,7 @@ Tienes el asistente de soporte dentro de una app de compras. Un cliente escribe 
 
 La app de chat espera hasta 30 s una respuesta: pon el Tiempo límite del Cliente web en 30 000 ms.
 
-Tus dos cuentas de proveedor tienen estos límites por minuto. Ponlos en las tarjetas, porque el simulador usa los límites que escribas:
+Tus dos cuentas de proveedor tienen estos límites por minuto. El simulador los aplica a cada tarjeta de ese proveedor (el Inspector los muestra, sin poder cambiarlos):
 
 | Tarjeta | Límite de peticiones por minuto | Límite de tokens por minuto |
 | --- | --- | --- |

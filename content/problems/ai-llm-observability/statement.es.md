@@ -20,7 +20,7 @@ Tienes un asistente de escritura: la gente chatea con él, y tu backend envía c
 
 Una respuesta tarda varios segundos en llegar entera, así que la ventana del chat (la tarjeta Cliente) la espera hasta 30 s: pon el Tiempo límite del Cliente en 30 000 ms.
 
-Tu cuenta del modelo permite 4000 peticiones y 2 000 000 de tokens por minuto: ponlos como Límite de peticiones por minuto y Límite de tokens por minuto de la tarjeta de Inferencia de modelos. Un almacén de datos está hecho para lecturas grandes, no para escrituras pequeñas: escribir una traza ocupa un hueco del almacén unos 300 ms. Un almacén Snowflake tiene 8 huecos por instancia y solo se cobra mientras funciona.
+Tu cuenta del modelo permite 4000 peticiones y 2 000 000 de tokens por minuto: el simulador los aplica a cada tarjeta de API de Claude (el Inspector los muestra, sin poder cambiarlos). Un almacén de datos está hecho para lecturas grandes, no para escrituras pequeñas: escribir una traza ocupa un hueco del almacén unos 300 ms. Un almacén Snowflake tiene 8 huecos por instancia y solo se cobra mientras funciona.
 
 ## Las pruebas
 
