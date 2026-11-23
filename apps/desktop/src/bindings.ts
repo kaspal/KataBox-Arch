@@ -902,6 +902,11 @@ export type ChaosEvent =
  */
 { control_plane: { at: number; for?: number | null } } | 
 /**
+ * M8: the time series written multiply by `x` (a cardinality explosion: a new label
+ * with many values).
+ */
+{ cardinality: { x: number; at: number; for?: number | null } } | 
+/**
  * S4: the cloud takes back spot capacity: `share` of the selected batch cards'
  * executors stop, and the tasks they ran start again (from their last checkpoint with
  * `checkpoint`), until `for` seconds later.

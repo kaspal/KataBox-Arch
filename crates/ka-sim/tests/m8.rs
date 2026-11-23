@@ -1759,3 +1759,132 @@ fn golden_n_kind_behaviours() {
     let (d, s) = with_idp("local", &["compute", "auth", "datastore"]);
     golden("n2", &run(&d, &s, 42));
 }
+
+// --- M8 kind behaviours: graph, vector, time series, media ----------------------------------
+
+fn one_store(
+    store: ka_core::Node,
+    t: ka_core::scenario::RequestType,
+    rps: f64,
+) -> (Design, Scenario) {
+    let id = store.id.clone();
+    let d = design(
+        vec![
+            node("client", K::Client, Flavour::Web, &[]),
+            node("app", K::App, Flavour::Go, &[]),
+            store,
+        ],
+        vec![
+            edge("client", "app", Protocol::Http),
+            edge("app", &id, Protocol::Query),
+        ],
+    );
+    (d, scenario(rps, 30.0, vec![t]))
+}
+
+#[test]
+fn m8_graph_traversals_cost_hops_times_fanout() {
+    let mut deep = rtype("rings", 1.0, &["compute", "datastore"]);
+    deep.traversal = Some(ka_core::scenario::Traversal {
+        hops: 4,
+        fanout: 20.0,
+    });
+    let mut near = deep.clone();
+    near.traversal = Some(ka_core::scenario::Traversal {
+        hops: 2,
+        fanout: 20.0,
+    });
+    let g = || node("graph", K::Graph, Flavour::Neo4j, &[]);
+    let (d, s) = one_store(g(), deep, 20.0);
+    let slow = run(&d, &s, 131).latency.p50_ms;
+    let (d, s) = one_store(g(), near, 20.0);
+    let fast = run(&d, &s, 131).latency.p50_ms;
+    // 168,420 relationships at 500 per ms ≈ 337 ms, against 420 ≈ 1 ms.
+    assert!(slow > 250.0 && fast < 20.0, "{slow} vs {fast}");
+}
+
+#[test]
+fn m8_vector_search_slows_with_vectors_per_shard_and_top_k() {
+    let v = |shards: f64| {
+        node(
+            "vec",
+            K::Vector,
+            Flavour::Qdrant,
+            &[("vectors_m", 512.0), ("shards", shards)],
+        )
+    };
+    let q = |k: u32| {
+        let mut t = rtype("search", 1.0, &["compute", "datastore"]);
+        t.top_k = Some(k);
+        t
+    };
+    let (d, s) = one_store(v(1.0), q(10), 50.0);
+    let one = run(&d, &s, 132).latency.p50_ms;
+    let (d, s) = one_store(v(16.0), q(10), 50.0);
+    let sharded = run(&d, &s, 132).latency.p50_ms;
+    let (d, s) = one_store(v(16.0), q(100), 50.0);
+    let deep = run(&d, &s, 132).latency.p50_ms;
+    assert!(sharded < one, "{sharded} vs {one}");
+    assert!(deep > sharded * 2.0, "{deep} vs {sharded}");
+}
+
+#[test]
+fn m8_a_cardinality_explosion_slows_then_refuses_writes() {
+    let mut w = rtype("points", 1.0, &["compute", "datastore:write"]);
+    w.series = 600_000.0;
+    let (d, mut s) = one_store(node("tsdb", K::Tsdb, Flavour::Influxdb, &[]), w, 500.0);
+    s.chaos = vec![chaos(
+        serde_json::json!({ "cardinality": { "x": 10.0, "at": 10, "for": 10 } }),
+    )];
+    let r = run(&d, &s, 133);
+    assert!(
+        r.errors > 1000.0,
+        "6M series against a 1M limit: {}",
+        r.errors
+    );
+    let calm: f64 = r.series[..10].iter().map(|x| x.errors).sum();
+    assert_eq!(calm, 0.0);
+}
+
+#[test]
+fn m8_a_live_encoder_adds_segments_to_glass_to_glass_latency() {
+    let viewers = |flavour: Flavour| {
+        let d = design(
+            vec![
+                node("client", K::Client, Flavour::Web, &[]),
+                node("media", K::Media, flavour, &[("instances", 4.0)]),
+                node("app", K::App, Flavour::Go, &[]),
+            ],
+            vec![
+                edge("client", "media", Protocol::Ws),
+                edge("client", "app", Protocol::Http),
+            ],
+        );
+        let mut t = rtype("viewers", 0.0, &["edge"]);
+        t.kind = ka_core::scenario::TypeKind::Connection;
+        t.connected = 20.0;
+        t.push_rps = 1.0;
+        (
+            d,
+            scenario(10.0, 30.0, vec![t, rtype("api", 1.0, &["compute"])]),
+        )
+    };
+    let (d, s) = viewers(Flavour::ElementalLive);
+    let hls = run(&d, &s, 134);
+    let (d, s) = viewers(Flavour::Livekit);
+    let sfu = run(&d, &s, 134);
+    let lat = |r: &RunResult| {
+        r.per_type
+            .iter()
+            .find(|t| t.id == "viewers")
+            .unwrap()
+            .latency
+            .p50_ms
+    };
+    assert!(
+        lat(&hls) > 5000.0 && lat(&sfu) < 500.0,
+        "{} vs {}",
+        lat(&hls),
+        lat(&sfu)
+    );
+}

@@ -712,7 +712,12 @@ pub fn compile(
 /// through edge hops (in node order).
 fn connection_type(nodes: &[CNode], def: &RequestType) -> Result<CType, SimError> {
     let n = nodes.len();
-    let holder = |k: ComponentKind| matches!(k, ComponentKind::Ws | ComponentKind::Mqtt);
+    let holder = |k: ComponentKind| {
+        matches!(
+            k,
+            ComponentKind::Ws | ComponentKind::Mqtt | ComponentKind::Media
+        )
+    };
     let (mut holders, mut client) = (BTreeSet::new(), None);
     for c in (0..n as u32).filter(|&i| nodes[i as usize].kind == ComponentKind::Client) {
         let mut seen = vec![false; n];

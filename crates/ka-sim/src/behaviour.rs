@@ -170,6 +170,14 @@ pub struct NodeSpec {
     pub pool_size: f64,
     /// M8: the provider a Third-Party API card stands for.
     pub binding: String,
+    /// M8: graph traversal speed; vector count; time-series ingest rate and series limit;
+    /// a media server's mode (true: transcode) and segment length.
+    pub edges_per_ms: f64,
+    pub vectors: f64,
+    pub points_per_s: f64,
+    pub series_limit: f64,
+    pub transcode: bool,
+    pub segment_s: f64,
 }
 
 /// The value of `key` for `node`: the card's prop, else its flavour override, else the
@@ -229,7 +237,7 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
     .max(1.0);
     let lane_key = match node.kind {
         K::Nosql => Some("partitions"),
-        K::Sql | K::Search => Some("shards"),
+        K::Sql | K::Search | K::Vector => Some("shards"),
         _ => None,
     };
     let lanes = lane_key.and_then(n).unwrap_or(1.0).max(1.0) as u32;
@@ -294,7 +302,7 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         cdc_buffer_s: n("cdc_buffer_s").unwrap_or(300.0),
         write_slots: d.write_slots.max(1.0),
         cost_lanes: match node.kind {
-            K::Sql | K::Search => f64::from(lanes) / default_lanes,
+            K::Sql | K::Search | K::Vector => f64::from(lanes) / default_lanes,
             _ => 1.0,
         },
         bill_lanes: match node.kind {
@@ -336,7 +344,11 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         split_failover: text(registry, node, "split_failover").as_deref() == Some("auto"),
         fencing: matches!(prop(registry, node, "fencing"), Some(PropValue::Bool(true))),
         conn_capacity: {
-            let max = n("max_connections").unwrap_or(f64::INFINITY);
+            let max = match node.kind {
+                // M8: a media server holds streams (viewers of an SFU, channels of an encoder).
+                K::Media => n("streams_per_instance").unwrap_or(500.0),
+                _ => n("max_connections").unwrap_or(f64::INFINITY),
+            };
             let by_memory = match (n("memory_gb"), n("conn_memory_kb")) {
                 (Some(gb), Some(kb)) if kb > 0.0 => gb * 1024.0 * 1024.0 / kb,
                 _ => f64::INFINITY,
@@ -402,5 +414,11 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         max_connections: n("max_connections").unwrap_or(f64::INFINITY).max(1.0),
         pool_size: n("pool_size").unwrap_or(100.0).max(1.0),
         binding: text(registry, node, "binding").unwrap_or_default(),
+        edges_per_ms: n("edges_per_ms").unwrap_or(500.0).max(1e-6),
+        vectors: n("vectors_m").unwrap_or(1.0).max(0.0) * 1e6,
+        points_per_s: n("points_per_s").unwrap_or(f64::INFINITY).max(1e-6),
+        series_limit: n("series_limit").unwrap_or(f64::INFINITY),
+        transcode: text(registry, node, "mode").as_deref() == Some("transcode"),
+        segment_s: n("segment_s").unwrap_or(2.0).max(0.0),
     }
 }

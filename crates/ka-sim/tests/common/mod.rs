@@ -66,6 +66,10 @@ pub fn rtype(id: &str, share: f64, route: &[&str]) -> RequestType {
         event_delay: None,
         scan: None,
         residency: None,
+        traversal: None,
+        top_k: None,
+        series: 0.0,
+        span_h: 0.0,
     }
 }
 

@@ -421,6 +421,16 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
     sidecars (Istio 2 ms, Linkerd 1 ms; modelling choices), a meshed service's work takes 10% / 5% more CPU, the
     zone's `mesh_timeout_ms` and `mesh_breaker_errors_pct` are its cards' defaults for `call_timeout_ms` and the
     circuit breaker, and a failed call is retried `mesh_retries` times.
+  - **Graph Database.** A request type's `traversal = { hops, fanout }` visits fanout + fanout² + … relationships;
+    time = `service_ms` + visited ÷ `edges_per_ms`.
+  - **Vector Database.** Lanes are `shards`. Search time = `service_ms` × (1 + log2(vectors per shard ÷ 1M)) ×
+    √(`top_k` ÷ 10) × (1 + 0.15 ln shards): bigger shards and deeper searches cost more, and the slowest shard
+    sets the answer (modelling choices).
+  - **Time-Series Database.** Writes run at `points_per_s` per instance. A request type's `series` (cardinality,
+    times the `cardinality { x, at, for }` chaos) over `series_limit` per instance makes writes 4× slower, and past
+    twice the limit they are refused. Reads cost 2 ms per hour of `span_h`.
+  - **Media Server.** A connection holder (S1) whose capacity is `streams_per_instance`; a push's latency starts
+    from glass-to-glass: three segments plus 1 s for a live encoder (`mode = transcode`), 0.2 s for an SFU.
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE

@@ -467,6 +467,8 @@ pub struct Engine {
     rng_s5: Rng,
     /// S9: requests whose data left their residency.
     residency_violations: f64,
+    /// M8: the cardinality chaos multiplier on time series written.
+    series_x: f64,
 }
 
 /// S1: one connection type's state: connections per holder, push backlog per holder,
@@ -659,6 +661,7 @@ impl Engine {
             duplicates: 0.0,
             rng_s5: Rng::stream(seed, "s5"),
             residency_violations: 0.0,
+            series_x: 1.0,
             caches: c
                 .nodes
                 .iter()
@@ -1492,6 +1495,42 @@ impl Engine {
                 n.spec.verify_ms
             };
         }
+        match n.kind {
+            // M8: a traversal visits fanout + fanout² + … relationships.
+            ComponentKind::Graph => {
+                if let Some(t) = ty.traversal {
+                    let visited: f64 = (1..=t.hops.min(12))
+                        .map(|h| detmath::powf(t.fanout.max(0.0), f64::from(h)))
+                        .sum();
+                    median += visited / n.spec.edges_per_ms;
+                }
+            }
+            // M8: HNSW search time grows with the vectors per shard (log) and with top-k
+            // (square root); every shard answers, so the slowest of them sets the time.
+            ComponentKind::Vector => {
+                let shards = f64::from(n.spec.lanes.max(1));
+                let per_shard = (n.spec.vectors / shards).max(1.0);
+                let k = f64::from(ty.top_k.unwrap_or(10).max(1));
+                median *= (1.0 + detmath::ln((per_shard / 1e6).max(1.0)) / detmath::ln(2.0))
+                    * (k / 10.0).sqrt()
+                    * (1.0 + 0.15 * detmath::ln(shards));
+            }
+            // M8: writes at the ingest rate; past the series limit they slow, then fail
+            // (handled at the call); reads cost more for longer spans.
+            ComponentKind::Tsdb => {
+                if q.call_write {
+                    median =
+                        n.spec.servers / n.spec.instances.max(1.0) * 1000.0 / n.spec.points_per_s;
+                    let series = ty.series * self.series_x / n.spec.instances.max(1.0);
+                    if series > n.spec.series_limit {
+                        median *= 4.0;
+                    }
+                } else {
+                    median += ty.span_h * 2.0;
+                }
+            }
+            _ => {}
+        }
         if let Some(mesh) = n.mesh
             && matches!(n.spec.role, Role::Compute | Role::Worker)
         {
@@ -2168,6 +2207,15 @@ impl Engine {
         }
         if matches!(role, Role::Datastore | Role::Cache) {
             self.check_residency(r, node);
+        }
+        if write && self.c.nodes[node as usize].kind == ComponentKind::Tsdb {
+            // M8: past twice its series limit a time-series database refuses new series.
+            let n = &self.c.nodes[node as usize].spec;
+            let series = self.c.types[ty].def.series * self.series_x / n.instances.max(1.0);
+            if series > 2.0 * n.series_limit {
+                self.call_failed(r);
+                return;
+            }
         }
         match role {
             // A write-through: the cache holds the new value for every reader of the key.
@@ -3405,6 +3453,10 @@ impl Engine {
                 self.control_plane += 1;
                 for_s = *f;
             }
+            C::Cardinality { x, for_s: f, .. } => {
+                self.series_x *= x.max(0.0);
+                for_s = *f;
+            }
             C::Spot {
                 target,
                 share,
@@ -3453,6 +3505,11 @@ impl Engine {
             }
             C::DnsOutage { .. } => self.dns_out_since = None,
             C::Spot { .. } => self.spot_end(i),
+            C::Cardinality { x, .. } => {
+                if *x > 0.0 {
+                    self.series_x /= x;
+                }
+            }
             C::ControlPlane { .. } => {
                 self.control_plane = self.control_plane.saturating_sub(1);
                 if self.control_plane == 0 {
@@ -3648,7 +3705,12 @@ impl Engine {
                 let inflow = rt.conns[h] * def.push_rps * mult * dt;
                 if inflow <= 0.0 || !rate.is_finite() && rt.backlog[h] == 0.0 {
                     if inflow > 0.0 {
-                        self.types[ti].measured.add(1_000.0, inflow);
+                        let base = self.delivery_base_us(node);
+                        self.types[ti].measured.add(base, inflow);
+                        self.types[ti].response.add(base, inflow);
+                        if now <= self.c.duration_us {
+                            self.second_mut().measured.add(base, inflow);
+                        }
                     }
                     continue;
                 }
@@ -3659,7 +3721,7 @@ impl Engine {
                 } else {
                     1e9
                 };
-                let lat = wait_us + 1_000.0;
+                let lat = wait_us + self.delivery_base_us(node);
                 self.types[ti].measured.add(lat, inflow);
                 self.types[ti].response.add(lat, inflow);
                 if now <= self.c.duration_us {
@@ -4103,6 +4165,21 @@ impl Engine {
                 self.set_busy(node, 0, 1);
                 self.start_service(next, node, 0);
             }
+        }
+    }
+
+    /// S1: a push's latency before any backlog: 1 ms through a gateway or broker; through a
+    /// media server, glass to glass: three segments plus transcoding (1 s) for a live
+    /// encoder, 0.2 s for an SFU (modelling choices).
+    fn delivery_base_us(&self, node: u32) -> f64 {
+        let n = &self.c.nodes[node as usize];
+        if n.kind != ComponentKind::Media {
+            return 1_000.0;
+        }
+        if n.spec.transcode {
+            (3.0 * n.spec.segment_s + 1.0) * 1e6
+        } else {
+            200_000.0
         }
     }
 

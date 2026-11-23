@@ -89,6 +89,27 @@ pub struct RequestType {
     /// S9: these requests' data must stay in Regions with this residency tag (e.g. `eu`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub residency: Option<String>,
+    /// M8 graph reads: `hops` levels of `fanout` relationships each.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub traversal: Option<Traversal>,
+    /// M8 vector reads: nearest neighbours asked for (10 if unset).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub top_k: Option<u32>,
+    /// M8 time series: active series the writes spread over (cardinality), and the time span
+    /// a read covers, in hours.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub series: f64,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub span_h: f64,
+}
+
+/// M8: a graph traversal.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(deny_unknown_fields)]
+pub struct Traversal {
+    pub hops: u32,
+    pub fanout: f64,
 }
 
 /// S6: a query over `gb` of table data whose time filter needs `range_share` of it (the
@@ -464,6 +485,14 @@ pub enum ChaosEvent {
         #[serde(default, rename = "for")]
         for_s: Option<f64>,
     },
+    /// M8: the time series written multiply by `x` (a cardinality explosion: a new label
+    /// with many values).
+    Cardinality {
+        x: f64,
+        at: f64,
+        #[serde(default, rename = "for")]
+        for_s: Option<f64>,
+    },
     /// S4: the cloud takes back spot capacity: `share` of the selected batch cards'
     /// executors stop, and the tasks they ran start again (from their last checkpoint with
     /// `checkpoint`), until `for` seconds later.
@@ -491,7 +520,8 @@ impl ChaosEvent {
             | ChaosEvent::ConfigPush { at, .. }
             | ChaosEvent::DnsOutage { at, .. }
             | ChaosEvent::ControlPlane { at, .. }
-            | ChaosEvent::Spot { at, .. } => *at,
+            | ChaosEvent::Spot { at, .. }
+            | ChaosEvent::Cardinality { at, .. } => *at,
         }
     }
 }
