@@ -700,6 +700,22 @@ fn targets_for_step(
                     }
                 }
             }
+            // S2: inference cards on an HTTP/gRPC edge, of the asked model type.
+            Role::Model => {
+                for (b, p) in &nodes[caller as usize].out {
+                    let n = &nodes[*b as usize];
+                    if matches!(p, Protocol::Http | Protocol::Grpc)
+                        && alt.accepts(n.kind)
+                        && alt
+                            .model_type
+                            .as_ref()
+                            .is_none_or(|t| *t == n.spec.model_type)
+                        && !out.contains(&Target::Node(*b))
+                    {
+                        out.push(Target::Node(*b));
+                    }
+                }
+            }
             _ => {}
         }
     }

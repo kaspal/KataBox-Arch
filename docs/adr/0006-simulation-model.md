@@ -332,6 +332,24 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
     (backlog wait + 1 ms) is the type's measured latency.
   - `connected_min` is the least connected share of the target in any second from `ramp_s` + 10 s to the end;
     `pass.connected_min` fails a test as SLO Breach.
+- **Token requests (S2, goldens f and f2).**
+  - Route step `model` (or `model:chat|embed|classify`, matched against the card's `model_type`): a leaf call to
+    a Model Inference card on an HTTP/gRPC edge. Request types may carry `tokens_in` and `tokens_out` (mean and
+    p95, drawn once per request as a lognormal from the `tokens` stream). `embed` produces no output tokens and
+    `classify` one.
+  - Service time = `ttft_ms` + prompt ÷ `prefill_tps` (time to first token) + output ÷ decode speed. Hosted
+    flavours (Claude, OpenAI, Bedrock, Gemini APIs) have no slot limit; self-hosted ones (vLLM, Triton) have
+    `instances × batch_slots` slots and decode at `tokens_per_s × (1 − 0.5 × busy ÷ slots)`, measured when the
+    request starts (continuous batching: more requests, each slower, more in total; the 0.5 is a modelling
+    choice).
+  - Hosted limits: per-minute request (`rpm`) and token (`tpm`) buckets holding one minute's allowance, refilled
+    continuously (scaled by sampling). A call past them is refused with a 429 after 50 ms (`rate_limited`), a
+    failed call that client retries may try again.
+  - TTFT (request start to first token) is recorded per type and overall; `pass.ttft_p95_ms` fails a test as SLO
+    Breach.
+  - Usage meters bill tokens (`tokens_in_m`, `tokens_out_m` per million), halved with `api_mode = batch`; the
+    batch API also skips the per-minute limits. Its delivery window isn't simulated. Connection-minutes and pushed
+    messages (S1) bill through the same meters.
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE

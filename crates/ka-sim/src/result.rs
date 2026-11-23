@@ -49,6 +49,11 @@ pub struct RunResult {
     pub connected_min: f64,
     #[serde(default, skip_serializing_if = "is_zero")]
     pub conn_drops: f64,
+    /// S2: time to first token over every model call, and calls a provider refused (429).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ttft: Option<Percentiles>,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub rate_limited: f64,
     pub cost_month: f64,
     pub per_type: Vec<TypeResult>,
     pub nodes: Vec<NodeResult>,
@@ -65,6 +70,9 @@ pub struct TypeResult {
     pub latency: Percentiles,
     pub response: Percentiles,
     pub completion: Option<Percentiles>,
+    /// S2: time to first token, for types that call a model.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ttft: Option<Percentiles>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

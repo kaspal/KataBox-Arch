@@ -1408,7 +1408,11 @@ conflicts?: number | null;
  * S1: the least share of the target connections that must be connected in every
  * second after `ramp_s` + 10 s.
  */
-connected_min?: number | null }
+connected_min?: number | null; 
+/**
+ * S2: time to first token, 95th percentile, of the requests that call a model.
+ */
+ttft_p95_ms?: number | null }
 /**
  * One step of a path as the UI shows it.
  */
@@ -1648,7 +1652,11 @@ conflicts: number;
  * S1: the least share of the target connections connected in any judged second (from
  * `ramp_s` + 10 s to the end), and connection attempts refused (capacity, accept rate).
  */
-connected_min: number; conn_drops: number; cost_month: number; per_type: TypeResult[]; nodes: NodeResult[]; 
+connected_min: number; conn_drops: number; 
+/**
+ * S2: time to first token over every model call, and calls a provider refused (429).
+ */
+ttft?: Percentiles | null; rate_limited: number; cost_month: number; per_type: TypeResult[]; nodes: NodeResult[]; 
 /**
  * One entry per simulated second.
  */
@@ -1862,7 +1870,11 @@ limits: PassCriteria; bottleneck: Bottleneck | null;
  * bottleneck appears, or at the start).
  */
 replay_at_s: number | null; seed: number }
-export type TypeResult = { id: string; requests: number; errors: number; latency: Percentiles; response: Percentiles; completion: Percentiles | null }
+export type TypeResult = { id: string; requests: number; errors: number; latency: Percentiles; response: Percentiles; completion: Percentiles | null; 
+/**
+ * S2: time to first token, for types that call a model.
+ */
+ttft?: Percentiles | null }
 /**
  * The unit shown after a prop's value (`units.<unit>` in the UI).
  */

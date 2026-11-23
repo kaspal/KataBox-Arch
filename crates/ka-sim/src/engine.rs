@@ -184,6 +184,9 @@ struct Req {
     locked: bool,
     lock_quorum: bool,
     shadow: bool,
+    /// S2: the request's prompt and answer tokens (drawn at its first model call; -1: not yet).
+    tin: f64,
+    tout: f64,
 }
 
 /// S8: dependency keys of external providers (beside card indices).
@@ -265,6 +268,15 @@ struct NodeRt {
     faulty_add_us: u64,
     ejected: bool,
     eject_checks: u8,
+    /// S2 hosted models: request and token buckets (one minute's limit, refilled
+    /// continuously) and when they were last refilled; S2/S1 usage billed by meters.
+    rpm_left: f64,
+    tpm_left: f64,
+    bucket_at: u64,
+    bill_tin: f64,
+    bill_tout: f64,
+    bill_conn_s: f64,
+    bill_msgs: f64,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -306,6 +318,8 @@ struct TypeMetrics {
     response: Hist,
     completion: Hist,
     measured: Hist,
+    /// S2: time to first token of the requests that called a model.
+    ttft: Hist,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -387,6 +401,9 @@ pub struct Engine {
     /// S1: per connection type, its fluid state.
     conns: Vec<Option<ConnRt>>,
     conn_drops: f64,
+    /// S2: model calls a provider refused with 429 (rate limits), and the token draws.
+    rate_limited: f64,
+    rng_tokens: Rng,
 }
 
 /// S1: one connection type's state: connections per holder, push backlog per holder,
@@ -461,6 +478,8 @@ impl Engine {
             })
             .collect();
         for (n, cn) in nodes.iter_mut().zip(&c.nodes) {
+            n.rpm_left = cn.spec.rpm * c.sample;
+            n.tpm_left = cn.spec.tpm * c.sample;
             n.util_series.reserve(nsec);
             n.lane_servers = cn.lane_servers;
             n.stretch = cn.service_stretch;
@@ -541,6 +560,8 @@ impl Engine {
                 })
                 .collect(),
             conn_drops: 0.0,
+            rate_limited: 0.0,
+            rng_tokens: Rng::stream(seed, "tokens"),
             caches: c
                 .nodes
                 .iter()
@@ -954,6 +975,8 @@ impl Engine {
             locked: false,
             lock_quorum: false,
             shadow: false,
+            tin: -1.0,
+            tout: 0.0,
         };
         if let Some(i) = self.free.pop() {
             self.reqs[i as usize] = req;
@@ -1295,6 +1318,9 @@ impl Engine {
     }
 
     fn service_us(&mut self, r: u32, node: u32) -> u64 {
+        if self.c.nodes[node as usize].kind == ComponentKind::Infer {
+            return self.model_us(r, node);
+        }
         let n = &self.c.nodes[node as usize];
         let q = &self.reqs[r as usize];
         let ty = &self.c.types[q.ty as usize].def;
@@ -1322,6 +1348,92 @@ impl Engine {
             }
         }
         (us as u64).max(1) + self.nodes[node as usize].add_us
+    }
+
+    /// S2: the request's tokens, drawn once (lognormal from the mean and 95th percentile).
+    fn draw_tokens(&mut self, r: u32) {
+        if self.reqs[r as usize].tin >= 0.0 {
+            return;
+        }
+        let def = &self.c.types[self.reqs[r as usize].ty as usize].def;
+        let (tin, tout) = (def.tokens_in, def.tokens_out);
+        // p99 / median from p95 / mean, for the simulator's lognormal (median, p99 ratio).
+        let mut draw = |t: Option<ka_core::scenario::Tokens>| {
+            t.map_or(0.0, |t| {
+                let ratio = (t.p95 / t.mean.max(1e-9)).max(1.0);
+                let r99 = detmath::powf(ratio, 2.326 / 1.645);
+                self.rng_tokens
+                    .lognormal(t.mean.max(0.0), r99)
+                    .round()
+                    .max(0.0)
+            })
+        };
+        let (a, b) = (draw(tin), draw(tout));
+        let q = &mut self.reqs[r as usize];
+        q.tin = a;
+        q.tout = b;
+    }
+
+    /// S2: a hosted model's per-minute request and token limits (buckets holding one
+    /// minute's allowance, refilled continuously; sampling scales them).
+    fn model_admit(&mut self, r: u32, node: u32) -> bool {
+        self.draw_tokens(r);
+        let spec = &self.c.nodes[node as usize].spec;
+        if !spec.hosted || spec.batch_api {
+            return true;
+        }
+        let (rpm, tpm, sample) = (
+            spec.rpm * self.c.sample,
+            spec.tpm * self.c.sample,
+            self.c.sample,
+        );
+        let tokens = self.reqs[r as usize].tin + self.reqs[r as usize].tout;
+        let now = self.now;
+        let rt = &mut self.nodes[node as usize];
+        let dt = now.saturating_sub(rt.bucket_at) as f64 / 60e6;
+        rt.bucket_at = now;
+        rt.rpm_left = (rt.rpm_left + rpm * dt).min(rpm);
+        rt.tpm_left = (rt.tpm_left + tpm * dt).min(tpm);
+        if rt.rpm_left < 1.0 || rt.tpm_left < tokens {
+            self.rate_limited += 1.0 / sample;
+            return false;
+        }
+        rt.rpm_left -= 1.0;
+        rt.tpm_left -= tokens;
+        true
+    }
+
+    /// S2: time to first token (base + prompt ÷ prefill speed), then the answer at the decode
+    /// speed; on GPUs every request in the batch slows the others
+    /// (speed × (1 − 0.5 × busy ÷ slots), a modelling choice). Records the request's TTFT.
+    fn model_us(&mut self, r: u32, node: u32) -> u64 {
+        self.draw_tokens(r);
+        let n = &self.c.nodes[node as usize];
+        let spec = &n.spec;
+        let (tin, mut tout) = (self.reqs[r as usize].tin, self.reqs[r as usize].tout);
+        match spec.model_type.as_str() {
+            "embed" => tout = 0.0,
+            "classify" => tout = tout.min(1.0),
+            _ => {}
+        }
+        let mut speed = spec.tokens_per_s;
+        if !spec.hosted {
+            let rt = &self.nodes[node as usize];
+            let busy: u32 = rt.lanes.iter().map(|l| l.busy).sum();
+            let slots = f64::from(rt.lane_servers.max(1)) * rt.lanes.len() as f64;
+            speed *= 1.0 - 0.5 * (f64::from(busy) / slots).min(1.0);
+        }
+        let ttft_s = spec.ttft_ms / 1000.0 + tin / spec.prefill_tps;
+        let decode_s = tout / speed.max(1e-6);
+        let stretch = self.nodes[node as usize].stretch;
+        let add = self.nodes[node as usize].add_us;
+        let first = self.now + (ttft_s * 1e6 * stretch) as u64 + add;
+        let q = &self.reqs[r as usize];
+        let lat = (first - q.start + q.net) as f64;
+        let ty = q.ty as usize;
+        let w = self.c.weight;
+        self.types[ty].ttft.add(lat, w);
+        ((ttft_s + decode_s) * 1e6 * stretch) as u64 + add + 1
     }
 
     fn start_service(&mut self, r: u32, node: u32, lane: u16) {
@@ -1374,6 +1486,15 @@ impl Engine {
         let w = self.c.weight;
         self.nodes[node as usize].served += w;
         let units = w * self.bill_units(node, self.reqs[r as usize].ty as usize);
+        if self.c.nodes[node as usize].kind == ComponentKind::Infer {
+            let (tin, tout) = (
+                self.reqs[r as usize].tin.max(0.0),
+                self.reqs[r as usize].tout,
+            );
+            let rt = &mut self.nodes[node as usize];
+            rt.bill_tin += tin * w;
+            rt.bill_tout += tout * w;
+        }
         let q = &self.reqs[r as usize];
         if q.phase == Phase::Call && q.call_write {
             self.nodes[node as usize].bill_w += units;
@@ -1543,6 +1664,14 @@ impl Engine {
                 return;
             }
             if !self.begin_call(r, caller, node) {
+                return;
+            }
+            if self.c.nodes[node as usize].kind == ComponentKind::Infer
+                && !self.model_admit(r, node)
+            {
+                // S2: the provider answers 429 at once.
+                let call = self.reqs[r as usize].call_gen;
+                self.push_req(self.now + 50_000, Ev::CallFail { r, call }, r);
                 return;
             }
             let shadow = writes
@@ -2712,6 +2841,7 @@ impl Engine {
         };
         let (mut measured, mut response, mut completion) =
             (Hist::default(), Hist::default(), Hist::default());
+        let mut ttft = Hist::default();
         let (mut req, mut ok, mut err, mut shed) = (0.0, 0.0, 0.0, 0.0);
         let mut per_type = Vec::new();
         for (i, m) in self.types.iter().enumerate() {
@@ -2729,7 +2859,9 @@ impl Engine {
                 latency: pct(&m.measured),
                 response: pct(&m.response),
                 completion: (m.completion.total() > 0.0).then(|| pct(&m.completion)),
+                ttft: (m.ttft.total() > 0.0).then(|| pct(&m.ttft)),
             });
+            ttft.merge(&m.ttft);
         }
         let done = ok + err + shed;
         let mut cost_total = 0.0;
@@ -2796,6 +2928,8 @@ impl Engine {
             conflicts: self.conflicts,
             connected_min: self.connected_min(),
             conn_drops: self.conn_drops,
+            ttft: (ttft.total() > 0.0).then(|| pct(&ttft)),
+            rate_limited: self.rate_limited,
             cost_month: round2(cost_total),
             per_type,
             nodes,
@@ -3223,6 +3357,11 @@ impl Engine {
                     s.errors += refused;
                 }
             }
+            for (h, &node) in plan.holders.iter().enumerate() {
+                if now < self.c.duration_us {
+                    self.nodes[node as usize].bill_conn_s += rt.conns[h] * dt;
+                }
+            }
             // Pushes.
             for (h, &node) in plan.holders.iter().enumerate() {
                 let n = &c.nodes[node as usize].spec;
@@ -3235,6 +3374,7 @@ impl Engine {
                     continue;
                 }
                 rt.backlog[h] = (rt.backlog[h] + inflow - rate * dt).max(0.0);
+                self.nodes[node as usize].bill_msgs += inflow;
                 let wait_us = if rate > 0.0 {
                     rt.backlog[h] / rate * 1e6
                 } else {
@@ -3533,6 +3673,18 @@ impl Engine {
             + c.per_gb_month * n.spec.memory_gb
             + (c.per_million * rt.bill_r + c.per_million_write.unwrap_or(c.per_million) * rt.bill_w)
                 * per_month
+            + self.meter_cost(i) * per_month
+    }
+
+    /// M8 usage meters, in millions of units over the run (per_month turns them monthly):
+    /// tokens (half price on the batch API), connection-minutes and messages.
+    fn meter_cost(&self, i: usize) -> f64 {
+        let (n, rt) = (&self.c.nodes[i], &self.nodes[i]);
+        let m = &n.cost.meters;
+        let batch = if n.spec.batch_api { 0.5 } else { 1.0 };
+        (m.tokens_in_m * rt.bill_tin + m.tokens_out_m * rt.bill_tout) * batch
+            + m.conn_minutes_m * rt.bill_conn_s / 60.0
+            + m.messages_m * rt.bill_msgs
     }
 
     /// Billing units one request of type `ty` counts at card `node`.

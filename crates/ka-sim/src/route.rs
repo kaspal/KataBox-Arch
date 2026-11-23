@@ -52,6 +52,8 @@ pub enum Role {
     Datastore,
     Broker,
     External,
+    /// M8 (S2): model inference, called as a leaf dependency.
+    Model,
     Source,
     /// Never on a path (observability, autoscaling).
     None,
@@ -77,9 +79,10 @@ impl Role {
             | K::Graph => Role::Datastore,
             K::Queue | K::Stream | K::Pubsub | K::Dlq | K::Mqtt => Role::Broker,
             K::Client | K::Scheduler => Role::Source,
-            // M8: model inference, identity providers, pooled database connections, third-party
-            // API cards and config services take part in requests through their S-features.
-            K::Infer | K::Idp | K::Dbproxy | K::External | K::Config => Role::None,
+            K::Infer => Role::Model,
+            // M8: identity providers, pooled database connections, third-party API cards and
+            // config services take part in requests through their own features.
+            K::Idp | K::Dbproxy | K::External | K::Config => Role::None,
             K::Autoscale | K::Metrics | K::Logs | K::Tracing => Role::None,
         }
     }
@@ -93,6 +96,7 @@ impl Role {
             "datastore" => Role::Datastore,
             "broker" => Role::Broker,
             "external" => Role::External,
+            "model" => Role::Model,
             _ => return None,
         })
     }
@@ -119,6 +123,8 @@ pub struct Alt {
     pub service: bool,
     /// `:atomic`: a conditional write (S7).
     pub atomic: bool,
+    /// `model:chat|embed|classify` (S2): only inference cards of that model type.
+    pub model_type: Option<String>,
 }
 
 impl Alt {
@@ -212,6 +218,7 @@ pub fn parse_step(s: &str) -> Result<Step, RouteError> {
                 external: None,
                 service: false,
                 atomic: false,
+                model_type: None,
             }],
             optional: false,
             cdc: true,
@@ -227,6 +234,7 @@ pub fn parse_step(s: &str) -> Result<Step, RouteError> {
             external: None,
             service: false,
             atomic: false,
+            model_type: None,
         };
         return Ok(Step {
             alts: vec![
@@ -257,6 +265,7 @@ pub fn parse_step(s: &str) -> Result<Step, RouteError> {
             external: None,
             service,
             atomic: false,
+            model_type: None,
         };
         for q in parts {
             let q = q.trim();
@@ -264,6 +273,9 @@ pub fn parse_step(s: &str) -> Result<Step, RouteError> {
                 "write" => a.write = true,
                 "ws" => a.ws = true,
                 "atomic" if role == Role::Datastore => a.atomic = true,
+                "chat" | "embed" | "classify" if role == Role::Model => {
+                    a.model_type = Some(q.to_owned());
+                }
                 _ if role == Role::External => a.external = Some(q.to_owned()),
                 _ => {
                     let kind: ComponentKind = serde_json::from_value(serde_json::Value::from(q))

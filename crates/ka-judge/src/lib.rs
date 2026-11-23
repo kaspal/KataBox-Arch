@@ -148,6 +148,9 @@ fn verdict(r: &RunResult, limits: &PassCriteria, cost: f64, budget: f64) -> Verd
         || over(r.stale_rate, limits.stale_rate)
         || !recovered(r, limits)
         || limits.connected_min.is_some_and(|m| r.connected_min < m)
+        || limits
+            .ttft_p95_ms
+            .is_some_and(|l| r.ttft.is_some_and(|t| t.p95_ms > l))
     {
         return Verdict::SloBreach;
     }

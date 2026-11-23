@@ -59,6 +59,8 @@ pub fn rtype(id: &str, share: f64, route: &[&str]) -> RequestType {
         connected: 0.0,
         ramp_s: 0.0,
         push_rps: 0.0,
+        tokens_in: None,
+        tokens_out: None,
     }
 }
 

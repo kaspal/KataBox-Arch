@@ -68,6 +68,20 @@ pub struct RequestType {
     pub ramp_s: f64,
     #[serde(default, skip_serializing_if = "is_zero")]
     pub push_rps: f64,
+    /// S2: the tokens a request sends to a model and gets back (lognormal).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tokens_in: Option<Tokens>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tokens_out: Option<Tokens>,
+}
+
+/// S2: a token count's mean and 95th percentile.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(deny_unknown_fields)]
+pub struct Tokens {
+    pub mean: f64,
+    pub p95: f64,
 }
 
 fn is_zero(v: &f64) -> bool {
@@ -430,6 +444,9 @@ pub struct PassCriteria {
     /// second after `ramp_s` + 10 s.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub connected_min: Option<f64>,
+    /// S2: time to first token, 95th percentile, of the requests that call a model.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ttft_p95_ms: Option<f64>,
 }
 
 /// Completed requests a test needs before its p99 is judged (review A4).
@@ -448,6 +465,7 @@ impl PassCriteria {
             recovered_by_s: over.recovered_by_s.or(self.recovered_by_s),
             conflicts: over.conflicts.or(self.conflicts),
             connected_min: over.connected_min.or(self.connected_min),
+            ttft_p95_ms: over.ttft_p95_ms.or(self.ttft_p95_ms),
         }
     }
 }

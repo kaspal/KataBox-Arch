@@ -118,6 +118,17 @@ pub struct NodeSpec {
     /// refused connection.
     pub reconnect_jitter_s: f64,
     pub reconnect_backoff_s: f64,
+    /// S2 model inference: what it answers (`chat`, `embed`, `classify`), whether a provider
+    /// hosts it (no slot limit, per-minute request and token limits), its speeds, and the
+    /// batch API (half the token price, results by the batch window).
+    pub model_type: String,
+    pub hosted: bool,
+    pub ttft_ms: f64,
+    pub tokens_per_s: f64,
+    pub prefill_tps: f64,
+    pub rpm: f64,
+    pub tpm: f64,
+    pub batch_api: bool,
 }
 
 /// The value of `key` for `node`: the card's prop, else its flavour override, else the
@@ -150,6 +161,16 @@ fn text(registry: &Registry, node: &Node, key: &str) -> Option<String> {
     }
 }
 
+fn is_hosted(node: &Node) -> bool {
+    matches!(
+        node.flavour,
+        ka_core::Flavour::ClaudeApi
+            | ka_core::Flavour::OpenaiApi
+            | ka_core::Flavour::Bedrock
+            | ka_core::Flavour::GeminiApi
+    )
+}
+
 pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
     use ComponentKind as K;
     let d = sim_defaults(registry, node);
@@ -157,6 +178,9 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
     let instances = n("instances").unwrap_or(1.0).max(1.0);
     let servers = match node.kind {
         K::Serverless => n("concurrency_limit").unwrap_or(1000.0),
+        // S2: a provider has no slot limit (its per-minute limits bind); GPUs have batch slots.
+        K::Infer if is_hosted(node) => 10_000.0,
+        K::Infer => instances * n("batch_slots").unwrap_or(16.0),
         _ => instances * n("concurrency").unwrap_or(d.servers_per_instance),
     }
     .max(1.0);
@@ -267,5 +291,13 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         msgs_per_s: n("msgs_per_s").unwrap_or(f64::INFINITY).max(0.0),
         reconnect_jitter_s: n("reconnect_jitter_s").unwrap_or(0.0).max(0.0),
         reconnect_backoff_s: n("reconnect_backoff_s").unwrap_or(1.0).max(0.0),
+        model_type: text(registry, node, "model_type").unwrap_or_default(),
+        hosted: is_hosted(node),
+        ttft_ms: n("ttft_ms").unwrap_or(0.0).max(0.0),
+        tokens_per_s: n("tokens_per_s").unwrap_or(1.0).max(1e-6),
+        prefill_tps: n("prefill_tps").unwrap_or(f64::INFINITY).max(1e-6),
+        rpm: n("rpm").unwrap_or(f64::INFINITY),
+        tpm: n("tpm").unwrap_or(f64::INFINITY),
+        batch_api: text(registry, node, "api_mode").as_deref() == Some("batch"),
     }
 }

@@ -972,3 +972,122 @@ fn golden_e_reconnect_storm() {
     let (d, s) = fans(&[], &tight, 150_000.0);
     golden("e", &run(&d, &s, 42));
 }
+
+// --- S2: token requests ------------------------------------------------------------------------
+
+fn chat_type(tin: f64, tout: f64) -> ka_core::scenario::RequestType {
+    let mut t = rtype("chat", 1.0, &["compute", "model"]);
+    t.tokens_in = Some(ka_core::scenario::Tokens {
+        mean: tin,
+        p95: tin * 2.0,
+    });
+    t.tokens_out = Some(ka_core::scenario::Tokens {
+        mean: tout,
+        p95: tout * 2.0,
+    });
+    t
+}
+
+/// client → app → one inference card.
+fn llm(model: ka_core::Node, rps: f64) -> (Design, Scenario) {
+    let d = design(
+        vec![
+            node("client", K::Client, Flavour::Web, &[]),
+            node("app", K::App, Flavour::Go, &[]),
+            model,
+        ],
+        vec![
+            edge("client", "app", Protocol::Http),
+            edge("app", "llm", Protocol::Http),
+        ],
+    );
+    let mut s = scenario(rps, 60.0, vec![chat_type(800.0, 300.0)]);
+    for t in &mut s.request_types {
+        t.measure = ka_core::scenario::Measure::Response;
+    }
+    (d, s)
+}
+
+#[test]
+fn s2_time_is_ttft_plus_output_over_speed() {
+    let m = node("llm", K::Infer, Flavour::ClaudeApi, &[]);
+    let (d, s) = llm(m, 5.0);
+    let r = run(&d, &s, 61);
+    let ttft = r.ttft.expect("ttft").p50_ms;
+    // 600 ms + 800 tokens at 5,000/s ≈ 760 ms; the answer at 80 tokens/s ≈ 3.75 s more.
+    assert!((650.0..1000.0).contains(&ttft), "{ttft}");
+    assert!(
+        r.latency.p50_ms > 3500.0 && r.latency.p50_ms < 6000.0,
+        "{}",
+        r.latency.p50_ms
+    );
+    assert!(r.cost_month > 0.0, "tokens are billed");
+}
+
+/// A hosted model's tokens-per-minute limit answers 429s past it.
+#[test]
+fn s2_hosted_limits_refuse_past_tpm() {
+    let mut m = node("llm", K::Infer, Flavour::ClaudeApi, &[("tpm", 100_000.0)]);
+    m.id = "llm".into();
+    let (d, s) = llm(m, 5.0);
+    let r = run(&d, &s, 62);
+    // 5 rps × ~1,100 tokens × 60 ≈ 330k tokens/min against 100k.
+    assert!(r.rate_limited > 0.0);
+    assert!(r.errors > 0.0);
+}
+
+/// On GPUs, a fuller batch answers each request slower: more load, longer answers.
+#[test]
+fn s2_continuous_batching_slows_each_request() {
+    let gpu = |n: f64| {
+        node(
+            "llm",
+            K::Infer,
+            Flavour::Vllm,
+            &[("instances", 2.0), ("batch_slots", n)],
+        )
+    };
+    let (d, s) = llm(gpu(64.0), 2.0);
+    let light = run(&d, &s, 63);
+    let (d, s) = llm(gpu(64.0), 20.0);
+    let heavy = run(&d, &s, 63);
+    assert!(
+        heavy.latency.p50_ms > light.latency.p50_ms * 1.2,
+        "{} vs {}",
+        heavy.latency.p50_ms,
+        light.latency.p50_ms
+    );
+}
+
+/// The batch API halves the token bill.
+#[test]
+fn s2_the_batch_api_halves_the_price() {
+    let (d, s) = llm(node("llm", K::Infer, Flavour::ClaudeApi, &[]), 2.0);
+    let rt = run(&d, &s, 64);
+    let mut m = node("llm", K::Infer, Flavour::ClaudeApi, &[]);
+    set(&mut m, "api_mode", PropValue::Text("batch".into()));
+    let (d, s) = llm(m, 2.0);
+    let b = run(&d, &s, 64);
+    let llm_cost = |r: &RunResult| r.nodes.iter().find(|n| n.id == "llm").unwrap().cost_month;
+    assert!(
+        (llm_cost(&b) - llm_cost(&rt) / 2.0).abs() < llm_cost(&rt) * 0.02,
+        "{} vs {}",
+        llm_cost(&b),
+        llm_cost(&rt)
+    );
+}
+
+/// Golden f: a hosted model past its TPM limit, and self-hosted vLLM under load.
+#[test]
+fn golden_f_token_requests() {
+    let (d, s) = llm(
+        node("llm", K::Infer, Flavour::ClaudeApi, &[("tpm", 150_000.0)]),
+        4.0,
+    );
+    golden("f", &run(&d, &s, 42));
+    let (d, s) = llm(
+        node("llm", K::Infer, Flavour::Vllm, &[("instances", 2.0)]),
+        10.0,
+    );
+    golden("f2", &run(&d, &s, 42));
+}
