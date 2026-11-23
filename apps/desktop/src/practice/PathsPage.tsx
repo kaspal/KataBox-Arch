@@ -1,4 +1,4 @@
-// /paths: learning paths (M5.4). Five ordered tracks through the Guide, concept cards,
+// /paths: learning paths (M5.4). Ordered tracks through the Guide, concept cards,
 // patterns, problems and drills, with progress from what you've already done. Following a
 // path makes Home's "Recommended next" its next unfinished item.
 import { PrintMenu } from "@/print/PrintMenu";

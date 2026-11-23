@@ -1022,7 +1022,7 @@
   },
   "paths": {
     "title": "Learning paths",
-    "intro": "Five ordered tracks through the Guide, concept cards, patterns, problems and drills. Progress comes from what you have already done. Follow a path and Home suggests its next step.",
+    "intro": "Ordered tracks through the Guide, concept cards, patterns, problems, replays and drills. Progress comes from what you have already done. Follow a path and Home suggests its next step.",
     "follow": "Follow this path",
     "following": "Following",
     "progress": "{{done}} of {{total}} done",

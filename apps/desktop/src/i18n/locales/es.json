@@ -1022,7 +1022,7 @@
   },
   "paths": {
     "title": "Itinerarios",
-    "intro": "Cinco recorridos ordenados por la Guía, las tarjetas de concepto, los patrones, los problemas y los ejercicios. El progreso sale de lo que ya has hecho. Sigue un itinerario y el Inicio te sugerirá su siguiente paso.",
+    "intro": "Recorridos ordenados por la Guía, las tarjetas de concepto, los patrones, los problemas, las repeticiones de caídas y los ejercicios. El progreso sale de lo que ya has hecho. Sigue un itinerario y el Inicio te sugerirá su siguiente paso.",
     "follow": "Seguir este itinerario",
     "following": "Siguiendo",
     "progress": "{{done}} de {{total}} hechos",
