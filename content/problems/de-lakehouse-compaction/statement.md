@@ -13,7 +13,7 @@ Your product's analysts explore user behaviour in SQL notebooks: they write a qu
 | Availability | 99.9% or more |
 | Errors | 1% or less |
 | Lost events | 0 |
-| Budget | $8,000 per month |
+| Budget | $35,500 per month |
 
 The p95 is taken over every request. Most requests are queries, so in practice it is the analysts' wait.
 

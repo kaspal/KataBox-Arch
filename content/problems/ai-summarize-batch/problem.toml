@@ -63,3 +63,4 @@ chaos = [{ latency = { kind = "infer", at = 0, for = 90, add_ms = 3000 } }]
 [pass]
 error_rate = 0.001
 lost = 0
+dead_lettered = 0

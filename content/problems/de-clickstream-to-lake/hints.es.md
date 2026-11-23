@@ -8,4 +8,4 @@ Particiona la tabla por día, para que un refresco lea 2 GB en vez del año ente
 
 ## 3
 
-Pon un AWS ALB delante de 6 Servidores de aplicaciones Go que publican en Apache Kafka con 96 particiones. Un Procesador de streams Apache Flink con 4 instancias y una concurrencia de 20 escribe en una Tabla lakehouse Apache Iceberg particionada por día, con compactación cada hora y un tamaño de archivo objetivo de 256 MB. Un Almacén de datos Snowflake con 4 instancias, una concurrencia de 32 y una velocidad de escaneo de 4 Gbps lee esa tabla por una arista Consulta.
+Pon un AWS ALB delante de 6 Servidores de aplicaciones Go que publican en Apache Kafka con 96 particiones. Un Procesador de streams Apache Flink con 20 instancias (la concurrencia por defecto de 4) escribe en una Tabla lakehouse Apache Iceberg particionada por día, con compactación cada hora y un tamaño de archivo objetivo de 256 MB. Un Almacén de datos Snowflake con 5 instancias, una concurrencia de 32 y una velocidad de escaneo de 2 Gbps lee esa tabla por una arista Consulta.

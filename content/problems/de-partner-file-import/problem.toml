@@ -68,3 +68,4 @@ pass = { p95_ms = 45000, error_rate = 0.02, availability = 0.98 }
 [pass]
 error_rate = 0.001
 lost = 0
+dead_lettered = 0

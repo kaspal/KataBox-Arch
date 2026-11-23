@@ -14,7 +14,8 @@
         "y": 0
       },
       "props": {
-        "instances": 28
+        "instances": 28,
+        "spot_share": 100
       },
       "group_id": null
     },

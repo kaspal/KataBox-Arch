@@ -17,15 +17,15 @@ El clúster usa instancias spot, porque son mucho más baratas. La nube puede re
 | Trabajo | 2700 segundos-ejecutor en 2000 tareas sesgadas, que empiezan en 0 s |
 | Plazo | el trabajo entero termina en 480 s desde que empieza |
 | Errores | 0,1 % o menos |
-| Presupuesto | 2500 $ al mes |
+| Presupuesto | 1650 $ al mes |
 
-El coste mensual es lo que costarían las tarjetas si funcionaran todo el mes, la misma regla que en todos los demás problemas (un nodo de Cómputo por lotes cuesta 140 $ al mes, sea cual sea su Proporción spot; Snowflake solo cobra mientras está despierto). Los precios son los precios didácticos del registro.
+El coste mensual es lo que costarían las tarjetas si funcionaran todo el mes, la misma regla que en todos los demás problemas (un nodo de Cómputo por lotes cuesta 140 $ al mes bajo demanda, y la parte de sus ejecutores que marca la "Proporción spot" corre en capacidad spot al 35 % de ese precio, así que un nodo al 100 % cuesta 49 $; Snowflake solo cobra mientras está despierto). Los precios son los precios didácticos del registro.
 
 ## El tráfico
 
 - **Unir los pedidos de esta noche con los vendedores** (un trabajo). Empieza en 0 s y se divide en 2000 tareas, una por partición de vendedores. El tamaño de las tareas sigue las ventas de los vendedores: la tarea más grande, la tienda propia del marketplace, son unos 330 segundos-ejecutor de trabajo; la segunda, más o menos la mitad; la mayoría tarda menos de un segundo. Cada tarea espera a un ejecutor libre, lo ocupa durante su trabajo (cada ejecución varía un poco, hasta unas 1,5 veces en el peor caso, más la sobrecarga por tarea), y luego lee del Almacenamiento de objetos y escribe en el Almacén de datos. El trabajo termina cuando termina su última tarea.
 
-Un nodo de Cómputo por lotes es una máquina de la clase m5.xlarge con 4 vCPU, así que deja "Ejecutores por nodo" en 4: lo que dimensionas es el número de nodos. Tareas en paralelo = nodos × ejecutores por nodo. Una tarea corre en un solo ejecutor: más ejecutores nunca acortan una tarea concreta.
+Un nodo de Cómputo por lotes es una máquina de la clase m5.xlarge con 4 vCPU, así que deja "Ejecutores por nodo" en 4: lo que dimensionas es el número de nodos. Más ejecutores por nodo se cobran como una máquina más grande, en proporción. Tareas en paralelo = nodos × ejecutores por nodo. Una tarea corre en un solo ejecutor: más ejecutores nunca acortan una tarea concreta.
 
 La tarjeta de Cómputo por lotes tiene tres ajustes para este tipo de trabajo:
 
@@ -33,7 +33,7 @@ La tarjeta de Cómputo por lotes tiene tres ajustes para este tipo de trabajo:
 - **Ejecución especulativa**: cerca del final del trabajo (con el 95 % de las tareas hechas), una tarea que lleva mucho más tiempo que la típica recibe una segunda copia, y gana la primera copia que termina.
 - **Checkpoints**: una tarea parada por una interrupción spot vuelve a empezar desde su último checkpoint (uno cada 10 % de la tarea) en lugar de desde cero.
 
-Cuando la nube recupera capacidad spot, esa parte de los ejecutores del clúster desaparece hasta que la capacidad vuelve, y la misma parte de las tareas en marcha se para y vuelve a empezar. En las pruebas, la parte recuperada no depende de la "Proporción spot" de la tarjeta: trata todo el clúster como spot.
+Cuando la nube recupera capacidad spot, esa parte de los ejecutores spot de la tarjeta desaparece hasta que la capacidad vuelve, y la misma parte de sus tareas en marcha se para y vuelve a empezar. Los ejecutores bajo demanda nunca se los lleva: con la "Proporción spot" al 100 % todo el clúster está expuesto, y al 0 %, nada.
 
 ## Las pruebas
 

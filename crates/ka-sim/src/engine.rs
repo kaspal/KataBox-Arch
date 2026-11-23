@@ -2659,6 +2659,18 @@ impl Engine {
                     self.wake_coalesced(r, fill_cache, true, false);
                 }
             }
+            Role::Model
+                if fill_cache != NONE
+                    && !self.c.nodes[fill_cache as usize].spec.semantic
+                    && !self.store_step_follows(r) =>
+            {
+                // H3: a cache in front of a model is filled by the model's answer, as one
+                // in front of a provider is (when no data store follows to fill it). A
+                // semantic cache keeps its own warm-up model (S3).
+                self.fill(fill_cache, ty, key);
+                self.reqs[r as usize].fill_cache = NONE;
+                self.wake_coalesced(r, fill_cache, true, false);
+            }
             _ => {}
         }
         let caller = self.reqs[r as usize].caller;
@@ -4557,8 +4569,9 @@ impl Engine {
     /// the tasks running on it stop and start again, from their last checkpoint (each 10%
     /// of the task) when the card has `checkpoint`.
     fn spot_start(&mut self, chaos: u16, nodes: &[u32], share: f64) {
-        let share = share.clamp(0.0, 1.0);
         for &node in nodes {
+            // H3: only the card's spot executors can be taken back.
+            let share = share.clamp(0.0, 1.0) * self.c.nodes[node as usize].spec.spot_share;
             let servers = self.nodes[node as usize].lane_servers;
             let take = (f64::from(servers) * share).round() as u32;
             self.nodes[node as usize].lane_servers = servers - take.min(servers);

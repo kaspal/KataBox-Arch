@@ -71,6 +71,9 @@ pub struct NodeSpec {
     /// SQL and Search: shards over the kind's default count; the per-instance price scales
     /// with it (cost per shard, ADR 0006). 1 for every other kind.
     pub cost_lanes: f64,
+    /// S4/H3 batch: the share of executors on spot capacity (0–1). They cost 35% of the
+    /// on-demand price, and only they are taken back by a `spot` event.
+    pub spot_share: f64,
     /// What `Cost::per_lane_month` is multiplied by: a NoSQL card's partitions, a stream's
     /// partitions (shards); 0 for kinds without lanes.
     pub bill_lanes: f64,
@@ -216,6 +219,48 @@ pub fn prop(registry: &Registry, node: &Node, key: &str) -> Option<PropValue> {
     spec.prop(key).map(|p| p.default.clone())
 }
 
+/// The flavour's default for a numeric prop (ignoring the card's own value).
+fn default_num(registry: &Registry, node: &Node, key: &str) -> Option<f64> {
+    let spec = registry.kind(node.kind);
+    let v = spec
+        .flavour(node.flavour)
+        .and_then(|f| f.overrides.iter().find(|o| o.key == key))
+        .map(|o| o.value.clone())
+        .or_else(|| spec.prop(key).map(|p| p.default.clone()))?;
+    match v {
+        PropValue::Number(n) => Some(n),
+        _ => None,
+    }
+}
+
+/// H3: slots per instance are part of an instance's size. Above a cap, an instance is billed
+/// in proportion (more executors or stream-processor slots need more cores, a faster
+/// warehouse scan a bigger warehouse); at or below it, the price stays. The cap is the
+/// flavour's default, except where a slot is mostly waiting rather than computing: worker
+/// threads (I/O) and GPU batch slots (a server setting bounded by GPU memory, already slowed
+/// by the batching curve) fit the same machine up to 8× the default (modelling choices,
+/// ADR 0006 "Hardening H3"). 1 for other kinds.
+fn slot_price_factor(registry: &Registry, node: &Node) -> f64 {
+    use ComponentKind as K;
+    let (key, free) = match node.kind {
+        K::Worker => ("concurrency", FREE_WAITING_SLOTS),
+        K::Streamproc => ("concurrency", 1.0),
+        K::Batch => ("executors", 1.0),
+        K::Infer if !is_hosted(node) => ("batch_slots", FREE_WAITING_SLOTS),
+        // A warehouse billed by time scans faster on a bigger size (scan rate per query).
+        K::Warehouse if node.flavour != ka_core::Flavour::Bigquery => ("scan_gbps", 1.0),
+        _ => return 1.0,
+    };
+    match (num(registry, node, key), default_num(registry, node, key)) {
+        (Some(v), Some(d)) if d > 0.0 => (v / (d * free)).max(1.0),
+        _ => 1.0,
+    }
+}
+
+/// H3: worker threads or GPU batch slots per instance that fit the default machine, as a
+/// multiple of the flavour's default.
+pub const FREE_WAITING_SLOTS: f64 = 8.0;
+
 fn num(registry: &Registry, node: &Node, key: &str) -> Option<f64> {
     match prop(registry, node, key)? {
         PropValue::Number(n) => Some(n),
@@ -239,6 +284,10 @@ fn is_hosted(node: &Node) -> bool {
             | ka_core::Flavour::GeminiApi
     )
 }
+
+/// H3: spot capacity's price as a share of on-demand (a modelling choice: the typical
+/// spot discount is 60–90%; ADR 0006 "Hardening H3").
+pub const SPOT_PRICE: f64 = 0.35;
 
 pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
     use ComponentKind as K;
@@ -329,8 +378,13 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         write_slots: d.write_slots.max(1.0),
         cost_lanes: match node.kind {
             K::Sql | K::Search | K::Vector => f64::from(lanes) / default_lanes,
-            _ => 1.0,
+            K::Batch => {
+                let spot = n("spot_share").unwrap_or(0.0).clamp(0.0, 100.0) / 100.0;
+                slot_price_factor(registry, node) * (1.0 - spot * (1.0 - SPOT_PRICE))
+            }
+            _ => slot_price_factor(registry, node),
         },
+        spot_share: n("spot_share").unwrap_or(0.0).clamp(0.0, 100.0) / 100.0,
         bill_lanes: match node.kind {
             K::Nosql => f64::from(lanes),
             K::Stream => n("partitions").unwrap_or(0.0),
@@ -433,7 +487,13 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
             Some(PropValue::Text(t)) if t == "quorum" => 2,
             _ => 0,
         },
-        scan_gbps: n("scan_gbps").unwrap_or(0.5).max(1e-6),
+        // H3: BigQuery on demand scans at the provider's rate (its prop can't buy speed).
+        scan_gbps: if node.flavour == ka_core::Flavour::Bigquery {
+            default_num(registry, node, "scan_gbps").unwrap_or(1.0)
+        } else {
+            n("scan_gbps").unwrap_or(0.5)
+        }
+        .max(1e-6),
         overhead_ms: n("overhead_ms").unwrap_or(0.0).max(0.0),
         result_cache: matches!(
             prop(registry, node, "result_cache"),

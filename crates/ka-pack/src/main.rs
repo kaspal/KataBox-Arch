@@ -296,10 +296,11 @@ fn main() -> ExitCode {
                             println!(
                                 "  {name} {} seconds (error %/p95): {bad}{}",
                                 t.id,
-                                if r.conflicts > 0.0 || r.duplicates > 0.0 {
+                                if r.conflicts > 0.0 || r.duplicates > 0.0 || r.dead_lettered > 0.0
+                                {
                                     format!(
-                                        " | conflicts {:.0}, duplicates {:.0}",
-                                        r.conflicts, r.duplicates
+                                        " | conflicts {:.0}, duplicates {:.0}, dead-lettered {:.0}",
+                                        r.conflicts, r.duplicates, r.dead_lettered
                                     )
                                 } else {
                                     String::new()

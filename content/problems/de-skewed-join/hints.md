@@ -4,8 +4,8 @@ Find the critical path. The job ends when its last task ends, and the biggest ta
 
 ## 2
 
-Adding nodes or turning on "Speculative execution" doesn't make the biggest task any smaller: one task runs on one executor, and a copy of a huge task is just as huge. "Checkpoints" save part of a stopped task's work, but the hot task still needs most of its 330 s after the executors return. What shrinks it is "Salting (split hot tasks)": split the biggest tasks into enough pieces that each one is a few dozen seconds, and the job's length becomes the total work divided by the executors.
+Adding nodes or turning on "Speculative execution" doesn't make the biggest task any smaller: one task runs on one executor, and a copy of a huge task is just as huge. "Checkpoints" save part of a stopped task's work, but the hot task still needs most of its 330 s after the executors return. What shrinks it is "Salting (split hot tasks)": split the biggest tasks into enough pieces that each one is a few dozen seconds, and the job's length becomes the total work divided by the executors. From then on more nodes do shorten the job, and spot nodes are cheap: $49 a month each at "Spot share" 100%.
 
 ## 3
 
-Apache Spark on Amazon EMR Batch Compute card with 6 instances, 4 executors per node (24 executors), "Salting (split hot tasks)" at 16 and "Checkpoints" on, wired with Query to an Amazon S3 Object Storage card and with Query to a Snowflake Data Warehouse card.
+Apache Spark on Amazon EMR Batch Compute card with 10 instances, 4 executors per node (40 executors), "Spot share" 100%, "Salting (split hot tasks)" at 16 and "Checkpoints" on, wired with Query to an Amazon S3 Object Storage card and with Query to a Snowflake Data Warehouse card.

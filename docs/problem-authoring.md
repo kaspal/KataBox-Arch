@@ -63,7 +63,8 @@ A request type has:
     completion limit instead of disappearing from it.
   - A worker crash no longer fails its message at once: it comes back after the queue's visibility timeout or the
     stream's session timeout. Make crash tests long enough for that (kill time + timeout + drain).
-- **Pass limits:** `p95_ms`, `p99_ms`, `error_rate`, `availability`, `stale_rate`, `lost`. A `p99_ms` limit needs at
+- **Pass limits:** `p95_ms`, `p99_ms`, `error_rate`, `availability`, `stale_rate`, `lost`, and (H3)
+  `dead_lettered` (messages moved to a DLQ: set it wherever a DLQ could hide work that wasn't done). A `p99_ms` limit needs at
   least 1,000 completed requests in the test, or `ka-pack validate --run` refuses the problem.
 - **Hidden tests** show their name only, until the problem is solved.
 - **Sampling:** tests sample traffic above 5,000 simulated requests per second (ADR 0006). Run the accuracy check

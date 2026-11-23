@@ -2090,6 +2090,9 @@ pub fn registry() -> Registry {
                 choice("partitioning", &["none", "day", "hour"], "none"),
                 choice("compaction", &["none", "hourly", "daily"], "daily"),
                 float("stored_tb", 0.01, 10_000.0, 0.01, 10.0, Unit::None),
+                // H3: writes are merged by key (a MERGE / upsert on commit), so a replay
+                // after a crash doesn't add duplicate rows.
+                boolean("dedup", false),
             ],
         ),
         kind(

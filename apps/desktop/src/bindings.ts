@@ -1523,7 +1523,13 @@ late_rate?: number | null; duplicates?: number | null;
 /**
  * S9: data stored or sent outside its residency (usually 0).
  */
-residency_violations?: number | null }
+residency_violations?: number | null; 
+/**
+ * H3: messages a queue or stream may move to its dead-letter queue. A DLQ keeps a
+ * failed message safe, but the work it stood for was not done: a problem whose lesson
+ * isn't the DLQ itself limits it (usually 0, or a handful of poison messages).
+ */
+dead_lettered?: number | null }
 /**
  * One step of a path as the UI shows it.
  */

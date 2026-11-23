@@ -13,7 +13,7 @@ You run a product-analytics service. Your customers put a small script on their 
 | Availability | 99.9% or more |
 | Errors | 1% or less |
 | Lost click batches | 0 |
-| Budget | $12,000 per month |
+| Budget | $30,000 per month |
 
 The p95 counts every request: a click batch until it is written to the table, and a chart refresh until it gets its answer.
 

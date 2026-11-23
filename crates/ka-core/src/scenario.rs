@@ -614,6 +614,11 @@ pub struct PassCriteria {
     /// S9: data stored or sent outside its residency (usually 0).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub residency_violations: Option<f64>,
+    /// H3: messages a queue or stream may move to its dead-letter queue. A DLQ keeps a
+    /// failed message safe, but the work it stood for was not done: a problem whose lesson
+    /// isn't the DLQ itself limits it (usually 0, or a handful of poison messages).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dead_lettered: Option<f64>,
 }
 
 /// Completed requests a test needs before its p99 is judged (review A4).
@@ -637,6 +642,7 @@ impl PassCriteria {
             late_rate: over.late_rate.or(self.late_rate),
             duplicates: over.duplicates.or(self.duplicates),
             residency_violations: over.residency_violations.or(self.residency_violations),
+            dead_lettered: over.dead_lettered.or(self.dead_lettered),
         }
     }
 }

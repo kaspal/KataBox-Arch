@@ -14,7 +14,7 @@
         "y": 0
       },
       "props": {
-        "instances": 6,
+        "instances": 10,
         "spot_share": 100,
         "salting": 16,
         "checkpoint": true

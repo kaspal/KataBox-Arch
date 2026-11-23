@@ -17607,6 +17607,15 @@
               "type": "float"
             },
             "unit": "none"
+          },
+          {
+            "calibration": null,
+            "default": false,
+            "key": "dedup",
+            "ty": {
+              "type": "bool"
+            },
+            "unit": "none"
           }
         ]
       },

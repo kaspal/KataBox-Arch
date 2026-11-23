@@ -14,12 +14,15 @@ Llevas la búsqueda de un producto de centro de ayuda. Tus clientes añaden sus 
 | Errores | 0,1 % o menos |
 | Presupuesto | 35 000 $ al mes |
 | Mensajes perdidos | Ninguno |
+| Mensajes en la Cola de mensajes fallidos | Ninguno |
 
 ## El tráfico
 
 Hay un tipo de petición.
 
 - **Añadir un documento** (100 %). La subida llega a tus App Servers, quizá a través de un componente de borde. Después, el texto del documento va a una tarjeta de Inferencia de modelos con el Tipo de modelo en Embeddings, y el vector que devuelve se escribe en una Base de datos vectorial. El App Server puede hacer esas llamadas él mismo, o publicar el documento en un broker para que un Worker las haga.
+
+Un documento que acaba en una Cola de mensajes fallidos se guarda, pero nunca llega a la búsqueda, así que el juez lo cuenta: no se permite ninguno.
 
 La latencia se mide hasta completar: desde que llega la subida hasta que el vector queda guardado. Un documento típico tiene unos 500 tokens; uno de cada veinte pasa de 1500 tokens. Por esos documentos largos, la media es de unos 625 tokens.
 

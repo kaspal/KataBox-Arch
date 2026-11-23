@@ -8,4 +8,4 @@ A query's time is its overhead, plus the data it reads at the scan rate, plus ab
 
 ## 3
 
-Keep the Lakehouse Table (Delta Lake) partitioned by day, set Compaction to Hourly and the target file size to 256 MB. Read it from a Data Warehouse (Databricks SQL) with 4 instances, a concurrency of 8 and a scan rate of 8 GB/s, with the result cache on. Feed the table through an Apache Kafka stream into 4 Apache Flink instances, behind an AWS ALB and 2 Go App Servers, and set the Client's timeout to 60,000 ms.
+Keep the Lakehouse Table (Delta Lake) partitioned by day, set Compaction to Hourly and the target file size to 256 MB. Read it from a Data Warehouse (Databricks SQL) with 4 instances, a concurrency of 8 and a scan rate of 5 GB/s, with the result cache on. Feed the table through an Apache Kafka stream into 2 Apache Flink instances, behind an AWS ALB and 2 Go App Servers, and set the Client's timeout to 60,000 ms.

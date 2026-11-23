@@ -14,12 +14,15 @@ You run the search behind a help-centre product. Your customers add their own do
 | Errors | 0.1% or less |
 | Budget | $35,000 per month |
 | Lost messages | None |
+| Dead-lettered messages | None |
 
 ## The traffic
 
 There is one request type.
 
 - **Add a document** (100%). The upload reaches your App Servers, possibly through an edge component. Then the document's text goes to a Model Inference card with Model type set to Embeddings, and the vector it returns is written to a Vector Database. The App Server can make these calls itself, or publish the document to a broker for a Worker to make them.
+
+A document that ends up in a Dead-Letter Queue is kept, but it never reaches search, so the judge counts it: none is allowed.
 
 Latency is measured to completion: from the moment the upload arrives until the vector is stored. A typical document is about 500 tokens long; one in twenty is longer than 1,500 tokens. Because of those long ones, the average is about 625 tokens.
 

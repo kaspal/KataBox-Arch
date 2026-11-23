@@ -1290,7 +1290,7 @@ fn s4_salting_fixes_skew_and_speculation_does_not() {
 fn s4_spot_interruptions_cost_less_with_checkpoints() {
     let make = |checkpoint: bool| {
         let (d, mut s) = job(
-            &[("instances", 4.0)],
+            &[("instances", 4.0), ("spot_share", 100.0)],
             &[("checkpoint", checkpoint)],
             1600.0,
             40,
@@ -2502,4 +2502,127 @@ fn h2_a_token_rate_limiter_counts_tokens() {
     // 5 requests/s is far under 3,000/s; ~5,500 tokens/s is over 3,000 tokens/s.
     assert_eq!(limited("requests"), 0.0);
     assert!(limited("tokens") > 0.0);
+}
+
+// --- H3: free lunches closed -----------------------------------------------------------------
+
+fn node_cost(r: &RunResult, id: &str) -> f64 {
+    r.nodes
+        .iter()
+        .find(|n| n.id == id)
+        .expect("node")
+        .cost_month
+}
+
+/// Spot executors cost 35% of on-demand, and only they are taken back by a spot event.
+#[test]
+fn h3_spot_share_is_priced_and_only_spot_executors_are_taken() {
+    let make = |spot: f64| {
+        let (d, mut s) = job(
+            &[("instances", 4.0), ("spot_share", spot)],
+            &[],
+            1600.0,
+            40,
+            0.0,
+            900.0,
+        );
+        s.chaos = vec![chaos(
+            serde_json::json!({ "spot": { "kind": "batch", "at": 30, "share": 0.5, "for": 60 } }),
+        )];
+        run(&d, &s, 83)
+    };
+    let (on_demand, half, all_spot) = (make(0.0), make(50.0), make(100.0));
+    assert_eq!(
+        on_demand.tasks_retried, 0.0,
+        "no spot capacity, nothing taken"
+    );
+    assert!(all_spot.tasks_retried > half.tasks_retried && half.tasks_retried > 0.0);
+    let c = |r: &RunResult| node_cost(r, "spark");
+    assert!(
+        (c(&all_spot) / c(&on_demand) - 0.35).abs() < 0.01,
+        "{}",
+        c(&all_spot) / c(&on_demand)
+    );
+    assert!((c(&half) / c(&on_demand) - 0.675).abs() < 0.01);
+}
+
+/// Slots per instance are part of the instance's size: above the cap they are billed.
+#[test]
+fn h3_slots_above_the_cap_are_billed() {
+    let batch_cost = |executors: f64| {
+        let (d, s) = job(
+            &[("instances", 2.0), ("executors", executors)],
+            &[],
+            400.0,
+            40,
+            0.0,
+            300.0,
+        );
+        node_cost(&run(&d, &s, 84), "spark")
+    };
+    assert!((batch_cost(8.0) / batch_cost(4.0) - 2.0).abs() < 0.01);
+    assert!(
+        (batch_cost(2.0) / batch_cost(4.0) - 1.0).abs() < 0.01,
+        "fewer slots don't shrink the machine"
+    );
+    // Worker threads mostly wait: up to 8× the default (Celery 8) fits the same machine.
+    let worker_cost = |threads: f64| {
+        let d = design(
+            vec![
+                node("client", K::Client, Flavour::Web, &[]),
+                node("app", K::App, Flavour::Go, &[]),
+                node("q", K::Queue, Flavour::Sqs, &[]),
+                node("w", K::Worker, Flavour::Celery, &[("concurrency", threads)]),
+            ],
+            vec![
+                edge("client", "app", Protocol::Http),
+                edge("app", "q", Protocol::Publish),
+                edge("q", "w", Protocol::Consume),
+            ],
+        );
+        let s = scenario(
+            10.0,
+            20.0,
+            vec![rtype("job", 1.0, &["compute", "broker", "worker"])],
+        );
+        node_cost(&run(&d, &s, 85), "w")
+    };
+    assert!((worker_cost(64.0) / worker_cost(8.0) - 1.0).abs() < 0.01);
+    assert!((worker_cost(128.0) / worker_cost(8.0) - 2.0).abs() < 0.01);
+}
+
+/// An exact cache in front of a model is filled by the model's answers: repeats hit it.
+#[test]
+fn h3_model_answers_fill_a_cache_aside_cache() {
+    let d = design(
+        vec![
+            node(
+                "client",
+                K::Client,
+                Flavour::Web,
+                &[("timeout_ms", 60_000.0)],
+            ),
+            node("app", K::App, Flavour::Go, &[]),
+            node("cache", K::Cache, Flavour::Redis, &[]),
+            node("llm", K::Infer, Flavour::ClaudeApi, &[]),
+        ],
+        vec![
+            edge("client", "app", Protocol::Http),
+            edge("app", "cache", Protocol::Query),
+            edge("app", "llm", Protocol::Http),
+        ],
+    );
+    let mut t = chat_type(200.0, 50.0);
+    t.route = vec!["compute".into(), "cache?".into(), "model".into()];
+    t.key_space = 50;
+    t.measure = ka_core::scenario::Measure::Response;
+    let mut s = scenario(20.0, 30.0, vec![t]);
+    s.cold_caches = true;
+    let r = run(&d, &s, 86);
+    // 600 questions over 50 keys: after the first answer per key, the cache answers.
+    assert!(
+        served(&r, "llm") < 200.0,
+        "the model answered {}",
+        served(&r, "llm")
+    );
 }

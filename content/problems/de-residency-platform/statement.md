@@ -16,7 +16,7 @@ Your EU users' contracts say where their data may be kept: **an EU user's raw ev
 | Errors | 1% or less |
 | Events lost | none |
 | EU data stored outside the EU | never (0 residency violations) |
-| Budget | $6,000 per month |
+| Budget | $13,500 per month |
 
 ## The traffic
 

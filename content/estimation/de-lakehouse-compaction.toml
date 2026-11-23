@@ -27,8 +27,8 @@ id = "month-end-slots"
 kind = "servers"
 prompt = "At month end, {qps} queries a second arrive, and {miss_pct}% of them miss the result cache. Each of those holds a warehouse slot for {query_s} s. About how many slots are busy at once?"
 prompt_es = "A fin de mes llegan {qps} consultas por segundo, y la caché de resultados no responde el {miss_pct} % de ellas. Cada una de esas ocupa un hueco del almacén de datos durante {query_s} s. ¿Cuántos huecos están ocupados a la vez, más o menos?"
-inputs = { qps = 33, miss_pct = 80, query_s = 1.83 }
+inputs = { qps = 33, miss_pct = 80, query_s = 1.98 }
 formula = "qps * miss_pct / 100 * query_s"
 unit = "count"
-solution = "{qps} × {miss_pct} % × {query_s} s ≈ {answer} slots, with 32 available (4 instances × 8): the queue grows without end. Compacted, a query takes about 0.57 s and needs about 15 slots."
-solution_es = "{qps} × {miss_pct} % × {query_s} s ≈ {answer} huecos, con 32 disponibles (4 instancias × 8): la cola crece sin fin. Compactado, una consulta tarda unos 0,57 s y necesita unos 15 huecos."
+solution = "{qps} × {miss_pct} % × {query_s} s ≈ {answer} slots, with 32 available (4 instances × 8): the queue grows without end. Compacted, a query takes about 0.72 s and needs about 19 slots."
+solution_es = "{qps} × {miss_pct} % × {query_s} s ≈ {answer} huecos, con 32 disponibles (4 instancias × 8): la cola crece sin fin. Compactado, una consulta tarda unos 0,72 s y necesita unos 19 huecos."

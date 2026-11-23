@@ -15,11 +15,12 @@ tags = ["batch", "spark", "skew", "salting", "spot", "checkpoints", "deadlines"]
 # The job's skew is fixed (a job's shape can't vary per test), so the hidden tests vary the
 # spot interruptions instead: the hot-key task is what they hurt.
 
+challenge_ratio = 0.6
 [nfr]
 peak_rps = 0
 p95_ms = 1000
 availability = 0.999
-budget_usd = 2500
+budget_usd = 1650
 
 [[request_types]]
 id = "join"
@@ -52,7 +53,7 @@ name = "All spot executors are taken back for 15 minutes, late in the night"
 name_es = "Te quitan todos los ejecutores spot durante 15 minutos, al final de la noche"
 hidden = true
 duration_s = 700
-chaos = [{ spot = { kind = "batch", all = true, at = 300, share = 1.0, for = 30 } }]
+chaos = [{ spot = { kind = "batch", all = true, at = 270, share = 1.0, for = 30 } }]
 
 [pass]
 error_rate = 0.001

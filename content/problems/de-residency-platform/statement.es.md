@@ -16,7 +16,7 @@ Los contratos de tus usuarios de la UE dicen dónde se pueden guardar sus datos:
 | Errores | 1 % o menos |
 | Eventos perdidos | ninguno |
 | Datos de la UE guardados fuera de la UE | nunca (0 infracciones de residencia) |
-| Presupuesto | 6000 $ al mes |
+| Presupuesto | 13 500 $ al mes |
 
 ## El tráfico
 

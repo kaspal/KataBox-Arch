@@ -68,8 +68,7 @@
         "y": 112
       },
       "props": {
-        "instances": 4,
-        "concurrency": 20
+        "instances": 2
       },
       "group_id": null
     },
@@ -102,7 +101,7 @@
       "props": {
         "instances": 4,
         "concurrency": 8,
-        "scan_gbps": 8
+        "scan_gbps": 5
       },
       "group_id": null
     }

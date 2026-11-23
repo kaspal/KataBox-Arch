@@ -17,7 +17,7 @@ tags = ["batch-inference", "spot", "checkpoints", "deadlines", "capacity"]
 peak_rps = 0
 p95_ms = 1000
 availability = 0.999
-budget_usd = 12000
+budget_usd = 4200
 
 [[request_types]]
 id = "score"
@@ -38,16 +38,16 @@ duration_s = 700
 
 [[tests]]
 id = "spot-early"
-name = "Half the executors are taken back early in the night"
-name_es = "Te quitan la mitad de los ejecutores al principio de la noche"
+name = "Half the spot executors are taken back early in the night"
+name_es = "Te quitan la mitad de los ejecutores spot al principio de la noche"
 hidden = true
 duration_s = 700
 chaos = [{ spot = { kind = "batch", all = true, at = 60, share = 0.5, for = 540 } }]
 
 [[tests]]
 id = "spot-late"
-name = "Half the executors are taken back late in the night"
-name_es = "Te quitan la mitad de los ejecutores al final de la noche"
+name = "Half the spot executors are taken back late in the night"
+name_es = "Te quitan la mitad de los ejecutores spot al final de la noche"
 hidden = true
 duration_s = 700
 chaos = [{ spot = { kind = "batch", all = true, at = 240, share = 0.5, for = 360 } }]

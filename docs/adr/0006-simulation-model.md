@@ -505,6 +505,15 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
   p50 fell from 5.2 s to 0.39 s, the bias this removes). Residency (S9) covers model calls: a Model Inference card
   outside the request's residency counts a violation (AI 16 reworked to test it). The Rate Limiter has
   `unit = requests | tokens`; with tokens each request debits its prompt + answer tokens (AI 6).
+- **Hardening H3 (free lunches).** Slots per instance are part of an instance's size: above a cap the per-instance
+  price scales with value ÷ cap. The cap is the flavour default for stream-processor `concurrency`, batch
+  `executors` and a time-billed warehouse's `scan_gbps` (a faster scan is a bigger warehouse); worker threads and GPU
+  `batch_slots` mostly wait (I/O; a server setting bounded by GPU memory, already slowed by the batching curve), so
+  up to 8× the default is free (`FREE_WAITING_SLOTS`, a modelling choice). BigQuery on demand scans at the provider's
+  rate. Batch `spot_share` is real: spot executors cost 35% of on-demand (`SPOT_PRICE`, a modelling choice inside
+  the usual 60–90% discount) and a `spot` event takes back only spot executors. `pass.dead_lettered` limits messages
+  moved to a DLQ (the work wasn't done). Model answers fill an exact cache-aside cache in front of a Model Inference
+  card, as provider answers do. Lakehouse tables have `dedup`.
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE

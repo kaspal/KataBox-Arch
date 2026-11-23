@@ -22,13 +22,13 @@ Un primer intento habitual es el mismo camino con 3 Workers Celery (24 huecos), 
 
 Con los ficheros gigantes, 24 huecos se enfrentan a unos 108 huecos de trabajo. Los Workers están ocupados un 99 %, la cola crece durante todo el minuto y el p95 pasa del minuto.
 
-Cuando cae la primaria, no hay nada que promover. Todas las consultas de estado fallan desde entonces, un 16,9 % de errores. Cada fichero falla su escritura, se reintenta tras 1, 2 y 4 segundos y después se pierde. Los Workers siguen ocupados un 93 % con escrituras que no pueden salir bien, la cola se atasca detrás de ellos, y al final se pierden 1794 ficheros y el p95 pasa del minuto. Ni siquiera con una réplica bastan 3 reintentos: 7 segundos de espera se acaban mucho antes de que termine un failover de 30 segundos, y se pierden unos 909 ficheros.
+Cuando cae la primaria, no hay nada que promover. Todas las consultas de estado fallan desde entonces, un 16,9 % de errores. Cada fichero falla su escritura, se reintenta tras 1, 2 y 4 segundos y después se pierde. Los Workers siguen ocupados un 93 % con escrituras que no pueden salir bien, la cola se atasca detrás de ellos, y al final se pierden 1794 ficheros y el p95 pasa del minuto. Ni siquiera con una réplica bastan 3 reintentos: 7 segundos de espera se acaban mucho antes de que termine un failover de 30 segundos, y se pierden unos 380 ficheros. Una Cola de mensajes fallidos tampoco lo salva: los mismos 380 ficheros esperan en la Cola de mensajes fallidos, y la prueba falla por ellos, porque un fichero en esa cola es un fichero sin cargar.
 
 La idea es esta: una cola no pone el trabajo a salvo por sí sola. Los reintentos tienen que durar más que el fallo que esperas, la base de datos necesita una copia que pueda tomar el relevo, y los Workers necesitan sitio para los ficheros más grandes, no para el fichero medio.
 
 ## Lo que el simulador deja fuera
 
-El juez no cuenta los ficheros en la Cola de mensajes fallidos. El primer intento con una réplica y una Cola de mensajes fallidos, pero aún con solo 3 reintentos, sale Accepted: los 909 ficheros que habría perdido esperan en la Cola de mensajes fallidos, y además quedan fuera del p95, que baja a unos 4,2 s. En la vida real, cada uno es un fichero que alguien tiene que encontrar y reprocesar. La referencia cumple los límites de las pruebas (ningún fichero perdido, el p95 hasta que se escriben las filas) porque sus reintentos cargan todos los ficheros, y tu diseño debería cumplirlos igual.
+El juez cuenta los ficheros que acaban en la Cola de mensajes fallidos, pero no se simula reprocesarlos: en la vida real alguien tiene que encontrar cada uno y volver a enviarlo.
 
 Aquí analizar y cargar son un solo paso del Worker: un cargador real leería el fichero en streaming, lo escribiría por lotes y haría cada lote idempotente, para que un reintento no inserte las mismas filas dos veces. No se simulan filas duplicadas, cargas parciales ni ficheros mal formados. Un fichero gigante se modela como 25 veces el trabajo en cada paso, no como un fichero de un tamaño concreto. Nunca se comprueba el contenido de las filas.
 

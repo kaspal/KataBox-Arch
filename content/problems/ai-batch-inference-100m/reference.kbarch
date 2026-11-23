@@ -15,7 +15,8 @@
       },
       "props": {
         "instances": 50,
-        "checkpoint": true
+        "checkpoint": true,
+        "spot_share": 100
       },
       "group_id": null
     },

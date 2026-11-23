@@ -56,8 +56,8 @@
     },
     {
       "id": "scorer",
-      "kind": "streamproc",
-      "flavour": "flink",
+      "kind": "worker",
+      "flavour": "celery",
       "label": "scorer",
       "position": {
         "x": 912,
@@ -65,7 +65,8 @@
       },
       "props": {
         "instances": 6,
-        "concurrency": 64
+        "concurrency": 64,
+        "service_ms": 1
       },
       "group_id": null
     },

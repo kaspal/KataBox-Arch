@@ -22,13 +22,13 @@ A common first try is the same path with 3 Celery Workers (24 slots), the queue'
 
 With the giant files, 24 slots face about 108 slots of work. The Workers are 99% busy, the queue grows all minute, and the p95 climbs past a minute.
 
-When the primary dies, there is nothing to promote. Every status check fails from then on, for 16.9% errors. Every file fails its write, is retried after 1, 2 and 4 seconds, and is then lost. The Workers stay 93% busy with writes that cannot succeed, the queue backs up behind them, and by the end 1,794 files are lost and the p95 is over a minute. Even with a replica, 3 retries are not enough: 7 seconds of waiting runs out long before a 30-second failover ends, and about 909 files are lost.
+When the primary dies, there is nothing to promote. Every status check fails from then on, for 16.9% errors. Every file fails its write, is retried after 1, 2 and 4 seconds, and is then lost. The Workers stay 93% busy with writes that cannot succeed, the queue backs up behind them, and by the end 1,794 files are lost and the p95 is over a minute. Even with a replica, 3 retries are not enough: 7 seconds of waiting runs out long before a 30-second failover ends, and about 380 files are lost. A Dead-Letter Queue doesn't rescue it either: the same 380 files wait in the Dead-Letter Queue instead, and the test fails on them, because a dead-lettered file is a file not loaded.
 
 The point is this: a queue does not make work safe by itself. Retries have to outlast the failure you expect, the database needs a copy that can take over, and the Workers need room for the biggest files, not the average one.
 
 ## What the simulator leaves out
 
-The judge does not count dead-lettered files. The first try with a replica and a Dead-Letter Queue, but still only 3 retries, is Accepted: the 909 files it would have lost wait in the Dead-Letter Queue instead, and they are left out of the p95 too, which drops to about 4.2 s. In real life each of them is a file someone has to find and replay. The test limits (no lost files, the p95 until the rows are written) are met by the reference because its retries load every file, and you should hold your design to that.
+The judge counts the files that end up in the Dead-Letter Queue, but replaying them is not simulated: in real life someone has to find each one and send it again.
 
 Parsing and loading are one Worker step here: a real loader would stream the file, write it in batches and make each batch idempotent, so that a retry does not insert the same rows twice. Duplicate rows, partial loads and malformed files are not simulated. A giant file is modelled as 25 times the work at every step, not as a file of a particular size. The rows' content is never checked.
 
