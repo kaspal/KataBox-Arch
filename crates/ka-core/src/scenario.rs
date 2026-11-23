@@ -85,6 +85,10 @@ pub struct RequestType {
     /// dispatches every other message first.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub bulk: bool,
+    /// M11: this work can wait hours for its results (an overnight job), so a model card in
+    /// `api_mode = batch` may serve it. Batch calls for any other type fail: someone is waiting.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub batch_ok: bool,
     /// S4: a job type's work (kind = "job").
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub job: Option<JobSpec>,

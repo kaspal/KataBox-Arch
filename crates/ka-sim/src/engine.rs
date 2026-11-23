@@ -36,10 +36,13 @@ enum Ev {
         r: u32,
         node: u32,
     },
+    /// `call`: the request's call number when the service started; a service for a call
+    /// the caller has since abandoned (M11) only frees its slot.
     SvcDone {
         r: u32,
         node: u32,
         lane: u16,
+        call: u32,
     },
     /// A call answered or failed; `call` is the call's number on its request, so an answer
     /// that arrives after the caller gave up on that call (S8 call timeout) is ignored.
@@ -942,9 +945,23 @@ impl Engine {
                 self.reqs[r as usize].pending -= 1;
                 self.on_arrive(r, node);
             }
-            Ev::SvcDone { r, node, lane } => {
+            Ev::SvcDone {
+                r,
+                node,
+                lane,
+                call,
+            } => {
                 self.reqs[r as usize].pending -= 1;
-                self.on_svc_done(r, node, lane);
+                if self.reqs[r as usize].call_gen != call
+                    && self.reqs[r as usize].phase != Phase::Call
+                {
+                    // The work for an abandoned call finished: it was done and billed, but
+                    // the request has moved on (back to its broker, or a new attempt).
+                    self.release(node, lane);
+                    self.maybe_free(r);
+                } else {
+                    self.on_svc_done(r, node, lane);
+                }
             }
             Ev::CallBack { r, call } if call != self.reqs[r as usize].call_gen => {
                 // An answer to a call the caller already gave up on.
@@ -1759,7 +1776,12 @@ impl Engine {
     fn model_admit(&mut self, r: u32, node: u32) -> bool {
         self.draw_tokens(r);
         let spec = &self.c.nodes[node as usize].spec;
-        if !spec.hosted || spec.batch_api {
+        if spec.batch_api {
+            // M11: the batch API returns results hours later: only work that can wait that
+            // long (a request type marked `batch_ok`) may use it.
+            return self.c.types[self.reqs[r as usize].ty as usize].def.batch_ok;
+        }
+        if !spec.hosted {
             return true;
         }
         let (rpm, tpm, sample) = (
@@ -1828,7 +1850,17 @@ impl Engine {
             let err = rt.faulty_err;
             self.reqs[r as usize].bad = err > 0.0 && self.rng_s8.uniform() < err;
         }
-        self.push_req(self.now + us, Ev::SvcDone { r, node, lane }, r);
+        let call = self.reqs[r as usize].call_gen;
+        self.push_req(
+            self.now + us,
+            Ev::SvcDone {
+                r,
+                node,
+                lane,
+                call,
+            },
+            r,
+        );
     }
 
     /// Free a slot and start the next queued request on it.
@@ -2518,6 +2550,11 @@ impl Engine {
             _ => {}
         }
         let caller = self.reqs[r as usize].caller;
+        if caller == NONE {
+            // The caller gave up on this call (a timeout) and the message went back to its
+            // broker: the answer has nowhere to go.
+            return;
+        }
         if self.cut(node, caller) {
             // A split opened while the call ran: the answer never arrives.
             let call = self.reqs[r as usize].call_gen;

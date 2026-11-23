@@ -1,0 +1,48 @@
+id = "ai-moderation"
+track = "ai"
+number = 5
+set = 1
+difficulty = "easy"
+title = "Post Moderation"
+title_es = "Moderación de publicaciones"
+teaches = "Size a self-hosted classifier for the peak, not the average, and keep a second model server so losing one doesn't stop every post"
+teaches_es = "Dimensionar un clasificador propio para el pico, no para la media, y tener un segundo servidor de modelo para que perder uno no pare todas las publicaciones"
+tags = ["ml-inference", "capacity", "headroom", "redundancy"]
+
+challenge_ratio = 0.55
+[nfr]
+peak_rps = 1500
+p95_ms = 200
+availability = 0.999
+budget_usd = 5000
+
+[[request_types]]
+id = "post"
+name = "Publish a post"
+name_es = "Publicar un mensaje"
+share = 1.0
+route = ["edge?", "compute", "model:classify"]
+tokens_in = { mean = 40, p95 = 90 }
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "spike"
+name = "A post goes viral"
+name_es = "Una publicación se hace viral"
+hidden = true
+traffic = { spike = { at = 15, x = 5, for = 30 } }
+
+[[tests]]
+id = "node-lost"
+name = "A model server is lost"
+name_es = "Se pierde un servidor del modelo"
+hidden = true
+chaos = [{ kill = { kind = "infer", at = 20 } }]
+pass = { error_rate = 0.03, availability = 0.97 }
+
+[pass]
+error_rate = 0.01

@@ -1,0 +1,135 @@
+{
+  "schema_version": 4,
+  "id": "ai-provider-failover-ref",
+  "name": "Chat with two providers (reference)",
+  "problem_id": "ai-provider-failover",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "timeout_ms": 30000
+      },
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "api",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 2,
+        "call_timeout_ms": 5000,
+        "breaker_errors_pct": 20,
+        "breaker_open_s": 60
+      },
+      "group_id": "z1"
+    },
+    {
+      "id": "primary",
+      "kind": "infer",
+      "flavour": "claude_api",
+      "label": "primary",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "rpm": 4000,
+        "tpm": 2000000
+      },
+      "group_id": null
+    },
+    {
+      "id": "secondary",
+      "kind": "infer",
+      "flavour": "openai_api",
+      "label": "secondary",
+      "position": {
+        "x": 608,
+        "y": 224
+      },
+      "props": {
+        "rpm": 1500,
+        "tpm": 1000000
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-api-http",
+      "from": "lb",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e-api-primary-http",
+      "from": "api",
+      "to": "primary",
+      "protocol": "http"
+    },
+    {
+      "id": "e-api-secondary-http",
+      "from": "api",
+      "to": "secondary",
+      "protocol": "http"
+    }
+  ],
+  "groups": [
+    {
+      "id": "z1",
+      "kind": "az",
+      "label": "apps",
+      "position": {
+        "x": 584,
+        "y": -40
+      },
+      "size": {
+        "w": 256,
+        "h": 128
+      },
+      "parent_id": null,
+      "mesh": {
+        "flavour": "linkerd",
+        "props": {
+          "mesh_retries": 3
+        }
+      }
+    }
+  ],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

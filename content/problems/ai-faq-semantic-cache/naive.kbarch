@@ -1,0 +1,85 @@
+{
+  "schema_version": 4,
+  "id": "naive-faq",
+  "name": "Help-centre bot (first try)",
+  "problem_id": "ai-faq-semantic-cache",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "cache",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "cache",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "memory_gb": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "llm",
+      "kind": "infer",
+      "flavour": "claude_api",
+      "label": "llm",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-app-http",
+      "from": "client",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-cache-query",
+      "from": "app",
+      "to": "cache",
+      "protocol": "query"
+    },
+    {
+      "id": "e-app-llm-http",
+      "from": "app",
+      "to": "llm",
+      "protocol": "http"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

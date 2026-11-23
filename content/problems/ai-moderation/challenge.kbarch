@@ -1,0 +1,109 @@
+{
+  "schema_version": 4,
+  "id": "ai-moderation-challenge",
+  "name": "Post moderation (reference)",
+  "problem_id": "ai-moderation",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "api",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 3
+      },
+      "group_id": null
+    },
+    {
+      "id": "model-a",
+      "kind": "infer",
+      "flavour": "triton",
+      "label": "model-a",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 1,
+        "model_type": "classify"
+      },
+      "group_id": null
+    },
+    {
+      "id": "model-b",
+      "kind": "infer",
+      "flavour": "triton",
+      "label": "model-b",
+      "position": {
+        "x": 608,
+        "y": 224
+      },
+      "props": {
+        "instances": 1,
+        "model_type": "classify"
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-api-http",
+      "from": "lb",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e-api-model-a-http",
+      "from": "api",
+      "to": "model-a",
+      "protocol": "http"
+    },
+    {
+      "id": "e-api-model-b-http",
+      "from": "api",
+      "to": "model-b",
+      "protocol": "http"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "schema_version": 4,
+  "id": "ai-model-router-naive",
+  "name": "Model router (first try)",
+  "problem_id": "ai-model-router",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "timeout_ms": 60000
+      },
+      "group_id": null
+    },
+    {
+      "id": "gw",
+      "kind": "gateway",
+      "flavour": "kong",
+      "label": "gw",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "quick",
+      "kind": "app",
+      "flavour": "go",
+      "label": "quick",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "research",
+      "kind": "micro",
+      "flavour": "generic",
+      "label": "research",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "large",
+      "kind": "infer",
+      "flavour": "claude_api",
+      "label": "large",
+      "position": {
+        "x": 608,
+        "y": 224
+      },
+      "props": {
+        "tpm": 1500000
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-gw-http",
+      "from": "client",
+      "to": "gw",
+      "protocol": "http"
+    },
+    {
+      "id": "e-gw-quick-http",
+      "from": "gw",
+      "to": "quick",
+      "protocol": "http"
+    },
+    {
+      "id": "e-gw-research-http",
+      "from": "gw",
+      "to": "research",
+      "protocol": "http"
+    },
+    {
+      "id": "e-quick-large-http",
+      "from": "quick",
+      "to": "large",
+      "protocol": "http"
+    },
+    {
+      "id": "e-research-large-http",
+      "from": "research",
+      "to": "large",
+      "protocol": "http"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

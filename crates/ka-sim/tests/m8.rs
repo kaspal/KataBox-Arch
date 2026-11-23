@@ -1059,14 +1059,44 @@ fn s2_continuous_batching_slows_each_request() {
     );
 }
 
-/// The batch API halves the token bill.
+/// client → app → queue → worker → one inference card (queued work).
+fn queued_llm(model: ka_core::Node) -> (Design, Scenario) {
+    let d = design(
+        vec![
+            node("client", K::Client, Flavour::Web, &[]),
+            node("app", K::App, Flavour::Go, &[]),
+            node("queue", K::Queue, Flavour::Sqs, &[]),
+            node(
+                "worker",
+                K::Worker,
+                Flavour::Celery,
+                &[("concurrency", 64.0)],
+            ),
+            model,
+        ],
+        vec![
+            edge("client", "app", Protocol::Http),
+            edge("app", "queue", Protocol::Publish),
+            edge("queue", "worker", Protocol::Consume),
+            edge("worker", "llm", Protocol::Http),
+        ],
+    );
+    let mut t = chat_type(800.0, 300.0);
+    t.batch_ok = true;
+    t.route = ["compute", "broker", "worker", "model"]
+        .map(String::from)
+        .to_vec();
+    (d, scenario(2.0, 60.0, vec![t]))
+}
+
+/// The batch API halves the token bill, for queued work; it never answers a waiting caller.
 #[test]
-fn s2_the_batch_api_halves_the_price() {
-    let (d, s) = llm(node("llm", K::Infer, Flavour::ClaudeApi, &[]), 2.0);
+fn s2_the_batch_api_halves_the_price_for_queued_work_only() {
+    let (d, s) = queued_llm(node("llm", K::Infer, Flavour::ClaudeApi, &[]));
     let rt = run(&d, &s, 64);
     let mut m = node("llm", K::Infer, Flavour::ClaudeApi, &[]);
     set(&mut m, "api_mode", PropValue::Text("batch".into()));
-    let (d, s) = llm(m, 2.0);
+    let (d, s) = queued_llm(m.clone());
     let b = run(&d, &s, 64);
     let llm_cost = |r: &RunResult| r.nodes.iter().find(|n| n.id == "llm").unwrap().cost_month;
     assert!(
@@ -1074,6 +1104,17 @@ fn s2_the_batch_api_halves_the_price() {
         "{} vs {}",
         llm_cost(&b),
         llm_cost(&rt)
+    );
+    assert_eq!(b.errors, 0.0);
+    // Work someone is waiting for can't use it (a chat, or queued work not marked batch_ok).
+    let (d, s) = llm(m.clone(), 2.0);
+    assert!(run(&d, &s, 64).error_rate > 0.99);
+    let (d, mut s) = queued_llm(m);
+    s.request_types[0].batch_ok = false;
+    let r = run(&d, &s, 64);
+    assert!(
+        r.lost + r.retried > 0.0,
+        "queued work fails its batch calls"
     );
 }
 
@@ -2132,4 +2173,27 @@ fn an_async_failover_loses_the_lag_window_only_when_the_problem_counts_it() {
         0.0,
         "a synchronous replica has every commit"
     );
+}
+
+/// Regression (M11): a worker's call that times out sends the message back to its queue;
+/// the model's late answer must not crash the run.
+#[test]
+fn a_late_answer_to_a_worker_that_gave_up_is_dropped() {
+    let mut w = node(
+        "worker",
+        K::Worker,
+        Flavour::Celery,
+        &[("concurrency", 64.0)],
+    );
+    set(&mut w, "call_timeout_ms", PropValue::Number(3000.0));
+    let (mut d, s) = queued_llm(node(
+        "llm",
+        K::Infer,
+        Flavour::ClaudeApi,
+        &[("tpm", 2_000_000.0)],
+    ));
+    let i = d.nodes.iter().position(|n| n.id == "worker").unwrap();
+    d.nodes[i] = w;
+    let r = run(&d, &s, 65);
+    assert!(r.retried > 0.0, "long answers time out and are retried");
 }

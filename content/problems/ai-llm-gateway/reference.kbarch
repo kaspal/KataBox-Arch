@@ -1,0 +1,148 @@
+{
+  "schema_version": 4,
+  "id": "ai-llm-gateway-ref",
+  "name": "LLM gateway (reference)",
+  "problem_id": "ai-llm-gateway",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "gw-a",
+      "kind": "gateway",
+      "flavour": "litellm",
+      "label": "gw-a",
+      "position": {
+        "x": 304,
+        "y": 112
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "gw-b",
+      "kind": "gateway",
+      "flavour": "litellm",
+      "label": "gw-b",
+      "position": {
+        "x": 304,
+        "y": 224
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "limiter",
+      "kind": "ratelimit",
+      "flavour": "redis_token_bucket",
+      "label": "limiter",
+      "position": {
+        "x": 304,
+        "y": 336
+      },
+      "props": {
+        "limit_rps": 2,
+        "burst": 10
+      },
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "model",
+      "kind": "infer",
+      "flavour": "claude_api",
+      "label": "model",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-gw-a-http",
+      "from": "lb",
+      "to": "gw-a",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-gw-b-http",
+      "from": "lb",
+      "to": "gw-b",
+      "protocol": "http"
+    },
+    {
+      "id": "e-gw-a-limiter-http",
+      "from": "gw-a",
+      "to": "limiter",
+      "protocol": "http"
+    },
+    {
+      "id": "e-gw-b-limiter-http",
+      "from": "gw-b",
+      "to": "limiter",
+      "protocol": "http"
+    },
+    {
+      "id": "e-limiter-app-http",
+      "from": "limiter",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-model-http",
+      "from": "app",
+      "to": "model",
+      "protocol": "http"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

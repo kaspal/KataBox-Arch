@@ -1,0 +1,108 @@
+{
+  "schema_version": 4,
+  "id": "ai-llm-observability-naive",
+  "name": "LLM usage analytics (first try)",
+  "problem_id": "ai-llm-observability",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "timeout_ms": 30000
+      },
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 4
+      },
+      "group_id": null
+    },
+    {
+      "id": "claude",
+      "kind": "infer",
+      "flavour": "claude_api",
+      "label": "claude",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "rpm": 4000,
+        "tpm": 2000000
+      },
+      "group_id": null
+    },
+    {
+      "id": "wh",
+      "kind": "warehouse",
+      "flavour": "snowflake",
+      "label": "wh",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app-http",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-claude-http",
+      "from": "app",
+      "to": "claude",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-wh-query",
+      "from": "app",
+      "to": "wh",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "schema_version": 4,
+  "id": "ai-embed-ingest-ref",
+  "name": "Embedding ingest (reference)",
+  "problem_id": "ai-embed-ingest",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "rps": 5
+      },
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "api",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "queue",
+      "kind": "queue",
+      "flavour": "sqs",
+      "label": "queue",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {
+        "max_retries": 10
+      },
+      "group_id": null
+    },
+    {
+      "id": "embedders",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "embedders",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 2,
+        "concurrency": 12
+      },
+      "group_id": null
+    },
+    {
+      "id": "embed",
+      "kind": "infer",
+      "flavour": "openai_api",
+      "label": "embed",
+      "position": {
+        "x": 608,
+        "y": 224
+      },
+      "props": {
+        "model_type": "embed",
+        "rpm": 3000,
+        "tpm": 600000
+      },
+      "group_id": null
+    },
+    {
+      "id": "vectors",
+      "kind": "vector",
+      "flavour": "pgvector",
+      "label": "vectors",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-api-http",
+      "from": "client",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e-api-queue-publish",
+      "from": "api",
+      "to": "queue",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-queue-embedders-consume",
+      "from": "queue",
+      "to": "embedders",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-embedders-embed-http",
+      "from": "embedders",
+      "to": "embed",
+      "protocol": "http"
+    },
+    {
+      "id": "e-embedders-vectors-query",
+      "from": "embedders",
+      "to": "vectors",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

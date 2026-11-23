@@ -64,6 +64,7 @@ pub fn rtype(id: &str, share: f64, route: &[&str]) -> RequestType {
         semantic_repeat_share: 0.0,
         poison_share: 0.0,
         bulk: false,
+        batch_ok: false,
         job: None,
         event_delay: None,
         scan: None,

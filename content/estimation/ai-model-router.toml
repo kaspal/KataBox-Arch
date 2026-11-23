@@ -1,0 +1,34 @@
+# Estimation drills for Model Router.
+
+[[drill]]
+id = "easy-share-of-tokens"
+kind = "capacity"
+prompt = "Your help assistant gets {easy_rps} easy questions a second at about {easy_tokens} tokens each, and {hard_rps} hard ones at about {hard_tokens} tokens each. If every question goes to the large model, how many tokens a minute reach its key?"
+prompt_es = "Tu asistente de ayuda recibe {easy_rps} preguntas fáciles por segundo, de unos {easy_tokens} tokens cada una, y {hard_rps} difíciles, de unos {hard_tokens} tokens cada una. Si todas las preguntas van al modelo grande, ¿cuántos tokens por minuto llegan a su clave?"
+inputs = { easy_rps = 8, easy_tokens = 1420, hard_rps = 2, hard_tokens = 4600 }
+formula = "(easy_rps * easy_tokens + hard_rps * hard_tokens) * 60"
+unit = "count"
+solution = "({easy_rps} × {easy_tokens} + {hard_rps} × {hard_tokens}) × 60 s = {answer} tokens a minute, 82% of a 1,500,000 limit. The easy questions are 682,000 of them: small one by one, but four times as many, so they are more than half of the key's load."
+solution_es = "({easy_rps} × {easy_tokens} + {hard_rps} × {hard_tokens}) × 60 s = {answer} tokens por minuto, el 82 % de un límite de 1 500 000. Las preguntas fáciles son 682 000 de ellos: pequeñas una a una, pero cuatro veces más numerosas, así que son más de la mitad de la carga de la clave."
+
+[[drill]]
+id = "key-runs-dry"
+kind = "capacity"
+prompt = "A key allows {tpm} tokens a minute and starts with one full minute stored. A newsletter pushes {demand} tokens a minute at it. After how many seconds is the stored minute used up?"
+prompt_es = "Una clave permite {tpm} tokens por minuto y empieza con un minuto entero guardado. Un boletín le envía {demand} tokens por minuto. ¿Después de cuántos segundos se agota el minuto guardado?"
+inputs = { tpm = 1500000, demand = 2600000 }
+formula = "tpm / (demand - tpm) * 60"
+unit = "s"
+solution = "The store drains at {demand} − {tpm} tokens a minute, so {tpm} / ({demand} − {tpm}) × 60 s ≈ {answer} seconds. After that the key lets through only {tpm} a minute and refuses the rest with a 429. A short test can hide this; a wave that lasts more than a minute or two can't."
+solution_es = "El depósito se vacía a {demand} − {tpm} tokens por minuto, así que {tpm} / ({demand} − {tpm}) × 60 s ≈ {answer} segundos. Después, la clave solo deja pasar {tpm} por minuto y rechaza el resto con un 429. Una prueba corta puede ocultarlo; una ola que dura más de un minuto o dos, no."
+
+[[drill]]
+id = "small-model-gpus"
+kind = "servers"
+prompt = "During the newsletter the small model gets {easy_rps} easy questions a second, and each answer holds a batch slot for about {slot_s} seconds. A GPU has {slots} batch slots. How many GPUs' worth of slots are busy (before rounding up)?"
+prompt_es = "Durante el boletín, el modelo pequeño recibe {easy_rps} preguntas fáciles por segundo, y cada respuesta ocupa un hueco de lote durante unos {slot_s} segundos. Una GPU tiene {slots} huecos de lote. ¿Cuántas GPU de huecos están ocupadas (antes de redondear hacia arriba)?"
+inputs = { easy_rps = 24, slot_s = 1.5, slots = 16 }
+formula = "easy_rps * slot_s / slots"
+unit = "count"
+solution = "Busy slots = arrivals × time held (Little's law): {easy_rps} × {slot_s} s = 36 slots, and 36 / {slots} = {answer} GPUs. Round up to 3, and keep one more: a GPU whose slots are nearly full decodes every answer slower, which holds the slots longer still. The reference runs 4."
+solution_es = "Huecos ocupados = llegadas × tiempo ocupado (ley de Little): {easy_rps} × {slot_s} s = 36 huecos, y 36 / {slots} = {answer} GPU. Redondea a 3 y deja una más: una GPU con los huecos casi llenos decodifica cada respuesta más despacio, lo que ocupa los huecos aún más tiempo. La referencia usa 4."

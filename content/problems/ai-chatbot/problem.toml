@@ -1,0 +1,54 @@
+id = "ai-chatbot"
+number = 1
+set = 1
+track = "ai"
+difficulty = "easy"
+title = "Support Chatbot"
+title_es = "Chatbot de soporte"
+teaches = "Size a hosted model's per-minute limits for your peak, and survive 429s and provider outages with client retries and a second provider"
+teaches_es = "Dimensionar los límites por minuto de un modelo alojado para tu pico, y sobrevivir a los 429 y a las caídas del proveedor con reintentos en el cliente y un segundo proveedor"
+tags = ["llm", "rate-limits", "retries", "fallback"]
+requires = ["infer"]
+
+[nfr]
+peak_rps = 5
+p95_ms = 12000
+availability = 0.99
+budget_usd = 150000
+
+[[request_types]]
+id = "chat"
+name = "Send a chat message"
+name_es = "Enviar un mensaje al chat"
+share = 1.0
+route = ["edge?", "compute", "model:chat"]
+key_space = 100000
+tokens_in = { mean = 800, p95 = 1600 }
+tokens_out = { mean = 300, p95 = 600 }
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "launch"
+name = "Launch day: 4 times the traffic for 3 minutes"
+name_es = "Día de lanzamiento: 4 veces el tráfico durante 3 minutos"
+hidden = true
+duration_s = 240
+traffic = { spike = { at = 30, x = 4, for = 180 } }
+pass = { error_rate = 0.05, availability = 0.95 }
+
+[[tests]]
+id = "overloaded"
+name = "The model provider is overloaded for 20 s"
+name_es = "El proveedor del modelo se satura durante 20 s"
+hidden = true
+duration_s = 90
+chaos = [{ kill = { kind = "infer", at = 20, for = 20 } }]
+pass = { error_rate = 0.02, availability = 0.98 }
+
+[pass]
+error_rate = 0.01
+ttft_p95_ms = 1500

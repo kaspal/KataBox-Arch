@@ -1,0 +1,34 @@
+# Estimation drills for Chat on Your Own GPUs.
+
+[[drill]]
+id = "first-token"
+kind = "capacity"
+prompt = "Your vLLM model needs {ttft_ms} ms before it starts, then reads the prompt at {prefill_tps} tokens a second. A message sends a prompt of {tokens_in} tokens. If no message waits for a slot, how many seconds until its first token?"
+prompt_es = "Tu modelo en vLLM necesita {ttft_ms} ms antes de empezar, y después lee el prompt a {prefill_tps} tokens por segundo. Un mensaje envía un prompt de {tokens_in} tokens. Si ningún mensaje espera un hueco, ¿cuántos segundos tarda su primer token?"
+inputs = { ttft_ms = 200, prefill_tps = 5000, tokens_in = 1000 }
+formula = "ttft_ms / 1000 + tokens_in / prefill_tps"
+unit = "s"
+solution = "0.2 s + {tokens_in} / {prefill_tps} s = {answer} s. The limit is 1 s, so less than 0.6 s is left for waiting in a queue, and a long prompt of 2,000 tokens leaves only 0.4 s. A GPU with no free slot breaks that limit at once."
+solution_es = "0,2 s + {tokens_in} / {prefill_tps} s = {answer} s. El límite es 1 s, así que quedan menos de 0,6 s para esperar en cola, y un prompt largo de 2000 tokens deja solo 0,4 s. Una GPU sin huecos libres rompe ese límite enseguida."
+
+[[drill]]
+id = "full-batch-tokens"
+kind = "capacity"
+prompt = "One GPU writes {tokens_per_s} tokens a second for one answer alone, and with all {batch_slots} batch slots busy each answer goes at half that speed. How many tokens a second does one GPU write in total with a full batch?"
+prompt_es = "Una GPU escribe {tokens_per_s} tokens por segundo para una respuesta sola, y con los {batch_slots} huecos del lote ocupados cada respuesta va a la mitad de esa velocidad. ¿Cuántos tokens por segundo escribe en total una GPU con el lote lleno?"
+inputs = { tokens_per_s = 80, batch_slots = 64 }
+formula = "batch_slots * tokens_per_s / 2"
+unit = "count"
+solution = "{batch_slots} answers × 40 tokens a second = {answer} tokens a second. That is the most one GPU can do, not 64 × 80: the batch multiplies how many answers run at once, and each of them slows down. At that point every answer is at its slowest and the next message waits."
+solution_es = "{batch_slots} respuestas × 40 tokens por segundo = {answer} tokens por segundo. Es lo máximo que puede hacer una GPU, no 64 × 80: el lote multiplica cuántas respuestas van a la vez, y cada una se frena. En ese punto cada respuesta va a su velocidad más lenta y el siguiente mensaje espera."
+
+[[drill]]
+id = "gpus-for-double"
+kind = "servers"
+prompt = "At double traffic, {peak_rps} × {x} messages a second each get an answer of about {tokens_out} tokens. One GPU writes at most {gpu_max} tokens a second with a full batch. How many GPUs does double traffic fill completely?"
+prompt_es = "Con el doble de tráfico, {peak_rps} × {x} mensajes por segundo reciben cada uno una respuesta de unos {tokens_out} tokens. Una GPU escribe como mucho {gpu_max} tokens por segundo con el lote lleno. ¿Cuántas GPU llena por completo el doble de tráfico?"
+inputs = { peak_rps = 20, x = 2, tokens_out = 250, gpu_max = 2560 }
+formula = "peak_rps * x * tokens_out / gpu_max"
+unit = "count"
+solution = "{peak_rps} × {x} × {tokens_out} = 10,000 tokens a second, over {gpu_max}: about {answer} GPUs running completely full, and long answers push the real average higher. Four GPUs would queue. Six, at about half to two-thirds busy, leave room, and as three cards of 2 they still leave 4 GPUs for the normal peak when a card is lost."
+solution_es = "{peak_rps} × {x} × {tokens_out} = 10 000 tokens por segundo, entre {gpu_max}: unas {answer} GPU completamente llenas, y las respuestas largas suben la media real. Cuatro GPU pondrían mensajes en cola. Seis, ocupadas entre la mitad y dos tercios, dejan sitio, y como tres tarjetas de 2 todavía dejan 4 GPU para el pico normal cuando se pierde una tarjeta."

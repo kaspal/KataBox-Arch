@@ -1,0 +1,53 @@
+id = "ai-self-hosted-vllm"
+number = 9
+set = 1
+track = "ai"
+difficulty = "medium"
+title = "Chat on Your Own GPUs"
+title_es = "Chat en tus propias GPU"
+teaches = "Size a self-hosted vLLM pool from its real throughput: a full batch serves more answers, each one slower, so plan GPUs for the peak with a card lost"
+teaches_es = "Dimensionar un grupo de vLLM propio por su rendimiento real: un lote lleno sirve más respuestas, cada una más lenta, así que planifica las GPU para el pico con una tarjeta perdida"
+tags = ["llm", "gpu", "batching", "capacity", "redundancy"]
+requires = ["infer"]
+
+[nfr]
+peak_rps = 20
+p95_ms = 15000
+availability = 0.99
+budget_usd = 8000
+
+[[request_types]]
+id = "chat"
+name = "Send a chat message"
+name_es = "Enviar un mensaje al chat"
+share = 1.0
+route = ["edge?", "compute", "model:chat"]
+key_space = 100000
+tokens_in = { mean = 1000, p95 = 2000 }
+tokens_out = { mean = 250, p95 = 600 }
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "double"
+name = "Twice the traffic for 2 minutes"
+name_es = "El doble de tráfico durante 2 minutos"
+hidden = true
+duration_s = 150
+traffic = { spike = { at = 20, x = 2, for = 120 } }
+
+[[tests]]
+id = "gpu-lost"
+name = "A GPU card is lost"
+name_es = "Se pierde una tarjeta de GPU"
+hidden = true
+duration_s = 120
+chaos = [{ kill = { kind = "infer", at = 20, for = 100 } }]
+pass = { error_rate = 0.02, availability = 0.98 }
+
+[pass]
+error_rate = 0.01
+ttft_p95_ms = 1000

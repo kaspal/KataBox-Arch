@@ -1,0 +1,51 @@
+id = "ai-llm-observability"
+number = 14
+set = 1
+track = "ai"
+difficulty = "medium"
+title = "LLM Usage Analytics"
+title_es = "Analítica de uso de un LLM"
+teaches = "Record a trace of every model call for cost and latency analytics without putting the warehouse in the chat's path"
+teaches_es = "Registrar una traza de cada llamada al modelo para analizar coste y latencia sin poner el almacén de datos en el camino del chat"
+tags = ["llm", "observability", "streaming", "data-warehouse"]
+requires = ["infer", "warehouse"]
+
+[nfr]
+peak_rps = 5
+p95_ms = 12000
+availability = 0.99
+budget_usd = 160000
+
+[[request_types]]
+id = "chat"
+name = "Send a chat message"
+name_es = "Enviar un mensaje al chat"
+share = 1.0
+route = ["edge?", "compute", "model:chat", "broker?", "worker", "datastore:write:warehouse"]
+key_space = 100000
+tokens_in = { mean = 800, p95 = 1600 }
+tokens_out = { mean = 300, p95 = 600 }
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "launch"
+name = "Launch day: 4 times the traffic for 2 minutes"
+name_es = "Día de lanzamiento: 4 veces el tráfico durante 2 minutos"
+hidden = true
+duration_s = 180
+traffic = { spike = { at = 30, x = 4, for = 120 } }
+
+[[tests]]
+id = "slow-warehouse"
+name = "The warehouse slows down: every write takes 8 s longer for 40 s"
+name_es = "El almacén de datos se ralentiza: cada escritura tarda 8 s más durante 40 s"
+hidden = true
+duration_s = 90
+chaos = [{ latency = { kind = "warehouse", at = 20, for = 40, add_ms = 8000 } }]
+
+[pass]
+error_rate = 0.01

@@ -1,0 +1,51 @@
+id = "ai-recsys-retrieval"
+number = 11
+set = 1
+track = "ai"
+difficulty = "medium"
+title = "Recommendations: Retrieve, Then Re-rank"
+title_es = "Recomendaciones: recuperar y reordenar"
+teaches = "Shard the vector search that finds candidate items so it keeps up with traffic, and cache finished recommendation lists so a viral item doesn't melt the one shard that holds it"
+teaches_es = "Repartir en shards la búsqueda vectorial que encuentra los artículos candidatos para que aguante el tráfico, y cachear las listas de recomendaciones terminadas para que un artículo viral no funda el único shard que lo contiene"
+tags = ["recommendations", "vector-search", "sharding", "caching", "hot-keys", "ml-inference"]
+
+[nfr]
+peak_rps = 600
+p95_ms = 150
+availability = 0.999
+budget_usd = 3000
+
+[[request_types]]
+id = "recommend"
+name = "Show \"you may also like\" for an item"
+name_es = "Mostrar «también te puede gustar» para un artículo"
+share = 1.0
+route = ["edge?", "compute", "cache?", "datastore:vector", "model:classify"]
+key_space = 5000000
+key_skew = { zipf = 0.6 }
+value_kb = 2
+top_k = 50
+tokens_in = { mean = 50, p95 = 100 }
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "sale"
+name = "A sale triples traffic"
+name_es = "Una rebaja triplica el tráfico"
+hidden = true
+traffic = { flat = 3 }
+
+[[tests]]
+id = "viral"
+name = "One item goes viral"
+name_es = "Un artículo se hace viral"
+hidden = true
+key_skew_override = { zipf = 2.0 }
+traffic = { spike = { at = 15, x = 6, for = 30 } }
+
+[pass]
+error_rate = 0.01

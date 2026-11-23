@@ -1,0 +1,34 @@
+# Estimation drills for Help-Centre Answer Bot.
+
+[[drill]]
+id = "tpm-ceiling"
+kind = "qps"
+prompt = "Your model account allows {tpm} tokens a minute. A question sends {tokens_in} tokens and gets {tokens_out} back. At most how many questions a second can reach the model?"
+prompt_es = "Tu cuenta del modelo permite {tpm} tokens por minuto. Una pregunta envía {tokens_in} tokens y recibe {tokens_out}. ¿Cuántas preguntas por segundo pueden llegar como mucho al modelo?"
+inputs = { tpm = 400000, tokens_in = 500, tokens_out = 120 }
+formula = "tpm / 60 / (tokens_in + tokens_out)"
+unit = "rps"
+solution = "{tpm} / 60 ≈ 6,667 tokens a second, and a question uses {tokens_in} + {tokens_out} = 620, so about {answer} questions a second. The peak is 12, so sending every question to the model is over the limit before anything goes viral."
+solution_es = "{tpm} / 60 ≈ 6667 tokens por segundo, y una pregunta usa {tokens_in} + {tokens_out} = 620, así que unas {answer} preguntas por segundo. El pico es de 12, así que enviar todas las preguntas al modelo pasa el límite antes de que nada se haga viral."
+
+[[drill]]
+id = "viral-tokens"
+kind = "capacity"
+prompt = "During the viral test, {ask_rps} everyday questions a second arrive ({ask_repeat_pct}% near-repeats) and {viral_rps} viral ones ({viral_repeat_pct}% near-repeats). A semantic cache answers every near-repeat, and a question uses {tokens} tokens. How many tokens a minute reach the model?"
+prompt_es = "Durante la prueba viral llegan {ask_rps} preguntas normales por segundo ({ask_repeat_pct} % casi repetidas) y {viral_rps} virales ({viral_repeat_pct} % casi repetidas). Una caché semántica responde todas las casi repetidas, y una pregunta usa {tokens} tokens. ¿Cuántos tokens por minuto llegan al modelo?"
+inputs = { ask_rps = 11.4, ask_repeat_pct = 60, viral_rps = 24.6, viral_repeat_pct = 95, tokens = 620 }
+formula = "(ask_rps * (100 - ask_repeat_pct) / 100 + viral_rps * (100 - viral_repeat_pct) / 100) * tokens * 60"
+unit = "count"
+solution = "Misses: 11.4 × 0.4 ≈ 4.6 plus 24.6 × 0.05 ≈ 1.2, about 5.8 questions a second. × {tokens} tokens × 60 s ≈ {answer} tokens a minute, about half of the 400,000 limit. Without the semantic matches, nearly all 36 questions a second would go to the model: about 1.3 million tokens a minute."
+solution_es = "Fallos: 11,4 × 0,4 ≈ 4,6 más 24,6 × 0,05 ≈ 1,2, unas 5,8 preguntas por segundo. × {tokens} tokens × 60 s ≈ {answer} tokens por minuto, más o menos la mitad del límite de 400 000. Sin las coincidencias semánticas, casi las 36 preguntas por segundo irían al modelo: unos 1,3 millones de tokens por minuto."
+
+[[drill]]
+id = "cache-memory"
+kind = "storage"
+prompt = "Your semantic cache keeps {questions} distinct questions, each with its answer and its embedding, about {entry_kb} KB per entry. How many MB of memory does it need?"
+prompt_es = "Tu caché semántica guarda {questions} preguntas distintas, cada una con su respuesta y su embedding, unos {entry_kb} KB por entrada. ¿Cuántos MB de memoria necesita?"
+inputs = { questions = 100000, entry_kb = 8 }
+formula = "questions * entry_kb / 1000"
+unit = "MB"
+solution = "{questions} × {entry_kb} KB = 800,000 KB ≈ {answer} MB. A 2 GB Redis holds them all with room to spare; a cache too small to hold them would answer only the share it can keep."
+solution_es = "{questions} × {entry_kb} KB = 800 000 KB ≈ {answer} MB. Un Redis de 2 GB las guarda todas con margen; una caché demasiado pequeña para guardarlas solo respondería la parte que puede conservar."

@@ -1,0 +1,62 @@
+id = "ai-model-router"
+track = "ai"
+number = 10
+set = 1
+difficulty = "medium"
+title = "Model Router"
+title_es = "Enrutador de modelos"
+teaches = "Send each kind of question to the cheapest model that can take it: a small self-hosted model for the easy majority, a large hosted one only for the hard ones"
+teaches_es = "Enviar cada tipo de pregunta al modelo más barato que pueda con ella: un modelo pequeño propio para la mayoría fácil y uno grande alojado solo para las difíciles"
+tags = ["llm", "cost", "model-routing", "self-hosting"]
+requires = ["infer"]
+
+[nfr]
+peak_rps = 10
+p95_ms = 30000
+availability = 0.999
+budget_usd = 320000
+
+[[request_types]]
+id = "easy"
+name = "Ask an easy question"
+name_es = "Hacer una pregunta fácil"
+share = 0.8
+route = ["edge?", "compute:app", "model:chat"]
+key_space = 100000
+tokens_in = { mean = 1200, p95 = 2400 }
+tokens_out = { mean = 100, p95 = 220 }
+
+[[request_types]]
+id = "hard"
+name = "Ask a hard question"
+name_es = "Hacer una pregunta difícil"
+share = 0.2
+route = ["edge?", "compute:micro", "model:chat"]
+key_space = 100000
+tokens_in = { mean = 3000, p95 = 6000 }
+tokens_out = { mean = 1200, p95 = 2400 }
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "hard-doubles"
+name = "Twice as many hard questions"
+name_es = "El doble de preguntas difíciles"
+hidden = true
+duration_s = 120
+type_multipliers = { hard = 2 }
+
+[[tests]]
+id = "easy-surge"
+name = "A newsletter brings three times the easy questions"
+name_es = "Un boletín trae el triple de preguntas fáciles"
+hidden = true
+duration_s = 180
+type_multipliers = { easy = 3 }
+
+[pass]
+error_rate = 0.01
+ttft_p95_ms = 2000

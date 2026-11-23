@@ -1,0 +1,34 @@
+# Estimation drills for Voice Assistant.
+
+[[drill]]
+id = "turn-budget"
+kind = "capacity"
+prompt = "A voice turn calls three models in a row. Speech to text takes {stt_ms} ms. The language model needs {ttft_ms} ms to start, reads a {prompt_tokens}-token prompt at {prefill_tps} tokens/s and writes a {reply_tokens}-token reply at {tokens_per_s} tokens/s. Text to speech takes {tts_ms} ms to its first chunk of audio. How long does the user wait, in ms?"
+prompt_es = "Un turno de voz llama a tres modelos seguidos. La voz a texto tarda {stt_ms} ms. El modelo de lenguaje necesita {ttft_ms} ms para arrancar, lee un prompt de {prompt_tokens} tokens a {prefill_tps} tokens/s y escribe una respuesta de {reply_tokens} tokens a {tokens_per_s} tokens/s. El texto a voz tarda {tts_ms} ms hasta su primer trozo de audio. ¿Cuánto espera el usuario, en ms?"
+inputs = { stt_ms = 65, ttft_ms = 200, prompt_tokens = 300, prefill_tps = 5000, reply_tokens = 15, tokens_per_s = 80, tts_ms = 24 }
+formula = "stt_ms + ttft_ms + prompt_tokens / prefill_tps * 1000 + reply_tokens / tokens_per_s * 1000 + tts_ms"
+unit = "ms"
+solution = "65 + 200 + 300 / 5,000 × 1,000 (60) + 15 / 80 × 1,000 (about 188) + 24 ≈ {answer} ms. The stages add up, and writing the reply is the biggest piece. With a hosted model's 500 to 600 ms to start instead of 200 ms, the same turn is close to 1 s before anything goes wrong."
+solution_es = "65 + 200 + 300 / 5000 × 1000 (60) + 15 / 80 × 1000 (unos 188) + 24 ≈ {answer} ms. Las etapas se suman, y escribir la respuesta es la parte más grande. Con los 500 a 600 ms de arranque de un modelo alojado en lugar de 200 ms, el mismo turno roza 1 s antes de que nada vaya mal."
+
+[[drill]]
+id = "surge-gpus"
+kind = "servers"
+prompt = "At the peak you get {peak_rps} turns a second, and a surge brings {surge_x} times that. Each language model call holds a GPU slot for about {llm_s} s. A GPU has {slots} slots, and you want them at most {target_busy} busy (as a share) so replies are still written quickly. How many GPUs do you need for the surge?"
+prompt_es = "En el pico recibes {peak_rps} turnos por segundo, y un pico extra trae {surge_x} veces eso. Cada llamada al modelo de lenguaje ocupa un hueco de GPU unos {llm_s} s. Una GPU tiene {slots} huecos, y los quieres ocupados como mucho en {target_busy} (en proporción) para que las respuestas se sigan escribiendo rápido. ¿Cuántas GPU necesitas para el pico extra?"
+inputs = { peak_rps = 20, surge_x = 3, llm_s = 0.5, slots = 16, target_busy = 0.5 }
+formula = "peak_rps * surge_x * llm_s / (slots * target_busy)"
+unit = "count"
+solution = "{peak_rps} × {surge_x} × {llm_s} s = 30 busy slots; at half of 16 slots per GPU that is {answer}, so 4 GPUs. One GPU, sized for the average, has 16 slots for 30 calls: the turns queue until the app gives up."
+solution_es = "{peak_rps} × {surge_x} × {llm_s} s = 30 huecos ocupados; a la mitad de 16 huecos por GPU salen {answer}, así que 4 GPU. Una sola GPU, dimensionada para la media, tiene 16 huecos para 30 llamadas: los turnos hacen cola hasta que la app se rinde."
+
+[[drill]]
+id = "streaming-saving"
+kind = "capacity"
+prompt = "The language model writes a {reply_tokens}-token reply at {tokens_per_s} tokens/s. If text to speech could start after the first {first_tokens} tokens instead of waiting for the whole reply, how many ms sooner would the user hear the answer?"
+prompt_es = "El modelo de lenguaje escribe una respuesta de {reply_tokens} tokens a {tokens_per_s} tokens/s. Si el texto a voz pudiera empezar tras los {first_tokens} primeros tokens en lugar de esperar a la respuesta entera, ¿cuántos ms antes oiría el usuario la respuesta?"
+inputs = { reply_tokens = 30, tokens_per_s = 80, first_tokens = 6 }
+formula = "(reply_tokens - first_tokens) / tokens_per_s * 1000"
+unit = "ms"
+solution = "({reply_tokens} − {first_tokens}) / {tokens_per_s} × 1,000 = {answer} ms, a quarter of the 1.2 s budget. That is what streaming between the stages buys. The simulator does not model it: there, text to speech waits for the whole reply, so short replies and GPU headroom have to make up the difference."
+solution_es = "({reply_tokens} − {first_tokens}) / {tokens_per_s} × 1000 = {answer} ms, una cuarta parte del presupuesto de 1,2 s. Eso es lo que compra el streaming entre etapas. El simulador no lo modela: allí el texto a voz espera a la respuesta entera, así que las respuestas cortas y el margen en las GPU tienen que compensar la diferencia."

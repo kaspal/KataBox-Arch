@@ -348,7 +348,7 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
   - TTFT (request start to first token) is recorded per type and overall; `pass.ttft_p95_ms` fails a test as SLO
     Breach.
   - Usage meters bill tokens (`tokens_in_m`, `tokens_out_m` per million), halved with `api_mode = batch`; the
-    batch API also skips the per-minute limits. Its delivery window isn't simulated. Connection-minutes and pushed
+    batch API also skips the per-minute limits. Its delivery window isn't simulated as time; instead (M11) only work declared able to wait hours may use it: a request type marked `batch_ok`; batch-mode calls for any other type fail. Connection-minutes and pushed
     messages (S1) bill through the same meters.
 - **Semantic cache (S3, golden g).** A cache with `mode = semantic` on a `cache?` step answers a request with
   probability `semantic_repeat_share` × fill × capacity: the request type declares how many requests are

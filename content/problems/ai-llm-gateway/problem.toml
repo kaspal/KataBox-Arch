@@ -1,0 +1,63 @@
+id = "ai-llm-gateway"
+track = "ai"
+number = 6
+set = 1
+difficulty = "easy"
+title = "LLM Gateway for Many Teams"
+title_es = "Pasarela de LLM para muchos equipos"
+teaches = "Give each tenant its own token limit at a shared LLM gateway, so one team's flood can't spend everyone's provider quota, and run more than one gateway"
+teaches_es = "Dar a cada inquilino su propio límite de tokens en una pasarela de LLM compartida, para que la avalancha de un equipo no gaste la cuota de todos con el proveedor, y tener más de una pasarela"
+tags = ["llm", "rate-limits", "multi-tenancy", "gateway"]
+requires = ["infer", "gateway"]
+
+[nfr]
+peak_rps = 8
+p95_ms = 5000
+availability = 0.999
+budget_usd = 80000
+
+[[request_types]]
+id = "chat"
+name = "A team's chat completion"
+name_es = "Una petición de chat de un equipo"
+share = 0.9
+route = ["edge", "compute", "model:chat"]
+api_keys = 9
+tokens_in = { mean = 400, p95 = 1000 }
+tokens_out = { mean = 60, p95 = 120 }
+
+[[request_types]]
+id = "batch-team"
+name = "Calls from the team that floods"
+name_es = "Llamadas del equipo que inunda"
+share = 0.1
+route = ["edge", "compute", "model:chat"]
+api_keys = 1
+abusive = true
+tokens_in = { mean = 400, p95 = 1000 }
+tokens_out = { mean = 60, p95 = 120 }
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "flood"
+name = "One team runs a script that floods the gateway"
+name_es = "Un equipo lanza un script que inunda la pasarela"
+hidden = true
+duration_s = 120
+type_multipliers = { batch-team = 40 }
+
+[[tests]]
+id = "gateway-lost"
+name = "A gateway node is lost"
+name_es = "Se pierde un nodo de la pasarela"
+hidden = true
+chaos = [{ kill = { kind = "gateway", at = 20, for = 20 } }]
+pass = { error_rate = 0.05, availability = 0.95 }
+
+[pass]
+error_rate = 0.01
+ttft_p95_ms = 1500

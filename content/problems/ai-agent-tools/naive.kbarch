@@ -1,0 +1,107 @@
+{
+  "schema_version": 4,
+  "id": "ai-agent-tools-naive",
+  "name": "Support agent with tools (first try)",
+  "problem_id": "ai-agent-tools",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "rps": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "api",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "queue",
+      "kind": "queue",
+      "flavour": "sqs",
+      "label": "queue",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "agents",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "agents",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 3
+      },
+      "group_id": null
+    },
+    {
+      "id": "model",
+      "kind": "infer",
+      "flavour": "claude_api",
+      "label": "model",
+      "position": {
+        "x": 608,
+        "y": 224
+      },
+      "props": {
+        "tpm": 2000000
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-api-http",
+      "from": "client",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e-api-queue-publish",
+      "from": "api",
+      "to": "queue",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-queue-agents-consume",
+      "from": "queue",
+      "to": "agents",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-agents-model-http",
+      "from": "agents",
+      "to": "model",
+      "protocol": "http"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}
