@@ -7,6 +7,18 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
 ## [Unreleased]
 
 ### Added
+- **17 new component kinds** (25 → 42): WebSocket gateway, identity provider, third-party API, model inference,
+  batch compute, media server, coordination service, vector store, warehouse, lakehouse, time-series DB, graph DB,
+  connection pooler, stream processor, MQTT broker, connector and feature-flag config, plus 45 new product flavours
+  on existing kinds. Each has a glyph, a Guide entry with "What isn't simulated" and how it is billed.
+- **Simulator:** long-lived connections and reconnect storms; token-metered model calls (TTFT, rate limits);
+  semantic caching; batch jobs (skew, salting, speculation, spot); stream windows and late events; warehouse
+  scans (partition pruning, small files, result cache); quorum locks, split-brain and fencing; client retries,
+  timeouts, circuit breakers, bulkheads, load shedding, staged deploys, config pushes, DNS failover; data
+  residency; serve-stale and stampede guard on caches; Region tags and a service mesh on zones.
+- **Same SLO, half the cost:** after solving a problem, beat a cost target (half the reference, or the proven
+  ratio) with every test still passing; a badge and filter on Problems, a banner in the brief, and a Progress page
+  with per-track counts.
 - **Set 2: 15 more problems** (#16–30), from Image Thumbnails to an Order-Matching Exchange, each with hints, an
   editorial (with "What the simulator leaves out" where it matters) and estimation drills. Learning paths include
   them.

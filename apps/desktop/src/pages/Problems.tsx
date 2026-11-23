@@ -79,7 +79,7 @@ export function ProgressRing({ solved, total, label }: { solved: number; total: 
         <circle cx="12" cy="12" r={r} fill="none" stroke="var(--border)" strokeWidth="3" />
         <circle cx="12" cy="12" r={r} fill="none" stroke="var(--green)" strokeWidth="3" strokeDasharray={`${share * c} ${c}`} />
       </svg>
-      <span className="text-xs tabular-nums text-muted-foreground">
+      <span className="text-xs tabular-nums opacity-80">
         <span className="sr-only">{label} </span>
         {solved}/{total}
       </span>

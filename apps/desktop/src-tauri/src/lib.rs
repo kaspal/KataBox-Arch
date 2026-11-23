@@ -676,6 +676,27 @@ async fn submit_design(
     app.record_submission(&design, judgement, &local_day).await
 }
 
+/// M8.5: judge a "same SLO, half the cost" try (the problem's tests, the challenge budget)
+/// and record it. Open once the problem is solved.
+#[tauri::command]
+#[specta::specta]
+async fn submit_challenge(
+    state: State<'_, AppState>,
+    id: String,
+    design: Design,
+) -> Res<ka_app::Judgement> {
+    let app = state.app()?;
+    let (problem, ref_cost) = app.challenge_for_judging(&id).await?;
+    let registry = app.registry().clone();
+    let judgement = tauri::async_runtime::spawn_blocking(move || {
+        ka_app::problems::judge_design(&problem, &design, &registry, ref_cost)
+    })
+    .await
+    .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    app.record_challenge(&id, &judgement).await?;
+    Ok(judgement)
+}
+
 #[tauri::command]
 #[specta::specta]
 async fn submissions(
@@ -803,6 +824,7 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         unlock_hint,
         save_draft,
         submit_design,
+        submit_challenge,
         submissions,
         progress,
         list_samples,

@@ -97,7 +97,7 @@ export function ChallengeBanner({ brief }: { brief: ProblemBrief }) {
         <>
           <p className="text-xs">{t("challenge.banner", { label, target: usd.format(c.target_cost), pct: Math.round(c.ratio * 100) })}</p>
           {c.best_cost !== null && <p className="text-xs text-muted-foreground">{t("challenge.best", { cost: usd.format(c.best_cost) })}</p>}
-          <Button size="sm" variant="outline" className="gap-2" disabled={busy} onClick={() => void submit()} data-testid="challenge-submit">
+          <Button size="sm" variant="outline" className="h-auto w-full gap-2 whitespace-normal py-1.5 text-left" disabled={busy} onClick={() => void submit()} data-testid="challenge-submit">
             <Wallet aria-hidden className="size-3.5" />
             {t("challenge.submit")}
           </Button>
