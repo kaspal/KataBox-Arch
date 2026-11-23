@@ -429,6 +429,9 @@ pub enum PropType {
     Choice {
         options: Vec<String>,
     },
+    /// M8: the name of one of the problem's declared providers (a Third-Party API card's
+    /// binding); any short name in the Sandbox.
+    Binding,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -638,6 +641,11 @@ impl PropSpec {
             }
             (PropType::Bool, PropValue::Bool(_)) => true,
             (PropType::Choice { options }, PropValue::Text(s)) => options.iter().any(|o| o == s),
+            (PropType::Binding, PropValue::Text(s)) => {
+                s.len() <= 40
+                    && s.bytes()
+                        .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+            }
             _ => false,
         }
     }
@@ -650,7 +658,10 @@ impl PropSpec {
                 PropType::Int { .. } | PropType::Float { .. },
                 PropValue::Number(_)
             ) | (PropType::Bool, PropValue::Bool(_))
-                | (PropType::Choice { .. }, PropValue::Text(_))
+                | (
+                    PropType::Choice { .. } | PropType::Binding,
+                    PropValue::Text(_)
+                )
         )
     }
 }
@@ -1346,7 +1357,13 @@ pub fn registry() -> Registry {
                 fl(F::Twilio),
                 fl(F::Sendgrid),
             ],
-            vec![],
+            vec![PropSpec {
+                key: "binding".into(),
+                ty: PropType::Binding,
+                default: PropValue::Text(String::new()),
+                unit: Unit::None,
+                calibration: None,
+            }],
         ),
         // --- Compute ---
         kind(
@@ -1493,7 +1510,13 @@ pub fn registry() -> Registry {
             K::Sql,
             vec![
                 fl(F::Postgresql),
-                fl_with(F::Mysql, &[("concurrency", num(151.0))]),
+                fl_with(
+                    F::Mysql,
+                    &[
+                        ("concurrency", num(151.0)),
+                        ("max_connections", num(1_365.0)),
+                    ],
+                ),
             ],
             vec![
                 int("shards", 1.0, 64.0, 1.0, Unit::Count),
@@ -1507,6 +1530,8 @@ pub fn registry() -> Registry {
                 boolean("fencing", false),
                 // S5: idempotent writes (upsert by key): a replayed result isn't a duplicate.
                 boolean("dedup", false),
+                // M8: enforced when a problem turns connection limits on.
+                int("max_connections", 1.0, 100_000.0, 1_700.0, Unit::Count),
             ],
         ),
         kind(

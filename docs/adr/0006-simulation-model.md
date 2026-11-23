@@ -405,6 +405,22 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
   broker accepts it, outside a Region with that tag. A card in no tagged Region counts as outside: tag your Regions.
   Routing doesn't prevent it; the design must. `pass.residency_violations` (usually 0) fails a test as Dropped
   Requests.
+- **Kind behaviours (golden n, n2).**
+  - **Identity Provider.** Route steps `auth` (a token check, `verify_ms`) and `auth:login` (`login_ms`, limited by
+    `logins_per_s`; past it a login is refused). With `verify = local` (JWKS) the app checks tokens itself: no call,
+    so token checks survive the provider's outage; logins don't.
+  - **Connection Pooler.** A call may reach a SQL card through a pooler (caller → pooler → SQL, Query edges), paying
+    0.7 ms more. With the problem's `connections = true`, SQL enforces `max_connections`: every slot of every service
+    wired straight to it holds one (instances now × slots per instance, so an app scale-out raises it), and a pooler
+    holds its `pool_size`. Past the limit a share of direct calls (excess ÷ demand) is refused. Queueing for a
+    pooled connection isn't modelled. Off by default.
+  - **Third-Party API cards.** `binding` names a provider the problem declares; calls from a caller wired to a card
+    bound to it count on the card (its flavour's price per call). Cards bound to one provider share its limits
+    (they belong to the account). Without a card the provider stays implicit, as before.
+  - **Service mesh** (a Region or AZ's `mesh`, `.kbarch` v4). A hop or call between two meshed cards pays the
+    sidecars (Istio 2 ms, Linkerd 1 ms; modelling choices), a meshed service's work takes 10% / 5% more CPU, the
+    zone's `mesh_timeout_ms` and `mesh_breaker_errors_pct` are its cards' defaults for `call_timeout_ms` and the
+    circuit breaker, and a failed call is retried `mesh_retries` times.
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE

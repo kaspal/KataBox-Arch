@@ -219,7 +219,8 @@
     "model": "modelling choice",
     "modelHint": "A simulator knob no vendor publishes; the Guide and docs/calibration.md say why this value.",
     "ruleOfThumb": "rule of thumb",
-    "ruleOfThumbHint": "A rule of thumb rather than a measured figure."
+    "ruleOfThumbHint": "A rule of thumb rather than a measured figure.",
+    "bindingHint": "the provider's name in the brief"
   },
   "home": {
     "eyebrow": "Your system design desk",
@@ -570,7 +571,8 @@
       "fencing": "Fencing tokens",
       "reconnect_jitter_s": "Reconnect jitter",
       "reconnect_backoff_s": "Reconnect backoff",
-      "dedup": "Idempotent writes (dedup)"
+      "dedup": "Idempotent writes (dedup)",
+      "binding": "Provider"
     },
     "choice": {
       "round_robin": "Round robin",

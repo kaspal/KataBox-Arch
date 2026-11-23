@@ -167,6 +167,21 @@ function PropField({
       </label>
     );
   }
+  if (ty.type === "binding") {
+    // M8: a Third-Party API card names the provider it stands for (a problem's declared one).
+    return (
+      <Field label={label} htmlFor={id} action={reset}>
+        <Input
+          id={id}
+          value={typeof current === "string" ? current : ""}
+          maxLength={40}
+          placeholder={t("inspector.bindingHint")}
+          onChange={(e) => onChange(e.target.value.replace(/[^A-Za-z0-9_-]/g, ""))}
+          className="bg-card font-mono"
+        />
+      </Field>
+    );
+  }
   if (ty.type === "choice") {
     return (
       <Field label={label} htmlFor={id} action={reset}>

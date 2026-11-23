@@ -204,6 +204,11 @@ struct Req {
     released: bool,
     /// S4: the batch card a task copy was sent to.
     runner: u32,
+    /// M8: the call in progress is a login; network time to add to the next send (a
+    /// connection pooler on the way); mesh retries of the current call so far.
+    call_login: bool,
+    extra_us: u64,
+    call_tries: u32,
 }
 
 /// S4: no job.
@@ -317,6 +322,9 @@ struct NodeRt {
     since_ckpt: f64,
     /// S6: terabytes scanned (billed by `tb_scanned`).
     bill_tb: f64,
+    /// M8 identity providers: the login bucket and when it was last refilled.
+    login_tokens: f64,
+    login_at: u64,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -539,6 +547,7 @@ impl Engine {
             })
             .collect();
         for (n, cn) in nodes.iter_mut().zip(&c.nodes) {
+            n.login_tokens = cn.spec.logins_per_s * c.sample;
             n.rpm_left = cn.spec.rpm * c.sample;
             n.tpm_left = cn.spec.tpm * c.sample;
             n.util_series.reserve(nsec);
@@ -1086,6 +1095,9 @@ impl Engine {
             started: u64::MAX,
             released: false,
             runner: NONE,
+            call_login: false,
+            extra_us: 0,
+            call_tries: 0,
         };
         if let Some(i) = self.free.pop() {
             self.reqs[i as usize] = req;
@@ -1280,7 +1292,8 @@ impl Engine {
     }
 
     fn send(&mut self, r: u32, from: u32, to: u32, proto: Protocol, hop: bool) {
-        let lat = hop_latency_us(&self.c, from, to, proto);
+        let lat = hop_latency_us(&self.c, from, to, proto)
+            + std::mem::take(&mut self.reqs[r as usize].extra_us);
         self.reqs[r as usize].from = from;
         if let Some(trace) = &mut self.trace {
             let q = &self.reqs[r as usize];
@@ -1471,6 +1484,19 @@ impl Engine {
         if n.spec.semantic {
             // S3: an embedding plus a nearest-neighbour lookup (a modelling choice).
             median += SEMANTIC_LOOKUP_MS;
+        }
+        if n.kind == ComponentKind::Idp {
+            median = if q.call_login {
+                n.spec.login_ms
+            } else {
+                n.spec.verify_ms
+            };
+        }
+        if let Some(mesh) = n.mesh
+            && matches!(n.spec.role, Role::Compute | Role::Worker)
+        {
+            // M8: the sidecar takes its share of the service's CPU.
+            median *= mesh.cpu;
         }
         let ratio = n.spec.p99_ratio;
         let stretch = self.nodes[node as usize].stretch;
@@ -1794,6 +1820,7 @@ impl Engine {
             let def = &self.c.types[ty].route.segments[seg].calls[step];
             let (writes, aside) = (def.writes(), def.is_cache_aside());
             let (lock, atomic) = (def.lock, def.alts.iter().any(|a| a.atomic));
+            let login = def.alts.iter().any(|a| a.login);
             // Callers avoid targets health checks have found dead. A cache-aside read whose
             // caches are all known dead is skipped: the app treats it as a miss and reads
             // the store (which then takes the full load).
@@ -1817,6 +1844,7 @@ impl Engine {
                     if !self.begin_call(r, caller, EXT_KEY | x) {
                         return;
                     }
+                    self.bill_external_card(caller, x);
                     self.call_external(r, x);
                     return;
                 }
@@ -1830,6 +1858,14 @@ impl Engine {
                     }
                 }
             };
+            if self.c.nodes[node as usize].kind == ComponentKind::Idp
+                && !login
+                && self.c.nodes[node as usize].spec.verify_local
+            {
+                // M8: the app checks the token itself with cached signing keys (JWKS).
+                self.reqs[r as usize].step += 1;
+                continue;
+            }
             if lock
                 && self.c.nodes[node as usize].kind == ComponentKind::Coord
                 && !self.quorum(node, caller)
@@ -1840,6 +1876,14 @@ impl Engine {
                 return;
             }
             if !self.begin_call(r, caller, node) {
+                return;
+            }
+            self.reqs[r as usize].call_login = login;
+            if !self.admit_login(r, node) || !self.admit_connection(r, caller, node) {
+                // M8: a login past the provider's rate limit, or a database out of
+                // connections, is refused at once.
+                let call = self.reqs[r as usize].call_gen;
+                self.push_req(self.now + 5_000, Ev::CallFail { r, call }, r);
                 return;
             }
             if self.c.nodes[node as usize].kind == ComponentKind::Infer
@@ -1962,6 +2006,18 @@ impl Engine {
     /// Anything else fails the request, as before M8.
     fn call_failed(&mut self, r: u32) {
         self.end_call(r, false);
+        // M8: a service mesh retries the failed call (same step) up to its `mesh_retries`.
+        let caller = self.reqs[r as usize].caller;
+        if !self.reqs[r as usize].dead
+            && caller != NONE
+            && let Some(mesh) = self.c.nodes[caller as usize].mesh
+            && self.reqs[r as usize].call_tries < mesh.retries
+        {
+            self.reqs[r as usize].call_tries += 1;
+            self.retried += self.c.weight;
+            self.run_calls(r);
+            return;
+        }
         let q = &self.reqs[r as usize];
         if !q.dead {
             let (ty, seg, step) = (q.ty as usize, q.seg as usize, q.step as usize);
@@ -2184,6 +2240,7 @@ impl Engine {
             return;
         }
         self.end_call(r, true);
+        self.reqs[r as usize].call_tries = 0;
         let caller = self.reqs[r as usize].caller;
         if caller != NONE && self.nodes[caller as usize].down {
             // The caller died while waiting: a synchronous request is lost with it; a
@@ -3671,6 +3728,89 @@ impl Engine {
         (secs * 1e6 * self.nodes[node as usize].stretch) as u64
             + self.nodes[node as usize].add_us
             + 1
+    }
+
+    /// M8: a login takes a token from the identity provider's per-second bucket (holding one
+    /// second's allowance); none left, it is refused.
+    fn admit_login(&mut self, r: u32, node: u32) -> bool {
+        if !self.reqs[r as usize].call_login
+            || self.c.nodes[node as usize].kind != ComponentKind::Idp
+        {
+            return true;
+        }
+        let rate = self.c.nodes[node as usize].spec.logins_per_s * self.c.sample;
+        let now = self.now;
+        let rt = &mut self.nodes[node as usize];
+        rt.login_tokens = (rt.login_tokens + rate * now.saturating_sub(rt.login_at) as f64 / 1e6)
+            .min(rate.max(1.0));
+        rt.login_at = now;
+        if rt.login_tokens < 1.0 {
+            return false;
+        }
+        rt.login_tokens -= 1.0;
+        true
+    }
+
+    /// M8 (with the scenario's `connections`): a call straight to a database needs one of its
+    /// `max_connections`. Every slot of every service talking to it directly holds one, and
+    /// a connection pooler holds its pool; past the limit, a share of direct calls (the excess
+    /// over the demand) is refused. A call through a pooler waits for nothing here and pays
+    /// the pooler's hop (0.7 ms).
+    fn admit_connection(&mut self, r: u32, caller: u32, node: u32) -> bool {
+        if self.c.nodes[node as usize].kind != ComponentKind::Sql {
+            return true;
+        }
+        let members: Vec<u32> = match self.c.cluster_of[node as usize] {
+            Some(cl) => self.c.clusters[cl as usize].members.clone(),
+            None => vec![node],
+        };
+        let to_db = |n: &crate::compile::CNode| {
+            n.out
+                .iter()
+                .any(|(b, p)| *p == Protocol::Query && members.contains(b))
+        };
+        let direct = to_db(&self.c.nodes[caller as usize]);
+        if !direct {
+            self.reqs[r as usize].extra_us += 700;
+        }
+        if !self.c.scenario.connections || !direct {
+            return true;
+        }
+        let mut demand = 0.0;
+        for (i, n) in self.c.nodes.iter().enumerate() {
+            if !to_db(n) {
+                continue;
+            }
+            demand += if n.kind == ComponentKind::Dbproxy {
+                n.spec.pool_size * self.nodes[i].instances
+            } else {
+                n.spec.servers / n.spec.instances.max(1.0) * self.nodes[i].instances
+            };
+        }
+        let primary =
+            self.c.cluster_of[node as usize].map_or(node, |cl| self.cluster_primary[cl as usize]);
+        let limit = self.c.nodes[primary as usize].spec.max_connections;
+        if demand <= limit {
+            return true;
+        }
+        self.rng_s8.uniform() >= (demand - limit) / demand
+    }
+
+    /// M8: a call to provider `x` through a Third-Party API card bound to it counts on that
+    /// card (its price per call).
+    fn bill_external_card(&mut self, caller: u32, x: u32) {
+        let name = &self.c.externals[x as usize].name;
+        let card = self.c.nodes[caller as usize].out.iter().find(|(b, p)| {
+            matches!(p, Protocol::Http | Protocol::Grpc)
+                && self.c.nodes[*b as usize].kind == ComponentKind::External
+                && self.c.nodes[*b as usize].spec.binding == *name
+        });
+        if let Some(&(b, _)) = card {
+            let w = self.c.weight;
+            let rt = &mut self.nodes[b as usize];
+            rt.served += w;
+            rt.bill_r += w;
+        }
     }
 
     /// S9: a store, cache or broker holds this request's data: outside a Region tagged with

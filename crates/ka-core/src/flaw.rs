@@ -74,6 +74,7 @@ impl FlawDef {
             sample_cap: self.scenario.sample_cap,
             track: Default::default(),
             challenge_ratio: None,
+            connections: false,
         }
     }
 }

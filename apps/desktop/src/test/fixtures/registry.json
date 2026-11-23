@@ -13426,7 +13426,17 @@
         "icon": "external",
         "kind": "external",
         "placement": "card",
-        "props": []
+        "props": [
+          {
+            "calibration": null,
+            "default": "",
+            "key": "binding",
+            "ty": {
+              "type": "binding"
+            },
+            "unit": "none"
+          }
+        ]
       },
       {
         "category": "compute",
@@ -15091,6 +15101,10 @@
               {
                 "key": "concurrency",
                 "value": 151
+              },
+              {
+                "key": "max_connections",
+                "value": 1365
               }
             ],
             "sim": {
@@ -15234,6 +15248,21 @@
               "type": "bool"
             },
             "unit": "none"
+          },
+          {
+            "calibration": {
+              "id": "sql.max_connections",
+              "status": "needed"
+            },
+            "default": 1700,
+            "key": "max_connections",
+            "ty": {
+              "max": 100000.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
           }
         ]
       },

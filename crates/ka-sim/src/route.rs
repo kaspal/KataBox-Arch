@@ -18,6 +18,7 @@
 //!                         (quorum, S7) or a cache used as a lock (no quorum)
 //! "datastore:write:atomic" a conditional write (SQL constraint, compare-and-set): a race
 //!                         on a contended key is refused cleanly instead of a conflict
+//! "auth" "auth:login"     a token check / a login at an identity provider (M8)
 //! "service"               a call to another service that answers without calling onward
 //!                         (M8: a leaf dependency such as a recommendations service)
 //! "compute|datastore"     either role satisfies the step
@@ -54,6 +55,8 @@ pub enum Role {
     External,
     /// M8 (S2): model inference, called as a leaf dependency.
     Model,
+    /// M8: an identity provider (`auth` token checks, `auth:login` logins).
+    Auth,
     Source,
     /// Never on a path (observability, autoscaling).
     None,
@@ -80,9 +83,10 @@ impl Role {
             K::Queue | K::Stream | K::Pubsub | K::Dlq | K::Mqtt => Role::Broker,
             K::Client | K::Scheduler => Role::Source,
             K::Infer => Role::Model,
-            // M8: identity providers, pooled database connections, third-party API cards and
-            // config services take part in requests through their own features.
-            K::Idp | K::Dbproxy | K::External | K::Config => Role::None,
+            K::Idp => Role::Auth,
+            // M8: pooled database connections, third-party API cards and config services take
+            // part in requests through their own features (they are never a step's target).
+            K::Dbproxy | K::External | K::Config => Role::None,
             K::Autoscale | K::Metrics | K::Logs | K::Tracing => Role::None,
         }
     }
@@ -97,6 +101,7 @@ impl Role {
             "broker" => Role::Broker,
             "external" => Role::External,
             "model" => Role::Model,
+            "auth" => Role::Auth,
             _ => return None,
         })
     }
@@ -125,6 +130,8 @@ pub struct Alt {
     pub atomic: bool,
     /// `model:chat|embed|classify` (S2): only inference cards of that model type.
     pub model_type: Option<String>,
+    /// `auth:login`: a login, not a token check.
+    pub login: bool,
 }
 
 impl Alt {
@@ -219,6 +226,7 @@ pub fn parse_step(s: &str) -> Result<Step, RouteError> {
                 service: false,
                 atomic: false,
                 model_type: None,
+                login: false,
             }],
             optional: false,
             cdc: true,
@@ -235,6 +243,7 @@ pub fn parse_step(s: &str) -> Result<Step, RouteError> {
             service: false,
             atomic: false,
             model_type: None,
+            login: false,
         };
         return Ok(Step {
             alts: vec![
@@ -266,6 +275,7 @@ pub fn parse_step(s: &str) -> Result<Step, RouteError> {
             service,
             atomic: false,
             model_type: None,
+            login: false,
         };
         for q in parts {
             let q = q.trim();
@@ -273,6 +283,7 @@ pub fn parse_step(s: &str) -> Result<Step, RouteError> {
                 "write" => a.write = true,
                 "ws" => a.ws = true,
                 "atomic" if role == Role::Datastore => a.atomic = true,
+                "login" if role == Role::Auth => a.login = true,
                 "chat" | "embed" | "classify" if role == Role::Model => {
                     a.model_type = Some(q.to_owned());
                 }

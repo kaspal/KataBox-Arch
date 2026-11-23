@@ -594,6 +594,14 @@ pub struct Scenario {
     /// The cache and CDN start empty instead of warm.
     #[serde(default)]
     pub cold_caches: bool,
+    /// M8: databases enforce `max_connections` (each app slot talking straight to SQL holds
+    /// one; a connection pooler holds its pool). Off by default: the behaviour before M8.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub connections: bool,
+}
+
+fn is_false(v: &bool) -> bool {
+    !*v
 }
 
 #[cfg(test)]

@@ -1551,7 +1551,12 @@ export type PropType =
 /**
  * One of `options` (ids, translated as `registry.choice.<option>`).
  */
-{ type: "choice"; options: string[] }
+{ type: "choice"; options: string[] } | 
+/**
+ * M8: the name of one of the problem's declared providers (a Third-Party API card's
+ * binding); any short name in the Sandbox.
+ */
+{ type: "binding" }
 /**
  * A prop value. Numbers are one type: JavaScript can't tell `2` from `2.0`, so an
  * integer prop is a number that the registry checks is whole (`PropType::Int`).

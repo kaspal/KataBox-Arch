@@ -158,6 +158,18 @@ pub struct NodeSpec {
     pub target_file_mb: f64,
     pub partitioning: u8,
     pub compaction: bool,
+    /// M8 identity providers: login and token-check times, the login rate limit, and
+    /// whether apps check tokens themselves (JWKS) instead of calling.
+    pub login_ms: f64,
+    pub verify_ms: f64,
+    pub logins_per_s: f64,
+    pub verify_local: bool,
+    /// M8: a database's connection limit (with the scenario's `connections`), and a
+    /// connection pooler's pool.
+    pub max_connections: f64,
+    pub pool_size: f64,
+    /// M8: the provider a Third-Party API card stands for.
+    pub binding: String,
 }
 
 /// The value of `key` for `node`: the card's prop, else its flavour override, else the
@@ -383,5 +395,12 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         compaction: text(registry, node, "compaction")
             .as_deref()
             .is_some_and(|c| c != "none"),
+        login_ms: n("login_ms").unwrap_or(150.0).max(0.0),
+        verify_ms: n("verify_ms").unwrap_or(5.0).max(0.0),
+        logins_per_s: n("logins_per_s").unwrap_or(f64::INFINITY).max(0.0),
+        verify_local: text(registry, node, "verify").as_deref() == Some("local"),
+        max_connections: n("max_connections").unwrap_or(f64::INFINITY).max(1.0),
+        pool_size: n("pool_size").unwrap_or(100.0).max(1.0),
+        binding: text(registry, node, "binding").unwrap_or_default(),
     }
 }

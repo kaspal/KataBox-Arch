@@ -1571,3 +1571,191 @@ fn golden_m_residency() {
     let (d, s) = residency(Some("us"));
     golden("m", &run(&d, &s, 42));
 }
+
+// --- M8 kind behaviours: identity, pooling, third-party cards, service mesh ----------------
+
+fn with_idp(verify: &str, route: &[&str]) -> (Design, Scenario) {
+    let mut idp = node("idp", K::Idp, Flavour::Auth0, &[("logins_per_s", 50.0)]);
+    set(&mut idp, "verify", PropValue::Text(verify.into()));
+    let d = design(
+        vec![
+            node("client", K::Client, Flavour::Web, &[]),
+            node("app", K::App, Flavour::Go, &[]),
+            idp,
+            node("db", K::Sql, Flavour::Postgresql, &[]),
+        ],
+        vec![
+            edge("client", "app", Protocol::Http),
+            edge("app", "idp", Protocol::Http),
+            edge("app", "db", Protocol::Query),
+        ],
+    );
+    let mut s = scenario(200.0, 40.0, vec![rtype("api", 1.0, route)]);
+    s.chaos = vec![chaos(
+        serde_json::json!({ "kill": { "id": "idp", "at": 10, "for": 20 } }),
+    )];
+    (d, s)
+}
+
+#[test]
+fn m8_local_token_checks_survive_an_identity_provider_outage() {
+    let (d, s) = with_idp("remote", &["compute", "auth", "datastore"]);
+    let remote = run(&d, &s, 121);
+    let (d, s) = with_idp("local", &["compute", "auth", "datastore"]);
+    let local = run(&d, &s, 121);
+    assert!(remote.errors > 1000.0, "{}", remote.errors);
+    assert_eq!(local.errors, 0.0);
+    // Logins always call the provider: rate-limited, and down with it.
+    let (d, mut s) = with_idp("local", &["compute", "auth:login", "datastore"]);
+    s.chaos.clear();
+    assert!(
+        run(&d, &s, 121).errors > 1000.0,
+        "200 logins/s against a 50/s limit"
+    );
+}
+
+fn pooled(via_pooler: bool) -> (Design, Scenario) {
+    let mut nodes = vec![
+        node("client", K::Client, Flavour::Web, &[]),
+        node("app", K::App, Flavour::Go, &[("instances", 20.0)]),
+        node(
+            "db",
+            K::Sql,
+            Flavour::Postgresql,
+            &[("max_connections", 500.0)],
+        ),
+    ];
+    let mut edges = vec![edge("client", "app", Protocol::Http)];
+    if via_pooler {
+        nodes.push(node(
+            "bouncer",
+            K::Dbproxy,
+            Flavour::Pgbouncer,
+            &[("pool_size", 200.0)],
+        ));
+        edges.push(edge("app", "bouncer", Protocol::Query));
+        edges.push(edge("bouncer", "db", Protocol::Query));
+    } else {
+        edges.push(edge("app", "db", Protocol::Query));
+    }
+    let mut s = scenario(
+        1000.0,
+        30.0,
+        vec![rtype("read", 1.0, &["compute", "datastore"])],
+    );
+    s.connections = true;
+    (design(nodes, edges), s)
+}
+
+#[test]
+fn m8_a_connection_pooler_keeps_the_database_under_its_limit() {
+    let (d, s) = pooled(false);
+    let direct = run(&d, &s, 122);
+    let (d, s) = pooled(true);
+    let bounced = run(&d, &s, 122);
+    assert!(
+        direct.error_rate > 0.3,
+        "20 × 64 slots against 500 connections: {}",
+        direct.error_rate
+    );
+    assert_eq!(bounced.errors, 0.0);
+    // Without the scenario's flag, the limit isn't enforced (the behaviour before M8).
+    let (d, mut s) = pooled(false);
+    s.connections = false;
+    assert_eq!(run(&d, &s, 122).errors, 0.0);
+}
+
+#[test]
+fn m8_a_third_party_card_bills_its_provider_calls() {
+    let mut sms = node("sms-card", K::External, Flavour::Twilio, &[]);
+    set(&mut sms, "binding", PropValue::Text("sms".into()));
+    let d = design(
+        vec![
+            node("client", K::Client, Flavour::Web, &[]),
+            node("app", K::App, Flavour::Go, &[]),
+            sms,
+        ],
+        vec![
+            edge("client", "app", Protocol::Http),
+            edge("app", "sms-card", Protocol::Http),
+        ],
+    );
+    let mut s = scenario(
+        10.0,
+        30.0,
+        vec![rtype("notify", 1.0, &["compute", "external:sms"])],
+    );
+    s.externals = vec![ka_core::scenario::External {
+        name: "sms".into(),
+        median_ms: 100.0,
+        p99_ms: 400.0,
+        rate_limit: None,
+    }];
+    let r = run(&d, &s, 123);
+    let card = r.nodes.iter().find(|n| n.id == "sms-card").unwrap();
+    assert!(card.served > 200.0);
+    assert!(
+        card.cost_month > 10_000.0,
+        "about 26M texts a month at $0.0079: {}",
+        card.cost_month
+    );
+}
+
+#[test]
+fn m8_a_service_mesh_adds_sidecar_latency_and_its_timeouts() {
+    let make = |mesh: bool| {
+        let mut d = design(
+            vec![
+                node("client", K::Client, Flavour::Web, &[]),
+                in_group(node("app", K::App, Flavour::Go, &[]), "az"),
+                in_group(node("db", K::Sql, Flavour::Postgresql, &[]), "az"),
+            ],
+            vec![
+                edge("client", "app", Protocol::Http),
+                edge("app", "db", Protocol::Query),
+            ],
+        );
+        let mut g = az("az");
+        if mesh {
+            g.mesh = Some(ka_core::Mesh {
+                flavour: ka_core::MeshFlavour::Istio,
+                props: [("mesh_timeout_ms".to_owned(), PropValue::Number(200.0))]
+                    .into_iter()
+                    .collect(),
+            });
+        }
+        d.groups = vec![g];
+        let mut s = scenario(
+            200.0,
+            40.0,
+            vec![rtype("read", 1.0, &["compute", "datastore"])],
+        );
+        s.chaos = vec![chaos(
+            serde_json::json!({ "latency": { "id": "db", "add_ms": 500, "at": 10, "for": 10 } }),
+        )];
+        (d, s)
+    };
+    let (d, s) = make(false);
+    let plain = run(&d, &s, 124);
+    let (d, s) = make(true);
+    let meshed = run(&d, &s, 124);
+    assert!(
+        meshed.response.p50_ms > plain.response.p50_ms + 1.5,
+        "{} vs {}",
+        meshed.response.p50_ms,
+        plain.response.p50_ms
+    );
+    assert_eq!(plain.errors, 0.0);
+    assert!(
+        meshed.errors > 0.0,
+        "the mesh's 200 ms timeout cuts the slow calls"
+    );
+}
+
+#[test]
+fn golden_n_kind_behaviours() {
+    let (d, s) = pooled(true);
+    golden("n", &run(&d, &s, 42));
+    let (d, s) = with_idp("local", &["compute", "auth", "datastore"]);
+    golden("n2", &run(&d, &s, 42));
+}

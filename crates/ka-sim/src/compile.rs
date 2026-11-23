@@ -70,6 +70,18 @@ pub struct CNode {
     pub shed_queue: usize,
     /// The flavour's monthly price model.
     pub cost: ka_core::Cost,
+    /// M8: the service mesh the card sits in (its zone's), if any.
+    pub mesh: Option<MeshRt>,
+}
+
+/// M8: a service mesh as the simulator sees it: latency each sidecar pair adds to a hop or
+/// call between two meshed cards, the CPU its sidecar takes from a service, and its call
+/// retries.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MeshRt {
+    pub sidecar_us: u64,
+    pub cpu: f64,
+    pub retries: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -186,13 +198,19 @@ pub fn hop_latency_us(c: &Compiled, a: u32, b: u32, proto: Protocol) -> u64 {
         Protocol::Replicate => 0,
     };
     let (na, nb) = (&c.nodes[a as usize], &c.nodes[b as usize]);
-    let zone = match (na.region, nb.region) {
-        (Some(ra), Some(rb)) if ra != rb => 70_000,
-        _ => match (na.az, nb.az) {
-            (Some(x), Some(y)) if x != y => 1_500,
-            _ => 200,
-        },
+    // M8: between two meshed cards the request passes two sidecars.
+    let sidecars = match (na.mesh, nb.mesh) {
+        (Some(x), Some(y)) => x.sidecar_us.max(y.sidecar_us),
+        _ => 0,
     };
+    let zone = sidecars
+        + match (na.region, nb.region) {
+            (Some(ra), Some(rb)) if ra != rb => 70_000,
+            _ => match (na.az, nb.az) {
+                (Some(x), Some(y)) if x != y => 1_500,
+                _ => 200,
+            },
+        };
     base + zone
 }
 
@@ -297,6 +315,7 @@ pub fn compile(
                     .flavour(n.flavour)
                     .map(|f| f.cost)
                     .unwrap_or_default(),
+                mesh: None,
             }
         })
         .collect();
@@ -306,6 +325,43 @@ pub fn compile(
         }
     }
     let n_nodes = nodes.len();
+    // M8 service mesh: the innermost meshed zone around a card; its policy props become the
+    // defaults of the card's call timeout and circuit breaker.
+    for (i, n) in design.nodes.iter().enumerate() {
+        let mut at = n.group_id.as_deref();
+        let mut guard = 0;
+        while let Some(id) = at {
+            guard += 1;
+            if guard > 64 {
+                break;
+            }
+            let Some(g) = groups.get(id) else { break };
+            if let Some(m) = &g.mesh {
+                let num = |k: &str| match m.props.get(k) {
+                    Some(ka_core::PropValue::Number(v)) => *v,
+                    _ => 0.0,
+                };
+                let (sidecar_us, cpu) = match m.flavour {
+                    ka_core::MeshFlavour::Istio => (2_000, 1.10),
+                    ka_core::MeshFlavour::Linkerd => (1_000, 1.05),
+                };
+                let spec = &mut nodes[i].spec;
+                if spec.call_timeout_us == 0 {
+                    spec.call_timeout_us = (num("mesh_timeout_ms").max(0.0) * 1000.0) as u64;
+                }
+                if spec.breaker_pct == 0.0 {
+                    spec.breaker_pct = num("mesh_breaker_errors_pct").clamp(0.0, 100.0) / 100.0;
+                }
+                nodes[i].mesh = Some(MeshRt {
+                    sidecar_us,
+                    cpu,
+                    retries: num("mesh_retries").max(0.0) as u32,
+                });
+                break;
+            }
+            at = g.parent_id.as_deref();
+        }
+    }
 
     // --- Autoscaling wrappers ------------------------------------------------------------
     let autoscale = registry.kind(ComponentKind::Autoscale);
@@ -756,9 +812,25 @@ fn targets_for_step(
                 out.push(Target::External(i as u32));
             }
             Role::Cache | Role::Datastore => {
+                // M8: a connection pooler in between passes the call on to its database.
+                let mut reach: Vec<u32> = Vec::new();
                 for (b, p) in &nodes[caller as usize].out {
-                    if *p == Protocol::Query && alt.accepts(nodes[*b as usize].kind) {
-                        let t = cluster_of[*b as usize].map_or(Target::Node(*b), Target::Cluster);
+                    if *p != Protocol::Query {
+                        continue;
+                    }
+                    if nodes[*b as usize].kind == ComponentKind::Dbproxy {
+                        for (c, q) in &nodes[*b as usize].out {
+                            if *q == Protocol::Query {
+                                reach.push(*c);
+                            }
+                        }
+                    } else {
+                        reach.push(*b);
+                    }
+                }
+                for b in reach {
+                    if alt.accepts(nodes[b as usize].kind) {
+                        let t = cluster_of[b as usize].map_or(Target::Node(b), Target::Cluster);
                         if !out.contains(&t) {
                             out.push(t);
                         }
@@ -769,6 +841,17 @@ fn targets_for_step(
                 for (b, p) in &nodes[caller as usize].out {
                     if matches!(p, Protocol::Http | Protocol::Grpc)
                         && alt.accepts(nodes[*b as usize].kind)
+                    {
+                        out.push(Target::Node(*b));
+                    }
+                }
+            }
+            // M8: identity providers on an HTTP/gRPC edge.
+            Role::Auth => {
+                for (b, p) in &nodes[caller as usize].out {
+                    if matches!(p, Protocol::Http | Protocol::Grpc)
+                        && alt.accepts(nodes[*b as usize].kind)
+                        && !out.contains(&Target::Node(*b))
                     {
                         out.push(Target::Node(*b));
                     }

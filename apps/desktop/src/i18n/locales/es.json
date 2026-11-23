@@ -219,7 +219,8 @@
     "model": "decisión de modelado",
     "modelHint": "Un parámetro del simulador que ningún proveedor publica; la Guía y docs/calibration.md explican el valor.",
     "ruleOfThumb": "regla práctica",
-    "ruleOfThumbHint": "Una regla práctica, no una cifra medida."
+    "ruleOfThumbHint": "Una regla práctica, no una cifra medida.",
+    "bindingHint": "el nombre del proveedor en el enunciado"
   },
   "home": {
     "eyebrow": "Tu mesa de diseño de sistemas",
@@ -570,7 +571,8 @@
       "fencing": "Tokens de exclusión (fencing)",
       "reconnect_jitter_s": "Variación al reconectar",
       "reconnect_backoff_s": "Espera al reconectar",
-      "dedup": "Escrituras idempotentes (dedup)"
+      "dedup": "Escrituras idempotentes (dedup)",
+      "binding": "Proveedor"
     },
     "choice": {
       "round_robin": "Round robin",

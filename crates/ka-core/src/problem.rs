@@ -131,6 +131,9 @@ pub struct ProblemDef {
     /// the next 0.05 (at most 0.80; above that the problem has no challenge). Unset = 0.5.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub challenge_ratio: Option<f64>,
+    /// M8: databases enforce their connection limits in every test (see `Scenario`).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub connections: bool,
 }
 
 impl ProblemDef {
@@ -150,6 +153,7 @@ impl ProblemDef {
             type_multipliers: test.type_multipliers.clone(),
             key_skew_override: test.key_skew_override,
             cold_caches: test.cold_caches,
+            connections: self.connections,
         }
     }
 

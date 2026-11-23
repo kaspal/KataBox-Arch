@@ -80,6 +80,7 @@ pub fn scenario(peak_rps: f64, duration_s: f64, types: Vec<RequestType>) -> Scen
         type_multipliers: BTreeMap::new(),
         key_skew_override: None,
         cold_caches: false,
+        connections: false,
     }
 }
 

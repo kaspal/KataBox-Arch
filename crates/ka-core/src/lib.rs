@@ -28,8 +28,8 @@ pub mod validate;
 pub mod wiring;
 
 pub use design::{
-    Design, Edge, Group, GroupKind, Node, Note, Point, PropValue, Protocol, SCHEMA_VERSION,
-    Scaling, Size, Viewport,
+    Design, Edge, Group, GroupKind, Mesh, MeshFlavour, Node, Note, Point, PropValue, Protocol,
+    SCHEMA_VERSION, Scaling, Size, Viewport,
 };
 pub use registry::{
     CALIBRATED_PROPS, CITED, CalibrationRef, CalibrationRow, CalibrationStatus, Category,

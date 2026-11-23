@@ -154,6 +154,8 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `sql.p99_ratio` | 5 | × median | source: needed (suggested: https://www.postgresql.org/docs/current/runtime-config-connection.html); tail spread of the service time |
 | `sql.queue_per_server` | 4 | slots per server | source: needed (suggested: https://www.postgresql.org/docs/current/runtime-config-connection.html); backlog before the card drops requests |
 | `sql.cost.instance` | 350 | $/instance-month | source: needed (suggested: https://aws.amazon.com/rds/postgresql/pricing/); teaching price, shaped like the list price |
+| `sql.max_connections` | 1700 | connections | source: needed (suggested: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html#RDS_Limits.MaxConnections); RDS PostgreSQL default LEAST(DBInstanceClassMemory/9531392, 5000) on db.m5.xlarge |
+| `sql.max_connections@mysql` | 1365 | connections | source: needed (suggested: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html#RDS_Limits.MaxConnections); RDS MySQL default DBInstanceClassMemory/12582880 on db.m5.xlarge |
 
 ### `nosql`
 
