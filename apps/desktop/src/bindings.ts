@@ -324,6 +324,28 @@ async listFlaws() : Promise<Result<FlawSummary[], AppError>> {
 }
 },
 /**
+ * The outage replays (M10), each marked fixed or not.
+ */
+async listOutages() : Promise<Result<OutageSummary[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_outages") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * A replay's "Watch it happen": what happened, the lesson and the walkthrough.
+ */
+async outageStory(id: string) : Promise<Result<OutageStory, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("outage_story", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * The learning paths with each item's progress (M5.4).
  */
 async learningPaths() : Promise<Result<PathView[], AppError>> {
@@ -1379,6 +1401,15 @@ export type NumberGroup = "memory" | "storage" | "network" | "servers" | "sizes"
  */
 export type OpenedDesign = { path: string; design: Design }
 /**
+ * "Watch it happen": the replay's story and its walkthrough (a sample whose steps play the
+ * replay's tests).
+ */
+export type OutageStory = { summary: OutageSummary; story: string; story_es: string; lesson: string; lesson_es: string; real_world: string[]; walkthrough: Sample }
+/**
+ * One row of the Replays list.
+ */
+export type OutageSummary = { id: string; number: number; difficulty: Difficulty; title: string; title_es: string; summary: string; summary_es: string; kinds: ComponentKind[]; solved: boolean }
+/**
  * What applying a previewed pack would do.
  */
 export type PackChange = 
@@ -1472,7 +1503,7 @@ export type PathItem = { kind: PathItemKind; target: string;
  * the UI from the component kind.
  */
 title: string | null; title_es: string | null; done: boolean }
-export type PathItemKind = "guide" | "concept" | "pattern" | "problem" | "estimate" | "flaw" | "quiz"
+export type PathItemKind = "guide" | "concept" | "pattern" | "problem" | "estimate" | "flaw" | "replay" | "quiz"
 export type PathView = { id: string; number: number; title: string; title_es: string; blurb: string; blurb_es: string; items: PathItem[] }
 export type PatternEntry = { id: string; 
 /**

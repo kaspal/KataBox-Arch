@@ -367,6 +367,7 @@ impl App {
         let problems = self.content()?.problems().await.map_err(AppError::from)?;
         let patterns = self.list_patterns().await?;
         let flaws = self.list_flaws().await?;
+        let outages = self.list_outages().await?;
         let problem_title = |id: &str| {
             problems
                 .iter()
@@ -414,6 +415,13 @@ impl App {
                                     .find(|f| f.id == target)
                                     .map(|f| (f.title.clone(), f.title_es.clone())),
                                 solved(&flaw_problem_id(target)),
+                            ),
+                            PathItemKind::Replay => (
+                                outages
+                                    .iter()
+                                    .find(|o| o.id == target)
+                                    .map(|o| (o.title.clone(), o.title_es.clone())),
+                                solved(&ka_core::outage::outage_problem_id(target)),
                             ),
                             PathItemKind::Quiz => (
                                 // A pattern quiz is named after its pattern; a Guide quiz by
@@ -485,7 +493,7 @@ impl App {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::AppPaths;
     use crate::testutil::temp_dir;

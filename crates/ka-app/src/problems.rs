@@ -200,6 +200,10 @@ impl App {
         if let Some(flaw) = id.strip_prefix("flaw--") {
             return self.flaw_row(flaw).await;
         }
+        // An outage replay (M10) is the problem `outage--<id>`.
+        if let Some(outage) = id.strip_prefix("outage--") {
+            return self.outage_row(outage).await;
+        }
         // A pack's problem (M6.4): `<pack>--<id>`, from that pack's own database.
         if id.contains("--") {
             return self
@@ -349,6 +353,12 @@ impl App {
             && draft.as_ref().is_none_or(|d| d.nodes.is_empty())
         {
             draft = Some(self.flaw_broken(flaw).await?);
+        }
+        // A replay's "Fix it" starts from the design as it was.
+        if let Some(outage) = id.strip_prefix("outage--")
+            && draft.as_ref().is_none_or(|d| d.nodes.is_empty())
+        {
+            draft = Some(self.outage_as_it_was(outage).await?);
         }
         let reference = if solved {
             crate::kbarch::parse(row.reference.as_bytes(), &self.registry).ok()
@@ -558,7 +568,11 @@ impl App {
         let statuses = self.user.problem_statuses().await.map_err(store)?;
         p.continue_with = statuses
             .iter()
-            .filter(|s| s.status == "attempted" && !s.problem_id.starts_with("flaw--"))
+            .filter(|s| {
+                s.status == "attempted"
+                    && !s.problem_id.starts_with("flaw--")
+                    && !s.problem_id.starts_with("outage--")
+            })
             .max_by_key(|s| s.updated_at)
             .map(|s| s.problem_id.clone());
         Ok(p)

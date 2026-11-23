@@ -123,6 +123,8 @@ export function BriefPanel({ brief }: { brief: ProblemBrief }) {
   const hints = loc.es ? brief.hints_es : brief.hints_en;
   // A Find-the-flaw drill (M5.3) runs as the problem `flaw--<id>`: no difficulty, no topic.
   const drill = p.id.startsWith("flaw--");
+  // An outage replay (M10) runs as the problem `outage--<id>`.
+  const replay = p.id.startsWith("outage--");
   // Text from an imported pack renders with images as alt text (M6.4).
   const trust = p.pack !== null ? "pack" : "app";
 
@@ -132,9 +134,10 @@ export function BriefPanel({ brief }: { brief: ProblemBrief }) {
         <div className="flex items-center gap-3">
           <span className="font-mono text-xs text-muted-foreground">{problemNumber(p)}</span>
           {drill ? <span className="text-xs font-semibold text-terracotta-ink">{t("flaws.drill")}</span> : <DifficultyBadge d={p.difficulty} />}
+          {replay && <span className="text-xs font-semibold text-terracotta-ink">{t("replays.drill")}</span>}
           <StatusMark status={p.status} />
         </div>
-        {drill ? <p className="text-xs text-muted-foreground">{t("flaws.task")}</p> : <p className="text-xs text-muted-foreground">{t("brief.teaches", { what: loc.teaches(p) })}</p>}
+        {drill ? <p className="text-xs text-muted-foreground">{t("flaws.task")}</p> : replay ? <p className="text-xs text-muted-foreground">{t("replays.task")}</p> : <p className="text-xs text-muted-foreground">{t("brief.teaches", { what: loc.teaches(p) })}</p>}
       </div>
       <Markdown trust={trust}>{loc.es ? brief.statement_es : brief.statement_en}</Markdown>
       <Section title={t("brief.targets")}>

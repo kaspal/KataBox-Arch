@@ -21,6 +21,8 @@ import {
   type EstimateCheck,
   type EstimateStatus,
   type FlawSummary,
+  type OutageStory,
+  type OutageSummary,
   type PathView,
   type QuizItem,
   type QuizResult,
@@ -158,6 +160,10 @@ export const api = {
   estimateStatuses: (): Promise<EstimateStatus[]> => call(commands.estimateStatuses()),
   /** The Find-the-flaw drills (each opens as the problem `flaw--<id>`). */
   listFlaws: (): Promise<FlawSummary[]> => call(commands.listFlaws()),
+  /** The outage replays (M10), each marked fixed or not. */
+  listOutages: (): Promise<OutageSummary[]> => call(commands.listOutages()),
+  /** A replay's story, lesson and walkthrough. */
+  outageStory: (id: string): Promise<OutageStory> => call(commands.outageStory(id)),
   /** The learning paths, each item with its progress. */
   learningPaths: (): Promise<PathView[]> => call(commands.learningPaths()),
   /** A page's quiz (`guide:<kind>` / `pattern:<id>`), without answers. */

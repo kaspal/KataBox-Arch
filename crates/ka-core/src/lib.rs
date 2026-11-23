@@ -15,6 +15,7 @@ pub mod flaw;
 pub mod guide;
 pub mod mermaid;
 pub mod numbers;
+pub mod outage;
 pub mod paths;
 pub mod pattern;
 pub mod problem;

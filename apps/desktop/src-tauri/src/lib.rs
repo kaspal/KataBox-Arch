@@ -550,6 +550,20 @@ async fn list_flaws(state: State<'_, AppState>) -> Res<Vec<ka_core::flaw::FlawSu
     state.app()?.list_flaws().await
 }
 
+/// The outage replays (M10), each marked fixed or not.
+#[tauri::command]
+#[specta::specta]
+async fn list_outages(state: State<'_, AppState>) -> Res<Vec<ka_core::outage::OutageSummary>> {
+    state.app()?.list_outages().await
+}
+
+/// A replay's "Watch it happen": what happened, the lesson and the walkthrough.
+#[tauri::command]
+#[specta::specta]
+async fn outage_story(state: State<'_, AppState>, id: String) -> Res<ka_app::outages::OutageStory> {
+    state.app()?.outage_story(&id).await
+}
+
 /// The learning paths with each item's progress (M5.4).
 #[tauri::command]
 #[specta::specta]
@@ -836,6 +850,8 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         check_estimate,
         estimate_statuses,
         list_flaws,
+        list_outages,
+        outage_story,
         learning_paths,
         set_concept_played,
         quiz,

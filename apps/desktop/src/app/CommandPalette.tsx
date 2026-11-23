@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { BookOpen, Bug, Calculator, CalendarCheck, FileInput, FilePlus2, Route as RouteIcon, Ruler, FileText, FolderOpen, Gauge, Languages, Monitor, Moon, Save, SaveAll, Sun } from "lucide-react";
+import { BookOpen, Bug, Calculator, CalendarCheck, FileInput, FilePlus2, History, Route as RouteIcon, Ruler, FileText, FolderOpen, Gauge, Languages, Monitor, Moon, Save, SaveAll, Sun } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -87,6 +87,10 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
           <CommandItem value={`page ${t("flaws.title")}`} onSelect={() => run(() => void navigate({ to: "/flaws" }))}>
             <Bug aria-hidden />
             {t("flaws.title")}
+          </CommandItem>
+          <CommandItem value={`page ${t("replays.title")}`} onSelect={() => run(() => void navigate({ to: "/replays" }))}>
+            <History aria-hidden />
+            {t("replays.title")}
           </CommandItem>
           {import.meta.env.DEV && (
             <CommandItem value={`page ${t("palette.devPerf")}`} onSelect={() => run(() => void navigate({ to: "/dev/perf" }))}>

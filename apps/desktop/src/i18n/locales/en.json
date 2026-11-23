@@ -1029,6 +1029,7 @@
       "problem": "Solve: {{name}}",
       "estimate": "Estimate: {{name}}",
       "flaw": "Find the flaw: {{name}}",
+      "replay": "Outage replay: {{name}}",
       "quiz": "Quiz: {{name}}"
     }
   },
@@ -1040,6 +1041,20 @@
     "open": "To fix",
     "drill": "Find the flaw",
     "task": "Find the flaw and fix it so every test passes."
+  },
+  "replays": {
+    "title": "Outage replays",
+    "intro": "Well-known kinds of incident, told plainly and replayed in the simulator. Watch the design as it was fail, then fix it so it passes the incident, a normal day and the aftershock. Each replay is a composite of a common failure, not a record of one company's outage.",
+    "progress": "{{fixed}} of {{total}} fixed",
+    "fixed": "Fixed",
+    "open": "To fix",
+    "none": "No replays yet",
+    "noneBody": "Replays arrive with the content.",
+    "whatHappened": "What happened",
+    "lesson": "The lesson:",
+    "fixIt": "Fix it",
+    "drill": "Outage replay",
+    "task": "Fix the design so it survives the incident, a normal day and the aftershock."
   },
   "estimate": {
     "title": "Estimation drills",

@@ -1,7 +1,7 @@
 // An in-memory backend with the same shape as `api`, for UI tests. The registry is the
 // fixture Rust exports (`src/test/fixtures/registry.json`), so tests see the real data.
 import { vi } from "vitest";
-import type { FlawSummary, PackInfo, PackPreview, PathView, AppError, ComposeImport, Design, JsonValue, OpenedDesign, ProblemBrief, RecentEntry, Registry, RunControl, SubmissionSummary, SubmitResult } from "@/bindings";
+import type { FlawSummary, OutageSummary, PackInfo, PackPreview, PathView, AppError, ComposeImport, Design, JsonValue, OpenedDesign, ProblemBrief, RecentEntry, Registry, RunControl, SubmissionSummary, SubmitResult } from "@/bindings";
 import { FAKE_BRIEF, FAKE_REFERENCE, fakeJudgement } from "@/test/fakeProblems";
 import { fakeFrames } from "@/test/fakeFrames";
 import { FAKE_SAMPLE, FAKE_SAMPLE_SUMMARY } from "@/test/fakeSamples";
@@ -266,6 +266,22 @@ export function createFakeApi(opts: FakeOptions = {}) {
       { id: "cache-no-ttl", number: 1, title: "A cache that never forgets", title_es: "Una caché que nunca olvida", kinds: ["cache"], solved: false },
       { id: "single-primary", number: 2, title: "One database, no plan B", title_es: "Una base de datos, sin plan B", kinds: ["sql"], solved: true },
     ]),
+    listOutages: vi.fn(async (): Promise<OutageSummary[]> => [
+      { id: "retry-storm", number: 2, difficulty: "easy", title: "Retry storm", title_es: "Tormenta de reintentos", summary: "Instant retries triple the load.", summary_es: "Los reintentos inmediatos triplican la carga.", kinds: ["client"], solved: false },
+    ]),
+    outageStory: vi.fn(async (id: string) => {
+      if (id !== "retry-storm") throw err("not_found");
+      const sample = structuredClone(FAKE_SAMPLE);
+      return {
+        summary: { id, number: 2, difficulty: "easy" as const, title: "Retry storm", title_es: "Tormenta de reintentos", summary: "Instant retries triple the load.", summary_es: "Los reintentos inmediatos triplican la carga.", kinds: ["client" as const], solved: false },
+        story: "A dependency slowed down and every client retried at once.",
+        story_es: "Una dependencia se volvió lenta y todos los clientes reintentaron a la vez.",
+        lesson: "Back off with jitter.",
+        lesson_es: "Espera con jitter.",
+        real_world: [],
+        walkthrough: { ...sample, def: { ...sample.def, id, problem: `outage--${id}` } },
+      };
+    }),
     estimateStatuses: vi.fn(async () =>
       [...estimates].map(([key, s]) => {
         const [problem_id, drill_id] = key.split("/");

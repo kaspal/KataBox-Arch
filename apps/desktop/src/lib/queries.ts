@@ -18,6 +18,8 @@ export const queryKeys = {
   sample: (id: string) => ["sample", id] as const,
   estimateStatuses: ["estimate-statuses"] as const,
   flaws: ["flaws"] as const,
+  outages: ["outages"] as const,
+  outageStory: (id: string) => ["outage-story", id] as const,
   paths: ["paths"] as const,
   reviewsDue: ["reviews-due"] as const,
   quiz: (page: string) => ["quiz", page] as const,
@@ -84,6 +86,14 @@ export function usePaths() {
 
 export function useFlaws() {
   return useQuery({ queryKey: queryKeys.flaws, queryFn: api.listFlaws });
+}
+
+export function useOutages() {
+  return useQuery({ queryKey: queryKeys.outages, queryFn: api.listOutages });
+}
+
+export function useOutageStory(id: string) {
+  return useQuery({ queryKey: queryKeys.outageStory(id), queryFn: () => api.outageStory(id) });
 }
 
 export function useEstimateStatuses() {

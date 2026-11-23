@@ -48,6 +48,8 @@ export function useItemLabel() {
         return t("paths.item.estimate", { name: content });
       case "flaw":
         return t("paths.item.flaw", { name: content });
+      case "replay":
+        return t("paths.item.replay", { name: content });
       case "quiz": {
         const [what, id] = item.target.split(":");
         const title = es ? item.title_es : item.title;
@@ -89,6 +91,12 @@ export function ItemLink({ item, children, className, testId }: { item: PathItem
     case "flaw":
       return (
         <Link to="/problems/$id" params={{ id: `flaw--${item.target}` }} {...common}>
+          {children}
+        </Link>
+      );
+    case "replay":
+      return (
+        <Link to="/replays/$id" params={{ id: item.target }} {...common}>
           {children}
         </Link>
       );

@@ -33,6 +33,7 @@ pub enum PathItemKind {
     Problem,
     Estimate,
     Flaw,
+    Replay,
     Quiz,
 }
 
@@ -47,6 +48,7 @@ pub fn parse_item(item: &str) -> Option<(PathItemKind, &str)> {
         "problem" => PathItemKind::Problem,
         "estimate" => PathItemKind::Estimate,
         "flaw" => PathItemKind::Flaw,
+        "replay" => PathItemKind::Replay,
         "quiz" => PathItemKind::Quiz,
         _ => return None,
     };

@@ -153,3 +153,20 @@ The arguments are parsed by hand, as in KataBox.
   placeholder price, so a proof doesn't lean on figures the citations will change.
 - **`content.db` schema 3:** `problems.track` and `problems.challenge_ratio` (NULL = no challenge). The catalogue is
   ordered core, AI, data engineering, then set and number. Outage replays are `docs` rows of kind `outage`.
+
+## M10 addition: outage replays
+
+`content/outages/<id>/` holds `outage.toml` (title, one-line summary, the story of what happened, the lesson, the
+kinds, the target test, `real_world` links added by the citations step, the scenario in the Find-the-flaw format,
+and `[[step]]`s in the sample story format), `hints.md`/`hints.es.md` (three tiers), `as_it_was.kbarch` and
+`fixed.kbarch`. Steps may only show those two designs and only play the scenario's tests; every callout is checked
+against the simulator by `validate --run`, like a sample's. `--run` also requires the as-it-was design to fail the
+target test and pass `normal`, and the fixed design to be Accepted on every test (the aftershock included).
+
+A replay is stored as a `docs` row of kind `outage` (no new table; `content.db` stays at schema 3) and is played as
+a walkthrough (`outage_story`) and judged as the problem `outage--<id>` (like `flaw--<id>`), starting from the
+as-it-was design. `outage` is reserved as a pack prefix. Learning paths name replays as `replay:<id>`.
+
+Replays are composites of common incident types told in the simulator's terms, not records of a company's outage;
+the UI says so. Cost challenges for replays are not shipped in M10 (the challenge flow reads the `problems` table;
+logged as a deferral).

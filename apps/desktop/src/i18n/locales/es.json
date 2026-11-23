@@ -1029,6 +1029,7 @@
       "problem": "Resuelve: {{name}}",
       "estimate": "Estima: {{name}}",
       "flaw": "Encuentra el fallo: {{name}}",
+      "replay": "Repetición de una caída: {{name}}",
       "quiz": "Cuestionario: {{name}}"
     }
   },
@@ -1040,6 +1041,20 @@
     "open": "Por corregir",
     "drill": "Encuentra el fallo",
     "task": "Encuentra el fallo y corrígelo para que pase todas las pruebas."
+  },
+  "replays": {
+    "title": "Repeticiones de caídas",
+    "intro": "Tipos de incidente conocidos, contados con claridad y repetidos en el simulador. Mira cómo falla el diseño tal como era y arréglalo para que pase el incidente, un día normal y la réplica. Cada repetición recoge un fallo habitual, no el registro de la caída de una empresa concreta.",
+    "progress": "{{fixed}} de {{total}} arregladas",
+    "fixed": "Arreglada",
+    "open": "Por arreglar",
+    "none": "Aún no hay repeticiones",
+    "noneBody": "Las repeticiones llegan con el contenido.",
+    "whatHappened": "Qué pasó",
+    "lesson": "La lección:",
+    "fixIt": "Arreglarlo",
+    "drill": "Repetición de una caída",
+    "task": "Arregla el diseño para que aguante el incidente, un día normal y la réplica."
   },
   "estimate": {
     "title": "Ejercicios de estimación",

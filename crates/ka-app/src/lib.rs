@@ -9,6 +9,7 @@ pub mod frames;
 pub mod guide;
 pub mod kbarch;
 pub mod live;
+pub mod outages;
 pub mod packs;
 pub mod patterns;
 pub mod practice;
