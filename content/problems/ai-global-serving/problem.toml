@@ -1,0 +1,70 @@
+id = "ai-global-serving"
+number = 16
+set = 1
+track = "ai"
+difficulty = "hard"
+title = "An Assistant for the US and the EU"
+title_es = "Un asistente para EE. UU. y la UE"
+teaches = "Serve users on two continents from GPU pools in two Regions, and keep EU conversation history in EU Regions even when a Region fails over"
+teaches_es = "Servir a usuarios de dos continentes con grupos de GPU en dos regiones, y mantener el historial de conversaciones de la UE en regiones de la UE incluso cuando una región conmuta"
+tags = ["llm", "gpu", "regions", "data-residency", "failover"]
+requires = ["infer"]
+
+[nfr]
+peak_rps = 30
+p95_ms = 15000
+availability = 0.99
+budget_usd = 12000
+
+[[request_types]]
+id = "chat-us"
+name = "A US user sends a message"
+name_es = "Un usuario de EE. UU. envía un mensaje"
+share = 0.6
+route = ["edge?", "compute", "datastore:write", "model:chat", "datastore:write"]
+key_space = 200000
+tokens_in = { mean = 800, p95 = 2000 }
+tokens_out = { mean = 250, p95 = 600 }
+
+[[request_types]]
+id = "chat-eu"
+name = "An EU user sends a message"
+name_es = "Un usuario de la UE envía un mensaje"
+share = 0.4
+route = ["edge?", "compute", "datastore:write", "model:chat", "datastore:write"]
+key_space = 200000
+tokens_in = { mean = 800, p95 = 2000 }
+tokens_out = { mean = 250, p95 = 600 }
+residency = "eu"
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "eu-dark"
+name = "The Region with the history database goes dark"
+name_es = "Se apaga la región de la base de datos del historial"
+hidden = true
+duration_s = 300
+chaos = [{ partition = { zone = "@primary", at = 30 } }]
+pass = { error_rate = 0.08, availability = 0.92 }
+
+[[tests]]
+id = "eu-audit"
+name = "An EU-only audit day: the database primary fails, then a GPU pool"
+name_es = "Un día de auditoría solo con la UE: falla el primario de la base de datos y después un grupo de GPU"
+hidden = true
+duration_s = 300
+type_multipliers = { chat-us = 0, chat-eu = 2.5 }
+chaos = [
+  { kill = { kind = "sql", role = "primary", at = 30 } },
+  { kill = { kind = "infer", at = 100, for = 60 } },
+]
+pass = { error_rate = 0.08, availability = 0.92 }
+
+[pass]
+error_rate = 0.01
+ttft_p95_ms = 1000
+residency_violations = 0

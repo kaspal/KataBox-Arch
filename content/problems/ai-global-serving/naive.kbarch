@@ -1,0 +1,261 @@
+{
+  "schema_version": 4,
+  "id": "ai-global-serving-naive",
+  "name": "An assistant for the US and the EU (first try)",
+  "problem_id": "ai-global-serving",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "timeout_ms": 30000,
+        "retries": 2,
+        "backoff_ms": 200,
+        "jitter": "full"
+      },
+      "group_id": null
+    },
+    {
+      "id": "dns",
+      "kind": "dns",
+      "flavour": "route53",
+      "label": "dns",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {
+        "ttl_s": 30
+      },
+      "group_id": null
+    },
+    {
+      "id": "lb_us",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb_us",
+      "position": {
+        "x": 304,
+        "y": 112
+      },
+      "props": {},
+      "group_id": "us"
+    },
+    {
+      "id": "app_us",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app_us",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 4
+      },
+      "group_id": "us"
+    },
+    {
+      "id": "gpu_us",
+      "kind": "infer",
+      "flavour": "vllm",
+      "label": "gpu_us",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 4,
+        "batch_slots": 64
+      },
+      "group_id": "us"
+    },
+    {
+      "id": "lb_eu",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb_eu",
+      "position": {
+        "x": 304,
+        "y": 224
+      },
+      "props": {},
+      "group_id": "eu"
+    },
+    {
+      "id": "app_eu",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app_eu",
+      "position": {
+        "x": 608,
+        "y": 224
+      },
+      "props": {
+        "instances": 4
+      },
+      "group_id": "eu"
+    },
+    {
+      "id": "gpu_eu",
+      "kind": "infer",
+      "flavour": "vllm",
+      "label": "gpu_eu",
+      "position": {
+        "x": 608,
+        "y": 336
+      },
+      "props": {
+        "instances": 4,
+        "batch_slots": 64
+      },
+      "group_id": "eu"
+    },
+    {
+      "id": "db_eu",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "db_eu",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "failover_s": 10
+      },
+      "group_id": "eu"
+    },
+    {
+      "id": "db_us",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "db_us",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {
+        "failover_s": 10
+      },
+      "group_id": "us"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-dns-http",
+      "from": "client",
+      "to": "dns",
+      "protocol": "http"
+    },
+    {
+      "id": "e-dns-lb_us-http",
+      "from": "dns",
+      "to": "lb_us",
+      "protocol": "http"
+    },
+    {
+      "id": "e-dns-lb_eu-http",
+      "from": "dns",
+      "to": "lb_eu",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb_us-app_us-http",
+      "from": "lb_us",
+      "to": "app_us",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb_eu-app_eu-http",
+      "from": "lb_eu",
+      "to": "app_eu",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app_us-gpu_us-http",
+      "from": "app_us",
+      "to": "gpu_us",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app_us-gpu_eu-http",
+      "from": "app_us",
+      "to": "gpu_eu",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app_eu-gpu_eu-http",
+      "from": "app_eu",
+      "to": "gpu_eu",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app_eu-gpu_us-http",
+      "from": "app_eu",
+      "to": "gpu_us",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app_us-db_eu-query",
+      "from": "app_us",
+      "to": "db_eu",
+      "protocol": "query"
+    },
+    {
+      "id": "e-app_eu-db_eu-query",
+      "from": "app_eu",
+      "to": "db_eu",
+      "protocol": "query"
+    },
+    {
+      "id": "e-db_eu-db_us-replicate",
+      "from": "db_eu",
+      "to": "db_us",
+      "protocol": "replicate"
+    }
+  ],
+  "groups": [
+    {
+      "id": "us",
+      "kind": "region",
+      "label": "us-east",
+      "position": {
+        "x": 280,
+        "y": -40
+      },
+      "size": {
+        "w": 1168,
+        "h": 240
+      },
+      "parent_id": null,
+      "region_tag": "us"
+    },
+    {
+      "id": "eu",
+      "kind": "region",
+      "label": "eu-west",
+      "position": {
+        "x": 280,
+        "y": -40
+      },
+      "size": {
+        "w": 1168,
+        "h": 464
+      },
+      "parent_id": null,
+      "region_tag": "eu"
+    }
+  ],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

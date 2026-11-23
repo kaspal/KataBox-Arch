@@ -1,0 +1,34 @@
+# Estimation drills for An Assistant for the US and the EU.
+
+[[drill]]
+id = "eu-writes"
+kind = "qps"
+prompt = "Your assistant peaks at {peak_rps} messages a second, {eu_pct}% of them from EU users, and every message makes {writes} writes to the conversation history. How many writes a second must land in an EU Region?"
+prompt_es = "Tu asistente tiene un pico de {peak_rps} mensajes por segundo, el {eu_pct} % de usuarios de la UE, y cada mensaje hace {writes} escrituras en el historial de conversaciones. ¿Cuántas escrituras por segundo deben caer en una región de la UE?"
+inputs = { peak_rps = 30, eu_pct = 40, writes = 2 }
+formula = "peak_rps * eu_pct / 100 * writes"
+unit = "rps"
+solution = "{peak_rps} × {eu_pct}% × {writes} = {answer} writes a second, wherever the message was served. After a failover to a replica outside the EU, every one of them is a violation: about 1,400 a minute."
+solution_es = "{peak_rps} × {eu_pct} % × {writes} = {answer} escrituras por segundo, se sirva donde se sirva el mensaje. Tras un failover a una réplica fuera de la UE, cada una es una infracción: unas 1400 por minuto."
+
+[[drill]]
+id = "peak-tokens"
+kind = "capacity"
+prompt = "At the peak, {peak_rps} messages a second each get back an answer of about {tokens_out} tokens. How many tokens a second must your GPUs write, at least?"
+prompt_es = "En el pico, {peak_rps} mensajes por segundo reciben cada uno una respuesta de unos {tokens_out} tokens. ¿Cuántos tokens por segundo deben escribir tus GPU, como mínimo?"
+inputs = { peak_rps = 30, tokens_out = 250 }
+formula = "peak_rps * tokens_out"
+unit = "count"
+solution = "{peak_rps} × {tokens_out} = {answer} tokens a second, and more in practice, because long answers pull the average above the typical answer. On a bad day one GPU pool writes all of it alone."
+solution_es = "{peak_rps} × {tokens_out} = {answer} tokens por segundo, y algo más en la práctica, porque las respuestas largas suben la media por encima de la respuesta típica. En un mal día, un solo grupo de GPU lo escribe todo."
+
+[[drill]]
+id = "gpus-per-pool"
+kind = "servers"
+prompt = "A GPU with a full batch of {slots} answers writes each one at {full_speed} tokens a second. Your peak needs {tokens_s} tokens a second, and each GPU pool must carry it alone when the other is lost. How many GPUs does a pool need if they run at 100%?"
+prompt_es = "Una GPU con un lote lleno de {slots} respuestas escribe cada una a {full_speed} tokens por segundo. Tu pico necesita {tokens_s} tokens por segundo, y cada grupo de GPU debe llevarlo solo cuando se pierde el otro. ¿Cuántas GPU necesita un grupo si van al 100 %?"
+inputs = { slots = 64, full_speed = 40, tokens_s = 7500 }
+formula = "tokens_s / (slots * full_speed)"
+unit = "count"
+solution = "{tokens_s} / ({slots} × {full_speed}) = {answer} GPUs at 100%, with every batch full and new messages queueing for a slot. Round up with room to spare: the reference gives each pool 4 GPUs, about three-quarters full when it carries the whole peak."
+solution_es = "{tokens_s} / ({slots} × {full_speed}) = {answer} GPU al 100 %, con todos los lotes llenos y los mensajes nuevos haciendo cola por un hueco. Redondea hacia arriba con margen: la referencia da 4 GPU a cada grupo, llenas en unos tres cuartos cuando llevan el pico entero."

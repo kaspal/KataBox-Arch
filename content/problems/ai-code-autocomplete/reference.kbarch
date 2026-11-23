@@ -1,0 +1,165 @@
+{
+  "schema_version": 4,
+  "id": "ai-code-autocomplete-ref",
+  "name": "Code autocomplete (reference)",
+  "problem_id": "ai-code-autocomplete",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "timeout_ms": 2000,
+        "retries": 2,
+        "backoff_ms": 20,
+        "jitter": "full"
+      },
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 6
+      },
+      "group_id": null
+    },
+    {
+      "id": "prefix",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "prefix",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "memory_gb": 4,
+        "ttl_s": 3600
+      },
+      "group_id": null
+    },
+    {
+      "id": "gpu-a",
+      "kind": "infer",
+      "flavour": "vllm",
+      "label": "gpu-a",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 2,
+        "batch_slots": 64,
+        "ttft_ms": 15,
+        "prefill_tps": 50000,
+        "tokens_per_s": 500
+      },
+      "group_id": null
+    },
+    {
+      "id": "gpu-b",
+      "kind": "infer",
+      "flavour": "vllm",
+      "label": "gpu-b",
+      "position": {
+        "x": 608,
+        "y": 224
+      },
+      "props": {
+        "instances": 2,
+        "batch_slots": 64,
+        "ttft_ms": 15,
+        "prefill_tps": 50000,
+        "tokens_per_s": 500
+      },
+      "group_id": null
+    },
+    {
+      "id": "gpu-c",
+      "kind": "infer",
+      "flavour": "vllm",
+      "label": "gpu-c",
+      "position": {
+        "x": 608,
+        "y": 336
+      },
+      "props": {
+        "instances": 2,
+        "batch_slots": 64,
+        "ttft_ms": 15,
+        "prefill_tps": 50000,
+        "tokens_per_s": 500
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app-http",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-prefix-query",
+      "from": "app",
+      "to": "prefix",
+      "protocol": "query"
+    },
+    {
+      "id": "e-app-gpu-a-http",
+      "from": "app",
+      "to": "gpu-a",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-gpu-b-http",
+      "from": "app",
+      "to": "gpu-b",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-gpu-c-http",
+      "from": "app",
+      "to": "gpu-c",
+      "protocol": "http"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

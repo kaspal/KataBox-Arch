@@ -1,0 +1,34 @@
+# Estimation drills for RAG for Many Tenants.
+
+[[drill]]
+id = "worst-case-load"
+kind = "qps"
+prompt = "On a normal day the big tenant sends {big} questions a second and the small tenants {small} in all. Every tenant's API key is limited to {quota} a second. One other tenant's script floods. How many questions a second can still reach the shared cards?"
+prompt_es = "En un día normal el inquilino grande envía {big} preguntas por segundo y los inquilinos pequeños {small} en total. La clave de API de cada inquilino está limitada a {quota} por segundo. El script de otro inquilino inunda. ¿Cuántas preguntas por segundo pueden llegar aún a las tarjetas compartidas?"
+inputs = { big = 20, small = 70, quota = 100 }
+formula = "big + small + quota"
+unit = "rps"
+solution = "Everyone else's normal traffic plus the flooding tenant at its limit: {big} + {small} + {quota} = {answer} questions a second. The limiter refuses the rest of the flood, but this much still gets in, so the shared GPUs and vector search are sized for {answer}, not for the 100 of a normal day."
+solution_es = "El tráfico normal de todos los demás más el inquilino que inunda en su límite: {big} + {small} + {quota} = {answer} preguntas por segundo. El limitador rechaza el resto de la avalancha, pero esto sí entra, así que las GPU y la búsqueda vectorial compartidas se dimensionan para {answer}, no para las 100 de un día normal."
+
+[[drill]]
+id = "shard-searches"
+kind = "capacity"
+prompt = "A shard of your vector index runs {slots} searches at a time, and one search over 500 million vectors for 50 neighbours takes {search_ms} ms. About how many searches a second can one shard finish?"
+prompt_es = "Un shard de tu índice vectorial ejecuta {slots} búsquedas a la vez, y una búsqueda sobre 500 millones de vectores para 50 vecinos tarda {search_ms} ms. ¿Cuántas búsquedas por segundo puede terminar más o menos un shard?"
+inputs = { slots = 16, search_ms = 45 }
+formula = "slots * 1000 / search_ms"
+unit = "rps"
+solution = "{slots} searches at a time, each taking {search_ms} ms: {slots} × 1000 / {search_ms} ≈ {answer} searches a second, fewer once the slow tail is counted. With a limit per tenant it sees at most about 190 a second; with no limit, a flood of 590 a second overflows it in the first seconds."
+solution_es = "{slots} búsquedas a la vez, cada una de {search_ms} ms: {slots} × 1000 / {search_ms} ≈ {answer} búsquedas por segundo, menos si se cuenta la cola lenta. Con un límite por inquilino recibe como mucho unas 190 por segundo; sin límite, una avalancha de 590 por segundo lo desborda en los primeros segundos."
+
+[[drill]]
+id = "gpu-slots"
+kind = "servers"
+prompt = "{rps} questions a second each hold a chat model's batch slot for about {answer_s} seconds. Each GPU has {slots_per_gpu} batch slots. How many GPUs are full with no headroom at all?"
+prompt_es = "{rps} preguntas por segundo ocupan cada una un hueco de lote del modelo de chat durante unos {answer_s} segundos. Cada GPU tiene {slots_per_gpu} huecos de lote. ¿Cuántas GPU se llenan sin ningún margen?"
+inputs = { rps = 190, answer_s = 3, slots_per_gpu = 128 }
+formula = "rps * answer_s / slots_per_gpu"
+unit = "count"
+solution = "{rps} × {answer_s} s = 570 answers in progress at once, over {slots_per_gpu} slots per GPU ≈ {answer} GPUs. But an answer slows down as its GPU fills, up to half speed, and slower answers hold their slots longer. The reference runs 10, about two thirds busy in the flood; with 8 the p95 passes 10 s."
+solution_es = "{rps} × {answer_s} s = 570 respuestas en curso a la vez, entre {slots_per_gpu} huecos por GPU ≈ {answer} GPU. Pero una respuesta se ralentiza a medida que se llena su GPU, hasta la mitad de velocidad, y las respuestas más lentas ocupan su hueco más tiempo. La referencia usa 10, ocupadas en torno a dos tercios en la avalancha; con 8, el p95 pasa de 10 s."

@@ -1,0 +1,35 @@
+# Estimation drills for Score 100 Million Items Overnight.
+
+[[drill]]
+id = "executor-rate"
+kind = "capacity"
+prompt = "A job scores {items} items. Each of its {shards} shards takes one executor about {task_hours} hours. About how many items a second does one executor score?"
+prompt_es = "Un trabajo puntúa {items} elementos. Cada uno de sus {shards} fragmentos ocupa un ejecutor unas {task_hours} horas. ¿Cuántos elementos por segundo puntúa más o menos un ejecutor?"
+inputs = { items = 100000000, shards = 100, task_hours = 3 }
+formula = "items / shards / (task_hours * 3600)"
+unit = "count"
+tolerance = 0.1
+solution = "{items} / {shards} = 1,000,000 items a shard, over {task_hours} × 3,600 s = 10,800 s: about {answer} items a second per executor. A whole shard is hours of one executor's work, which is why losing it to an interruption hurts."
+solution_es = "{items} / {shards} = 1 000 000 de elementos por fragmento, en {task_hours} × 3600 s = 10 800 s: unos {answer} elementos por segundo por ejecutor. Un fragmento entero son horas de trabajo de un ejecutor, y por eso perderlo en una interrupción duele."
+
+[[drill]]
+id = "restart-from-zero"
+kind = "capacity"
+prompt = "A task needs {task_s} s of work. The cloud stops it {stopped_at_s} s into the job, and it starts again at once from zero. At what time does it finish at the earliest?"
+prompt_es = "Una tarea necesita {task_s} s de trabajo. La nube la para a los {stopped_at_s} s del trabajo, y vuelve a empezar enseguida desde cero. ¿A qué hora termina como pronto?"
+inputs = { task_s = 300, stopped_at_s = 240 }
+formula = "stopped_at_s + task_s"
+unit = "s"
+solution = "{stopped_at_s} + {task_s} = {answer} s, already close to the 600 s deadline before any task runs slow. With checkpoints every 10%, the task keeps its 80% mark and redoes only 60 s: it finishes at about 300 s."
+solution_es = "{stopped_at_s} + {task_s} = {answer} s, ya cerca del plazo de 600 s antes de que ninguna tarea vaya lenta. Con checkpoints cada 10 %, la tarea conserva su marca del 80 % y solo rehace 60 s: termina hacia los 300 s."
+
+[[drill]]
+id = "nodes-for-half"
+kind = "servers"
+prompt = "A job runs {tasks} tasks at once. The cloud may take back {lost_percent}% of the cluster's executors, and each node has {executors} executors. How many nodes do you need so that what is left still runs every task at once?"
+prompt_es = "Un trabajo ejecuta {tasks} tareas a la vez. La nube puede llevarse el {lost_percent} % de los ejecutores del clúster, y cada nodo tiene {executors} ejecutores. ¿Cuántos nodos necesitas para que lo que queda siga ejecutando todas las tareas a la vez?"
+inputs = { tasks = 100, lost_percent = 50, executors = 4 }
+formula = "tasks / (1 - lost_percent / 100) / executors"
+unit = "count"
+solution = "{tasks} executors must survive, so the cluster needs {tasks} / (1 - {lost_percent}%) = 200 executors, and at {executors} a node that is {answer} nodes. Fewer nodes still pass a quiet night, but after a reclaim some stopped tasks wait for a free executor and need a whole run on top."
+solution_es = "Tienen que sobrevivir {tasks} ejecutores, así que el clúster necesita {tasks} / (1 - {lost_percent} %) = 200 ejecutores, y a {executors} por nodo son {answer} nodos. Con menos nodos se pasa una noche tranquila, pero tras una recuperación algunas tareas paradas esperan a un ejecutor libre y necesitan una ejecución entera encima."

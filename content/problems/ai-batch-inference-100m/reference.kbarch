@@ -1,0 +1,50 @@
+{
+  "schema_version": 4,
+  "id": "ref",
+  "name": "Batch scoring with checkpoints",
+  "problem_id": "ai-batch-inference-100m",
+  "nodes": [
+    {
+      "id": "spark",
+      "kind": "batch",
+      "flavour": "spark_emr",
+      "label": "spark",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 50,
+        "checkpoint": true
+      },
+      "group_id": null
+    },
+    {
+      "id": "s3",
+      "kind": "object",
+      "flavour": "s3",
+      "label": "s3",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-spark-s3-query",
+      "from": "spark",
+      "to": "s3",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

@@ -1,0 +1,73 @@
+id = "ai-multitenant-rag"
+number = 15
+set = 1
+track = "ai"
+difficulty = "hard"
+title = "RAG for Many Tenants"
+title_es = "RAG para muchos inquilinos"
+teaches = "Give every tenant of a shared RAG service its own quota, and size the shared vector search and GPUs for the normal traffic plus one tenant at its quota"
+teaches_es = "Dar a cada inquilino de un servicio RAG compartido su propia cuota, y dimensionar la búsqueda vectorial y las GPU compartidas para el tráfico normal más un inquilino en su cuota"
+tags = ["rag", "multi-tenancy", "rate-limits", "noisy-neighbour", "ml-inference"]
+
+[nfr]
+peak_rps = 100
+p95_ms = 10000
+availability = 0.999
+budget_usd = 15000
+
+[[request_types]]
+id = "big"
+name = "A question from the big tenant"
+name_es = "Una pregunta del inquilino grande"
+share = 0.2
+route = ["edge?", "compute", "model:embed", "datastore:vector", "model:chat"]
+api_keys = 1
+tokens_in = { mean = 1500, p95 = 3000 }
+tokens_out = { mean = 200, p95 = 400 }
+top_k = 50
+
+[[request_types]]
+id = "small"
+name = "A question from a small tenant"
+name_es = "Una pregunta de un inquilino pequeño"
+share = 0.7
+route = ["edge?", "compute", "model:embed", "datastore:vector", "model:chat"]
+api_keys = 400
+tokens_in = { mean = 1500, p95 = 3000 }
+tokens_out = { mean = 200, p95 = 400 }
+top_k = 50
+
+[[request_types]]
+id = "noisy"
+name = "A question from the tenant whose script floods"
+name_es = "Una pregunta del inquilino cuyo script inunda"
+share = 0.1
+route = ["edge?", "compute", "model:embed", "datastore:vector", "model:chat"]
+api_keys = 1
+abusive = true
+tokens_in = { mean = 1500, p95 = 3000 }
+tokens_out = { mean = 200, p95 = 400 }
+top_k = 50
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "onboard"
+name = "The big tenant moves all its teams over"
+name_es = "El inquilino grande trae a todos sus equipos"
+hidden = true
+type_multipliers = { big = 4 }
+
+[[tests]]
+id = "flood"
+name = "A tenant's script floods the service"
+name_es = "El script de un inquilino inunda el servicio"
+hidden = true
+type_multipliers = { noisy = 50 }
+
+[pass]
+error_rate = 0.01
+ttft_p95_ms = 2000

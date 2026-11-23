@@ -1,0 +1,57 @@
+id = "ai-batch-inference-100m"
+track = "ai"
+number = 18
+set = 1
+difficulty = "hard"
+title = "Score 100 Million Items Overnight"
+title_es = "Puntuar 100 millones de elementos en una noche"
+teaches = "Run a huge batch inference job on interruptible capacity and still meet the deadline: checkpoint each task and keep enough executors in reserve"
+teaches_es = "Ejecutar un trabajo enorme de inferencia por lotes en capacidad interrumpible y cumplir el plazo igualmente: hacer checkpoints de cada tarea y tener ejecutores de reserva"
+tags = ["batch-inference", "spot", "checkpoints", "deadlines", "capacity"]
+
+# Scaled time: the real job has a 6-hour window; here it is 600 simulated seconds
+# (1 simulated second stands for 36 real seconds). The statement and editorial say so.
+# The job is the only work: no client traffic.
+
+[nfr]
+peak_rps = 0
+p95_ms = 1000
+availability = 0.999
+budget_usd = 12000
+
+[[request_types]]
+id = "score"
+name = "Score tonight's items"
+name_es = "Puntuar los elementos de esta noche"
+kind = "job"
+share = 0.0
+route = ["datastore:object", "datastore:object:write"]
+# 100 shards of 1 million items; 300 executor-seconds each (scaled: about 3 real hours).
+job = { work_units = 30000, tasks = 100, skew = 0, starts = [0] }
+
+
+[[tests]]
+id = "normal"
+name = "A quiet night"
+name_es = "Una noche tranquila"
+duration_s = 700
+
+[[tests]]
+id = "spot-early"
+name = "Half the executors are taken back early in the night"
+name_es = "Te quitan la mitad de los ejecutores al principio de la noche"
+hidden = true
+duration_s = 700
+chaos = [{ spot = { kind = "batch", all = true, at = 60, share = 0.5, for = 540 } }]
+
+[[tests]]
+id = "spot-late"
+name = "Half the executors are taken back late in the night"
+name_es = "Te quitan la mitad de los ejecutores al final de la noche"
+hidden = true
+duration_s = 700
+chaos = [{ spot = { kind = "batch", all = true, at = 240, share = 0.5, for = 360 } }]
+
+[pass]
+error_rate = 0.001
+job_deadline_s = 600

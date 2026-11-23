@@ -203,3 +203,35 @@ items = [
   "replay:global-config-push",
   "replay:backlog-recovery",
 ]
+
+[[path]]
+id = "ai-systems"
+number = 7
+title = "AI systems"
+title_es = "Sistemas de IA"
+blurb = "Serving language models in production: token limits, GPUs and batching, caches, retrieval, failover and cost. Latency, throughput, limits and cost only; answer quality is out of scope."
+blurb_es = "Servir modelos de lenguaje en producción: límites de tokens, GPU y batching, cachés, recuperación, failover y coste. Solo latencia, rendimiento, límites y coste; la calidad de las respuestas queda fuera."
+items = [
+  "guide:infer",
+  "problem:ai-chatbot",
+  "problem:ai-summarize-batch",
+  "problem:ai-faq-semantic-cache",
+  "problem:ai-embed-ingest",
+  "problem:ai-moderation",
+  "problem:ai-llm-gateway",
+  "guide:vector",
+  "problem:ai-rag-qa",
+  "problem:ai-provider-failover",
+  "problem:ai-self-hosted-vllm",
+  "problem:ai-model-router",
+  "problem:ai-recsys-retrieval",
+  "problem:ai-voice-assistant",
+  "problem:ai-agent-tools",
+  "problem:ai-llm-observability",
+  "problem:ai-multitenant-rag",
+  "problem:ai-global-serving",
+  "problem:ai-code-autocomplete",
+  "problem:ai-batch-inference-100m",
+  "problem:ai-gpu-job-scheduler",
+  "problem:ai-answer-engine",
+]
