@@ -113,7 +113,8 @@ A request type's `route` is a list of steps, `role[:qualifier…][?]`, with `a|b
   - **traffic:** multiplies arrivals.
   - **external:** a provider fails (1 s connect timeout) or slows.
 - **Selectors:** an id, or a kind with a cluster role (the current primary, a replica, or any member). The first in
-  id order, or every match with `all`.
+  the design file's order (the order cards were placed; H5: renaming a card can't move a failure), or every match
+  with `all`.
 - **Health checks** run every 2 s; a change is believed after two checks in a row.
   - Until then, routing still sends requests to a dead card, and they fail. Afterwards, load balancers, callers and
     replica reads avoid it.
@@ -477,6 +478,14 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
   Redis `SET NX`). A write to such a card on a contended key behaves like a `datastore:write:atomic` step: a race
   is refused cleanly instead of counting as a conflict. It is how a design (not only a route) makes the write
   atomic (Set 3 #33, #34).
+
+- **Hardening H5 (results don't depend on card names or step parity).** Chaos `kind` selectors pick the first
+  match in file order, not by id. Round-robin spreading keeps one counter per route position (caller, request
+  type, segment, step, and whether it is a hop, a publish or a call) instead of one per caller: before, a caller
+  whose earlier call step advanced the shared counter sent every later call of the same request to the same
+  target (`tests/m8.rs` `round_robin_spreads_each_step_on_its_own`). Goldens b and k2 were regenerated for this on
+  purpose; shipped verdicts held (one naive failure type changed, AI 12 slow-stage: DroppedRequests → SloBreach,
+  until AI 12's designs were reordered so its slowed model is again the language model).
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE

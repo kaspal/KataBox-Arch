@@ -54,7 +54,7 @@ A request type has:
   - `kill`, `latency`, `partition` (the zone is lost), `split` (the zone keeps running but nothing crosses its
     border), `traffic`, `flush` and `external` (`down`, `add_ms`, or `rate` to cut the provider's rate limit);
   - target selectors are written flat: `{ kill = { kind = "sql", role = "primary", at = 30 } }`. A kind selector
-    picks the first matching card by id, so give each data store a different kind when a test kills one of them;
+    picks the first matching card in the design file (the first placed), so give each data store a different kind when a test kills one of them;
   - a zone is a Region or AZ label or id, or `@primary`: the Region holding the main data store's primary (the
     whole design when it isn't in a Region). Use `@primary` in problems: players name their Regions freely.
   - work still waiting when the run and its 30 s drain end counts at its age then, so a stalled pipeline fails its

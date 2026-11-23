@@ -78,6 +78,8 @@ pub const NOT_SIMULATED: &[&str] = &[
     "renditions",
     "bandwidth_gbps",
     "dims",
+    // Config: staged pushes go one region per `bake_s`; the stage count itself is not read.
+    "stages",
 ];
 
 #[derive(Debug, Clone)]

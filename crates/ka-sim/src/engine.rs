@@ -413,6 +413,10 @@ pub struct Engine {
     externals: Vec<ExternalRt>,
     cluster_primary: Vec<u32>,
     cluster_rr: Vec<usize>,
+    /// Round-robin counters per route position: (caller, request type, segment, step,
+    /// 0 = next hop | 1 = broker | 2 = call), so how requests of one type spread doesn't depend on
+    /// how other types interleave through the same caller.
+    rr_at: BTreeMap<(u32, u16, u16, u16, u8), usize>,
     reqs: Vec<Req>,
     free: Vec<u32>,
     groups: Vec<Group>,
@@ -705,6 +709,7 @@ impl Engine {
                 .collect(),
             cluster_primary: c.clusters.iter().map(|cl| cl.members[0]).collect(),
             cluster_rr: vec![0; c.clusters.len()],
+            rr_at: BTreeMap::new(),
             reqs: Vec::new(),
             free: Vec::new(),
             groups: Vec::new(),
@@ -1266,7 +1271,19 @@ impl Engine {
 
     // --- Hops -------------------------------------------------------------------------
 
-    fn pick(&mut self, from: u32, cands: &[u32], key: u64) -> Option<u32> {
+    /// The round-robin slot of request `r`'s current route position at `from`.
+    fn rr_slot(&self, r: u32, from: u32, broker: u8) -> (u32, u16, u16, u16, u8) {
+        let q = &self.reqs[r as usize];
+        (from, q.ty, q.seg, q.step, broker)
+    }
+
+    fn pick(
+        &mut self,
+        from: u32,
+        cands: &[u32],
+        key: u64,
+        slot: (u32, u16, u16, u16, u8),
+    ) -> Option<u32> {
         let live: Vec<u32> = cands
             .iter()
             .copied()
@@ -1299,9 +1316,9 @@ impl Engine {
         } else if n.kind == ComponentKind::Lb && n.spec.algorithm == "key_hash" {
             (mix(key) % list.len() as u64) as usize
         } else {
-            let rt = &mut self.nodes[from as usize];
-            rt.rr = rt.rr.wrapping_add(1);
-            rt.rr % list.len()
+            let rr = self.rr_at.entry(slot).or_insert(0);
+            *rr = rr.wrapping_add(1);
+            *rr % list.len()
         };
         Some(list[i])
     }
@@ -1384,7 +1401,8 @@ impl Engine {
         let picked = if self.c.nodes[from as usize].spec.dns_failover {
             self.dns_pick(from, &cands)
         } else {
-            self.pick(from, &cands, key)
+            let slot = self.rr_slot(r, from, 0);
+            self.pick(from, &cands, key, slot)
         };
         let Some(next) = picked else {
             self.fail(r);
@@ -2065,9 +2083,10 @@ impl Engine {
             }
             let targets = if live.is_empty() { targets } else { live };
             let pick = {
-                let rt = &mut self.nodes[caller as usize];
-                rt.rr = rt.rr.wrapping_add(1);
-                targets[rt.rr % targets.len()]
+                let slot = self.rr_slot(r, caller, 2);
+                let rr = self.rr_at.entry(slot).or_insert(0);
+                *rr = rr.wrapping_add(1);
+                targets[*rr % targets.len()]
             };
             let node = match pick {
                 Target::External(x) => {
@@ -2687,7 +2706,8 @@ impl Engine {
         }
         let brokers = self.c.types[ty].plan.brokers[seg + 1][caller as usize].clone();
         let key = self.reqs[r as usize].key;
-        let Some(b) = self.pick(caller, &brokers, key) else {
+        let slot = self.rr_slot(r, caller, 1);
+        let Some(b) = self.pick(caller, &brokers, key, slot) else {
             self.fail(r);
             return;
         };
@@ -3566,8 +3586,9 @@ impl Engine {
 // --- Chaos, health checks, failover, autoscaling (M1.5) ------------------------------------
 
 impl Engine {
-    /// The cards a selector names now: by id, or by kind and cluster role; the first in id
-    /// order unless `all`.
+    /// The cards a selector names now: by id, or by kind and cluster role; the first in the
+    /// design file's order (creation order, which a player doesn't pick by naming cards)
+    /// unless `all`.
     fn resolve(&self, sel: &ka_core::scenario::Selector) -> Vec<u32> {
         use ka_core::scenario::Role as R;
         let mut hits: Vec<u32> = (0..self.c.nodes.len() as u32)
@@ -3590,11 +3611,6 @@ impl Engine {
                 }
             })
             .collect();
-        hits.sort_by(|a, b| {
-            self.c.nodes[*a as usize]
-                .id
-                .cmp(&self.c.nodes[*b as usize].id)
-        });
         if !sel.all {
             hits.truncate(1);
         }

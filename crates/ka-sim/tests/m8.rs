@@ -2197,3 +2197,75 @@ fn a_late_answer_to_a_worker_that_gave_up_is_dropped() {
     let r = run(&d, &s, 65);
     assert!(r.retried > 0.0, "long answers time out and are retried");
 }
+
+// --- H5: results don't depend on card names or step parity -----------------------------------
+
+/// app → search (one card), then → one of two NoSQL stores. With one round-robin counter per
+/// caller, the search call advanced it too, so (without overlapping requests) every store
+/// call landed on the same store.
+#[test]
+fn round_robin_spreads_each_step_on_its_own() {
+    let d = design(
+        vec![
+            node("client", K::Client, Flavour::Web, &[]),
+            node("app", K::App, Flavour::Go, &[("instances", 2.0)]),
+            node("idx", K::Search, Flavour::Elasticsearch, &[]),
+            node("n1", K::Nosql, Flavour::Dynamodb, &[]),
+            node("n2", K::Nosql, Flavour::Dynamodb, &[]),
+        ],
+        vec![
+            edge("client", "app", Protocol::Http),
+            edge("app", "idx", Protocol::Query),
+            edge("app", "n1", Protocol::Query),
+            edge("app", "n2", Protocol::Query),
+        ],
+    );
+    // Light load, so requests rarely overlap (overlaps scrambled the old parity at random).
+    let s = scenario(
+        5.0,
+        60.0,
+        vec![rtype(
+            "q",
+            1.0,
+            &["compute", "datastore:search", "datastore:nosql"],
+        )],
+    );
+    let r = run(&d, &s, 7);
+    let (a, b) = (served(&r, "n1"), served(&r, "n2"));
+    assert!(a > 0.0 && b > 0.0, "both stores serve: {a} / {b}");
+    assert!((a - b).abs() / (a + b) < 0.1, "an even spread: {a} / {b}");
+}
+
+/// A chaos `kind` selector hits the first matching card in the file (creation order), not
+/// the first by name: renaming cards can't move the failure.
+#[test]
+fn a_kind_selector_follows_file_order_not_names() {
+    let build = |first: &str, second: &str| {
+        design(
+            vec![
+                node("client", K::Client, Flavour::Web, &[]),
+                node("app", K::App, Flavour::Go, &[("instances", 2.0)]),
+                node(first, K::Nosql, Flavour::Dynamodb, &[]),
+                node(second, K::Nosql, Flavour::Dynamodb, &[]),
+            ],
+            vec![
+                edge("client", "app", Protocol::Http),
+                edge("app", first, Protocol::Query),
+                edge("app", second, Protocol::Query),
+            ],
+        )
+    };
+    let mut s = scenario(
+        100.0,
+        20.0,
+        vec![rtype("q", 1.0, &["compute", "datastore"])],
+    );
+    s.chaos = vec![chaos(serde_json::json!(
+        { "kill": { "target": { "kind": "nosql" }, "at": 2.0 } }
+    ))];
+    let named_a = run(&build("zeta", "alpha"), &s, 3);
+    let named_b = run(&build("alpha", "zeta"), &s, 3);
+    // The first card in the file is the one killed, whatever it is called.
+    assert!(served(&named_a, "zeta") < served(&named_a, "alpha"));
+    assert!(served(&named_b, "alpha") < served(&named_b, "zeta"));
+}
