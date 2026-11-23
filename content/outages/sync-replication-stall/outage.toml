@@ -11,7 +11,9 @@ lesson = "Synchronous replication buys durability with availability: a commit th
 lesson_es = "La replicación síncrona compra durabilidad con disponibilidad: un commit que tiene que llegar a una réplica se detiene cuando esa réplica cae o queda aislada. Con una sola réplica síncrona, perder cualquiera de las dos zonas detiene todas las escrituras, así que el clúster está menos disponible para escribir que una sola base de datos. Haz que la confirmación sea de quórum: tres zonas, y un commit espera a cualquiera de las dos réplicas. Perder una zona, por una partición o por una réplica caída, sigue dejando una mayoría, así que los commits continúan y ninguna escritura confirmada vive en un solo sitio."
 target_test = "incident"
 kinds = ["sql"]
-real_world = []
+real_world = [
+    "https://aws.amazon.com/message/65648/",
+]
 
 [[step]]
 snapshot = "as_it_was.kbarch"

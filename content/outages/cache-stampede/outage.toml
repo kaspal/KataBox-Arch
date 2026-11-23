@@ -11,7 +11,10 @@ lesson = "A cache doesn't only make reads fast: it hides how small the database 
 lesson_es = "Una caché no solo hace rápidas las lecturas: oculta lo pequeña que es la base de datos que tiene detrás. Cuando la caché se vacía, la base de datos recibe toda la carga de lectura, y sin agrupar fallos cada fallo de una clave popular se convierte en su propia consulta, cientos de copias del mismo trabajo. Agrupar las peticiones (una protección de estampida, single-flight) deja que vaya a la base de datos un solo fallo por clave mientras los demás esperan su respuesta, así que un vaciado cuesta una consulta por clave en lugar de una por petición. Las claves que se rellenan juntas también caducan juntas, así que la misma protección mantiene tranquila la siguiente oleada de caducidades."
 target_test = "incident"
 kinds = ["cache", "sql"]
-real_world = []
+real_world = [
+    "https://engineering.fb.com/2010/09/23/uncategorized/more-details-on-today-s-outage/",
+    "https://slack.engineering/slacks-incident-on-2-22-22/",
+]
 
 [[step]]
 snapshot = "as_it_was.kbarch"

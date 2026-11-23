@@ -11,7 +11,9 @@ lesson = "A lock protects data only if both sides of a split can't hold it at on
 lesson_es = "Un bloqueo protege los datos solo si los dos lados de una partición no pueden tenerlo a la vez. Un bloqueo en Redis no tiene quórum: lo consigue quien llegue a Redis, haya partición o no. Un servicio de coordinación como etcd concede un bloqueo solo al lado que llega a una mayoría de sus miembros; con tres miembros en tres AZ, cualquier AZ que quede aislada es minoría y recibe un rechazo. El fencing hace que la base de datos también compruebe: un primario que se promovió a sí mismo en el lado aislado rechaza la escritura en lugar de aceptarla. El precio es la disponibilidad: durante una partición, las escrituras que no se pueden demostrar seguras fallan. Una escritura fallida se ve y se puede reintentar; una escritura en conflicto es silenciosa, y alguien tiene que fusionarla a mano."
 target_test = "incident"
 kinds = ["coord", "sql", "cache"]
-real_world = []
+real_world = [
+    "https://github.blog/2018-10-30-oct21-post-incident-analysis/",
+]
 
 [[step]]
 snapshot = "as_it_was.kbarch"

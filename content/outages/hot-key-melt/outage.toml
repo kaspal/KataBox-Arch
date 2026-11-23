@@ -11,7 +11,9 @@ lesson = "A partitioned store spreads keys, not load. When one key gets a large 
 lesson_es = "Un almacén particionado reparte claves, no carga. Cuando una clave recibe una gran parte del tráfico, todo cae en la partición dueña de esa clave, y esa partición se satura mientras las demás están ociosas. Añadir particiones no ayuda, porque la clave sigue viviendo en una sola. Sirve las claves calientes desde memoria: una caché delante del almacén responde el producto viral desde la RAM, y las particiones solo ven los fallos de caché."
 target_test = "incident"
 kinds = ["cache", "nosql"]
-real_world = []
+real_world = [
+    "https://groups.google.com/g/mongodb-user/c/UoqU8ofp134",
+]
 
 [[step]]
 snapshot = "as_it_was.kbarch"

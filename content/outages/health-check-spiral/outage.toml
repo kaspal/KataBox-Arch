@@ -11,7 +11,11 @@ lesson = "A health check that can't tell busy from dead turns a load surge into 
 lesson_es = "Un health check que no distingue entre ocupado y caído convierte un pico de carga en una caída: cada servidor que retira descarga su carga sobre los demás, que entonces fallan el mismo check (una espiral mortal). A los servidores nunca les faltó capacidad; el problema fueron las expulsiones. Haz que un servidor ocupado responda rápido en vez de parecer muerto: descarta carga en la app cuando su cola alcanza un límite (aquí 28 peticiones en espera, menos de 200 ms de espera), para que la cola nunca pase el límite del health check y las pocas peticiones de más fallen al instante. Y limita lo que el balanceador puede retirar: con un mínimo del 60 % de destinos en rotación nunca puede expulsar más de dos de seis tarjetas, por mal que parezcan los checks."
 target_test = "incident"
 kinds = ["lb", "app"]
-real_world = []
+real_world = [
+    "https://blog.allegro.tech/2018/08/postmortem-why-allegro-went-down.html",
+    "https://aws.amazon.com/message/101925",
+    "https://sre.google/sre-book/handling-overload/",
+]
 
 [[step]]
 snapshot = "as_it_was.kbarch"

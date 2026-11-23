@@ -11,6 +11,10 @@ lesson = "A thread-per-request server keeps a slot for as long as its slowest ca
 lesson_es = "Un servidor con un hilo por petición mantiene ocupado un slot mientras dure su llamada más lenta, así que una sola dependencia lenta puede agotar todo el pool y tumbar peticiones que nunca la llaman. Ponle un timeout a cada llamada y, cuando la dependencia es opcional, sigue sin ella (aquí, la página de producto sin recomendaciones). Un bulkhead le da a cada dependencia su propia parte de los slots, de modo que incluso una dependencia lenta pero dentro de su timeout solo puede llenar su parte, nunca la del carrito."
 target_test = "incident"
 kinds = ["app", "micro", "sql"]
+real_world = [
+    "https://gitlab.com/gitlab-com/gl-infra/production/-/issues/3875",
+    "https://honeycomb.io/blog/rds-performance-degradation-postmortem",
+]
 
 [[step]]
 snapshot = "as_it_was.kbarch"

@@ -11,7 +11,10 @@ lesson = "Autoscaling and instance replacement run on the cloud's control plane,
 lesson_es = "El autoescalado y el reemplazo de instancias dependen del plano de control de la nube, y un gran evento, como perder una zona de disponibilidad, es justo cuando es más probable que esté degradado. Un diseño que necesita el plano de control para recuperarse de ese evento no es estable. La estabilidad estática significa que la capacidad ya está en marcha: reparte las instancias en tres zonas, cada una con las suficientes para que las otras dos aguanten el pico si se pierde, y haz que ese sea el mínimo del grupo, para que no haga falta arrancar nada durante el evento. Aquí son seis instancias en cada una de tres zonas, y el autoescalado solo cubre el tráfico que supere el plan. Cuesta más cada mes (unos 1600 $ en lugar de unos 1000 $ aquí); es el precio de no depender del plano de control. Con el plano de control funcionando, el diseño antiguo habría escalado AZ-b y habría pasado con un 5 % de errores, más o menos."
 target_test = "incident"
 kinds = ["autoscale", "app"]
-real_world = []
+real_world = [
+    "https://aws.amazon.com/message/12721",
+    "https://aws.amazon.com/message/101925",
+]
 
 [[step]]
 snapshot = "as_it_was.kbarch"

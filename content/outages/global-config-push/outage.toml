@@ -11,7 +11,10 @@ lesson = "A configuration change is a deploy that skips the deploy pipeline: it 
 lesson_es = "Un cambio de configuración es un despliegue que se salta el pipeline de despliegue: cambia cómo se comporta cada servidor, a menudo en segundos, y nada lo comprueba por el camino. Las Regiones solo limitan el daño si un cambio no puede llegar a todas a la vez. Envía los cambios de configuración por etapas, una Región cada vez, espera un tiempo de horneado antes de la siguiente etapa, detente en cuanto suban los errores de una etapa y ten un interruptor de emergencia (kill switch) que revierta el cambio en un segundo. El mismo ajuste malo cuesta entonces unos tres segundos de errores en una Región (el 0,825 % de las peticiones del minuto) en lugar de treinta segundos en todas partes (el 25 %), y funciona también con un cambio que solo hace que todo vaya lento."
 target_test = "incident"
 kinds = ["config", "app"]
-real_world = []
+real_world = [
+    "https://blog.cloudflare.com/18-november-2025-outage/",
+    "https://engineering.fb.com/2021/10/05/networking-traffic/outage-details/",
+]
 
 [[step]]
 snapshot = "as_it_was.kbarch"

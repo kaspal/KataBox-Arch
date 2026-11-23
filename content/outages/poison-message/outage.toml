@@ -11,7 +11,9 @@ lesson = "Retrying a message helps when the failure is temporary; a message that
 lesson_es = "Reintentar un mensaje ayuda cuando el fallo es temporal; un mensaje que nunca se podrá procesar (un mensaje envenenado) solo vuelve para costar otra vez el mismo trabajo. Con muchos reintentos, cada mensaje envenenado cuesta muchas veces lo que uno bueno, y una pequeña parte de ellos puede llevarse más tiempo de los workers que todo el tráfico real, poco a poco, a medida que la espera entre intentos los reparte. Deja pocos reintentos (aquí 3) para que un fallo temporal tenga aún otra oportunidad, y conecta una cola de mensajes fallidos para que los que sigan fallando se aparten, guardados y a la vista, en vez de reintentarse durante minutos o descartarse en silencio. Así los workers dan abasto, y alguien puede revisar los mensajes malos y arreglar el productor."
 target_test = "incident"
 kinds = ["queue", "worker", "dlq"]
-real_world = []
+real_world = [
+    "https://10xbanking.com/engineering/bulletproofing-kafka-and-avoiding-the-poison-pill",
+]
 
 [[step]]
 snapshot = "as_it_was.kbarch"

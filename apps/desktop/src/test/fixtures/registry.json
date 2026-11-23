@@ -12356,7 +12356,7 @@
           {
             "calibration": {
               "id": "dns.query_ratio",
-              "status": "needed"
+              "status": "model"
             },
             "default": 0.01,
             "key": "query_ratio",
@@ -12587,7 +12587,7 @@
           {
             "calibration": {
               "id": "waf.service_ms",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 1,
             "key": "service_ms",
@@ -12846,7 +12846,7 @@
           {
             "calibration": {
               "id": "lb.service_ms",
-              "status": "needed"
+              "status": "model"
             },
             "default": 0.5,
             "key": "service_ms",
@@ -13054,7 +13054,7 @@
           {
             "calibration": {
               "id": "gateway.concurrency",
-              "status": "needed"
+              "status": "model"
             },
             "default": 256,
             "key": "concurrency",
@@ -13069,7 +13069,7 @@
           {
             "calibration": {
               "id": "gateway.service_ms",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 2,
             "key": "service_ms",
@@ -13314,7 +13314,7 @@
           {
             "calibration": {
               "id": "ws.max_connections",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 100000,
             "key": "max_connections",
@@ -13329,7 +13329,7 @@
           {
             "calibration": {
               "id": "ws.conn_memory_kb",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 20,
             "key": "conn_memory_kb",
@@ -13356,7 +13356,7 @@
           {
             "calibration": {
               "id": "ws.msgs_per_s",
-              "status": "needed"
+              "status": "model"
             },
             "default": 50000,
             "key": "msgs_per_s",
@@ -13371,7 +13371,7 @@
           {
             "calibration": {
               "id": "ws.accept_per_s",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 2000,
             "key": "accept_per_s",
@@ -13386,7 +13386,7 @@
           {
             "calibration": {
               "id": "ws.service_ms",
-              "status": "needed"
+              "status": "model"
             },
             "default": 0.5,
             "key": "service_ms",
@@ -13537,7 +13537,7 @@
           {
             "calibration": {
               "id": "idp.login_ms",
-              "status": "needed"
+              "status": "model"
             },
             "default": 150,
             "key": "login_ms",
@@ -13552,7 +13552,7 @@
           {
             "calibration": {
               "id": "idp.verify_ms",
-              "status": "needed"
+              "status": "model"
             },
             "default": 5,
             "key": "verify_ms",
@@ -13567,7 +13567,7 @@
           {
             "calibration": {
               "id": "idp.logins_per_s",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 100,
             "key": "logins_per_s",
@@ -13920,7 +13920,7 @@
           {
             "calibration": {
               "id": "app.concurrency",
-              "status": "needed"
+              "status": "model"
             },
             "default": 64,
             "key": "concurrency",
@@ -13935,7 +13935,7 @@
           {
             "calibration": {
               "id": "app.service_ms",
-              "status": "needed"
+              "status": "model"
             },
             "default": 10,
             "key": "service_ms",
@@ -14092,7 +14092,7 @@
           {
             "calibration": {
               "id": "micro.concurrency",
-              "status": "needed"
+              "status": "model"
             },
             "default": 64,
             "key": "concurrency",
@@ -14107,7 +14107,7 @@
           {
             "calibration": {
               "id": "micro.service_ms",
-              "status": "needed"
+              "status": "model"
             },
             "default": 10,
             "key": "service_ms",
@@ -14437,7 +14437,7 @@
           {
             "calibration": {
               "id": "worker.concurrency",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 8,
             "key": "concurrency",
@@ -14452,7 +14452,7 @@
           {
             "calibration": {
               "id": "worker.service_ms",
-              "status": "needed"
+              "status": "model"
             },
             "default": 100,
             "key": "service_ms",
@@ -14729,7 +14729,7 @@
           {
             "calibration": {
               "id": "serverless.service_ms",
-              "status": "needed"
+              "status": "model"
             },
             "default": 20,
             "key": "service_ms",
@@ -15143,7 +15143,7 @@
           {
             "calibration": {
               "id": "infer.prefill_tps",
-              "status": "needed"
+              "status": "model"
             },
             "default": 5000,
             "key": "prefill_tps",
@@ -15158,7 +15158,7 @@
           {
             "calibration": {
               "id": "infer.rpm",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 4000,
             "key": "rpm",
@@ -15173,7 +15173,7 @@
           {
             "calibration": {
               "id": "infer.tpm",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 400000,
             "key": "tpm",
@@ -15308,7 +15308,7 @@
           {
             "calibration": {
               "id": "batch.task_overhead_ms",
-              "status": "needed"
+              "status": "model"
             },
             "default": 200,
             "key": "task_overhead_ms",
@@ -15532,7 +15532,7 @@
           {
             "calibration": {
               "id": "media.streams_per_instance",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 500,
             "key": "streams_per_instance",
@@ -15856,7 +15856,7 @@
           {
             "calibration": {
               "id": "sql.service_ms",
-              "status": "needed"
+              "status": "model"
             },
             "default": 5,
             "key": "service_ms",
@@ -15871,7 +15871,7 @@
           {
             "calibration": {
               "id": "sql.replication_lag_ms",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 50,
             "key": "replication_lag_ms",
@@ -15980,7 +15980,7 @@
           {
             "calibration": {
               "id": "sql.max_connections",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 1700,
             "key": "max_connections",
@@ -16212,7 +16212,7 @@
           {
             "calibration": {
               "id": "nosql.service_ms",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 3,
             "key": "service_ms",
@@ -16871,7 +16871,7 @@
           {
             "calibration": {
               "id": "search.service_ms",
-              "status": "needed"
+              "status": "model"
             },
             "default": 20,
             "key": "service_ms",
@@ -16994,7 +16994,7 @@
           {
             "calibration": {
               "id": "coord.election_ms",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 1000,
             "key": "election_ms",
@@ -17021,7 +17021,7 @@
           {
             "calibration": {
               "id": "coord.service_ms",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 2,
             "key": "service_ms",
@@ -17196,7 +17196,7 @@
           {
             "calibration": {
               "id": "vector.service_ms",
-              "status": "needed"
+              "status": "model"
             },
             "default": 2,
             "key": "service_ms",
@@ -17375,7 +17375,7 @@
           {
             "calibration": {
               "id": "warehouse.concurrency",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 8,
             "key": "concurrency",
@@ -17390,7 +17390,7 @@
           {
             "calibration": {
               "id": "warehouse.scan_gbps",
-              "status": "needed"
+              "status": "model"
             },
             "default": 1,
             "key": "scan_gbps",
@@ -17405,7 +17405,7 @@
           {
             "calibration": {
               "id": "warehouse.overhead_ms",
-              "status": "needed"
+              "status": "model"
             },
             "default": 300,
             "key": "overhead_ms",
@@ -17749,7 +17749,7 @@
           {
             "calibration": {
               "id": "tsdb.series_limit",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 1000000,
             "key": "series_limit",
@@ -17788,7 +17788,7 @@
           {
             "calibration": {
               "id": "tsdb.service_ms",
-              "status": "needed"
+              "status": "model"
             },
             "default": 1,
             "key": "service_ms",
@@ -17985,7 +17985,7 @@
           {
             "calibration": {
               "id": "dbproxy.service_ms",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 0.3,
             "key": "service_ms",
@@ -18108,7 +18108,7 @@
           {
             "calibration": {
               "id": "graph.edges_per_ms",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 500,
             "key": "edges_per_ms",
@@ -18123,7 +18123,7 @@
           {
             "calibration": {
               "id": "graph.service_ms",
-              "status": "needed"
+              "status": "model"
             },
             "default": 1,
             "key": "service_ms",
@@ -18138,7 +18138,7 @@
           {
             "calibration": {
               "id": "graph.failover_s",
-              "status": "needed"
+              "status": "model"
             },
             "default": 30,
             "key": "failover_s",
@@ -18738,7 +18738,7 @@
           {
             "calibration": {
               "id": "pubsub.service_ms",
-              "status": "needed"
+              "status": "model"
             },
             "default": 5,
             "key": "service_ms",
@@ -19042,7 +19042,7 @@
           {
             "calibration": {
               "id": "streamproc.concurrency",
-              "status": "needed"
+              "status": "model"
             },
             "default": 4,
             "key": "concurrency",
@@ -19057,7 +19057,7 @@
           {
             "calibration": {
               "id": "streamproc.records_per_s",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 20000,
             "key": "records_per_s",
@@ -19306,7 +19306,7 @@
           {
             "calibration": {
               "id": "mqtt.max_connections",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 1000000,
             "key": "max_connections",
@@ -19321,7 +19321,7 @@
           {
             "calibration": {
               "id": "mqtt.conn_memory_kb",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 8,
             "key": "conn_memory_kb",
@@ -19364,7 +19364,7 @@
           {
             "calibration": {
               "id": "mqtt.service_ms",
-              "status": "needed"
+              "status": "cited"
             },
             "default": 2,
             "key": "service_ms",
@@ -19515,7 +19515,7 @@
           {
             "calibration": {
               "id": "connector.concurrency",
-              "status": "needed"
+              "status": "model"
             },
             "default": 4,
             "key": "concurrency",
@@ -19554,7 +19554,7 @@
           {
             "calibration": {
               "id": "connector.service_ms",
-              "status": "needed"
+              "status": "model"
             },
             "default": 50,
             "key": "service_ms",

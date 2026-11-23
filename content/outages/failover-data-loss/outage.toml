@@ -11,7 +11,10 @@ lesson = "With asynchronous replication, a commit is confirmed before any replic
 lesson_es = "Con la replicación asíncrona, un commit se confirma antes de que lo tenga ninguna réplica. Una conmutación promueve una réplica que va un poco por detrás, y lo que el primario antiguo confirmó dentro de su retraso de replicación desaparece: los datos que puedes perder (el RPO) son ese retraso, no cero. La conmutación arregla la disponibilidad, no la durabilidad. Para datos en los que perder una escritura importa, como el dinero, haz que el commit espere a las réplicas: la replicación síncrona (sync) espera a una réplica, un quórum espera a una mayoría. Cuesta un viaje de ida y vuelta por la red en cada commit (aquí, alrededor de un milisegundo más, entre AZ), y un commit que no llega a sus réplicas se queda bloqueado, así que usa tres miembros en tres AZ con quórum: cualquiera de ellos puede morir, los commits siguen y no se pierde nada confirmado. La conmutación sigue costando sus segundos de errores; un pago fallido se ve y se puede reintentar, uno perdido es silencioso."
 target_test = "incident"
 kinds = ["sql"]
-real_world = []
+real_world = [
+    "https://github.blog/2018-10-30-oct21-post-incident-analysis/",
+    "https://razorpay.com/blog/?p=3093",
+]
 
 [[step]]
 snapshot = "as_it_was.kbarch"

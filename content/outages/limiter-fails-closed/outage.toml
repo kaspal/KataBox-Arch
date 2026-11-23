@@ -11,7 +11,10 @@ lesson = "A rate limiter is a dependency of every request, and so is the store t
 lesson_es = "Un limitador de tasa es una dependencia de cada petición, y también lo es el almacén que guarda sus contadores: si falla cerrado, perder ese almacén tumba toda la API con él. Para un limitador general de una API, fallar abierto suele ser lo correcto: mientras el almacén no responde, las peticiones pasan sin contarse, y la caída no cuesta nada. Es un compromiso: mientras está abierto, nada limita a nadie (aquí la clave que rastrea la API recibe todo lo que pide), así que el resto del diseño debe tener margen para ello, u otra capa (un WAF, un límite por instancia) debe acotarlo. Falla cerrado donde dejar pasar tráfico sin control es peor que rechazarlo, como un límite que protege el inicio de sesión contra quien adivina contraseñas, o un límite sobre una acción cara de pago."
 target_test = "incident"
 kinds = ["ratelimit", "lb"]
-real_world = []
+real_world = [
+    "https://status.cloud.google.com/incidents/ow5i3PPK96RduMcb1SsW",
+    "https://blog.cloudflare.com/deep-dive-into-cloudflares-sept-12-dashboard-and-api-outage/",
+]
 
 [[step]]
 snapshot = "as_it_was.kbarch"

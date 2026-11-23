@@ -11,6 +11,10 @@ lesson = "Failover DNS only moves the clients that ask again, and a client asks 
 lesson_es = "El DNS con failover solo mueve a los clientes que vuelven a preguntar, y un cliente vuelve a preguntar solo cuando caduca la respuesta que tiene guardada. El TTL es lo que tarda un failover en llegar a todos: con un día, el failover ocurre dentro de Route 53 y en ningún otro sitio. Usa TTL cortos en los registros con failover (de 30 a 60 s; aquí 30 s, así que los errores desaparecen unos 30 s después del cambio) y dimensiona la región en espera para que aguante el pico completo, con margen para una hora con más tráfico, o el failover solo trasladará la caída a la otra región."
 target_test = "incident"
 kinds = ["dns", "lb"]
+real_world = [
+    "https://aws.amazon.com/message/101925",
+    "https://slack.engineering/what-happened-during-slacks-dnssec-rollout/",
+]
 
 [[step]]
 snapshot = "as_it_was.kbarch"

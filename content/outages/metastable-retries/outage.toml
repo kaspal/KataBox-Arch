@@ -11,7 +11,10 @@ lesson = "A system can have two stable states at the same load: healthy, or satu
 lesson_es = "Un sistema puede tener dos estados estables con la misma carga: sano, o saturado por sus propios reintentos (un fallo metaestable). El pico solo lo empuja de uno a otro; los reintentos lo mantienen ahí. Una cola larga lo empeora: el trabajo que espera más que el timeout del llamador no le sirve a nadie, y el reintento lo vuelve a añadir. Limita la cola para que nada espere más que el timeout: con descarte de carga (aquí, 8 llamadas en espera), el exceso se rechaza al instante sin coste, cada llamada que el servicio acepta se responde a tiempo, y cuando el pico termina el sistema vuelve a estar sano. Un circuit breaker o un presupuesto de reintentos limitan los reintentos con la misma idea."
 target_test = "incident"
 kinds = ["app", "client"]
-real_world = []
+real_world = [
+    "https://pure.psu.edu/en/publications/metastable-failures-in-distributed-systems/",
+    "https://slack.engineering/slacks-incident-on-2-22-22/",
+]
 
 [[step]]
 snapshot = "as_it_was.kbarch"

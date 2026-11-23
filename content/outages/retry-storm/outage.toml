@@ -11,6 +11,10 @@ lesson = "Retries are extra load arriving exactly when the system has the least 
 lesson_es = "Los reintentos son carga extra que llega justo cuando el sistema tiene menos margen. Los reintentos inmediatos pueden convertir una lentitud breve en una caída que dura más que su causa: el disparador desaparece, pero los reintentos mantienen saturada la base de datos (un fallo metaestable). Espera entre intentos, añade jitter para que los reintentos no lleguen juntos y limítalos con un presupuesto (aquí, el 10 % de los primeros intentos), de modo que una lentitud cueste unos segundos de errores y luego termine."
 target_test = "incident"
 kinds = ["client", "sql"]
+real_world = [
+    "https://discord.com/blog/authentication-outage",
+    "https://aws.amazon.com/message/12721",
+]
 
 [[step]]
 snapshot = "as_it_was.kbarch"

@@ -11,7 +11,11 @@ lesson = "A backlog is drained by the spare capacity, not the full capacity. A p
 lesson_es = "Un atasco se vacía con la capacidad sobrante, no con la capacidad total. Un grupo ocupado al 90 % tiene una décima parte de su potencia para despachar un montón, así que una lentitud de 20 segundos aguas abajo cuesta un minuto o más de retraso después de que la dependencia se recupere. Cuando el trabajo urgente y el de fondo comparten una cola FIFO, los mensajes urgentes pagan por todo el montón. Dale prioridad a la cola para que los mensajes en vivo pasen por delante de los masivos (el relleno espera, y nadie está esperando al relleno), y deja margen para vaciarla, aquí un tercer worker, para que un montón se despache en segundos y la cola no se llene en la hora de más tráfico. Si los productores pueden ir más rápido incluso que eso, descarta o pausa el trabajo de fondo en el origen."
 target_test = "incident"
 kinds = ["queue", "worker", "object"]
-real_world = []
+real_world = [
+    "https://aws.amazon.com/message/41926",
+    "https://aws.amazon.com/message/12721",
+    "https://about.roblox.com/newsroom/2022/01/roblox-return-to-service-10-28-10-31-2021",
+]
 
 [[step]]
 snapshot = "as_it_was.kbarch"

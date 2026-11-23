@@ -11,7 +11,10 @@ lesson = "Autoscaling reacts to load it has already seen, and it can only add ca
 lesson_es = "El autoescalado reacciona a la carga que ya ha visto, y solo puede añadir capacidad tan rápido como arrancan las instancias nuevas. Una ola que sube en segundos y dura un minuto termina antes de que llegue un escalado de 60 s. Para los picos que ves venir (un anuncio, una notificación push, unas rebajas), ten margen ya en marcha: sube el mínimo en esas horas. Después, haz rápida la política donde se pueda: un objetivo de utilización más bajo deja sitio para absorber los primeros segundos, y las instancias preinicializadas (un warm pool, pods en nodos que ya están levantados) bajan el retraso de un minuto a segundos. Aquí, un mínimo de 16, un objetivo del 40 % y un retraso de 5 s convierten un minuto casi todo de errores en unos cuatro segundos de errores."
 target_test = "incident"
 kinds = ["autoscale", "app"]
-real_world = []
+real_world = [
+    "https://slack.engineering/slacks-outage-on-january-4th-2021/",
+    "https://canva.dev/blog/engineering/canva-incident-report-api-gateway-outage",
+]
 
 [[step]]
 snapshot = "as_it_was.kbarch"

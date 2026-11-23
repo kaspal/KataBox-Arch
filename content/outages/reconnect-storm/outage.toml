@@ -11,7 +11,10 @@ lesson = "Long-lived connections turn one lost server into a wave: every client 
 lesson_es = "Las conexiones de larga duración convierten la pérdida de un servidor en una ola: todos los clientes que tenía vuelven en el mismo momento. Dos cosas evitan que esa ola se convierta en una caída. El jitter de reconexión reparte a los clientes en una ventana (aquí, 10 s), de modo que las supervivientes los aceptan a un ritmo que pueden asumir en lugar de rechazar a casi todos de golpe. Y el margen: dimensiona las pasarelas para que las supervivientes puedan sostener a todos cuando una cae (aquí cada una va a unas tres cuartas partes de su capacidad). El jitter sin margen sigue dejando clientes sin sitio; el margen sin jitter sigue pasando antes por una tormenta de intentos rechazados."
 target_test = "incident"
 kinds = ["ws", "client"]
-real_world = []
+real_world = [
+    "https://aws.amazon.com/message/5467D2",
+    "https://discordstatus.com/incidents/dj3l6lw926kl",
+]
 
 [[step]]
 snapshot = "as_it_was.kbarch"

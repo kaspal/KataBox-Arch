@@ -11,7 +11,11 @@ lesson = "A fallback only helps if the call ends. A dependency that is down but 
 lesson_es = "Un fallback solo sirve si la llamada termina. Una dependencia caída que no rechaza las llamadas (un proceso colgado, un host que descarta paquetes) hace esperar a todos sus llamantes, y un servidor con un hilo por petición que espera a una función opcional hace fallar la principal. Ponle un timeout a cada llamada, para que una dependencia colgada cueste como mucho ese tiempo y se ejecute el fallback. Después añade un circuit breaker: cuando fallan demasiadas llamadas a una dependencia, deja de llamarla durante un rato y va directo al fallback, para que una dependencia que solo está lenta no sume su timeout completo a cada petición. Aquí, un timeout de 200 ms y un breaker que se abre con un 20 % de llamadas fallidas durante 30 s mantienen el checkout a toda velocidad sin sus recomendaciones."
 target_test = "incident"
 kinds = ["micro", "app"]
-real_world = []
+real_world = [
+    "https://blog.cloudflare.com/cloudflare-service-outage-june-12-2025/",
+    "https://aws.amazon.com/message/11201",
+    "https://sre.google/sre-book/addressing-cascading-failures/",
+]
 
 [[step]]
 snapshot = "as_it_was.kbarch"

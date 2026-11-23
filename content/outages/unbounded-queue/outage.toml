@@ -11,7 +11,10 @@ lesson = "A queue absorbs a burst only if the workers can drain it. A queue with
 lesson_es = "Una cola absorbe una avalancha solo si los workers pueden vaciarla. Una cola sin límite práctico convierte la sobrecarga en retraso: nada falla, pero cada mensaje, viejo o nuevo, espera detrás del atasco, y el atasco dura minutos más que la avalancha. Limita la cola al trabajo que aún puedes hacer a tiempo y rechaza el resto al momento (quien llama puede reintentar o avisar al usuario), y añade capacidad para vaciarla, aquí un grupo de workers con autoescalado, para que una avalancha se despache en segundos. Unos pocos pedidos rechazados son mejores que todos los pedidos con un minuto de retraso."
 target_test = "incident"
 kinds = ["queue", "worker"]
-real_world = []
+real_world = [
+    "https://discord.com/blog/behind-the-scenes-of-the-3-25-26-voice-outage",
+    "https://discordstatus.com/incidents/dj3l6lw926kl",
+]
 
 [[step]]
 snapshot = "as_it_was.kbarch"

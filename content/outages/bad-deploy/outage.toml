@@ -11,7 +11,10 @@ lesson = "Every deploy is a change that can break production, so limit how much 
 lesson_es = "Cada despliegue es un cambio que puede romper producción, así que limita cuánto de producción puede alcanzar antes de saber que está bien. Despliega por etapas (aquí, primero el 10 % de las instancias), espera entre etapas (un tiempo de horneado) para que una versión mala se delate en pocas instancias, y revierte automáticamente cuando los health checks la detecten. La misma versión mala cuesta entonces un par de segundos de errores en una décima parte del tráfico en lugar de medio minuto en todo él, y funciona también con una versión que solo hace que todo vaya lento."
 target_test = "incident"
 kinds = ["app", "lb"]
-real_world = []
+real_world = [
+    "https://blog.cloudflare.com/details-of-the-cloudflare-outage-on-july-2-2019",
+    "https://crowdstrike.com/wp-content/uploads/2024/08/Channel-File-291-Incident-Root-Cause-Analysis-08.06.2024.pdf",
+]
 
 [[step]]
 snapshot = "as_it_was.kbarch"
