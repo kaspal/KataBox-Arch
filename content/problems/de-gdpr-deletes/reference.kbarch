@@ -1,0 +1,161 @@
+{
+  "schema_version": 4,
+  "id": "ref-gdpr",
+  "name": "Right-to-erasure reference",
+  "problem_id": "de-gdpr-deletes",
+  "nodes": [
+    {
+      "id": "users",
+      "kind": "client",
+      "flavour": "web",
+      "label": "users",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "api",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "erasures",
+      "kind": "queue",
+      "flavour": "sqs",
+      "label": "erasures",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {
+        "max_retries": 8
+      },
+      "group_id": null
+    },
+    {
+      "id": "dead",
+      "kind": "dlq",
+      "flavour": "generic",
+      "label": "dead",
+      "position": {
+        "x": 912,
+        "y": 112
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "erasers",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "erasers",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 8
+      },
+      "group_id": null
+    },
+    {
+      "id": "lake",
+      "kind": "lakehouse",
+      "flavour": "iceberg",
+      "label": "lake",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "wh",
+      "kind": "warehouse",
+      "flavour": "snowflake",
+      "label": "wh",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "profiles",
+      "kind": "nosql",
+      "flavour": "dynamodb",
+      "label": "profiles",
+      "position": {
+        "x": 1216,
+        "y": 224
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-users-api-http",
+      "from": "users",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e-api-erasures-publish",
+      "from": "api",
+      "to": "erasures",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-erasures-erasers-consume",
+      "from": "erasures",
+      "to": "erasers",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-erasures-dead-publish",
+      "from": "erasures",
+      "to": "dead",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-erasers-lake-query",
+      "from": "erasers",
+      "to": "lake",
+      "protocol": "query"
+    },
+    {
+      "id": "e-erasers-wh-query",
+      "from": "erasers",
+      "to": "wh",
+      "protocol": "query"
+    },
+    {
+      "id": "e-erasers-profiles-query",
+      "from": "erasers",
+      "to": "profiles",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

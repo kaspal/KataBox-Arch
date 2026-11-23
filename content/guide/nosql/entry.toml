@@ -169,6 +169,24 @@ flavour = "mongodb"
 title = "MongoDB documentation"
 url = "https://www.mongodb.com/docs/"
 
+[[sources]]
+flavour = "scylladb"
+title = "ScyllaDB documentation"
+url = "https://docs.scylladb.com/"
+checked = false
+
+[[sources]]
+flavour = "bigtable"
+title = "Google Bigtable documentation"
+url = "https://cloud.google.com/bigtable/docs"
+checked = false
+
+[[sources]]
+flavour = "cosmos_db"
+title = "Azure Cosmos DB documentation"
+url = "https://learn.microsoft.com/en-us/azure/cosmos-db/"
+checked = false
+
 [[quiz]]
 q = "The partition key is the country, and 70% of the traffic comes from one country. What does doubling the partitions do?"
 q_es = "La clave de partición es el país, y el 70 % del tráfico viene de un solo país. ¿Qué consigue duplicar las particiones?"

@@ -1,0 +1,94 @@
+id = "pool-exhaustion"
+number = 7
+difficulty = "medium"
+title = "The pool that ran dry"
+title_es = "El pool que se quedó vacío"
+summary = "A recommendations service slowed down, and the app waited on it with every slot it had, so even cart views failed."
+summary_es = "Un servicio de recomendaciones se volvió lento, y la app lo esperó con todos sus slots, así que hasta las vistas del carrito fallaron."
+story = "A shop ran on four Go App Servers (64 request slots each) in front of PostgreSQL. Product pages also called a small recommendations service; cart views never did. The page could render without recommendations, but the app had no call timeout: it simply waited for the answer. One afternoon the recommendations service slowed down, and every call took 3 seconds longer for 20 seconds. Each product page now held its slot for 3 seconds. In about a second, all 256 slots were busy waiting on recommendations, and cart views, which never touch that service, queued behind them until the client gave up at 5 seconds. For those 20 seconds most requests of both kinds failed, though the database and the cart code were perfectly healthy."
+story_es = "Una tienda funcionaba con cuatro App Servers de Go (64 slots de petición cada uno) delante de PostgreSQL. Las páginas de producto llamaban además a un pequeño servicio de recomendaciones; las vistas del carrito, nunca. La página podía mostrarse sin recomendaciones, pero la app no tenía timeout de llamada: simplemente esperaba la respuesta. Una tarde el servicio de recomendaciones se volvió lento, y cada llamada tardó 3 segundos más durante 20 segundos. Cada página de producto ocupaba ahora su slot 3 segundos. En más o menos un segundo, los 256 slots estaban ocupados esperando recomendaciones, y las vistas del carrito, que nunca tocan ese servicio, hicieron cola detrás hasta que el cliente se rindió a los 5 segundos. Durante esos 20 segundos fallaron la mayoría de las peticiones de los dos tipos, aunque la base de datos y el código del carrito estaban perfectamente sanos."
+lesson = "A thread-per-request server keeps a slot for as long as its slowest call takes, so one slow dependency can use up the whole pool and take down requests that never call it. Give every call a timeout, and when the dependency is optional, go on without it (here, the product page without recommendations). A bulkhead gives each dependency its own share of slots, so even a dependency that is slow but still within its timeout can only fill its own share, never the cart's."
+lesson_es = "Un servidor con un hilo por petición mantiene ocupado un slot mientras dure su llamada más lenta, así que una sola dependencia lenta puede agotar todo el pool y tumbar peticiones que nunca la llaman. Ponle un timeout a cada llamada y, cuando la dependencia es opcional, sigue sin ella (aquí, la página de producto sin recomendaciones). Un bulkhead le da a cada dependencia su propia parte de los slots, de modo que incluso una dependencia lenta pero dentro de su timeout solo puede llenar su parte, nunca la del carrito."
+target_test = "incident"
+kinds = ["app", "micro", "sql"]
+real_world = [
+    "https://gitlab.com/gitlab-com/gl-infra/production/-/issues/3875",
+    "https://honeycomb.io/blog/rds-performance-degradation-postmortem",
+]
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "As it was"
+title_es = "Como era"
+caption = "Four Go App Servers share 256 slots. Product pages call the recommendations service and the database; cart views call only the database. On a normal day it answers well under the 100 ms target."
+caption_es = "Cuatro App Servers de Go comparten 256 slots. Las páginas de producto llaman al servicio de recomendaciones y a la base de datos; las vistas del carrito, solo a la base de datos. En un día normal responde muy por debajo del objetivo de 100 ms."
+focus = ["app", "recs", "db"]
+run = { test = "normal", start_s = 5 }
+callout = { metric = "p95_ms", after = 39.5, target = 100 }
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "Recommendations slow down"
+title_es = "Las recomendaciones se vuelven lentas"
+caption = "At 15 s every recommendations call takes 3 s longer. Product pages hold their slots while they wait, the pool runs dry within a second, and cart views time out too, although they never call the slow service. The errors last the whole 20 s."
+caption_es = "A los 15 s cada llamada a recomendaciones tarda 3 s más. Las páginas de producto retienen sus slots mientras esperan, el pool se vacía en un segundo, y las vistas del carrito también expiran, aunque nunca llaman al servicio lento. Los errores duran los 20 s enteros."
+focus = ["app", "recs"]
+run = { test = "incident", start_s = 12 }
+callout = { metric = "error_rate", after = 0.0945 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "A call timeout and a bulkhead"
+title_es = "Un timeout de llamada y un bulkhead"
+caption = "The same slowdown with a 200 ms call timeout and a bulkhead on the App Server. A product page stops waiting after 200 ms and renders without recommendations; recommendations calls can only fill their own share of the slots. The cart never notices."
+caption_es = "La misma lentitud con un timeout de llamada de 200 ms y un bulkhead en el App Server. Una página de producto deja de esperar a los 200 ms y se muestra sin recomendaciones; las llamadas a recomendaciones solo pueden llenar su parte de los slots. El carrito ni se entera."
+focus = ["app", "recs"]
+run = { test = "incident", start_s = 12 }
+callout = { metric = "error_rate", before = 0.0945, after = 0 }
+
+[scenario.nfr]
+peak_rps = 1500
+p95_ms = 100
+availability = 0.999
+budget_usd = 3000
+
+[[scenario.request_types]]
+id = "product"
+name = "Open a product page (recommendations optional)"
+name_es = "Abrir la página de un producto (recomendaciones opcionales)"
+share = 0.3
+route = ["edge?", "compute", "service?", "datastore"]
+key_space = 1000000
+
+[[scenario.request_types]]
+id = "cart"
+name = "View the cart"
+name_es = "Ver el carrito"
+share = 0.7
+route = ["edge?", "compute", "datastore"]
+key_space = 1000000
+
+[[scenario.tests]]
+id = "incident"
+name = "Recommendations slow down by 3 s for 20 s"
+name_es = "Las recomendaciones tardan 3 s más durante 20 s"
+duration_s = 150
+chaos = [{ latency = { kind = "micro", at = 15, for = 20, add_ms = 3000 } }]
+pass = { p95_ms = 500, error_rate = 0.05, availability = 0.95 }
+
+[[scenario.tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[scenario.tests]]
+id = "aftershock"
+name = "It slows down again at a busier hour"
+name_es = "Vuelve a ir lento en una hora con más tráfico"
+duration_s = 150
+traffic = { flat = 1.5 }
+chaos = [{ latency = { kind = "micro", at = 15, for = 20, add_ms = 3000 } }]
+pass = { p95_ms = 500, error_rate = 0.05, availability = 0.95 }
+
+[scenario.pass]
+error_rate = 0.01

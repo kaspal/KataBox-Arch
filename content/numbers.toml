@@ -370,3 +370,150 @@ note = "A rule of thumb: the busiest hour runs at two to three times the day's a
 note_es = "Una regla práctica: la hora más ocupada va a dos o tres veces la media del día. Dimensiona para el pico, no para la media."
 # a rule of thumb (M7b review); the page for context: https://sre.google/sre-book/handling-overload/
 source = "rule of thumb"
+
+# --- AI, streaming, analytics and coordination (M8) ----------------------------------------------
+# Prices have no unit of their own: they use `count` and say "dollars" in the label.
+
+[[figure]]
+id = "llm-output-tps"
+group = "servers"
+label = "LLM output tokens a second, per stream"
+label_es = "Tokens de salida de un LLM por segundo, por flujo"
+value = 80
+unit = "count"
+note = "A hosted model writes its answer at roughly 80 tokens a second for each request. A 500-token answer takes about six seconds after the first token."
+note_es = "Un modelo alojado escribe su respuesta a unos 80 tokens por segundo en cada petición. Una respuesta de 500 tokens tarda unos seis segundos tras el primer token."
+# cited: https://artificialanalysis.ai/leaderboards/models: 62–145 t/s across current mid models (third-party measurement); 80 is within the measured range
+source = "https://artificialanalysis.ai/leaderboards/models"
+
+[[figure]]
+id = "llm-ttft"
+group = "servers"
+label = "Time to first token of a hosted model"
+label_es = "Tiempo hasta el primer token de un modelo alojado"
+value = 0.6
+unit = "s"
+note = "About half a second before the first token arrives, more with a long prompt. Streaming hides the rest of the answer behind it."
+note_es = "Alrededor de medio segundo antes de que llegue el primer token, más con un prompt largo. El streaming oculta tras él el resto de la respuesta."
+# ballpark; the source says 0.89–1.05 s for non-reasoning models; reasoning modes take seconds (third-party measurement): https://artificialanalysis.ai/models/gpt-6-sol-non-reasoning
+source = "needed: https://artificialanalysis.ai/models/gpt-6-sol-non-reasoning"
+
+[[figure]]
+id = "gpu-hour-price"
+group = "servers"
+label = "Dollars an hour for a single-GPU cloud instance"
+label_es = "Dólares por hora de una instancia en la nube con una GPU"
+value = 1
+unit = "count"
+note = "About a dollar an hour for a small GPU instance, around $700 a month if it runs all the time. Large GPUs cost many times more."
+note_es = "Alrededor de un dólar por hora por una instancia pequeña con GPU, unos 700 $ al mes si está siempre encendida. Las GPU grandes cuestan varias veces más."
+# cited: https://instances.vantage.sh/aws/ec2/g5.xlarge: "$1.006 per hour" for a g5.xlarge (list price via vantage)
+source = "https://instances.vantage.sh/aws/ec2/g5.xlarge"
+
+[[figure]]
+id = "embedding-cost-m"
+group = "servers"
+label = "Dollars per million tokens to embed"
+label_es = "Dólares por millón de tokens para calcular embeddings"
+value = 0.1
+unit = "count"
+note = "Embedding is cheap: about ten cents per million tokens. Embedding a whole catalogue once usually costs less than serving it for a day."
+note_es = "Calcular embeddings es barato: unos diez céntimos por millón de tokens. Procesar todo un catálogo una vez suele costar menos que servirlo un día."
+# ballpark; the source says text-embedding-3-small $0.02/M tokens; large $0.13/M: https://developers.openai.com/api/docs/pricing
+source = "needed: https://developers.openai.com/api/docs/pricing"
+
+[[figure]]
+id = "ws-memory-per-conn"
+group = "sizes"
+label = "Memory per idle WebSocket connection"
+label_es = "Memoria por conexión WebSocket inactiva"
+value = 20
+unit = "KB"
+note = "Roughly 20 KB of buffers and state for each open connection that is doing nothing. A million idle users need about 20 GB of RAM across the fleet."
+note_es = "Unos 20 KB de búferes y estado por cada conexión abierta que no hace nada. Un millón de usuarios inactivos necesitan unos 20 GB de RAM en toda la flota."
+# cited: https://websockets.readthedocs.io/en/14.2/topics/memory.html: 14 KiB without compression, 64 KiB with
+source = "https://websockets.readthedocs.io/en/14.2/topics/memory.html"
+
+[[figure]]
+id = "warehouse-scan-rate"
+group = "storage"
+label = "Scan rate of a small warehouse"
+label_es = "Velocidad de lectura de un almacén de datos pequeño"
+value = 1000
+unit = "MB/s"
+note = "About a gigabyte a second. A query that scans a terabyte takes over a quarter of an hour, which is why partition pruning matters."
+note_es = "Alrededor de un gigabyte por segundo. Una consulta que recorre un terabyte tarda más de un cuarto de hora, por eso importa la poda de particiones."
+# model: no published scan rate; the simulator's warehouse.scan_gbps (1 GB/s); context: https://select.dev/posts/snowflake-warehouse-sizing
+source = "simulator"
+
+[[figure]]
+id = "parquet-compression"
+group = "sizes"
+label = "Parquet compression ratio"
+label_es = "Ratio de compresión de Parquet"
+value = 5
+unit = "count"
+note = "Columnar files shrink raw rows about five times, more for repetitive columns. Estimate storage and scan bytes from the compressed size."
+note_es = "Los archivos por columnas reducen las filas en bruto unas cinco veces, más con columnas repetitivas. Estima el almacenamiento y los bytes leídos a partir del tamaño comprimido."
+# cited: https://motherduck.com/learn/csv-vs-parquet-benchmark/: 5.1× (Snappy) to 6.8× (ZSTD) smaller than CSV
+source = "https://motherduck.com/learn/csv-vs-parquet-benchmark/"
+
+[[figure]]
+id = "flink-records-per-slot"
+group = "servers"
+label = "Simple records per Flink slot"
+label_es = "Registros sencillos por slot de Flink"
+value = 20000
+unit = "rps"
+note = "Around 20,000 simple records a second for each task slot. Heavy state, large windows or remote calls bring it down a lot."
+note_es = "Unos 20.000 registros sencillos por segundo por cada slot de tareas. Mucho estado, ventanas grandes o llamadas remotas lo bajan mucho."
+# cited: https://dalelane.co.uk/blog/?p=6001: 1,340–44,320 events/s per CPU
+source = "https://dalelane.co.uk/blog/?p=6001"
+
+[[figure]]
+id = "etcd-write-latency"
+group = "storage"
+label = "An etcd write"
+label_es = "Una escritura en etcd"
+value = 5
+unit = "ms"
+note = "A few milliseconds: a quorum of members must write the entry to disk before it commits. Slow disks make it, and leader elections, much worse."
+note_es = "Unos pocos milisegundos: un quórum de miembros debe escribir la entrada en disco antes de confirmarla. Los discos lentos la empeoran mucho, igual que las elecciones de líder."
+# ballpark; the source says 1.6 ms average for leader-only writes with 1 client: https://etcd.io/docs/v3.5/op-guide/performance/
+source = "needed: https://etcd.io/docs/v3.5/op-guide/performance/"
+
+[[figure]]
+id = "mqtt-conns-per-node"
+group = "servers"
+label = "Connections one MQTT broker node holds"
+label_es = "Conexiones que mantiene un nodo de broker MQTT"
+value = 1000000
+unit = "count"
+note = "About a million mostly idle device connections on a large node. The message rate, not the connection count, is usually the real limit."
+note_es = "Alrededor de un millón de conexiones de dispositivos, casi todas inactivas, en un nodo grande. El ritmo de mensajes, y no el número de conexiones, suele ser el límite real."
+# cited: https://docs.emqx.com/en/enterprise/v4.0/tutorial/tune.html: "1.3 million on an 8-core, 32G" server
+source = "https://docs.emqx.com/en/enterprise/v4.0/tutorial/tune.html"
+
+[[figure]]
+id = "bigquery-tb-price"
+group = "storage"
+label = "Dollars per TB a BigQuery on-demand query scans"
+label_es = "Dólares por TB que recorre una consulta bajo demanda de BigQuery"
+value = 6.25
+unit = "count"
+note = "On-demand queries are billed by bytes scanned, not by time. A dashboard that scans a terabyte every minute costs about $9,000 a day."
+note_es = "Las consultas bajo demanda se cobran por bytes recorridos, no por tiempo. Un panel que recorre un terabyte cada minuto cuesta unos 9.000 $ al día."
+# cited: https://cloud.google.com/bigquery/pricing: "$6.25 / 1 tebibyte"
+source = "https://cloud.google.com/bigquery/pricing"
+
+[[figure]]
+id = "sidecar-latency"
+group = "network"
+label = "Service-mesh sidecar, per hop"
+label_es = "Sidecar de una malla de servicios, por salto"
+value = 1.5
+unit = "ms"
+note = "One to two milliseconds per hop through the proxies on both sides. A request that crosses ten services pays it ten times."
+note_es = "Entre uno y dos milisegundos por salto a través de los proxies de ambos lados. Una petición que cruza diez servicios lo paga diez veces."
+# cited: https://istio.io/v1.19/docs/ops/deployment/performance-and-scalability: the proxy pair adds "1.31 ms and 1.58 ms" (p90/p99)
+source = "https://istio.io/v1.19/docs/ops/deployment/performance-and-scalability"

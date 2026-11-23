@@ -1,0 +1,76 @@
+id = "de-residency-platform"
+track = "de"
+number = 17
+set = 1
+difficulty = "hard"
+title = "One Data Platform, Two Jurisdictions"
+title_es = "Una plataforma de datos, dos jurisdicciones"
+teaches = "Keep EU users' raw events in EU Regions through every card that holds them (stream, lookup table and lake), on a bad day too, and send only aggregates to the US"
+teaches_es = "Mantener los eventos en bruto de los usuarios de la UE en regiones de la UE en cada tarjeta que los guarda (stream, tabla de consulta y lago), también en un mal día, y mandar a EE. UU. solo agregados"
+tags = ["streams", "data-residency", "regions", "failover", "lakehouse"]
+requires = ["stream", "streamproc", "lakehouse"]
+
+[nfr]
+peak_rps = 1000
+p95_ms = 5000
+availability = 0.99
+budget_usd = 6000
+
+[[request_types]]
+id = "us-events"
+name = "A US user's app sends an event"
+name_es = "La app de un usuario de EE. UU. envía un evento"
+share = 0.595
+route = ["edge?", "compute", "broker", "worker:streamproc", "datastore:nosql", "datastore:write:lakehouse"]
+key_space = 2_000_000
+payload_kb = 2
+measure = "completion"
+
+[[request_types]]
+id = "eu-events"
+name = "An EU user's app sends an event"
+name_es = "La app de un usuario de la UE envía un evento"
+share = 0.4
+route = ["edge?", "compute", "broker", "worker:streamproc", "datastore:nosql", "datastore:write:lakehouse"]
+key_space = 1_500_000
+payload_kb = 2
+measure = "completion"
+residency = "eu"
+
+[[request_types]]
+id = "dashboard"
+name = "An analyst opens the global dashboard"
+name_es = "Un analista abre el panel global"
+share = 0.005
+route = ["edge?", "compute", "datastore:warehouse"]
+key_space = 5_000
+scan = { gb = 1, repeat_share = 0.3 }
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "region-lost"
+name = "The Region with the consent table's primary is lost"
+name_es = "Se pierde la región del primario de la tabla de consentimientos"
+hidden = true
+duration_s = 180
+chaos = [{ partition = { zone = "@primary", at = 30 } }]
+pass = { error_rate = 0.08, availability = 0.92 }
+
+[[tests]]
+id = "eu-audit"
+name = "An EU-only audit day: the consent table's primary fails"
+name_es = "Un día de auditoría solo con la UE: falla el primario de la tabla de consentimientos"
+hidden = true
+duration_s = 180
+type_multipliers = { us-events = 0, eu-events = 2.5 }
+chaos = [{ kill = { kind = "nosql", role = "primary", at = 30 } }]
+pass = { error_rate = 0.08, availability = 0.92 }
+
+[pass]
+error_rate = 0.01
+lost = 0
+residency_violations = 0

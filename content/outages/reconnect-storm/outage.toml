@@ -1,0 +1,95 @@
+id = "reconnect-storm"
+number = 8
+difficulty = "medium"
+title = "The reconnect storm"
+title_es = "La tormenta de reconexiones"
+summary = "One WebSocket gateway died, its clients all reconnected in the same instant, and the survivors had no room for them."
+summary_es = "Cayó una pasarela WebSocket, todos sus clientes se reconectaron en el mismo instante y las supervivientes no tenían sitio para ellos."
+story = "A live-scores app kept 400,000 fans connected through four WebSocket gateways behind a load balancer. Each gateway was capped at 110,000 connections, so on a normal evening they were 91% full and pushes arrived in a few milliseconds. Twenty seconds into a match, one gateway crashed. Its 100,000 clients noticed at once and, with no reconnect jitter, all tried to reconnect in the same instant. The three survivors had room for only 30,000 more. Everyone else was refused, waited the same one second, and came back together, again and again: nearly every connection attempt failed for the rest of the match, and 70,000 fans stayed cut off."
+story_es = "Una aplicación de resultados en directo mantenía conectados a 400.000 aficionados a través de cuatro pasarelas WebSocket detrás de un balanceador de carga. Cada pasarela tenía un límite de 110.000 conexiones, así que en una tarde normal estaban llenas al 91 % y las notificaciones llegaban en pocos milisegundos. A los veinte segundos de un partido, una pasarela se cayó. Sus 100.000 clientes lo notaron a la vez y, sin jitter de reconexión, todos intentaron reconectarse en el mismo instante. Las tres supervivientes solo tenían sitio para 30.000 más. A todos los demás los rechazaron, esperaron el mismo segundo y volvieron juntos, una y otra vez: casi todos los intentos de conexión fallaron durante el resto del partido, y 70.000 aficionados se quedaron sin conexión."
+lesson = "Long-lived connections turn one lost server into a wave: every client it held comes back at the same moment. Two things keep that wave from becoming an outage. Reconnect jitter spreads the clients over a window (here 10 s), so the survivors accept them at a rate they can handle instead of refusing almost all of them at once. And headroom: size the gateways so that the survivors can hold everyone when one dies (here each runs about three-quarters full). Jitter without headroom still leaves clients with nowhere to go; headroom without jitter still burns through a storm of refused attempts first."
+lesson_es = "Las conexiones de larga duración convierten la pérdida de un servidor en una ola: todos los clientes que tenía vuelven en el mismo momento. Dos cosas evitan que esa ola se convierta en una caída. El jitter de reconexión reparte a los clientes en una ventana (aquí, 10 s), de modo que las supervivientes los aceptan a un ritmo que pueden asumir en lugar de rechazar a casi todos de golpe. Y el margen: dimensiona las pasarelas para que las supervivientes puedan sostener a todos cuando una cae (aquí cada una va a unas tres cuartas partes de su capacidad). El jitter sin margen sigue dejando clientes sin sitio; el margen sin jitter sigue pasando antes por una tormenta de intentos rechazados."
+target_test = "incident"
+kinds = ["ws", "client"]
+real_world = [
+    "https://aws.amazon.com/message/5467D2",
+    "https://discordstatus.com/incidents/dj3l6lw926kl",
+]
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "As it was"
+title_es = "Como era"
+caption = "400,000 fans on four WebSocket gateways, each capped at 110,000 connections: 91% full. On a normal evening every fan is connected and pushes arrive in a few milliseconds."
+caption_es = "400.000 aficionados en cuatro pasarelas WebSocket, cada una con un límite de 110.000 conexiones: llenas al 91 %. En una tarde normal todos los aficionados están conectados y las notificaciones llegan en pocos milisegundos."
+focus = ["client", "ws-1"]
+run = { test = "normal", start_s = 5 }
+callout = { metric = "p95_ms", after = 6.8, target = 1000 }
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "A gateway dies"
+title_es = "Cae una pasarela"
+caption = "At 20 s one gateway crashes. Its 100,000 clients reconnect in the same 100 ms, but the survivors accept only a few thousand at a time and have room for just 30,000. The rest are refused, retry together a second later, and are refused again: almost every connection attempt fails until the end."
+caption_es = "A los 20 s se cae una pasarela. Sus 100.000 clientes se reconectan en los mismos 100 ms, pero las supervivientes solo aceptan unos pocos miles a la vez y tienen sitio para apenas 30.000. Al resto los rechazan, reintentan juntos un segundo después y los vuelven a rechazar: casi todos los intentos de conexión fallan hasta el final."
+focus = ["client", "ws-1", "ws-2"]
+run = { test = "incident", start_s = 17 }
+callout = { metric = "error_rate", after = 0.979 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "Jitter and headroom"
+title_es = "Jitter y margen"
+caption = "The clients now spread their reconnects over 10 s, and each gateway can hold 135,000 connections, so it runs about three-quarters full. When the gateway dies, its clients arrive at about 10,000 a second, the three survivors take them all, and no attempt is refused."
+caption_es = "Ahora los clientes reparten sus reconexiones en 10 s, y cada pasarela puede sostener 135.000 conexiones, así que va a unas tres cuartas partes de su capacidad. Cuando cae la pasarela, sus clientes llegan a unos 10.000 por segundo, las tres supervivientes los aceptan a todos y no se rechaza ningún intento."
+focus = ["client", "ws-1", "ws-2"]
+run = { test = "incident", start_s = 17 }
+callout = { metric = "error_rate", before = 0.979, after = 0.0 }
+
+[scenario.nfr]
+peak_rps = 1000
+p95_ms = 1000
+availability = 0.999
+budget_usd = 2000
+
+[[scenario.request_types]]
+id = "fans"
+name = "Fans following live scores"
+name_es = "Aficionados siguiendo resultados en directo"
+share = 0.0
+kind = "connection"
+route = ["edge"]
+connected = 400000
+push_rps = 0.02
+
+[[scenario.request_types]]
+id = "page"
+name = "Open the app"
+name_es = "Abrir la aplicación"
+share = 1.0
+route = ["compute"]
+
+[[scenario.tests]]
+id = "incident"
+name = "A gateway dies during a match"
+name_es = "Cae una pasarela durante un partido"
+duration_s = 120
+chaos = [{ kill = { id = "ws-1", at = 20 } }]
+pass = { connected_min = 0.7, error_rate = 0.1, availability = 0.9 }
+
+[[scenario.tests]]
+id = "normal"
+name = "A normal match evening"
+name_es = "Una tarde de partido normal"
+
+[[scenario.tests]]
+id = "aftershock"
+name = "A gateway restarts, then another dies"
+name_es = "Una pasarela se reinicia y luego cae otra"
+duration_s = 150
+chaos = [{ kill = { id = "ws-1", at = 20, for = 40 } }, { kill = { id = "ws-2", at = 80 } }]
+pass = { connected_min = 0.6, error_rate = 0.1, availability = 0.9 }
+
+[scenario.pass]
+error_rate = 0.01
+connected_min = 0.95

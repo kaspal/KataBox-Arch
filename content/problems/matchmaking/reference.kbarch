@@ -1,0 +1,270 @@
+{
+  "schema_version": 4,
+  "id": "matchmaking-ref",
+  "name": "Matchmaking (reference)",
+  "problem_id": "matchmaking",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "dns",
+      "kind": "dns",
+      "flavour": "route53",
+      "label": "dns",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {
+        "ttl_s": 30
+      },
+      "group_id": null
+    },
+    {
+      "id": "lb-us",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb-us",
+      "position": {
+        "x": 304,
+        "y": 112
+      },
+      "props": {},
+      "group_id": "us"
+    },
+    {
+      "id": "app-us",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app-us",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": "us"
+    },
+    {
+      "id": "queue-us",
+      "kind": "queue",
+      "flavour": "rabbitmq",
+      "label": "queue-us",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {},
+      "group_id": "us"
+    },
+    {
+      "id": "match-us",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "match-us",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 4,
+        "concurrency": 64,
+        "service_ms": 200
+      },
+      "group_id": "us"
+    },
+    {
+      "id": "db-us",
+      "kind": "nosql",
+      "flavour": "dynamodb",
+      "label": "db-us",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": "us"
+    },
+    {
+      "id": "lb-eu",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb-eu",
+      "position": {
+        "x": 304,
+        "y": 224
+      },
+      "props": {},
+      "group_id": "eu"
+    },
+    {
+      "id": "app-eu",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app-eu",
+      "position": {
+        "x": 608,
+        "y": 224
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": "eu"
+    },
+    {
+      "id": "queue-eu",
+      "kind": "queue",
+      "flavour": "rabbitmq",
+      "label": "queue-eu",
+      "position": {
+        "x": 912,
+        "y": 112
+      },
+      "props": {},
+      "group_id": "eu"
+    },
+    {
+      "id": "match-eu",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "match-eu",
+      "position": {
+        "x": 608,
+        "y": 336
+      },
+      "props": {
+        "instances": 4,
+        "concurrency": 64,
+        "service_ms": 200
+      },
+      "group_id": "eu"
+    },
+    {
+      "id": "db-eu",
+      "kind": "nosql",
+      "flavour": "dynamodb",
+      "label": "db-eu",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {},
+      "group_id": "eu"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-dns-http",
+      "from": "client",
+      "to": "dns",
+      "protocol": "http"
+    },
+    {
+      "id": "e-dns-lb-us-http",
+      "from": "dns",
+      "to": "lb-us",
+      "protocol": "http"
+    },
+    {
+      "id": "e-dns-lb-eu-http",
+      "from": "dns",
+      "to": "lb-eu",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-us-app-us-http",
+      "from": "lb-us",
+      "to": "app-us",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-eu-app-eu-http",
+      "from": "lb-eu",
+      "to": "app-eu",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-us-queue-us-publish",
+      "from": "app-us",
+      "to": "queue-us",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-app-eu-queue-eu-publish",
+      "from": "app-eu",
+      "to": "queue-eu",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-queue-us-match-us-consume",
+      "from": "queue-us",
+      "to": "match-us",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-queue-eu-match-eu-consume",
+      "from": "queue-eu",
+      "to": "match-eu",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-match-us-db-us-query",
+      "from": "match-us",
+      "to": "db-us",
+      "protocol": "query"
+    },
+    {
+      "id": "e-match-eu-db-eu-query",
+      "from": "match-eu",
+      "to": "db-eu",
+      "protocol": "query"
+    }
+  ],
+  "groups": [
+    {
+      "id": "us",
+      "kind": "region",
+      "label": "us-east",
+      "position": {
+        "x": 280,
+        "y": -40
+      },
+      "size": {
+        "w": 1168,
+        "h": 240
+      },
+      "parent_id": null
+    },
+    {
+      "id": "eu",
+      "kind": "region",
+      "label": "eu-west",
+      "position": {
+        "x": 280,
+        "y": 72
+      },
+      "size": {
+        "w": 1168,
+        "h": 352
+      },
+      "parent_id": null
+    }
+  ],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

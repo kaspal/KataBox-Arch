@@ -5,7 +5,8 @@ import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "@tanstack/react-router";
 import { Trash2, BookOpen, RotateCcw } from "lucide-react";
-import type { Edge, Flavour, Group, Node, Note, PropSpec, PropValue, Protocol, Registry, Scaling } from "@/bindings";
+import type { TFunction } from "i18next";
+import type { CalibrationStatus, Edge, Flavour, Group, Node, Note, PropSpec, PropValue, Protocol, Registry, Scaling } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -132,11 +133,7 @@ function PropField({
   // Plain counts and unitless props show no suffix.
   const unit = spec.unit === "none" || spec.unit === "count" ? "" : unitName(t, spec.unit);
   const label = propName(t, spec.key);
-  const tag = spec.calibration
-    ? spec.calibration.status === "cited"
-      ? { text: t("inspector.cited"), title: t("inspector.citedHint") }
-      : { text: t("inspector.ballpark"), title: t("inspector.ballparkHint") }
-    : undefined;
+  const tag = spec.calibration ? calibrationTag(t, spec.calibration.status) : undefined;
   const [draft, setDraft] = useState(String(current));
   const [error, setError] = useState<string | undefined>();
   useEffect(() => {
@@ -168,6 +165,21 @@ function PropField({
           <input type="checkbox" className="size-4 accent-[var(--primary)]" checked={current === true} onChange={(e) => onChange(e.target.checked)} />
         </span>
       </label>
+    );
+  }
+  if (ty.type === "binding") {
+    // M8: a Third-Party API card names the provider it stands for (a problem's declared one).
+    return (
+      <Field label={label} htmlFor={id} action={reset}>
+        <Input
+          id={id}
+          value={typeof current === "string" ? current : ""}
+          maxLength={40}
+          placeholder={t("inspector.bindingHint")}
+          onChange={(e) => onChange(e.target.value.replace(/[^A-Za-z0-9_-]/g, ""))}
+          className="bg-card font-mono"
+        />
+      </Field>
     );
   }
   if (ty.type === "choice") {
@@ -216,6 +228,19 @@ function PropField({
       />
     </Field>
   );
+}
+
+function calibrationTag(t: TFunction, status: CalibrationStatus): { text: string; title: string } {
+  switch (status) {
+    case "cited":
+      return { text: t("inspector.cited"), title: t("inspector.citedHint") };
+    case "model":
+      return { text: t("inspector.model"), title: t("inspector.modelHint") };
+    case "rule_of_thumb":
+      return { text: t("inspector.ruleOfThumb"), title: t("inspector.ruleOfThumbHint") };
+    default:
+      return { text: t("inspector.ballpark"), title: t("inspector.ballparkHint") };
+  }
 }
 
 function DeleteButton({ ids }: { ids: string[] }) {
@@ -313,7 +338,58 @@ function GroupInspector({ registry, group }: { registry: Registry; group: Group 
       ) : (
         <p className="text-xs text-muted-foreground">{t("inspector.zoneHint")}</p>
       )}
+      {group.kind !== "autoscale" && <ZoneSettings registry={registry} group={group} />}
       <DeleteButton ids={[group.id]} />
+    </div>
+  );
+}
+
+/** M8 (.kbarch v4): a Region's residency tag, and a Region or AZ's service mesh. */
+function ZoneSettings({ registry, group }: { registry: Registry; group: Group }) {
+  const { t } = useTranslation();
+  const updateGroup = useEditor((s) => s.updateGroup);
+  const meshId = useId();
+  const mesh = group.mesh ?? null;
+  return (
+    <div className="space-y-3 border-t pt-4" data-testid="zone-settings">
+      {group.kind === "region" && (
+        <TextField
+          label={t("inspector.regionTag")}
+          value={group.region_tag ?? ""}
+          max={8}
+          onCommit={(v) => {
+            const tag = v.trim().toLowerCase().replace(/[^a-z]/g, "");
+            updateGroup(group.id, { region_tag: tag.length >= 2 ? tag : null });
+          }}
+        />
+      )}
+      <Field label={t("inspector.mesh")} htmlFor={meshId}>
+        <Select
+          value={mesh?.flavour ?? "none"}
+          onValueChange={(f) => updateGroup(group.id, { mesh: f === "none" ? null : { flavour: f as "istio" | "linkerd", props: mesh?.props ?? {} } })}
+        >
+          <SelectTrigger id={meshId} className="w-full bg-card">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(["none", "istio", "linkerd"] as const).map((f) => (
+              <SelectItem key={f} value={f}>
+                {t(`inspector.meshFlavour.${f}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+      {mesh &&
+        registry.mesh_props.map((spec) => (
+          <PropField
+            key={spec.key}
+            spec={spec}
+            value={mesh.props[spec.key]}
+            fallback={spec.default}
+            onChange={(v) => updateGroup(group.id, { mesh: { ...mesh, props: { ...mesh.props, [spec.key]: v } } })}
+          />
+        ))}
     </div>
   );
 }

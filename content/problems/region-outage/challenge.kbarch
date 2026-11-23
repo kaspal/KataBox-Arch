@@ -1,0 +1,160 @@
+{
+  "schema_version": 4,
+  "id": "region-outage-challenge",
+  "name": "Survive a Region Outage (reference)",
+  "problem_id": "region-outage",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Customers",
+      "position": {
+        "x": 780,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "dns",
+      "kind": "dns",
+      "flavour": "route53",
+      "label": "DNS",
+      "position": {
+        "x": 780,
+        "y": 170
+      },
+      "props": {
+        "ttl_s": 30
+      },
+      "group_id": null
+    },
+    {
+      "id": "lb_eu",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "EU load balancer",
+      "position": {
+        "x": 780,
+        "y": 408
+      },
+      "props": {},
+      "group_id": "eu"
+    },
+    {
+      "id": "app_eu",
+      "kind": "app",
+      "flavour": "go",
+      "label": "EU app",
+      "position": {
+        "x": 780,
+        "y": 578
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": "eu"
+    },
+    {
+      "id": "db_eu",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "EU replica",
+      "position": {
+        "x": 780,
+        "y": 918
+      },
+      "props": {},
+      "group_id": "eu"
+    },
+    {
+      "id": "db_ap",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "AP replica",
+      "position": {
+        "x": 1300,
+        "y": 918
+      },
+      "props": {},
+      "group_id": "ap"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "dns",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "dns",
+      "to": "lb_eu",
+      "protocol": "http"
+    },
+    {
+      "id": "e5",
+      "from": "lb_eu",
+      "to": "app_eu",
+      "protocol": "http"
+    },
+    {
+      "id": "e8",
+      "from": "app_eu",
+      "to": "db_eu",
+      "protocol": "query"
+    }
+  ],
+  "groups": [
+    {
+      "id": "us",
+      "kind": "region",
+      "label": "us-east",
+      "position": {
+        "x": 232,
+        "y": 364
+      },
+      "size": {
+        "w": 264,
+        "h": 654
+      },
+      "parent_id": null
+    },
+    {
+      "id": "eu",
+      "kind": "region",
+      "label": "eu-west",
+      "position": {
+        "x": 752,
+        "y": 364
+      },
+      "size": {
+        "w": 264,
+        "h": 654
+      },
+      "parent_id": null
+    },
+    {
+      "id": "ap",
+      "kind": "region",
+      "label": "ap-south",
+      "position": {
+        "x": 1272,
+        "y": 364
+      },
+      "size": {
+        "w": 264,
+        "h": 654
+      },
+      "parent_id": null
+    }
+  ],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

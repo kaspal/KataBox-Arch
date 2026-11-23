@@ -1,0 +1,88 @@
+{
+  "schema_version": 4,
+  "id": "weather-proxy-naive",
+  "name": "Weather proxy (first try)",
+  "problem_id": "weather-proxy",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 6
+      },
+      "group_id": null
+    },
+    {
+      "id": "cache",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "cache",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "memory_gb": 2,
+        "ttl_s": 600
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app-http",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-cache-query",
+      "from": "app",
+      "to": "cache",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

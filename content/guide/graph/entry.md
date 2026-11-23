@@ -1,0 +1,7 @@
+A graph database stores **nodes** (users, products, places) and the **relationships** between them as first-class data. A query starts at one node and walks its links: friends of a user, then their friends, then what those people bought. Each step along the links is a **hop**.
+
+Following one link is cheap, because the database keeps each node's links next to it. The danger is the number of links. If every user has two hundred friends, two hops visit about forty thousand relationships and three hops about eight million. The simulator adds up the edges a request type visits and divides them by the database's speed in edges per millisecond, so a deep query shows its real cost.
+
+Reads can be spread over replicas, which are separate cards joined by Replicate edges. Writes always go to the leader, and while a new leader is chosen after a failure, writes fail. A graph database is the right tool when the question is about relationships; for lookups by key or reports over many rows, SQL, a key-value store or a warehouse fits better.
+
+**How the simulator bills this.** Neo4j and JanusGraph run on your own servers at $260 per instance a month, the price of a memory-rich node. Amazon Neptune is a managed instance at $350 a month (teaching price; source to be confirmed). There is no fee per query, and storage is not billed separately.

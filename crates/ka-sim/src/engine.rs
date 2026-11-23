@@ -4,7 +4,7 @@
 //! live-run scrubbing.
 
 use std::cmp::Reverse;
-use std::collections::{BTreeMap, BinaryHeap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, BinaryHeap, VecDeque};
 use std::sync::Arc;
 
 use ka_core::rng::Rng;
@@ -23,6 +23,9 @@ pub const TIMEOUT_US: u64 = 5_000_000;
 pub const DRAIN_US: u64 = 30_000_000;
 /// A provider that is down fails a call after this connect timeout.
 const EXTERNAL_DOWN_US: u64 = 1_000_000;
+/// M10: a synchronous commit with no replica able to acknowledge it waits this long (in
+/// practice: until the caller gives up).
+const SYNC_STALL_US: u64 = 30_000_000;
 /// Seconds in a 30.4-day month, for per-request prices.
 const MONTH_S: f64 = 2_629_746.0;
 
@@ -33,16 +36,28 @@ enum Ev {
         r: u32,
         node: u32,
     },
+    /// `call`: the request's call number when the service started; a service for a call
+    /// the caller has since abandoned (M11) only frees its slot.
     SvcDone {
         r: u32,
         node: u32,
         lane: u16,
+        call: u32,
     },
+    /// A call answered or failed; `call` is the call's number on its request, so an answer
+    /// that arrives after the caller gave up on that call (S8 call timeout) is ignored.
     CallBack {
         r: u32,
+        call: u32,
     },
     CallFail {
         r: u32,
+        call: u32,
+    },
+    /// S8: the caller's `call_timeout_ms` for call `call` ran out.
+    CallTimeout {
+        r: u32,
+        call: u32,
     },
     Timeout {
         r: u32,
@@ -53,6 +68,36 @@ enum Ev {
     /// A message whose consumer died comes back when its lease runs out (a queue's
     /// visibility timeout, a stream's consumer session timeout).
     Redeliver {
+        r: u32,
+    },
+    /// A client tries a failed synchronous request again (S8).
+    Retry {
+        r: u32,
+    },
+    /// S8: rollout stage `stage` (1-based) of deploy or config push `chaos` reaches `node`
+    /// (a config push stage: every node in stage `stage`'s Region; node = NONE).
+    Stage {
+        chaos: u16,
+        node: u32,
+        stage: u16,
+    },
+    /// S8: a bad change was noticed: roll it back (auto-rollback, kill switch) or halt.
+    Noticed {
+        chaos: u16,
+        node: u32,
+    },
+    /// S8: a config push's kill switch rolls the change back everywhere.
+    Rollback {
+        chaos: u16,
+    },
+    /// S1: the connection model's 100 ms step (only when a type is a connection type).
+    ConnTick,
+    /// S4: job run `job` starts: its tasks go to its batch cards.
+    JobStart {
+        job: u16,
+    },
+    /// S5: a record's window closes (end + watermark): its result goes to the sinks.
+    WindowEmit {
         r: u32,
     },
     Second(u32),
@@ -132,6 +177,88 @@ struct Req {
     cdc_at: u64,
     /// A CDC change on its way to its stream (not yet accepted).
     cdc_pending: bool,
+    /// The client source that sent a synchronous request (NONE: none), and which try this
+    /// is (0 = the first; S8 client retries).
+    src: u32,
+    try_n: u32,
+    /// S8: the number of the call in progress, whether one is, and its dependency key
+    /// (callee card, or EXT_KEY | provider) for circuit breakers and bulkheads.
+    call_gen: u32,
+    in_call: bool,
+    call_key: u32,
+    /// S8: served by a faulty instance (a bad deploy or config): fails when service ends.
+    bad: bool,
+    /// S7: a check-then-write on a hot key (when its first call left: its read), the call in
+    /// progress is a lock / an atomic write, a lock is held (from a quorum service), and the
+    /// write in progress goes to a self-promoted primary on the far side of a split.
+    contended: bool,
+    /// M10: a poison message: every consumer attempt fails.
+    poison: bool,
+    read_at: u64,
+    call_lock: bool,
+    call_atomic: bool,
+    locked: bool,
+    lock_quorum: bool,
+    shadow: bool,
+    /// S2: the request's prompt and answer tokens (drawn at its first model call; -1: not yet).
+    tin: f64,
+    tout: f64,
+    /// S4: a job task (job run `job`, task `task`): its executor time, when it started
+    /// running, and whether a spot interruption already freed its executor.
+    job: u16,
+    task: u32,
+    task_us: u64,
+    started: u64,
+    released: bool,
+    /// S4: the batch card a task copy was sent to.
+    runner: u32,
+    /// M8: the call in progress is a login; network time to add to the next send (a
+    /// connection pooler on the way); mesh retries of the current call so far.
+    call_login: bool,
+    extra_us: u64,
+    call_tries: u32,
+    /// S8d: the cache-aside miss found an expired copy within `serve_stale_s` (used if the
+    /// origin fails), and this request leads a coalesced miss (`stampede_guard`).
+    stale_copy: bool,
+    leads: bool,
+}
+
+/// S4: no job.
+const NO_JOB: u16 = u16::MAX;
+
+/// S4: one job run: its tasks' sizes (seconds), which are done, the copies running per task,
+/// finished task times, and when the last task finished.
+#[derive(Debug, Clone)]
+struct JobRt {
+    ty: u16,
+    start: u64,
+    sizes: Vec<f64>,
+    done: Vec<bool>,
+    left: u32,
+    running: BTreeMap<u32, Vec<u32>>,
+    finished: Vec<f64>,
+    completed_at: Option<u64>,
+    rr: usize,
+}
+
+/// S8: dependency keys of external providers (beside card indices).
+const EXT_KEY: u32 = 0x8000_0000;
+
+/// S8: a caller's circuit breaker for one dependency: calls and failures per second over
+/// the last 10 s (slot = second % 10, with the second it holds), and when it closes again.
+#[derive(Debug, Clone)]
+struct BreakerRt {
+    window: [(u64, f64, f64); 10],
+    open_until: u64,
+}
+
+impl Default for BreakerRt {
+    fn default() -> Self {
+        BreakerRt {
+            window: [(u64::MAX, 0.0, 0.0); 10],
+            open_until: 0,
+        }
+    }
 }
 
 /// A network split in progress (chaos `split`).
@@ -186,6 +313,30 @@ struct NodeRt {
     drop_series: Vec<f64>,
     rr: usize,
     warm: u32,
+    /// S8: the share of this card's instances running a bad build or config, what they do
+    /// wrong, and whether its LB health checks have ejected it for being overloaded.
+    faulty: f64,
+    faulty_err: f64,
+    faulty_add_us: u64,
+    ejected: bool,
+    eject_checks: u8,
+    /// S2 hosted models: request and token buckets (one minute's limit, refilled
+    /// continuously) and when they were last refilled; S2/S1 usage billed by meters.
+    rpm_left: f64,
+    tpm_left: f64,
+    bucket_at: u64,
+    bill_tin: f64,
+    bill_tout: f64,
+    bill_conn_s: f64,
+    bill_msgs: f64,
+    /// S5: the checkpoint interval the card is in, and records it processed since.
+    ckpt_idx: u64,
+    since_ckpt: f64,
+    /// S6: terabytes scanned (billed by `tb_scanned`).
+    bill_tb: f64,
+    /// M8 identity providers: the login bucket and when it was last refilled.
+    login_tokens: f64,
+    login_at: u64,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -194,6 +345,11 @@ struct CacheRt {
     fills: Vec<Vec<i64>>,
     /// When the cache was last emptied (a flush, or coming back after a kill).
     flushed_at: Option<u64>,
+    /// S3: questions a semantic cache has seen since it was last emptied (its fill).
+    seen: f64,
+    /// S8d `stampede_guard`: misses in flight per (type, key), with the requests waiting on
+    /// them.
+    inflight: BTreeMap<(u16, u64), Vec<u32>>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -227,6 +383,8 @@ struct TypeMetrics {
     response: Hist,
     completion: Hist,
     measured: Hist,
+    /// S2: time to first token of the requests that called a model.
+    ttft: Hist,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -286,7 +444,72 @@ pub struct Engine {
     cdc_audit: Option<Vec<(u64, u64)>>,
     /// Messages still unfinished at the end have been counted (once).
     censored: bool,
+    /// S8 client retries: the backoff jitter stream, and per source the first tries and
+    /// retries of the last 10 seconds (slot = second % 10, with the second it holds).
+    rng_retry: Rng,
+    retry_window: Vec<[(u64, f64, f64); 10]>,
+    /// S8: circuit breakers and bulkhead pools per (caller, dependency).
+    breakers: BTreeMap<(u32, u32), BreakerRt>,
+    bulk_in_flight: BTreeMap<(u32, u32), u32>,
+    /// S8: faulty-instance and DNS draws; rollouts halted or rolled back, per (chaos, node);
+    /// control-plane outages in progress and the revivals they hold back; a DNS outage's
+    /// start; when each failover DNS card saw its primary go.
+    rng_s8: Rng,
+    rollout_done: BTreeSet<(u16, u32)>,
+    control_plane: u32,
+    held_revives: Vec<u32>,
+    dns_out_since: Option<u64>,
+    dns_switch: BTreeMap<u32, u64>,
+    /// S7: conflicting writes, and the last commit time of each contended key.
+    conflicts: f64,
+    hot_commits: BTreeMap<u64, u64>,
+    /// M10 `replication_loss`: per cluster, recent commits on its primary (time, weight)
+    /// within the replication lag.
+    recent_commits: Vec<VecDeque<(u64, f64)>>,
+    /// S1: per connection type, its fluid state.
+    conns: Vec<Option<ConnRt>>,
+    conn_drops: f64,
+    /// S2: model calls a provider refused with 429 (rate limits), and the token draws.
+    rate_limited: f64,
+    rng_tokens: Rng,
+    /// S4: job runs, task draws, tasks started again, and executors spot chaos took
+    /// (chaos, card, executors).
+    jobs: Vec<JobRt>,
+    rng_jobs: Rng,
+    tasks_retried: f64,
+    spot_taken: Vec<(u16, u32, u32)>,
+    /// S5: windowed records, late ones, duplicate results, and event-delay draws.
+    windowed: f64,
+    late: f64,
+    duplicates: f64,
+    rng_s5: Rng,
+    /// S9: requests whose data left their residency.
+    residency_violations: f64,
+    /// M8: the cardinality chaos multiplier on time series written.
+    series_x: f64,
 }
+
+/// S1: one connection type's state: connections per holder, push backlog per holder,
+/// reconnect attempts waiting per 100 ms slot (a ring), the least connected share per
+/// second.
+#[derive(Debug, Clone)]
+struct ConnRt {
+    conns: Vec<f64>,
+    backlog: Vec<f64>,
+    slots: Vec<f64>,
+    pending: f64,
+    min_share: Vec<f64>,
+}
+
+/// S6: opening one file of a table in object storage (a GET and its metadata; model).
+const SCAN_FILE_S: f64 = 0.020;
+
+/// S3: what one semantic-cache lookup adds (an embedding and an ANN search; model).
+const SEMANTIC_LOOKUP_MS: f64 = 15.0;
+
+/// S1: the connection model's step and its reconnect horizon (2 minutes of slots).
+const CONN_TICK_US: u64 = 100_000;
+const CONN_SLOTS: usize = 1200;
 
 /// One forward hop of a simulated request, for the live packet layer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -344,6 +567,9 @@ impl Engine {
             })
             .collect();
         for (n, cn) in nodes.iter_mut().zip(&c.nodes) {
+            n.login_tokens = cn.spec.logins_per_s * c.sample;
+            n.rpm_left = cn.spec.rpm * c.sample;
+            n.tpm_left = cn.spec.tpm * c.sample;
             n.util_series.reserve(nsec);
             n.lane_servers = cn.lane_servers;
             n.stretch = cn.service_stretch;
@@ -398,6 +624,63 @@ impl Engine {
                 .map(|n| Rng::stream(seed, &format!("svc:{}", n.id)))
                 .collect(),
             rng_misc: Rng::stream(seed, "misc"),
+            rng_retry: Rng::stream(seed, "retry"),
+            retry_window: vec![[(u64::MAX, 0.0, 0.0); 10]; c.sources.len()],
+            breakers: BTreeMap::new(),
+            bulk_in_flight: BTreeMap::new(),
+            rng_s8: Rng::stream(seed, "s8"),
+            rollout_done: BTreeSet::new(),
+            control_plane: 0,
+            held_revives: Vec::new(),
+            dns_out_since: None,
+            dns_switch: BTreeMap::new(),
+            conflicts: 0.0,
+            hot_commits: BTreeMap::new(),
+            recent_commits: vec![VecDeque::new(); c.clusters.len()],
+            conns: c
+                .types
+                .iter()
+                .map(|t| {
+                    t.conn.as_ref().map(|p| ConnRt {
+                        conns: vec![0.0; p.holders.len()],
+                        backlog: vec![0.0; p.holders.len()],
+                        slots: vec![0.0; CONN_SLOTS],
+                        pending: 0.0,
+                        min_share: vec![f64::INFINITY; nsec],
+                    })
+                })
+                .collect(),
+            conn_drops: 0.0,
+            rate_limited: 0.0,
+            rng_tokens: Rng::stream(seed, "tokens"),
+            jobs: c
+                .types
+                .iter()
+                .enumerate()
+                .filter_map(|(i, t)| t.def.job.as_ref().map(|j| (i, j)))
+                .flat_map(|(i, j)| {
+                    j.starts.iter().map(move |&at| JobRt {
+                        ty: i as u16,
+                        start: (at.max(0.0) * 1e6) as u64,
+                        sizes: Vec::new(),
+                        done: Vec::new(),
+                        left: 0,
+                        running: BTreeMap::new(),
+                        finished: Vec::new(),
+                        completed_at: None,
+                        rr: 0,
+                    })
+                })
+                .collect(),
+            rng_jobs: Rng::stream(seed, "jobs"),
+            tasks_retried: 0.0,
+            spot_taken: Vec::new(),
+            windowed: 0.0,
+            late: 0.0,
+            duplicates: 0.0,
+            rng_s5: Rng::stream(seed, "s5"),
+            residency_violations: 0.0,
+            series_x: 1.0,
             caches: c
                 .nodes
                 .iter()
@@ -405,6 +688,8 @@ impl Engine {
                     matches!(n.kind, ComponentKind::Cache | ComponentKind::Cdn).then(|| CacheRt {
                         fills: vec![Vec::new(); c.types.len()],
                         flushed_at: None,
+                        seen: 0.0,
+                        inflight: BTreeMap::new(),
                     })
                 })
                 .collect(),
@@ -463,7 +748,20 @@ impl Engine {
         for (t, i) in chaos {
             e.push(t, Ev::Chaos(i));
         }
-        if !e.c.scenario.chaos.is_empty() || !e.c.scaling.is_empty() {
+        for j in 0..e.jobs.len() {
+            if e.jobs[j].start < e.c.duration_us {
+                e.push(e.jobs[j].start, Ev::JobStart { job: j as u16 });
+            }
+        }
+        if e.conns.iter().any(Option::is_some) {
+            let mut t = 0;
+            while t <= e.c.duration_us {
+                e.push(t, Ev::ConnTick);
+                t += CONN_TICK_US;
+            }
+        }
+        let ejects = e.c.nodes.iter().any(|n| n.spec.health_timeout_us > 0);
+        if !e.c.scenario.chaos.is_empty() || !e.c.scaling.is_empty() || ejects {
             let mut t = HEALTH_EVERY_US;
             while t <= e.c.duration_us + DRAIN_US {
                 e.push(t, Ev::Health);
@@ -647,17 +945,51 @@ impl Engine {
                 self.reqs[r as usize].pending -= 1;
                 self.on_arrive(r, node);
             }
-            Ev::SvcDone { r, node, lane } => {
+            Ev::SvcDone {
+                r,
+                node,
+                lane,
+                call,
+            } => {
                 self.reqs[r as usize].pending -= 1;
-                self.on_svc_done(r, node, lane);
+                if self.reqs[r as usize].call_gen != call
+                    && self.reqs[r as usize].phase != Phase::Call
+                {
+                    // The work for an abandoned call finished: it was done and billed, but
+                    // the request has moved on (back to its broker, or a new attempt).
+                    self.release(node, lane);
+                    self.maybe_free(r);
+                } else {
+                    self.on_svc_done(r, node, lane);
+                }
             }
-            Ev::CallBack { r } => {
+            Ev::CallBack { r, call } if call != self.reqs[r as usize].call_gen => {
+                // An answer to a call the caller already gave up on.
+                self.reqs[r as usize].pending -= 1;
+                self.maybe_free(r);
+            }
+            Ev::CallFail { r, call } if call != self.reqs[r as usize].call_gen => {
+                self.reqs[r as usize].pending -= 1;
+                self.maybe_free(r);
+            }
+            Ev::CallTimeout { r, call } => {
+                self.reqs[r as usize].pending -= 1;
+                let q = &self.reqs[r as usize];
+                if q.dead || !q.in_call || q.call_gen != call {
+                    self.maybe_free(r);
+                } else {
+                    // The caller stops waiting; the work it asked for runs on, unwanted.
+                    self.reqs[r as usize].call_gen += 1;
+                    self.call_failed(r);
+                }
+            }
+            Ev::CallBack { r, .. } => {
                 self.reqs[r as usize].pending -= 1;
                 self.on_callback(r);
             }
-            Ev::CallFail { r } => {
+            Ev::CallFail { r, .. } => {
                 self.reqs[r as usize].pending -= 1;
-                self.fail(r);
+                self.call_failed(r);
             }
             Ev::Timeout { r } => {
                 self.reqs[r as usize].pending -= 1;
@@ -669,6 +1001,27 @@ impl Engine {
             Ev::Failover(cl) => self.failover(cl),
             Ev::ScaleTick => self.scale_tick(),
             Ev::ScaleApply { group, instances } => self.scale_apply(group, f64::from(instances)),
+            Ev::Retry { r } => {
+                self.reqs[r as usize].pending -= 1;
+                self.on_retry(r);
+            }
+            Ev::Stage { chaos, node, stage } => self.rollout_stage(chaos, node, stage),
+            Ev::Noticed { chaos, node } => self.rollout_noticed(chaos, node),
+            Ev::ConnTick => self.conn_tick(),
+            Ev::JobStart { job } => self.job_start(job),
+            Ev::WindowEmit { r } => {
+                self.reqs[r as usize].pending -= 1;
+                if self.reqs[r as usize].dead {
+                    self.maybe_free(r);
+                } else {
+                    self.run_calls(r);
+                }
+            }
+            Ev::Rollback { chaos } => {
+                for n in self.chaos_targets[chaos as usize].clone() {
+                    self.nodes[n as usize].faulty = 0.0;
+                }
+            }
             Ev::Requeue { r } => {
                 self.reqs[r as usize].pending -= 1;
                 let b = self.reqs[r as usize].broker;
@@ -758,6 +1111,33 @@ impl Engine {
             wrote: NONE,
             cdc_at: 0,
             cdc_pending: false,
+            src: NONE,
+            try_n: 0,
+            call_gen: 0,
+            in_call: false,
+            call_key: NONE,
+            bad: false,
+            contended: false,
+            poison: false,
+            read_at: u64::MAX,
+            call_lock: false,
+            call_atomic: false,
+            locked: false,
+            lock_quorum: false,
+            shadow: false,
+            tin: -1.0,
+            tout: 0.0,
+            job: NO_JOB,
+            task: 0,
+            task_us: 0,
+            started: u64::MAX,
+            released: false,
+            runner: NONE,
+            call_login: false,
+            extra_us: 0,
+            call_tries: 0,
+            stale_copy: false,
+            leads: false,
         };
         if let Some(i) = self.free.pop() {
             self.reqs[i as usize] = req;
@@ -776,7 +1156,21 @@ impl Engine {
             Some(z) => z.sample(&mut self.rng_key[s as usize]),
             None => 1 + self.rng_key[s as usize].below(ty.def.key_space.max(1)),
         };
+        // S7: a share of a contended type's requests go for one of its few hot keys.
+        let mut key = key;
+        let mut contended = false;
+        if let Some(c) = ty.def.contended
+            && self.rng_key[s as usize].uniform() < c.share
+        {
+            key = 1 + self.rng_key[s as usize].below(c.keys.max(1));
+            contended = true;
+        }
+        // M10: poison messages (drawn only when the type has some, so other runs keep
+        // their streams).
+        let poison = ty.def.poison_share > 0.0 && self.rng_misc.uniform() < ty.def.poison_share;
         let r = self.alloc(src.ty, key);
+        self.reqs[r as usize].contended = contended;
+        self.reqs[r as usize].poison = poison;
         let w = self.c.weight;
         self.types[src.ty as usize].requests += w;
         self.second_mut().requests += w;
@@ -788,9 +1182,86 @@ impl Engine {
             req.phase = Phase::Entry;
             self.run_calls(r);
         } else {
-            self.push_req(self.now + TIMEOUT_US, Ev::Timeout { r }, r);
+            self.reqs[r as usize].src = s;
+            self.count_try(s, false);
+            let timeout = self.c.nodes[src.node as usize].spec.timeout_us;
+            self.push_req(self.now + timeout, Ev::Timeout { r }, r);
             self.hop_from(r, src.node);
         }
+    }
+
+    /// S8: count a first try or a retry in the source's 10-second window.
+    fn count_try(&mut self, s: u32, retry: bool) {
+        let sec = self.now / 1_000_000;
+        let slot = &mut self.retry_window[s as usize][(sec % 10) as usize];
+        if slot.0 != sec {
+            *slot = (sec, 0.0, 0.0);
+        }
+        if retry {
+            slot.2 += 1.0;
+        } else {
+            slot.1 += 1.0;
+        }
+    }
+
+    /// S8: a client's synchronous request failed; try it again if its policy allows.
+    /// The new try is a fresh request with the same type, key and start (its latency spans
+    /// every try); the failed one only cleans up.
+    fn retry_sync(&mut self, r: u32) -> bool {
+        let q = &self.reqs[r as usize];
+        let s = q.src;
+        if s == NONE || q.seg != 0 {
+            return false;
+        }
+        let node = self.c.sources[s as usize].node;
+        let spec = &self.c.nodes[node as usize].spec;
+        if q.try_n >= spec.retries {
+            return false;
+        }
+        let (budget, backoff_ms, jitter) = (spec.retry_budget, spec.backoff_ms, spec.full_jitter);
+        if budget > 0.0 {
+            let sec = self.now / 1_000_000;
+            let (first, again) = self.retry_window[s as usize]
+                .iter()
+                .filter(|(at, ..)| *at != u64::MAX && sec.saturating_sub(*at) < 10)
+                .fold((0.0, 0.0), |(f, a), (_, x, y)| (f + x, a + y));
+            if again + 1.0 > budget * first {
+                return false;
+            }
+        }
+        let (ty, key, start, try_n) = (q.ty, q.key, q.start, q.try_n);
+        let mut wait = backoff_ms * 1000.0 * f64::from(1u32 << try_n.min(16));
+        if jitter {
+            wait *= self.rng_retry.uniform();
+        }
+        // The new try first (so it never reuses the failed one's slot while callers still
+        // hold it), then the failed try ends, quietly.
+        let r2 = self.alloc(ty, key);
+        {
+            let q = &mut self.reqs[r as usize];
+            q.resp_sent = true;
+            q.dead = true;
+        }
+        self.release_caller(r);
+        self.finish(r);
+        {
+            let q = &mut self.reqs[r2 as usize];
+            q.start = start;
+            q.src = s;
+            q.try_n = try_n + 1;
+        }
+        self.retried += self.c.weight;
+        self.count_try(s, true);
+        self.push_req(self.now + wait as u64, Ev::Retry { r: r2 }, r2);
+        true
+    }
+
+    fn on_retry(&mut self, r: u32) {
+        let s = self.reqs[r as usize].src;
+        let node = self.c.sources[s as usize].node;
+        let timeout = self.c.nodes[node as usize].spec.timeout_us;
+        self.push_req(self.now + timeout, Ev::Timeout { r }, r);
+        self.hop_from(r, node);
     }
 
     // --- Hops -------------------------------------------------------------------------
@@ -799,8 +1270,16 @@ impl Engine {
         let live: Vec<u32> = cands
             .iter()
             .copied()
-            .filter(|c| !self.nodes[*c as usize].known_down && !self.known_cut(from, *c))
+            .filter(|c| {
+                let rt = &self.nodes[*c as usize];
+                !rt.known_down && !rt.ejected && !self.known_cut(from, *c)
+            })
             .collect();
+        // S8: every target ejected by health checks for overload: the LB has nowhere to
+        // send it (a 503).
+        if live.is_empty() && cands.iter().any(|c| self.nodes[*c as usize].ejected) {
+            return None;
+        }
         let list: &[u32] = if live.is_empty() { cands } else { &live };
         if list.is_empty() {
             return None;
@@ -827,8 +1306,38 @@ impl Engine {
         Some(list[i])
     }
 
+    /// S8 failover DNS: answers point at the first target (in design order) while health
+    /// checks find it up, else at the next live one. Clients cache answers for the card's
+    /// TTL, so after a switch a shrinking share (uniform cache ages) still goes to the old
+    /// target.
+    fn dns_pick(&mut self, from: u32, cands: &[u32]) -> Option<u32> {
+        let &primary = cands.first()?;
+        let up = |e: &Engine, c: u32| !e.nodes[c as usize].known_down && !e.known_cut(from, c);
+        if up(self, primary) {
+            self.dns_switch.remove(&from);
+            return Some(primary);
+        }
+        let switched = *self.dns_switch.entry(from).or_insert(self.now);
+        let ttl = self.c.nodes[from as usize].spec.ttl_s * 1e6;
+        let stale = if ttl <= 0.0 {
+            0.0
+        } else {
+            (1.0 - (self.now - switched) as f64 / ttl).max(0.0)
+        };
+        if self.rng_s8.uniform() < stale {
+            return Some(primary);
+        }
+        cands
+            .iter()
+            .copied()
+            .skip(1)
+            .find(|&c| up(self, c))
+            .or(Some(primary))
+    }
+
     fn send(&mut self, r: u32, from: u32, to: u32, proto: Protocol, hop: bool) {
-        let lat = hop_latency_us(&self.c, from, to, proto);
+        let lat = hop_latency_us(&self.c, from, to, proto)
+            + std::mem::take(&mut self.reqs[r as usize].extra_us);
         self.reqs[r as usize].from = from;
         if let Some(trace) = &mut self.trace {
             let q = &self.reqs[r as usize];
@@ -872,7 +1381,12 @@ impl Engine {
         let ty = self.reqs[r as usize].ty as usize;
         let cands = self.c.types[ty].plan.next_hops[from as usize].clone();
         let key = self.reqs[r as usize].key;
-        let Some(next) = self.pick(from, &cands, key) else {
+        let picked = if self.c.nodes[from as usize].spec.dns_failover {
+            self.dns_pick(from, &cands)
+        } else {
+            self.pick(from, &cands, key)
+        };
+        let Some(next) = picked else {
             self.fail(r);
             return;
         };
@@ -920,16 +1434,27 @@ impl Engine {
         // A consumer's reserved slot is used by this arrival only; the calls it makes
         // afterwards queue for their servers like any request.
         let reserved = std::mem::take(&mut self.reqs[r as usize].reserved);
+        // M10: a rate limiter that fails open lets requests past while it is down (its
+        // state store unreachable), unlimited.
+        if self.nodes[node as usize].down
+            && !unreachable
+            && self.c.nodes[node as usize].kind == ComponentKind::Ratelimit
+            && self.c.nodes[node as usize].spec.fail_open
+            && self.reqs[r as usize].phase == Phase::Hop
+        {
+            self.after_hop(r, node);
+            return;
+        }
         if self.nodes[node as usize].down || unreachable {
             if reserved {
                 self.set_busy(node, 0, -1);
             }
             self.mark(r, from, node, false);
-            if self.reqs[r as usize].phase == Phase::Consumer {
+            match self.reqs[r as usize].phase {
                 // A message handed to a consumer that died (or was cut off) on the way.
-                self.lease_lost(r);
-            } else {
-                self.fail(r);
+                Phase::Consumer => self.lease_lost(r),
+                Phase::Call => self.call_failed(r),
+                _ => self.fail(r),
             }
             return;
         }
@@ -939,11 +1464,14 @@ impl Engine {
             return;
         }
         let cap = self.nodes[node as usize].lane_servers;
+        // S8 load shedding: past `shed_queue` waiting requests, turn new ones away at once.
+        let shed_at = self.c.nodes[node as usize].shed_queue;
         if self.nodes[node as usize].lanes[lane as usize].busy < cap {
             self.set_busy(node, lane, 1);
             self.start_service(r, node, lane);
         } else if self.nodes[node as usize].lanes[lane as usize].queue.len()
             < self.c.nodes[node as usize].lane_queue
+            && self.nodes[node as usize].lanes[lane as usize].queue.len() < shed_at
         {
             let rt = &mut self.nodes[node as usize];
             rt.lanes[lane as usize].queue.push_back(r);
@@ -958,11 +1486,29 @@ impl Engine {
             rt.sec_drops += w;
             let from = self.reqs[r as usize].from;
             self.mark(r, from, node, false);
-            self.fail(r);
+            if self.reqs[r as usize].phase == Phase::Call {
+                self.call_failed(r);
+            } else {
+                self.fail(r);
+            }
         }
     }
 
     fn service_us(&mut self, r: u32, node: u32) -> u64 {
+        let q = &self.reqs[r as usize];
+        if q.job != NO_JOB && q.phase == Phase::Entry {
+            return q.task_us.max(1);
+        }
+        if self.c.nodes[node as usize].kind == ComponentKind::Infer {
+            return self.model_us(r, node);
+        }
+        if matches!(
+            self.c.nodes[node as usize].kind,
+            ComponentKind::Warehouse | ComponentKind::Lakehouse
+        ) && let Some(scan) = self.c.types[self.reqs[r as usize].ty as usize].def.scan
+        {
+            return self.scan_us(r, node, scan);
+        }
         let n = &self.c.nodes[node as usize];
         let q = &self.reqs[r as usize];
         let ty = &self.c.types[q.ty as usize].def;
@@ -976,6 +1522,92 @@ impl Engine {
         }
         if q.seg >= 1 {
             median *= q.units;
+        }
+        if n.kind == ComponentKind::Streamproc && n.spec.window != 0 {
+            // S5: a sliding window updates window ÷ slide results per record; state past
+            // memory spills to disk (×4, a modelling choice).
+            if n.spec.window == 2 {
+                median *= (n.spec.window_us as f64 / n.spec.slide_us.max(1) as f64).max(1.0);
+            }
+            let ct = &self.c.types[q.ty as usize];
+            let keys = (ct.def.key_space as f64).min(ct.rate * n.spec.window_us as f64 / 1e6);
+            let state_gb = keys * n.spec.state_kb / (1024.0 * 1024.0);
+            if state_gb > n.spec.memory_gb * n.spec.instances {
+                median *= 4.0;
+            }
+        }
+        if n.spec.semantic {
+            // S3: an embedding plus a nearest-neighbour lookup (a modelling choice).
+            median += SEMANTIC_LOOKUP_MS;
+        }
+        if n.kind == ComponentKind::Idp {
+            median = if q.call_login {
+                n.spec.login_ms
+            } else {
+                n.spec.verify_ms
+            };
+        }
+        if q.call_write
+            && matches!(
+                n.flavour,
+                ka_core::Flavour::Cockroachdb | ka_core::Flavour::Spanner
+            )
+            && let Some(cl) = self.c.cluster_of[node as usize]
+        {
+            // M8.3: a consensus write waits for a majority; across Regions that's a
+            // cross-region round trip.
+            let mut regions: Vec<u32> = self.c.clusters[cl as usize]
+                .members
+                .iter()
+                .filter_map(|&m| self.c.nodes[m as usize].region)
+                .collect();
+            regions.sort_unstable();
+            regions.dedup();
+            if regions.len() >= 2 {
+                median += 70.0;
+            }
+        }
+        match n.kind {
+            // M8: a traversal visits fanout + fanout² + … relationships.
+            ComponentKind::Graph => {
+                if let Some(t) = ty.traversal {
+                    let visited: f64 = (1..=t.hops.min(12))
+                        .map(|h| detmath::powf(t.fanout.max(0.0), f64::from(h)))
+                        .sum();
+                    median += visited / n.spec.edges_per_ms;
+                }
+            }
+            // M8: HNSW search time grows with the vectors per shard (log) and with top-k
+            // (square root); every shard answers, so the slowest of them sets the time.
+            ComponentKind::Vector => {
+                let shards = f64::from(n.spec.lanes.max(1));
+                let per_shard = (n.spec.vectors / shards).max(1.0);
+                let k = f64::from(ty.top_k.unwrap_or(10).max(1));
+                median *= (1.0 + detmath::ln((per_shard / 1e6).max(1.0)) / detmath::ln(2.0))
+                    * (k / 10.0).sqrt()
+                    * (1.0 + 0.15 * detmath::ln(shards));
+            }
+            // M8: writes at the ingest rate; past the series limit they slow, then fail
+            // (handled at the call); reads cost more for longer spans.
+            ComponentKind::Tsdb => {
+                if q.call_write {
+                    median =
+                        n.spec.servers / n.spec.instances.max(1.0) * 1000.0 / n.spec.points_per_s;
+                    let series = ty.series * self.series_x / n.spec.instances.max(1.0);
+                    if series > n.spec.series_limit {
+                        median *= 4.0;
+                    }
+                } else {
+                    median += ty.span_h * 2.0;
+                }
+            }
+            _ => {}
+        }
+        if let Some(mesh) = n.mesh
+            && matches!(n.spec.role, Role::Compute | Role::Worker)
+        {
+            // M8: the sidecar takes its share of the service's CPU.
+            median *= mesh.cpu;
         }
         let ratio = n.spec.p99_ratio;
         let stretch = self.nodes[node as usize].stretch;
@@ -992,9 +1624,243 @@ impl Engine {
         (us as u64).max(1) + self.nodes[node as usize].add_us
     }
 
+    /// Does a data-store step follow the request's current step in its segment?
+    fn store_step_follows(&self, r: u32) -> bool {
+        let q = &self.reqs[r as usize];
+        let seg = &self.c.types[q.ty as usize].route.segments[q.seg as usize];
+        seg.calls
+            .iter()
+            .skip(q.step as usize + 1)
+            .any(|s| s.alts.iter().any(|a| a.role == Role::Datastore))
+    }
+
+    /// S8d `serve_stale_s`: does the cache hold an expired copy of this key, filled within
+    /// its TTL plus the stale window? (Tracked keys by their fill time; colder keys by the
+    /// chance they were requested within that window.)
+    fn stale_copy(&mut self, node: u32, ty: usize, key: u64) -> bool {
+        if key > self.capacity_keys(node, ty) {
+            return false;
+        }
+        let window =
+            self.ttl_us(node).min(3_600_000_000) + self.c.nodes[node as usize].spec.serve_stale_us;
+        let now = self.now as i64;
+        let tracked = self.tracked_len(node, ty);
+        if key <= tracked {
+            let cache = self.caches[node as usize].as_ref().expect("cache state");
+            let fills = &cache.fills[ty];
+            return !fills.is_empty() && {
+                let f = fills[(key - 1) as usize];
+                f != i64::MIN && now - f < window as i64
+            };
+        }
+        let t = &self.c.types[ty];
+        let pmf = if t.skew > 0.0 {
+            detmath::powf(key as f64, -t.skew) / t.harmonic
+        } else {
+            1.0 / t.def.key_space as f64
+        };
+        let mut w = window;
+        if let Some(at) = self.caches[node as usize]
+            .as_ref()
+            .and_then(|c| c.flushed_at)
+        {
+            w = w.min(self.now.saturating_sub(at));
+        }
+        let p = 1.0 - detmath::exp(-t.rate * pmf * w as f64 / 1e6);
+        self.rng_misc.uniform() < p
+    }
+
+    /// S8d `stampede_guard`: the first miss for a key goes to the origin; later misses for it
+    /// wait for that answer. Returns true when `r` waits.
+    fn coalesce(&mut self, r: u32, node: u32, ty: u16, key: u64) -> bool {
+        let cache = self.caches[node as usize].as_mut().expect("cache state");
+        match cache.inflight.get_mut(&(ty, key)) {
+            Some(waiting) => {
+                waiting.push(r);
+                self.reqs[r as usize].pending += 1;
+                true
+            }
+            None => {
+                cache.inflight.insert((ty, key), Vec::new());
+                self.reqs[r as usize].leads = true;
+                false
+            }
+        }
+    }
+
+    /// S8d: the leading miss for a key ended. Filled: the waiting requests are answered from
+    /// the cache. Stale: the origin failed and the leader was answered from an expired copy,
+    /// so they are too. Failed: they go to the origin themselves.
+    fn wake_coalesced(&mut self, r: u32, node: u32, filled: bool, stale: bool) {
+        if !std::mem::take(&mut self.reqs[r as usize].leads) || node == NONE {
+            return;
+        }
+        let (ty, key) = (self.reqs[r as usize].ty, self.reqs[r as usize].key);
+        let waiting = self.caches[node as usize]
+            .as_mut()
+            .and_then(|c| c.inflight.remove(&(ty, key)))
+            .unwrap_or_default();
+        let w = self.c.weight;
+        for x in waiting {
+            self.reqs[x as usize].pending -= 1;
+            if self.reqs[x as usize].dead {
+                self.maybe_free(x);
+                continue;
+            }
+            if filled || stale {
+                self.reads += w;
+                if stale {
+                    self.stale_reads += w;
+                }
+                let q = &mut self.reqs[x as usize];
+                q.hit_end = true;
+                q.fill_cache = NONE;
+            }
+            let call = self.reqs[x as usize].call_gen;
+            self.push_req(self.now, Ev::CallBack { r: x, call }, x);
+        }
+    }
+
+    /// S3: a semantic cache answers a near-repeat once it has seen the question: hit
+    /// probability = `semantic_repeat_share` × fill × capacity, where fill = 1 − e^(−seen ÷
+    /// distinct questions) (questions seen since the cache was last emptied) and capacity =
+    /// min(1, entries that fit ÷ distinct questions). A warm cache starts full.
+    fn semantic_hit(&mut self, node: u32, ty: usize) -> bool {
+        let def = &self.c.types[ty].def;
+        let (share, distinct, value_kb) = (
+            def.semantic_repeat_share,
+            def.key_space.max(1) as f64,
+            def.value_kb,
+        );
+        let memory = self.c.nodes[node as usize].spec.memory_gb;
+        let w = self.c.weight;
+        let cold = self.c.scenario.cold_caches;
+        let Some(cache) = self.caches[node as usize].as_mut() else {
+            return false;
+        };
+        if cache.flushed_at.is_none() && !cold && cache.seen == 0.0 {
+            cache.seen = distinct * 10.0;
+        }
+        let fill = 1.0 - detmath::exp(-cache.seen / distinct);
+        cache.seen += w;
+        let capacity = (memory * 1024.0 * 1024.0 / value_kb.max(1e-9) / distinct).min(1.0);
+        self.rng_s8.uniform() < share * fill * capacity
+    }
+
+    /// S2: the request's tokens, drawn once (lognormal from the mean and 95th percentile).
+    fn draw_tokens(&mut self, r: u32) {
+        if self.reqs[r as usize].tin >= 0.0 {
+            return;
+        }
+        let def = &self.c.types[self.reqs[r as usize].ty as usize].def;
+        let (tin, tout) = (def.tokens_in, def.tokens_out);
+        // p99 / median from p95 / mean, for the simulator's lognormal (median, p99 ratio).
+        let mut draw = |t: Option<ka_core::scenario::Tokens>| {
+            t.map_or(0.0, |t| {
+                let ratio = (t.p95 / t.mean.max(1e-9)).max(1.0);
+                let r99 = detmath::powf(ratio, 2.326 / 1.645);
+                self.rng_tokens
+                    .lognormal(t.mean.max(0.0), r99)
+                    .round()
+                    .max(0.0)
+            })
+        };
+        let (a, b) = (draw(tin), draw(tout));
+        let q = &mut self.reqs[r as usize];
+        q.tin = a;
+        q.tout = b;
+    }
+
+    /// S2: a hosted model's per-minute request and token limits (buckets holding one
+    /// minute's allowance, refilled continuously; sampling scales them).
+    fn model_admit(&mut self, r: u32, node: u32) -> bool {
+        self.draw_tokens(r);
+        let spec = &self.c.nodes[node as usize].spec;
+        if spec.batch_api {
+            // M11: the batch API returns results hours later: only work that can wait that
+            // long (a request type marked `batch_ok`) may use it.
+            return self.c.types[self.reqs[r as usize].ty as usize].def.batch_ok;
+        }
+        if !spec.hosted {
+            return true;
+        }
+        let (rpm, tpm, sample) = (
+            spec.rpm * self.c.sample,
+            spec.tpm * self.c.sample,
+            self.c.sample,
+        );
+        let tokens = self.reqs[r as usize].tin + self.reqs[r as usize].tout;
+        let now = self.now;
+        let rt = &mut self.nodes[node as usize];
+        let dt = now.saturating_sub(rt.bucket_at) as f64 / 60e6;
+        rt.bucket_at = now;
+        rt.rpm_left = (rt.rpm_left + rpm * dt).min(rpm);
+        rt.tpm_left = (rt.tpm_left + tpm * dt).min(tpm);
+        if rt.rpm_left < 1.0 || rt.tpm_left < tokens {
+            self.rate_limited += 1.0 / sample;
+            return false;
+        }
+        rt.rpm_left -= 1.0;
+        rt.tpm_left -= tokens;
+        true
+    }
+
+    /// S2: time to first token (base + prompt ÷ prefill speed), then the answer at the decode
+    /// speed; on GPUs every request in the batch slows the others
+    /// (speed × (1 − 0.5 × busy ÷ slots), a modelling choice). Records the request's TTFT.
+    fn model_us(&mut self, r: u32, node: u32) -> u64 {
+        self.draw_tokens(r);
+        let n = &self.c.nodes[node as usize];
+        let spec = &n.spec;
+        let (tin, mut tout) = (self.reqs[r as usize].tin, self.reqs[r as usize].tout);
+        match spec.model_type.as_str() {
+            "embed" => tout = 0.0,
+            "classify" => tout = tout.min(1.0),
+            _ => {}
+        }
+        let mut speed = spec.tokens_per_s;
+        if !spec.hosted {
+            let rt = &self.nodes[node as usize];
+            let busy: u32 = rt.lanes.iter().map(|l| l.busy).sum();
+            let slots = f64::from(rt.lane_servers.max(1)) * rt.lanes.len() as f64;
+            speed *= 1.0 - 0.5 * (f64::from(busy) / slots).min(1.0);
+        }
+        let ttft_s = spec.ttft_ms / 1000.0 + tin / spec.prefill_tps;
+        let decode_s = tout / speed.max(1e-6);
+        let stretch = self.nodes[node as usize].stretch;
+        let add = self.nodes[node as usize].add_us;
+        let first = self.now + (ttft_s * 1e6 * stretch) as u64 + add;
+        let q = &self.reqs[r as usize];
+        let lat = (first - q.start + q.net) as f64;
+        let ty = q.ty as usize;
+        let w = self.c.weight;
+        self.types[ty].ttft.add(lat, w);
+        ((ttft_s + decode_s) * 1e6 * stretch) as u64 + add + 1
+    }
+
     fn start_service(&mut self, r: u32, node: u32, lane: u16) {
-        let us = self.service_us(r, node);
-        self.push_req(self.now + us, Ev::SvcDone { r, node, lane }, r);
+        if self.reqs[r as usize].job != NO_JOB && self.reqs[r as usize].phase == Phase::Entry {
+            self.reqs[r as usize].started = self.now;
+        }
+        let mut us = self.service_us(r, node);
+        let faulty = self.nodes[node as usize].faulty;
+        if faulty > 0.0 && self.rng_s8.uniform() < faulty {
+            let rt = &self.nodes[node as usize];
+            us += rt.faulty_add_us;
+            let err = rt.faulty_err;
+            self.reqs[r as usize].bad = err > 0.0 && self.rng_s8.uniform() < err;
+        }
+        let call = self.reqs[r as usize].call_gen;
+        self.push_req(
+            self.now + us,
+            Ev::SvcDone {
+                r,
+                node,
+                lane,
+                call,
+            },
+            r,
+        );
     }
 
     /// Free a slot and start the next queued request on it.
@@ -1035,6 +1901,15 @@ impl Engine {
         let w = self.c.weight;
         self.nodes[node as usize].served += w;
         let units = w * self.bill_units(node, self.reqs[r as usize].ty as usize);
+        if self.c.nodes[node as usize].kind == ComponentKind::Infer {
+            let (tin, tout) = (
+                self.reqs[r as usize].tin.max(0.0),
+                self.reqs[r as usize].tout,
+            );
+            let rt = &mut self.nodes[node as usize];
+            rt.bill_tin += tin * w;
+            rt.bill_tout += tout * w;
+        }
         let q = &self.reqs[r as usize];
         if q.phase == Phase::Call && q.call_write {
             self.nodes[node as usize].bill_w += units;
@@ -1045,18 +1920,31 @@ impl Engine {
         let holds = self.c.nodes[node as usize].spec.holds
             && matches!(phase, Phase::Entry | Phase::Consumer);
         if self.reqs[r as usize].dead {
-            self.release(node, lane);
+            // A spot interruption already freed this executor (S4).
+            if !std::mem::take(&mut self.reqs[r as usize].released) {
+                self.release(node, lane);
+            }
             self.maybe_free(r);
+            return;
+        }
+        if std::mem::take(&mut self.reqs[r as usize].bad) && !self.nodes[node as usize].down {
+            // S8: a faulty instance (bad deploy or config) got it wrong: an ordinary failure.
+            self.release(node, lane);
+            if phase == Phase::Call {
+                self.call_failed(r);
+            } else {
+                self.fail(r);
+            }
             return;
         }
         if self.nodes[node as usize].down {
             // The card died while working on it. A consumer's message comes back when its
             // lease runs out; anything else fails now.
             self.release(node, lane);
-            if phase == Phase::Consumer {
-                self.lease_lost(r);
-            } else {
-                self.fail(r);
+            match phase {
+                Phase::Consumer => self.lease_lost(r),
+                Phase::Call => self.call_failed(r),
+                _ => self.fail(r),
             }
             return;
         }
@@ -1069,6 +1957,13 @@ impl Engine {
         } else {
             self.release(node, lane);
         }
+        if phase == Phase::Consumer && self.c.nodes[node as usize].kind == ComponentKind::Streamproc
+        {
+            self.count_for_checkpoint(node);
+            if self.c.nodes[node as usize].spec.window != 0 && self.window_wait(r, node) {
+                return;
+            }
+        }
         match phase {
             Phase::Hop => self.after_hop(r, node),
             Phase::Entry => {
@@ -1080,7 +1975,14 @@ impl Engine {
                 }
             }
             Phase::Call => self.after_call(r, node),
-            Phase::Consumer => self.run_calls(r),
+            Phase::Consumer => {
+                if self.reqs[r as usize].poison {
+                    // M10: a poison message fails every attempt, after costing its service.
+                    self.fail(r);
+                } else {
+                    self.run_calls(r);
+                }
+            }
             Phase::BrokerIn => {}
         }
     }
@@ -1100,6 +2002,22 @@ impl Engine {
         if kind == ComponentKind::Ratelimit && !self.take_token(r, node) {
             self.shed(r);
             return;
+        }
+        if kind == ComponentKind::Dns
+            && let Some(since) = self.dns_out_since
+        {
+            // S8 DNS outage: answers cached within the TTL still work (cache ages are
+            // uniform), the rest can't resolve.
+            let ttl = self.c.nodes[node as usize].spec.ttl_s * 1e6;
+            let expired = if ttl <= 0.0 {
+                1.0
+            } else {
+                ((self.now - since) as f64 / ttl).min(1.0)
+            };
+            if self.rng_s8.uniform() < expired {
+                self.fail(r);
+                return;
+            }
         }
         self.hop_from(r, node);
     }
@@ -1131,6 +2049,8 @@ impl Engine {
             }
             let def = &self.c.types[ty].route.segments[seg].calls[step];
             let (writes, aside) = (def.writes(), def.is_cache_aside());
+            let (lock, atomic) = (def.lock, def.alts.iter().any(|a| a.atomic));
+            let login = def.alts.iter().any(|a| a.login);
             // Callers avoid targets health checks have found dead. A cache-aside read whose
             // caches are all known dead is skipped: the app treats it as a miss and reads
             // the store (which then takes the full load).
@@ -1151,22 +2071,345 @@ impl Engine {
             };
             let node = match pick {
                 Target::External(x) => {
+                    if !self.begin_call(r, caller, EXT_KEY | x) {
+                        return;
+                    }
+                    self.bill_external_card(caller, x);
                     self.call_external(r, x);
                     return;
                 }
                 Target::Node(n) => n,
-                Target::Cluster(cl) => self.cluster_member(cl, writes, caller),
+                Target::Cluster(cl) => {
+                    let p = self.cluster_member(cl, writes, caller);
+                    if writes && !lock {
+                        self.shadow_primary(cl, p, caller).unwrap_or(p)
+                    } else {
+                        p
+                    }
+                }
             };
+            if self.c.nodes[node as usize].kind == ComponentKind::Idp
+                && !login
+                && self.c.nodes[node as usize].spec.verify_local
+            {
+                // M8: the app checks the token itself with cached signing keys (JWKS).
+                self.reqs[r as usize].step += 1;
+                continue;
+            }
+            if lock
+                && self.c.nodes[node as usize].kind == ComponentKind::Coord
+                && !self.quorum(node, caller)
+            {
+                // S7: this side of a split can't reach a majority of the members.
+                self.reqs[r as usize].call_key = NONE;
+                self.call_failed(r);
+                return;
+            }
+            if !self.begin_call(r, caller, node) {
+                return;
+            }
+            self.reqs[r as usize].call_login = login;
+            if !self.admit_login(r, node) || !self.admit_connection(r, caller, node) {
+                // M8: a login past the provider's rate limit, or a database out of
+                // connections, is refused at once.
+                let call = self.reqs[r as usize].call_gen;
+                self.push_req(self.now + 5_000, Ev::CallFail { r, call }, r);
+                return;
+            }
+            if self.c.nodes[node as usize].kind == ComponentKind::Infer
+                && !self.model_admit(r, node)
+            {
+                // S2: the provider answers 429 at once.
+                let call = self.reqs[r as usize].call_gen;
+                self.push_req(self.now + 50_000, Ev::CallFail { r, call }, r);
+                return;
+            }
+            let shadow = writes
+                && self.c.cluster_of[node as usize]
+                    .is_some_and(|cl| self.cluster_primary[cl as usize] != node);
+            if writes && !shadow && !lock {
+                // M10: a synchronous commit waits for its replicas' acknowledgement.
+                let ack = self.sync_ack_us(node);
+                self.reqs[r as usize].extra_us += ack;
+            }
+            let now = self.now;
             let q = &mut self.reqs[r as usize];
             q.phase = Phase::Call;
             q.call_write = writes;
             q.call_aside = aside;
+            q.call_lock = lock;
+            q.call_atomic =
+                atomic || (writes && self.c.nodes[node as usize].spec.conditional_writes);
+            q.shadow = shadow && !lock;
+            if q.contended && q.read_at == u64::MAX {
+                q.read_at = now;
+            }
             let proto = match self.c.nodes[node as usize].spec.role {
                 Role::Cache | Role::Datastore => Protocol::Query,
                 _ => edge_protocol(&self.c, caller, node),
             };
             self.send(r, caller, node, proto, false);
             return;
+        }
+    }
+
+    /// S8: a call is about to leave `caller` for dependency `key`. An open circuit breaker or
+    /// a full bulkhead pool fails it at once (returns false, having handled the failure);
+    /// otherwise the call is numbered, counted in its pool and given its timeout.
+    fn begin_call(&mut self, r: u32, caller: u32, key: u32) -> bool {
+        let spec = &self.c.nodes[caller as usize].spec;
+        let (pct, bulkhead, timeout) = (spec.breaker_pct, spec.bulkhead, spec.call_timeout_us);
+        if pct > 0.0
+            && self
+                .breakers
+                .get(&(caller, key))
+                .is_some_and(|b| self.now < b.open_until)
+        {
+            self.reqs[r as usize].call_key = NONE;
+            self.call_failed(r);
+            return false;
+        }
+        if bulkhead {
+            let deps = self.c.deps[caller as usize].max(1) as f64;
+            let servers = f64::from(self.nodes[caller as usize].lane_servers)
+                * self.nodes[caller as usize].lanes.len() as f64;
+            let cap = ((servers / deps).floor() as u32).max(1);
+            let used = self.bulk_in_flight.entry((caller, key)).or_insert(0);
+            if *used >= cap {
+                self.reqs[r as usize].call_key = NONE;
+                self.call_failed(r);
+                return false;
+            }
+            *used += 1;
+        }
+        let q = &mut self.reqs[r as usize];
+        q.call_gen += 1;
+        q.in_call = true;
+        q.call_key = key;
+        let call = q.call_gen;
+        if timeout > 0 {
+            self.push_req(self.now + timeout, Ev::CallTimeout { r, call }, r);
+        }
+        true
+    }
+
+    /// S8: the call in progress ended (answered, failed or given up on): free its bulkhead
+    /// slot and tell its circuit breaker.
+    fn end_call(&mut self, r: u32, ok: bool) {
+        let q = &mut self.reqs[r as usize];
+        if !q.in_call {
+            return;
+        }
+        q.in_call = false;
+        let (caller, key) = (q.caller, q.call_key);
+        if caller == NONE || key == NONE {
+            return;
+        }
+        let spec = &self.c.nodes[caller as usize].spec;
+        let (pct, open_us, bulkhead) = (spec.breaker_pct, spec.breaker_open_us, spec.bulkhead);
+        if bulkhead && let Some(n) = self.bulk_in_flight.get_mut(&(caller, key)) {
+            *n = n.saturating_sub(1);
+        }
+        if pct > 0.0 {
+            let sec = self.now / 1_000_000;
+            let now = self.now;
+            let b = self.breakers.entry((caller, key)).or_default();
+            if now >= b.open_until && b.open_until > 0 {
+                // Closed again after its open time: start counting afresh.
+                *b = BreakerRt::default();
+            }
+            let slot = &mut b.window[(sec % 10) as usize];
+            if slot.0 != sec {
+                *slot = (sec, 0.0, 0.0);
+            }
+            slot.1 += 1.0;
+            if !ok {
+                slot.2 += 1.0;
+                let (calls, fails) = b
+                    .window
+                    .iter()
+                    .filter(|(at, ..)| *at != u64::MAX && sec.saturating_sub(*at) < 10)
+                    .fold((0.0, 0.0), |(c, f), (_, x, y)| (c + x, f + y));
+                if calls >= 20.0 * self.c.sample.clamp(0.05, 1.0) && fails >= pct * calls {
+                    b.open_until = now + open_us;
+                }
+            }
+        }
+    }
+
+    /// A call failed (an error, a timeout, an open breaker, a full bulkhead). An optional
+    /// `service?` dependency falls back: the step is skipped and the request goes on.
+    /// Anything else fails the request, as before M8.
+    fn call_failed(&mut self, r: u32) {
+        self.end_call(r, false);
+        // S8d stale-if-error: the origin failed, but the cache still holds an expired copy.
+        if std::mem::take(&mut self.reqs[r as usize].stale_copy) && !self.reqs[r as usize].dead {
+            let w = self.c.weight;
+            self.reads += w;
+            self.stale_reads += w;
+            let fc = std::mem::replace(&mut self.reqs[r as usize].fill_cache, NONE);
+            self.wake_coalesced(r, fc, false, true);
+            self.reqs[r as usize].hit_end = true;
+            self.run_calls(r);
+            return;
+        }
+        // M8: a service mesh retries the failed call (same step) up to its `mesh_retries`.
+        let caller = self.reqs[r as usize].caller;
+        if !self.reqs[r as usize].dead
+            && caller != NONE
+            && let Some(mesh) = self.c.nodes[caller as usize].mesh
+            && self.reqs[r as usize].call_tries < mesh.retries
+        {
+            self.reqs[r as usize].call_tries += 1;
+            self.retried += self.c.weight;
+            self.run_calls(r);
+            return;
+        }
+        let q = &self.reqs[r as usize];
+        if !q.dead {
+            let (ty, seg, step) = (q.ty as usize, q.seg as usize, q.step as usize);
+            let def = self.c.types[ty].route.segments[seg].calls.get(step);
+            // M9: an optional provider or model call (`external:x?`, `model?`) falls back the
+            // same way: an auction closes without late bids; a fraud check falls back to
+            // rules when the model is too slow.
+            if def.is_some_and(|d| {
+                d.optional
+                    && d.alts.iter().all(|a| {
+                        a.service || a.external.is_some() || a.role == crate::route::Role::Model
+                    })
+            }) {
+                self.reqs[r as usize].step += 1;
+                self.run_calls(r);
+                return;
+            }
+        }
+        self.fail(r);
+    }
+
+    /// S7: does `caller`'s side reach a majority of the coordination cluster's members
+    /// (each card counts its `instances`)?
+    fn quorum(&self, node: u32, caller: u32) -> bool {
+        let members: Vec<u32> = match self.c.cluster_of[node as usize] {
+            Some(cl) => self.c.clusters[cl as usize].members.clone(),
+            None => vec![node],
+        };
+        let size = |m: u32| self.c.nodes[m as usize].spec.instances;
+        let total: f64 = members.iter().map(|&m| size(m)).sum();
+        let reach: f64 = members
+            .iter()
+            .filter(|&&m| !self.nodes[m as usize].down && !self.cut(caller, m))
+            .map(|&m| size(m))
+            .sum();
+        reach * 2.0 > total
+    }
+
+    /// S7 split-brain: with `split_failover = auto`, a caller cut off from the primary by a
+    /// split (once health checks know, plus the primary's `failover_s`) writes to the
+    /// member on its own side that promoted itself.
+    fn shadow_primary(&self, cl: u32, primary: u32, caller: u32) -> Option<u32> {
+        let spec = &self.c.nodes[primary as usize].spec;
+        if !spec.split_failover || caller == NONE || !self.known_cut(caller, primary) {
+            return None;
+        }
+        let since = self
+            .splits
+            .iter()
+            .filter(|s| s.known)
+            .map(|s| s.since)
+            .min()?;
+        let after = since
+            + HEALTH_EVERY_US * u64::from(HEALTH_CHECKS)
+            + (spec.failover_s.max(0.0) * 1e6) as u64;
+        if self.now < after {
+            return None;
+        }
+        self.c.clusters[cl as usize]
+            .members
+            .iter()
+            .copied()
+            .find(|&m| m != primary && !self.nodes[m as usize].down && !self.cut(caller, m))
+    }
+
+    /// S7: a write commits. On a self-promoted primary it is refused with a fencing token
+    /// from a quorum lock, else it is a conflict; on a contended key, a write whose check
+    /// came before another write's commit raced, unless it was atomic or held a lock.
+    /// Returns false if the write was refused (the call failed).
+    fn s7_write_ok(&mut self, r: u32, node: u32, key: u64) -> bool {
+        let w = self.c.weight;
+        let q = &self.reqs[r as usize];
+        let (shadow, quorum, contended, read_at, atomic, locked) = (
+            q.shadow,
+            q.lock_quorum,
+            q.contended,
+            q.read_at,
+            q.call_atomic,
+            q.locked,
+        );
+        if shadow {
+            if self.c.nodes[node as usize].spec.fencing && quorum {
+                self.call_failed(r);
+                return false;
+            }
+            self.conflicts += w;
+        }
+        if contended {
+            let raced = self.hot_commits.get(&key).is_some_and(|&t| t > read_at);
+            if raced && !atomic && !locked {
+                self.conflicts += w;
+            }
+            // An atomic write that lost the race is refused cleanly ("sold out"): an answer.
+            self.hot_commits.insert(key, self.now);
+        }
+        true
+    }
+
+    /// M10 `sync`: the time a commit on `node` waits for its replicas' acknowledgement (a
+    /// round trip to the nearest one for `sync`, to enough of them for a majority for
+    /// `quorum`). Replicas that are down or cut off can't acknowledge; without enough of
+    /// them the commit stalls (it waits on, holding its connection, until the caller gives
+    /// up). 0 for async writes and cards outside a cluster.
+    fn sync_ack_us(&self, node: u32) -> u64 {
+        let sync = self.c.nodes[node as usize].spec.sync;
+        let Some(cl) = self.c.cluster_of[node as usize] else {
+            return 0;
+        };
+        if sync == 0 {
+            return 0;
+        }
+        let members = &self.c.clusters[cl as usize].members;
+        let mut rtts: Vec<u64> = members
+            .iter()
+            .copied()
+            .filter(|&m| m != node && !self.nodes[m as usize].down && !self.cut(node, m))
+            .map(|m| 2 * hop_latency_us(&self.c, node, m, Protocol::Replicate))
+            .collect();
+        rtts.sort_unstable();
+        let needed = if sync == 1 { 1 } else { members.len() / 2 };
+        match rtts.get(needed.max(1) - 1) {
+            Some(&t) => t,
+            None => SYNC_STALL_US,
+        }
+    }
+
+    /// M10 `replication_loss`: remember a commit on an async primary for its lag window.
+    fn note_commit(&mut self, node: u32) {
+        if !self.c.scenario.replication_loss {
+            return;
+        }
+        let Some(cl) = self.c.cluster_of[node as usize] else {
+            return;
+        };
+        let spec = &self.c.nodes[node as usize].spec;
+        if spec.sync != 0 || self.cluster_primary[cl as usize] != node {
+            return;
+        }
+        let lag = (spec.replication_lag_ms.max(0.0) * 1000.0) as u64;
+        let now = self.now;
+        let w = self.c.weight;
+        let q = &mut self.recent_commits[cl as usize];
+        q.push_back((now, w));
+        while q.front().is_some_and(|&(t, _)| now.saturating_sub(t) > lag) {
+            q.pop_front();
         }
     }
 
@@ -1215,7 +2458,35 @@ impl Engine {
         let q = &self.reqs[r as usize];
         let (write, aside, fill_cache) = (q.call_write, q.call_aside, q.fill_cache);
         let w = self.c.weight;
-        match self.c.nodes[node as usize].spec.role {
+        let role = if q.call_lock {
+            // S7: a lock grant, not a write of data.
+            let quorum = self.c.nodes[node as usize].kind == ComponentKind::Coord;
+            let q = &mut self.reqs[r as usize];
+            q.locked = true;
+            q.lock_quorum |= quorum;
+            Role::None
+        } else {
+            self.c.nodes[node as usize].spec.role
+        };
+        if write && role == Role::Datastore && !self.s7_write_ok(r, node, key) {
+            return;
+        }
+        if write && role == Role::Datastore {
+            self.note_commit(node);
+        }
+        if matches!(role, Role::Datastore | Role::Cache) {
+            self.check_residency(r, node);
+        }
+        if write && self.c.nodes[node as usize].kind == ComponentKind::Tsdb {
+            // M8: past twice its series limit a time-series database refuses new series.
+            let n = &self.c.nodes[node as usize].spec;
+            let series = self.c.types[ty].def.series * self.series_x / n.instances.max(1.0);
+            if series > 2.0 * n.series_limit {
+                self.call_failed(r);
+                return;
+            }
+        }
+        match role {
             // A write-through: the cache holds the new value for every reader of the key.
             Role::Cache if write => {
                 self.record_write(key);
@@ -1226,7 +2497,12 @@ impl Engine {
                 }
             }
             Role::Cache if aside => {
-                if self.cache_hit(node, ty, key) {
+                let hit = if self.c.nodes[node as usize].spec.semantic {
+                    self.semantic_hit(node, ty)
+                } else {
+                    self.cache_hit(node, ty, key)
+                };
+                if hit {
                     // One read, answered by the cache: stale if the key was written after
                     // the cache filled it (cache-aside doesn't invalidate).
                     self.reads += w;
@@ -1238,6 +2514,15 @@ impl Engine {
                     self.mark(r, caller, node, true);
                 } else {
                     self.reqs[r as usize].fill_cache = node;
+                    if self.c.nodes[node as usize].spec.serve_stale_us > 0 {
+                        self.reqs[r as usize].stale_copy = self.stale_copy(node, ty, key);
+                    }
+                    if self.c.nodes[node as usize].spec.stampede_guard
+                        && self.coalesce(r, node, ty as u16, key)
+                    {
+                        // Waits for the miss already in flight for this key.
+                        return;
+                    }
                 }
             }
             Role::Cache => {
@@ -1259,24 +2544,49 @@ impl Engine {
                 if fill_cache != NONE {
                     self.fill(fill_cache, ty, key);
                     self.reqs[r as usize].fill_cache = NONE;
+                    self.wake_coalesced(r, fill_cache, true, false);
                 }
             }
             _ => {}
         }
         let caller = self.reqs[r as usize].caller;
+        if caller == NONE {
+            // The caller gave up on this call (a timeout) and the message went back to its
+            // broker: the answer has nowhere to go.
+            return;
+        }
         if self.cut(node, caller) {
             // A split opened while the call ran: the answer never arrives.
-            self.push_req(self.now + EXTERNAL_DOWN_US, Ev::CallFail { r }, r);
+            let call = self.reqs[r as usize].call_gen;
+            self.push_req(self.now + EXTERNAL_DOWN_US, Ev::CallFail { r, call }, r);
             return;
         }
         let lat = hop_latency_us(&self.c, node, caller, Protocol::Query);
-        self.push_req(self.now + lat, Ev::CallBack { r }, r);
+        let call = self.reqs[r as usize].call_gen;
+        self.push_req(self.now + lat, Ev::CallBack { r, call }, r);
     }
 
     fn on_callback(&mut self, r: u32) {
         if self.reqs[r as usize].dead {
             self.maybe_free(r);
             return;
+        }
+        let from_provider =
+            self.reqs[r as usize].call_key & EXT_KEY != 0 && self.reqs[r as usize].call_key != NONE;
+        self.end_call(r, true);
+        self.reqs[r as usize].call_tries = 0;
+        if !self.reqs[r as usize].call_aside {
+            // The origin answered: no need for an expired copy.
+            self.reqs[r as usize].stale_copy = false;
+        }
+        let fc = self.reqs[r as usize].fill_cache;
+        if from_provider && fc != NONE && !self.store_step_follows(r) {
+            // M8: a cache in front of a provider is filled by the provider's answer (when no
+            // data store follows to fill it, the behaviour before M8).
+            let (ty, key) = (self.reqs[r as usize].ty as usize, self.reqs[r as usize].key);
+            self.fill(fc, ty, key);
+            self.reqs[r as usize].fill_cache = NONE;
+            self.wake_coalesced(r, fc, true, false);
         }
         let caller = self.reqs[r as usize].caller;
         if caller != NONE && self.nodes[caller as usize].down {
@@ -1299,7 +2609,8 @@ impl Engine {
         let sample = self.c.sample;
         let ext = &mut self.externals[x as usize];
         if ext.down {
-            self.push_req(now + EXTERNAL_DOWN_US, Ev::CallFail { r }, r);
+            let call = self.reqs[r as usize].call_gen;
+            self.push_req(now + EXTERNAL_DOWN_US, Ev::CallFail { r, call }, r);
             return;
         }
         if let Some(limit) = ext.rate_cut.or(def.rate_limit) {
@@ -1308,7 +2619,8 @@ impl Engine {
             ext.last = now;
             if ext.tokens < 1.0 {
                 let fast = (def.median_ms * 1000.0) as u64;
-                self.push_req(now + fast, Ev::CallFail { r }, r);
+                let call = self.reqs[r as usize].call_gen;
+                self.push_req(now + fast, Ev::CallFail { r, call }, r);
                 return;
             }
             ext.tokens -= 1.0;
@@ -1318,7 +2630,8 @@ impl Engine {
             def.median_ms,
             (def.p99_ms / def.median_ms.max(1e-9)).max(1.0),
         ) + add;
-        self.push_req(now + (ms * 1000.0) as u64, Ev::CallBack { r }, r);
+        let call = self.reqs[r as usize].call_gen;
+        self.push_req(now + (ms * 1000.0) as u64, Ev::CallBack { r, call }, r);
     }
 
     // --- Segment ends, brokers --------------------------------------------------------
@@ -1545,6 +2858,7 @@ impl Engine {
             self.publish_failed(r, b);
             return;
         }
+        self.check_residency(r, b);
         let depth = self.brokers[b as usize].queue.len() as f64;
         if depth >= (self.c.nodes[b as usize].spec.max_depth * self.c.sample).max(1.0) {
             let w = self.c.weight;
@@ -1604,7 +2918,18 @@ impl Engine {
         self.reqs[r as usize].reserved = false;
         self.reqs[r as usize].in_flight = false;
         self.reqs[r as usize].pending += 1;
-        self.brokers[b as usize].queue.push_back(r);
+        let bulk = |e: &Self, x: u32| e.c.types[e.reqs[x as usize].ty as usize].def.bulk;
+        if self.c.nodes[b as usize].spec.priority && !bulk(self, r) {
+            // M10: a live message goes ahead of every queued bulk message.
+            let at = self.brokers[b as usize]
+                .queue
+                .iter()
+                .position(|&x| bulk(self, x))
+                .unwrap_or(self.brokers[b as usize].queue.len());
+            self.brokers[b as usize].queue.insert(at, r);
+        } else {
+            self.brokers[b as usize].queue.push_back(r);
+        }
         let len = self.brokers[b as usize].queue.len();
         let rt = &mut self.nodes[b as usize];
         rt.max_queue = rt.max_queue.max(len);
@@ -1747,6 +3072,9 @@ impl Engine {
     }
 
     fn complete_async(&mut self, r: u32) {
+        if self.reqs[r as usize].job != NO_JOB {
+            self.job_task_done(r);
+        }
         self.message_done(r);
         let q = &self.reqs[r as usize];
         let (ty, g) = (q.ty as usize, q.group);
@@ -1798,6 +3126,18 @@ impl Engine {
 
     fn fail(&mut self, r: u32) {
         let w = self.c.weight;
+        self.end_call(r, false);
+        if self.reqs[r as usize].leads {
+            let fc = self.reqs[r as usize].fill_cache;
+            self.wake_coalesced(r, fc, false, false);
+        }
+        if self.reqs[r as usize].job != NO_JOB && !self.reqs[r as usize].dead {
+            self.job_task_failed(r);
+            return;
+        }
+        if !self.reqs[r as usize].resp_sent && self.retry_sync(r) {
+            return;
+        }
         if !self.reqs[r as usize].resp_sent {
             let ty = self.reqs[r as usize].ty as usize;
             self.types[ty].errors += w;
@@ -2112,6 +3452,7 @@ impl Engine {
         };
         let (mut measured, mut response, mut completion) =
             (Hist::default(), Hist::default(), Hist::default());
+        let mut ttft = Hist::default();
         let (mut req, mut ok, mut err, mut shed) = (0.0, 0.0, 0.0, 0.0);
         let mut per_type = Vec::new();
         for (i, m) in self.types.iter().enumerate() {
@@ -2129,7 +3470,9 @@ impl Engine {
                 latency: pct(&m.measured),
                 response: pct(&m.response),
                 completion: (m.completion.total() > 0.0).then(|| pct(&m.completion)),
+                ttft: (m.ttft.total() > 0.0).then(|| pct(&m.ttft)),
             });
+            ttft.merge(&m.ttft);
         }
         let done = ok + err + shed;
         let mut cost_total = 0.0;
@@ -2193,6 +3536,25 @@ impl Engine {
             } else {
                 0.0
             },
+            conflicts: self.conflicts,
+            connected_min: self.connected_min(),
+            conn_drops: self.conn_drops,
+            ttft: (ttft.total() > 0.0).then(|| pct(&ttft)),
+            rate_limited: self.rate_limited,
+            late: self.late,
+            late_rate: if self.windowed > 0.0 {
+                self.late / self.windowed
+            } else {
+                0.0
+            },
+            duplicates: self.duplicates,
+            residency_violations: self.residency_violations,
+            jobs: self
+                .jobs
+                .iter()
+                .map(|j| ka_sim_job_result(&c.types[j.ty as usize].def.id, j))
+                .collect(),
+            tasks_retried: self.tasks_retried,
             cost_month: round2(cost_total),
             per_type,
             nodes,
@@ -2359,6 +3721,71 @@ impl Engine {
             }
             // Traffic is read from the scenario when arrivals are generated.
             C::Traffic { .. } => {}
+            C::Deploy {
+                target,
+                error_rate,
+                add_ms,
+                for_s: f,
+                ..
+            } => {
+                targets = self
+                    .resolve(target)
+                    .into_iter()
+                    .filter(|&n| self.c.nodes[n as usize].spec.role.is_caller())
+                    .collect();
+                for &n in &targets {
+                    let rt = &mut self.nodes[n as usize];
+                    rt.faulty_err = error_rate.clamp(0.0, 1.0);
+                    rt.faulty_add_us = (add_ms.max(0.0) * 1000.0) as u64;
+                    self.rollout_stage(i, n, 1);
+                }
+                for_s = *f;
+            }
+            C::ConfigPush {
+                error_rate,
+                add_ms,
+                for_s: f,
+                ..
+            } => {
+                targets = (0..self.c.nodes.len() as u32)
+                    .filter(|&n| self.c.nodes[n as usize].spec.role.is_caller())
+                    .collect();
+                for &n in &targets {
+                    let rt = &mut self.nodes[n as usize];
+                    rt.faulty_err = error_rate.clamp(0.0, 1.0);
+                    rt.faulty_add_us = (add_ms.max(0.0) * 1000.0) as u64;
+                }
+                self.chaos_targets[i as usize] = targets.clone();
+                self.rollout_stage(i, NONE, 1);
+                for_s = *f;
+            }
+            C::DnsOutage { for_s: f, .. } => {
+                self.dns_out_since = Some(self.now);
+                for_s = *f;
+            }
+            C::ControlPlane { for_s: f, .. } => {
+                self.control_plane += 1;
+                for_s = *f;
+            }
+            C::Cardinality { x, for_s: f, .. } => {
+                self.series_x *= x.max(0.0);
+                for_s = *f;
+            }
+            C::Spot {
+                target,
+                share,
+                for_s: f,
+                ..
+            } => {
+                targets = self
+                    .resolve(target)
+                    .into_iter()
+                    .filter(|&n| self.c.nodes[n as usize].kind == ComponentKind::Batch)
+                    .collect();
+                let t = targets.clone();
+                self.spot_start(i, &t, *share);
+                for_s = *f;
+            }
         }
         self.chaos_targets[i as usize] = targets;
         if let Some(f) = for_s {
@@ -2374,7 +3801,35 @@ impl Engine {
         match &ev {
             C::Kill { .. } | C::Partition { .. } => {
                 for n in targets {
-                    self.revive(n);
+                    if self.control_plane > 0 {
+                        // No replacement instances while the control plane is down.
+                        self.held_revives.push(n);
+                    } else {
+                        self.revive(n);
+                    }
+                }
+            }
+            C::Deploy { .. } | C::ConfigPush { .. } => {
+                // Rolled back by hand.
+                for n in targets {
+                    self.nodes[n as usize].faulty = 0.0;
+                    self.rollout_done.insert((i, n));
+                }
+                self.rollout_done.insert((i, NONE));
+            }
+            C::DnsOutage { .. } => self.dns_out_since = None,
+            C::Spot { .. } => self.spot_end(i),
+            C::Cardinality { x, .. } => {
+                if *x > 0.0 {
+                    self.series_x /= x;
+                }
+            }
+            C::ControlPlane { .. } => {
+                self.control_plane = self.control_plane.saturating_sub(1);
+                if self.control_plane == 0 {
+                    for n in std::mem::take(&mut self.held_revives) {
+                        self.revive(n);
+                    }
                 }
             }
             C::Latency { add_ms, .. } => {
@@ -2420,12 +3875,748 @@ impl Engine {
         }
     }
 
+    /// S1: the traffic multiplier for request type `ty` at time `t` (curve, type multiplier,
+    /// traffic chaos), as arrivals use.
+    fn traffic_mult(&self, ty: usize, t: u64) -> f64 {
+        let secs = t as f64 / 1e6;
+        let def = &self.c.types[ty].def;
+        let mut x = self.c.scenario.traffic.at(secs, self.c.scenario.duration_s)
+            * self
+                .c
+                .scenario
+                .type_multipliers
+                .get(&def.id)
+                .copied()
+                .unwrap_or(1.0);
+        for e in &self.c.scenario.chaos {
+            if let ka_core::scenario::ChaosEvent::Traffic { x: m, at, for_s } = e
+                && secs >= *at
+                && for_s.is_none_or(|f| secs < at + f)
+            {
+                x *= m;
+            }
+        }
+        x
+    }
+
+    /// S1, every 100 ms: connections follow their target; a dead holder's connections
+    /// reconnect, spread over the client's jitter; holders admit what their capacity and
+    /// accept rate allow, the rest retry after the client's backoff (counted as drops); each
+    /// holder pushes `push_rps` per connection against its message rate, and a backlog
+    /// delays delivery (the type's measured latency).
+    fn conn_tick(&mut self) {
+        let now = self.now;
+        let tick = (now / CONN_TICK_US) as usize;
+        let dt = CONN_TICK_US as f64 / 1e6;
+        let sec = (now / 1_000_000) as usize;
+        for ti in 0..self.conns.len() {
+            let Some(mut rt) = self.conns[ti].take() else {
+                continue;
+            };
+            let c = Arc::clone(&self.c);
+            let ty = &c.types[ti];
+            let plan = ty.conn.as_ref().expect("a connection type");
+            let def = &ty.def;
+            let client = &c.nodes[plan.client as usize].spec;
+            let slot_of = |k: usize| k % CONN_SLOTS;
+            let spread = |rt: &mut ConnRt, count: f64, from: usize, width_s: f64| {
+                let width = ((width_s / dt).round() as usize).clamp(1, CONN_SLOTS - 1);
+                let first = from.min(tick + CONN_SLOTS - 1 - width);
+                for k in 0..width {
+                    rt.slots[slot_of(first + k)] += count / width as f64;
+                }
+                rt.pending += count;
+            };
+            // Holders that died drop their connections; the clients reconnect.
+            for (h, &node) in plan.holders.iter().enumerate() {
+                if self.nodes[node as usize].down && rt.conns[h] > 0.0 {
+                    let n = std::mem::take(&mut rt.conns[h]);
+                    rt.backlog[h] = 0.0;
+                    spread(&mut rt, n, tick, client.reconnect_jitter_s);
+                }
+            }
+            let mult = self.traffic_mult(ti, now);
+            let ramp = if def.ramp_s > 0.0 {
+                (now as f64 / 1e6 / def.ramp_s).min(1.0)
+            } else {
+                1.0
+            };
+            // The traffic curve scales what connections receive (pushes), not how many
+            // clients there are: a goal is a burst of messages, not ten times the fans (M9).
+            let target = def.connected * ramp;
+            if tick == 0 && def.ramp_s <= 0.0 {
+                // `ramp_s = 0`: the clients are connected from the start, as far as the
+                // holders can hold them (spread evenly; the rest connect as usual).
+                let n = plan.holders.len().max(1) as f64;
+                for (h, &node) in plan.holders.iter().enumerate() {
+                    let spec = &c.nodes[node as usize].spec;
+                    if !self.nodes[node as usize].down {
+                        rt.conns[h] = (target / n).min(spec.conn_capacity * spec.instances);
+                    }
+                }
+            }
+            let have: f64 = rt.conns.iter().sum();
+            if target > have + rt.pending {
+                // New clients connect.
+                let new = target - have - rt.pending;
+                spread(&mut rt, new, tick, dt);
+            } else if have > target && have > 0.0 {
+                // Clients leave.
+                let keep = target / have;
+                for c in &mut rt.conns {
+                    *c *= keep;
+                }
+            }
+            // Admission.
+            let due = std::mem::take(&mut rt.slots[slot_of(tick)]);
+            rt.pending = (rt.pending - due).max(0.0);
+            let room: Vec<f64> = plan
+                .holders
+                .iter()
+                .enumerate()
+                .map(|(h, &node)| {
+                    let n = &c.nodes[node as usize].spec;
+                    if self.nodes[node as usize].down {
+                        return 0.0;
+                    }
+                    let inst = n.instances;
+                    let cap = (n.conn_capacity * inst - rt.conns[h]).max(0.0);
+                    cap.min(n.accept_per_s * inst * dt)
+                })
+                .collect();
+            let allow: f64 = room.iter().sum();
+            let admitted = due.min(allow);
+            if allow > 0.0 {
+                for (h, r) in room.iter().enumerate() {
+                    rt.conns[h] += admitted * r / allow;
+                }
+            }
+            let refused = due - admitted;
+            if refused > 0.0 {
+                self.conn_drops += refused;
+                let back = tick + (client.reconnect_backoff_s / dt).round().max(1.0) as usize;
+                spread(&mut rt, refused, back, client.reconnect_jitter_s.max(dt));
+            }
+            if due > 0.0 {
+                let m = &mut self.types[ti];
+                m.requests += due;
+                m.ok += admitted;
+                m.errors += refused;
+                if now <= self.c.duration_us {
+                    let s = self.second_mut();
+                    s.requests += due;
+                    s.ok += admitted;
+                    s.errors += refused;
+                }
+            }
+            for (h, &node) in plan.holders.iter().enumerate() {
+                if now < self.c.duration_us {
+                    self.nodes[node as usize].bill_conn_s += rt.conns[h] * dt;
+                }
+            }
+            // Pushes.
+            for (h, &node) in plan.holders.iter().enumerate() {
+                let n = &c.nodes[node as usize].spec;
+                let rate = n.msgs_per_s * n.instances;
+                let inflow = rt.conns[h] * def.push_rps * mult * dt;
+                if inflow <= 0.0 || !rate.is_finite() && rt.backlog[h] == 0.0 {
+                    if inflow > 0.0 {
+                        let base = self.delivery_base_us(node);
+                        self.types[ti].measured.add(base, inflow);
+                        self.types[ti].response.add(base, inflow);
+                        if now <= self.c.duration_us {
+                            self.second_mut().measured.add(base, inflow);
+                        }
+                    }
+                    continue;
+                }
+                rt.backlog[h] = (rt.backlog[h] + inflow - rate * dt).max(0.0);
+                self.nodes[node as usize].bill_msgs += inflow;
+                let wait_us = if rate > 0.0 {
+                    rt.backlog[h] / rate * 1e6
+                } else {
+                    1e9
+                };
+                let lat = wait_us + self.delivery_base_us(node);
+                self.types[ti].measured.add(lat, inflow);
+                self.types[ti].response.add(lat, inflow);
+                if now <= self.c.duration_us {
+                    self.second_mut().measured.add(lat, inflow);
+                }
+            }
+            // The connected share, judged from ramp + 10 s.
+            let judged_from = def.ramp_s + 10.0;
+            if now as f64 / 1e6 >= judged_from && now < self.c.duration_us && target > 0.0 {
+                let share = rt.conns.iter().sum::<f64>() / target;
+                if let Some(m) = rt.min_share.get_mut(sec) {
+                    *m = m.min(share);
+                }
+            }
+            self.conns[ti] = Some(rt);
+        }
+    }
+
+    /// S6: a scan. Data scanned = the query's `gb`, pruned by a lake table's partitioning
+    /// (day: what its time range needs, at least a day; hour: just its range); a table
+    /// without compaction holds small files. Time = overhead + scanned ÷ scan rate + 20 ms per
+    /// file over 8 parallel readers. A warehouse's result cache answers a repeat in a tenth of
+    /// the overhead. A batch task reading a table splits the scan over the job's tasks.
+    fn scan_us(&mut self, r: u32, node: u32, scan: ka_core::scenario::Scan) -> u64 {
+        let n = &self.c.nodes[node as usize];
+        let ty = self.reqs[r as usize].ty as usize;
+        let table = if n.kind == ComponentKind::Lakehouse {
+            Some(node)
+        } else {
+            self.c.table_of[node as usize]
+        };
+        let mut gb = scan.gb;
+        if let Some(job) = &self.c.types[ty].def.job {
+            gb /= f64::from(job.tasks.max(1));
+        }
+        let (scanned, file_mb) = match table {
+            Some(t) => {
+                let ts = &self.c.nodes[t as usize].spec;
+                let span = scan.span_days.max(1e-6);
+                let prune = match ts.partitioning {
+                    1 => scan.range_share.max(1.0 / span),
+                    2 => scan.range_share.max(1.0 / (span * 24.0)),
+                    _ => 1.0,
+                };
+                let file = if ts.compaction {
+                    ts.target_file_mb
+                } else {
+                    ts.target_file_mb.min(scan.small_file_mb)
+                };
+                (gb * prune.min(1.0), file)
+            }
+            None => (gb, 1024.0),
+        };
+        let spec = &n.spec;
+        let overhead_s = spec.overhead_ms / 1000.0;
+        if n.kind == ComponentKind::Warehouse
+            && spec.result_cache
+            && self.rng_s8.uniform() < scan.repeat_share
+        {
+            return ((overhead_s / 10.0) * 1e6) as u64 + 1;
+        }
+        let files = scanned * 1024.0 / file_mb.max(1e-3);
+        let secs = overhead_s + scanned / spec.scan_gbps + files * SCAN_FILE_S / 8.0;
+        let w = self.c.weight;
+        self.nodes[node as usize].bill_tb += scanned / 1024.0 * w;
+        (secs * 1e6 * self.nodes[node as usize].stretch) as u64
+            + self.nodes[node as usize].add_us
+            + 1
+    }
+
+    /// M8: a login takes a token from the identity provider's per-second bucket (holding one
+    /// second's allowance); none left, it is refused.
+    fn admit_login(&mut self, r: u32, node: u32) -> bool {
+        if !self.reqs[r as usize].call_login
+            || self.c.nodes[node as usize].kind != ComponentKind::Idp
+        {
+            return true;
+        }
+        let rate = self.c.nodes[node as usize].spec.logins_per_s * self.c.sample;
+        let now = self.now;
+        let rt = &mut self.nodes[node as usize];
+        rt.login_tokens = (rt.login_tokens + rate * now.saturating_sub(rt.login_at) as f64 / 1e6)
+            .min(rate.max(1.0));
+        rt.login_at = now;
+        if rt.login_tokens < 1.0 {
+            return false;
+        }
+        rt.login_tokens -= 1.0;
+        true
+    }
+
+    /// M8 (with the scenario's `connections`): a call straight to a database needs one of its
+    /// `max_connections`. Every slot of every service talking to it directly holds one, and
+    /// a connection pooler holds its pool; past the limit, a share of direct calls (the excess
+    /// over the demand) is refused. A call through a pooler waits for nothing here and pays
+    /// the pooler's hop (0.7 ms).
+    fn admit_connection(&mut self, r: u32, caller: u32, node: u32) -> bool {
+        if self.c.nodes[node as usize].kind != ComponentKind::Sql {
+            return true;
+        }
+        let members: Vec<u32> = match self.c.cluster_of[node as usize] {
+            Some(cl) => self.c.clusters[cl as usize].members.clone(),
+            None => vec![node],
+        };
+        let to_db = |n: &crate::compile::CNode| {
+            n.out
+                .iter()
+                .any(|(b, p)| *p == Protocol::Query && members.contains(b))
+        };
+        let direct = to_db(&self.c.nodes[caller as usize]);
+        if !direct {
+            self.reqs[r as usize].extra_us += 700;
+        }
+        if !self.c.scenario.connections || !direct {
+            return true;
+        }
+        let mut demand = 0.0;
+        for (i, n) in self.c.nodes.iter().enumerate() {
+            if !to_db(n) {
+                continue;
+            }
+            demand += if n.kind == ComponentKind::Dbproxy {
+                n.spec.pool_size * self.nodes[i].instances
+            } else {
+                n.spec.servers / n.spec.instances.max(1.0) * self.nodes[i].instances
+            };
+        }
+        let primary =
+            self.c.cluster_of[node as usize].map_or(node, |cl| self.cluster_primary[cl as usize]);
+        let limit = self.c.nodes[primary as usize].spec.max_connections;
+        if demand <= limit {
+            return true;
+        }
+        self.rng_s8.uniform() >= (demand - limit) / demand
+    }
+
+    /// M8: a call to provider `x` through a Third-Party API card bound to it counts on that
+    /// card (its price per call).
+    fn bill_external_card(&mut self, caller: u32, x: u32) {
+        let name = &self.c.externals[x as usize].name;
+        let card = self.c.nodes[caller as usize].out.iter().find(|(b, p)| {
+            matches!(p, Protocol::Http | Protocol::Grpc)
+                && self.c.nodes[*b as usize].kind == ComponentKind::External
+                && self.c.nodes[*b as usize].spec.binding == *name
+        });
+        if let Some(&(b, _)) = card {
+            let w = self.c.weight;
+            let rt = &mut self.nodes[b as usize];
+            rt.served += w;
+            rt.bill_r += w;
+        }
+    }
+
+    /// S9: a store, cache or broker holds this request's data: outside a Region tagged with
+    /// the request's residency (or in no tagged Region at all), that's a violation.
+    fn check_residency(&mut self, r: u32, node: u32) {
+        let ty = self.reqs[r as usize].ty as usize;
+        let Some(want) = self.c.types[ty].def.residency.as_deref() else {
+            return;
+        };
+        let tag = self.c.nodes[node as usize]
+            .region
+            .and_then(|z| self.c.zones[z as usize].tag.as_deref());
+        if tag != Some(want) {
+            self.residency_violations += self.c.weight;
+        }
+    }
+
+    /// S5: a stream processor counts records toward its next checkpoint.
+    fn count_for_checkpoint(&mut self, node: u32) {
+        let every = self.c.nodes[node as usize].spec.checkpoint_us.max(1);
+        let idx = self.now / every;
+        let w = self.c.weight;
+        let rt = &mut self.nodes[node as usize];
+        if rt.ckpt_idx != idx {
+            rt.ckpt_idx = idx;
+            rt.since_ckpt = 0.0;
+        }
+        rt.since_ckpt += w;
+    }
+
+    /// S5: a windowed record. Its event time (arrival minus the type's event delay) picks its
+    /// window; the result leaves when the window closes (end + watermark). Until then the
+    /// record holds no slot and no stream partition. Past the allowed lateness it is late:
+    /// counted, left out. Returns true when the record waits or is done.
+    fn window_wait(&mut self, r: u32, node: u32) -> bool {
+        let spec = &self.c.nodes[node as usize].spec;
+        let (kind, win, slide, mark, late_ok) = (
+            spec.window,
+            spec.window_us,
+            spec.slide_us,
+            spec.watermark_us,
+            spec.lateness_us,
+        );
+        let q = &self.reqs[r as usize];
+        let delay = self.c.types[q.ty as usize].def.event_delay;
+        let start = q.start;
+        let delay_us = delay.map_or(0.0, |d| {
+            let ratio = (d.p99_ms / d.median_ms.max(1e-9)).max(1.0);
+            self.rng_s5.lognormal(d.median_ms.max(0.0), ratio) * 1000.0
+        }) as u64;
+        let event = start.saturating_sub(delay_us);
+        let step = if kind == 2 { slide } else { win };
+        let emit = (event / step + 1) * step + mark;
+        let w = self.c.weight;
+        self.windowed += w;
+        self.release_caller(r);
+        self.message_done(r);
+        let q = &mut self.reqs[r as usize];
+        q.caller = node;
+        q.step = 0;
+        if self.now <= emit {
+            self.push_req(emit, Ev::WindowEmit { r }, r);
+            return true;
+        }
+        if self.now <= emit + late_ok {
+            // An update to a closed window, within the allowed lateness.
+            self.run_calls(r);
+            return true;
+        }
+        self.late += w;
+        self.finish(r);
+        true
+    }
+
+    /// S4: a job run starts. Task sizes follow a Zipf skew (shuffled by the `jobs` stream)
+    /// and sum to the job's work; a batch card with `salting` splits the largest 1% of
+    /// tasks that many ways.
+    fn job_start(&mut self, j: u16) {
+        let ty = self.jobs[j as usize].ty as usize;
+        let spec = self.c.types[ty].def.job.clone().expect("a job type");
+        let runner = self.c.types[ty].job.as_ref().expect("job runners")[0];
+        let salting = self.c.nodes[runner as usize].spec.salting;
+        let n = spec.tasks.max(1) as usize;
+        let mut weights: Vec<f64> = (0..n)
+            .map(|i| detmath::powf((i + 1) as f64, -spec.skew.max(0.0)))
+            .collect();
+        for i in (1..n).rev() {
+            let k = self.rng_jobs.below(i as u64 + 1) as usize;
+            weights.swap(i, k);
+        }
+        let total: f64 = weights.iter().sum();
+        let mut sizes: Vec<f64> = weights
+            .iter()
+            .map(|w| w / total * spec.work_units)
+            .collect();
+        if salting > 1 {
+            let mut order: Vec<usize> = (0..n).collect();
+            order.sort_by(|&a, &b| sizes[b].total_cmp(&sizes[a]).then(a.cmp(&b)));
+            let big = n.div_ceil(100);
+            let mut extra = Vec::new();
+            for &i in &order[..big] {
+                let part = sizes[i] / f64::from(salting);
+                sizes[i] = part;
+                extra.extend(std::iter::repeat_n(part, salting as usize - 1));
+            }
+            sizes.extend(extra);
+        }
+        let job = &mut self.jobs[j as usize];
+        job.left = sizes.len() as u32;
+        job.done = vec![false; sizes.len()];
+        job.sizes = sizes;
+        for t in 0..self.jobs[j as usize].sizes.len() as u32 {
+            let work = self.jobs[j as usize].sizes[t as usize];
+            self.launch_task(j, t, work);
+        }
+    }
+
+    /// S4: one copy of task `t` with `work` executor-seconds goes to the next batch card;
+    /// its time gets per-task noise (lognormal, median 1, p99 1.5) and the launch overhead.
+    fn launch_task(&mut self, j: u16, t: u32, work: f64) {
+        let ty = self.jobs[j as usize].ty;
+        let runners = self.c.types[ty as usize].job.clone().expect("job runners");
+        let rr = self.jobs[j as usize].rr;
+        self.jobs[j as usize].rr = rr.wrapping_add(1);
+        let node = runners[rr % runners.len()];
+        let noise = self.rng_jobs.lognormal(1.0, 1.5);
+        let overhead = self.c.nodes[node as usize].spec.task_overhead_ms / 1000.0;
+        let r = self.alloc(ty, u64::from(t) + 1);
+        {
+            let q = &mut self.reqs[r as usize];
+            q.job = j;
+            q.task = t;
+            q.task_us = ((work * noise + overhead) * 1e6) as u64;
+            q.resp_sent = true;
+            q.phase = Phase::Entry;
+            q.runner = node;
+        }
+        let w = self.c.weight;
+        self.types[ty as usize].requests += w;
+        self.jobs[j as usize].running.entry(t).or_default().push(r);
+        self.push_req(self.now, Ev::Arrive { r, node }, r);
+    }
+
+    /// S4: a task copy finished. The first copy of a task wins; the others stop. Near the
+    /// end (95% done) a batch card with `speculation` copies tasks running longer than
+    /// 1.5 × the median task: that helps a slow executor, not a task that is just big.
+    fn job_task_done(&mut self, r: u32) {
+        let (j, t, started) = {
+            let q = &self.reqs[r as usize];
+            (q.job, q.task, q.started)
+        };
+        let now = self.now;
+        let job = &mut self.jobs[j as usize];
+        if job.done[t as usize] {
+            return;
+        }
+        job.done[t as usize] = true;
+        job.left -= 1;
+        job.finished.push(now.saturating_sub(started) as f64);
+        for other in job.running.remove(&t).unwrap_or_default() {
+            if other != r {
+                self.reqs[other as usize].dead = true;
+            }
+        }
+        let job = &self.jobs[j as usize];
+        if job.left == 0 {
+            self.jobs[j as usize].completed_at = Some(now);
+            return;
+        }
+        let ty = job.ty as usize;
+        let runner = self.c.types[ty].job.as_ref().expect("job runners")[0];
+        let total = job.done.len() as f64;
+        if !self.c.nodes[runner as usize].spec.speculation
+            || (total - f64::from(job.left)) / total < 0.95
+        {
+            return;
+        }
+        let mut times = job.finished.clone();
+        times.sort_by(f64::total_cmp);
+        let median = times[times.len() / 2];
+        let slow: Vec<u32> = job
+            .running
+            .iter()
+            .filter(|(_, copies)| copies.len() == 1)
+            .filter(|(_, copies)| {
+                let q = &self.reqs[copies[0] as usize];
+                q.started != u64::MAX && now.saturating_sub(q.started) as f64 > 1.5 * median
+            })
+            .map(|(&t, _)| t)
+            .collect();
+        for t in slow {
+            let work = self.jobs[j as usize].sizes[t as usize];
+            self.launch_task(j, t, work);
+        }
+    }
+
+    /// S4: a task copy failed (a call failed): it starts again unless another copy runs.
+    fn job_task_failed(&mut self, r: u32) {
+        let (j, t) = (self.reqs[r as usize].job, self.reqs[r as usize].task);
+        {
+            let q = &mut self.reqs[r as usize];
+            q.dead = true;
+        }
+        self.release_caller(r);
+        self.finish(r);
+        let job = &mut self.jobs[j as usize];
+        if let Some(copies) = job.running.get_mut(&t) {
+            copies.retain(|&x| x != r);
+        }
+        if job.done[t as usize] || job.running.get(&t).is_some_and(|c| !c.is_empty()) {
+            return;
+        }
+        self.tasks_retried += 1.0;
+        let work = self.jobs[j as usize].sizes[t as usize];
+        self.launch_task(j, t, work);
+    }
+
+    /// S4 spot chaos: `share` of each selected batch card's executors go away; that share of
+    /// the tasks running on it stop and start again, from their last checkpoint (each 10%
+    /// of the task) when the card has `checkpoint`.
+    fn spot_start(&mut self, chaos: u16, nodes: &[u32], share: f64) {
+        let share = share.clamp(0.0, 1.0);
+        for &node in nodes {
+            let servers = self.nodes[node as usize].lane_servers;
+            let take = (f64::from(servers) * share).round() as u32;
+            self.nodes[node as usize].lane_servers = servers - take.min(servers);
+            self.spot_taken.push((chaos, node, take.min(servers)));
+            let checkpoint = self.c.nodes[node as usize].spec.checkpoint;
+            // The tasks in service on this card, in job then task order.
+            let mut running: Vec<(u16, u32, u32)> = Vec::new();
+            for (j, job) in self.jobs.iter().enumerate() {
+                for (&t, copies) in &job.running {
+                    for &r in copies {
+                        let q = &self.reqs[r as usize];
+                        if !q.dead
+                            && q.phase == Phase::Entry
+                            && q.started != u64::MAX
+                            && q.runner == node
+                        {
+                            running.push((j as u16, t, r));
+                        }
+                    }
+                }
+            }
+            let kill = (running.len() as f64 * share).round() as usize;
+            for &(j, t, r) in running.iter().take(kill) {
+                let q = &self.reqs[r as usize];
+                let progress = (self.now.saturating_sub(q.started) as f64
+                    / q.task_us.max(1) as f64)
+                    .clamp(0.0, 1.0);
+                let size = self.jobs[j as usize].sizes[t as usize];
+                let left = if checkpoint {
+                    size * (1.0 - (progress * 10.0).floor() / 10.0)
+                } else {
+                    size
+                };
+                let q = &mut self.reqs[r as usize];
+                q.dead = true;
+                q.released = true;
+                self.set_busy(node, 0, -1);
+                if let Some(copies) = self.jobs[j as usize].running.get_mut(&t) {
+                    copies.retain(|&x| x != r);
+                }
+                self.tasks_retried += 1.0;
+                self.launch_task(j, t, left);
+            }
+        }
+    }
+
+    fn spot_end(&mut self, chaos: u16) {
+        let taken: Vec<(u16, u32, u32)> = self
+            .spot_taken
+            .iter()
+            .copied()
+            .filter(|x| x.0 == chaos)
+            .collect();
+        self.spot_taken.retain(|x| x.0 != chaos);
+        for (_, node, k) in taken {
+            self.nodes[node as usize].lane_servers += k;
+            // The executors are back: start waiting tasks.
+            while self.nodes[node as usize].lanes[0].busy < self.nodes[node as usize].lane_servers {
+                let Some(next) = self.nodes[node as usize].lanes[0].queue.pop_front() else {
+                    break;
+                };
+                self.reqs[next as usize].pending -= 1;
+                if self.reqs[next as usize].dead {
+                    self.maybe_free(next);
+                    continue;
+                }
+                self.set_busy(node, 0, 1);
+                self.start_service(next, node, 0);
+            }
+        }
+    }
+
+    /// S1: a push's latency before any backlog: 1 ms through a gateway or broker; through a
+    /// media server, glass to glass: three segments plus transcoding (1 s) for a live
+    /// encoder, 0.2 s for an SFU (modelling choices).
+    fn delivery_base_us(&self, node: u32) -> f64 {
+        let n = &self.c.nodes[node as usize];
+        if n.kind != ComponentKind::Media {
+            return 1_000.0;
+        }
+        if n.spec.transcode {
+            (3.0 * n.spec.segment_s + 1.0) * 1e6
+        } else {
+            200_000.0
+        }
+    }
+
+    /// S1: the least connected share over the judged seconds of every connection type.
+    fn connected_min(&self) -> f64 {
+        self.conns
+            .iter()
+            .flatten()
+            .flat_map(|rt| rt.min_share.iter().copied())
+            .filter(|v| v.is_finite())
+            .fold(f64::INFINITY, f64::min)
+            .clamp(0.0, 1.0)
+            * f64::from(u8::from(self.conns.iter().any(Option::is_some)))
+    }
+
+    /// S8 rollouts. A deploy reaches `node` in stages of its `rollout_percent`, one every
+    /// `bake_s`; with `auto_rollback`, a stage is noticed one health interval after it starts
+    /// and rolled back. A config push (node = NONE) reaches every service at once, or, with a
+    /// staged Config card, one Region per stage, halting at the first stage noticed; with a
+    /// kill switch it is rolled back a second after that.
+    fn rollout_stage(&mut self, chaos: u16, node: u32, stage: u16) {
+        if self.rollout_done.contains(&(chaos, node)) {
+            return;
+        }
+        let k = f64::from(stage);
+        if node != NONE {
+            let spec = &self.c.nodes[node as usize].spec;
+            let (share, bake, auto) = (spec.rollout_share, spec.bake_us, spec.auto_rollback);
+            let reach = if bake == 0 { 1.0 } else { (k * share).min(1.0) };
+            self.nodes[node as usize].faulty = reach;
+            if auto {
+                self.push(self.now + HEALTH_EVERY_US, Ev::Noticed { chaos, node });
+            }
+            if reach < 1.0 {
+                self.push(
+                    self.now + bake,
+                    Ev::Stage {
+                        chaos,
+                        node,
+                        stage: stage + 1,
+                    },
+                );
+            }
+            return;
+        }
+        // A config push.
+        let config =
+            (0..self.c.nodes.len()).find(|&n| self.c.nodes[n].kind == ComponentKind::Config);
+        let targets: Vec<u32> = self.chaos_targets[chaos as usize].clone();
+        let staged = config.map(|c| &self.c.nodes[c].spec).filter(|s| s.staged);
+        let Some(spec) = staged else {
+            for &n in &targets {
+                self.nodes[n as usize].faulty = 1.0;
+            }
+            if config.is_some_and(|c| self.c.nodes[c].spec.kill_switch) {
+                self.push(self.now + HEALTH_EVERY_US, Ev::Noticed { chaos, node });
+            }
+            return;
+        };
+        // Stages: the services' Regions in zone order; services outside any Region last.
+        let mut regions: Vec<Option<u32>> = targets
+            .iter()
+            .map(|&n| self.c.nodes[n as usize].region)
+            .collect();
+        regions.sort_by_key(|r| r.unwrap_or(u32::MAX));
+        regions.dedup();
+        let Some(&region) = regions.get(usize::from(stage) - 1) else {
+            return;
+        };
+        for &n in &targets {
+            if self.c.nodes[n as usize].region == region {
+                self.nodes[n as usize].faulty = 1.0;
+            }
+        }
+        let bake = spec.bake_us;
+        self.push(self.now + HEALTH_EVERY_US, Ev::Noticed { chaos, node });
+        if usize::from(stage) < regions.len() {
+            self.push(
+                self.now + bake.max(HEALTH_EVERY_US + 1),
+                Ev::Stage {
+                    chaos,
+                    node,
+                    stage: stage + 1,
+                },
+            );
+        }
+    }
+
+    fn rollout_noticed(&mut self, chaos: u16, node: u32) {
+        if self.rollout_done.contains(&(chaos, node)) {
+            return;
+        }
+        if node != NONE {
+            // Auto-rollback.
+            self.nodes[node as usize].faulty = 0.0;
+            self.rollout_done.insert((chaos, node));
+            return;
+        }
+        // A config push: halt the stages; with a kill switch, roll back a second later.
+        self.rollout_done.insert((chaos, NONE));
+        let config =
+            (0..self.c.nodes.len()).find(|&n| self.c.nodes[n].kind == ComponentKind::Config);
+        if config.is_some_and(|c| self.c.nodes[c].spec.kill_switch) {
+            self.push(self.now + 1_000_000, Ev::Rollback { chaos });
+        }
+    }
+
     /// A card stops answering: queued work fails now, work in service fails when it ends,
     /// callers waiting on it fail when their call comes back. A cluster primary fails over
     /// after its `failover_s`.
     fn kill(&mut self, n: u32) {
         if self.nodes[n as usize].down {
             return;
+        }
+        if self.c.nodes[n as usize].kind == ComponentKind::Streamproc {
+            // S5: restarting from the last checkpoint replays what it processed since; the
+            // sinks receive those results again unless they write idempotently.
+            let replay = std::mem::take(&mut self.nodes[n as usize].since_ckpt);
+            if !self.c.dedup_sinks[n as usize] {
+                self.duplicates += replay;
+            }
         }
         self.nodes[n as usize].down = true;
         let queued: Vec<u32> = self.nodes[n as usize]
@@ -2445,19 +4636,52 @@ impl Engine {
             && self.cluster_primary[cl as usize] == n
             && self.c.clusters[cl as usize].members.len() > 1
         {
+            // M10: the async primary's last lag window of commits never reached a replica.
+            let lag = (self.c.nodes[n as usize].spec.replication_lag_ms.max(0.0) * 1000.0) as u64;
+            let now = self.now;
+            let gone: f64 = self.recent_commits[cl as usize]
+                .iter()
+                .filter(|&&(t, _)| now.saturating_sub(t) <= lag)
+                .map(|&(_, w)| w)
+                .sum();
+            self.recent_commits[cl as usize].clear();
+            self.lost += gone;
             let after = (self.c.nodes[n as usize].spec.failover_s.max(0.0) * 1e6) as u64;
             self.push(self.now + after, Ev::Failover(cl));
         }
     }
 
-    /// A card comes back. A cache comes back empty.
+    /// A card comes back. A cache comes back empty, unless it is a member of a replicated
+    /// cache cluster with a live member: then it resyncs that member's copy (a Redis replica's
+    /// full sync), and keys expire as they would have.
     fn revive(&mut self, n: u32) {
         if !self.nodes[n as usize].down {
             return;
         }
         self.nodes[n as usize].down = false;
         if self.caches[n as usize].is_some() {
-            self.flush(n);
+            let source = self.c.cluster_of[n as usize].and_then(|cl| {
+                self.c.clusters[cl as usize]
+                    .members
+                    .iter()
+                    .copied()
+                    .find(|&m| {
+                        m != n && !self.nodes[m as usize].down && self.caches[m as usize].is_some()
+                    })
+            });
+            match source {
+                Some(m) => {
+                    let (fills, flushed_at, seen) = {
+                        let c = self.caches[m as usize].as_ref().expect("cache state");
+                        (c.fills.clone(), c.flushed_at, c.seen)
+                    };
+                    let cache = self.caches[n as usize].as_mut().expect("cache state");
+                    cache.fills = fills;
+                    cache.flushed_at = flushed_at;
+                    cache.seen = seen;
+                }
+                None => self.flush(n),
+            }
         }
         for b in self.c.feeds[n as usize].clone() {
             self.try_dispatch(b);
@@ -2487,6 +4711,7 @@ impl Engine {
                 f.clear();
             }
             cache.flushed_at = Some(now);
+            cache.seen = 0.0;
         }
     }
 
@@ -2499,6 +4724,7 @@ impl Engine {
                 s.known = s.checks >= HEALTH_CHECKS;
             }
         }
+        self.eject_overloaded();
         for rt in &mut self.nodes {
             if rt.down != rt.known_down {
                 rt.checks += 1;
@@ -2508,6 +4734,55 @@ impl Engine {
                 }
             } else {
                 rt.checks = 0;
+            }
+        }
+    }
+
+    /// S8: load balancers with `health_timeout_ms` eject a target whose queue wait passes it
+    /// on two checks in a row, and take it back after two checks under it; at least
+    /// `min_healthy_pct` of its targets always stay in rotation.
+    fn eject_overloaded(&mut self) {
+        for lb in 0..self.c.nodes.len() {
+            let spec = &self.c.nodes[lb].spec;
+            if spec.health_timeout_us == 0 {
+                continue;
+            }
+            let (limit_ms, floor) = (spec.health_timeout_us as f64 / 1000.0, spec.min_healthy);
+            let targets: Vec<u32> = self.c.nodes[lb]
+                .out
+                .iter()
+                .filter(|(_, p)| matches!(p, Protocol::Http | Protocol::Grpc | Protocol::Ws))
+                .map(|(t, _)| *t)
+                .collect();
+            let n = targets.len();
+            let keep = (floor * n as f64).ceil() as usize;
+            for &t in &targets {
+                let cn = &self.c.nodes[t as usize];
+                let rt = &self.nodes[t as usize];
+                let per_lane = f64::from(rt.lane_servers.max(1));
+                let wait_ms = rt
+                    .lanes
+                    .iter()
+                    .map(|l| l.queue.len() as f64 / per_lane * cn.spec.service_ms * rt.stretch)
+                    .fold(0.0, f64::max);
+                let over = wait_ms > limit_ms;
+                let healthy = targets
+                    .iter()
+                    .filter(|&&x| !self.nodes[x as usize].ejected)
+                    .count();
+                let rt = &mut self.nodes[t as usize];
+                if over != rt.ejected {
+                    rt.eject_checks += 1;
+                    if rt.eject_checks >= HEALTH_CHECKS {
+                        rt.eject_checks = 0;
+                        if over && healthy <= keep {
+                            continue;
+                        }
+                        rt.ejected = over;
+                    }
+                } else {
+                    rt.eject_checks = 0;
+                }
             }
         }
     }
@@ -2535,11 +4810,53 @@ impl Engine {
         let (n, rt) = (&self.c.nodes[i], &self.nodes[i]);
         let c = &n.cost;
         let per_month = MONTH_S / secs.max(1e-6) / 1e6 * n.spec.bill_ratio;
-        c.per_instance_month * self.mean_instances(i).max(1.0) * n.spec.cost_lanes
+        c.per_instance_month
+            * self.mean_instances(i).max(1.0)
+            * n.spec.cost_lanes
+            * self.active_share(i)
             + c.per_lane_month * n.spec.bill_lanes
             + c.per_gb_month * n.spec.memory_gb
             + (c.per_million * rt.bill_r + c.per_million_write.unwrap_or(c.per_million) * rt.bill_w)
                 * per_month
+            + self.meter_cost(i) * per_month
+    }
+
+    /// S6: the share of the run an `active_only` card (an auto-suspending warehouse) is billed:
+    /// seconds it was busy, each extended by its `auto_suspend_s`. 1 for every other card.
+    fn active_share(&self, i: usize) -> f64 {
+        let n = &self.c.nodes[i];
+        if !n.cost.active_only {
+            return 1.0;
+        }
+        let series = &self.nodes[i].util_series;
+        if series.is_empty() {
+            return 1.0;
+        }
+        let tail = n.spec.auto_suspend_s.ceil() as usize;
+        let mut until = 0usize;
+        let mut billed = 0usize;
+        for (s, u) in series.iter().enumerate() {
+            if *u > 0.0 {
+                until = s + 1 + tail;
+            }
+            if s < until {
+                billed += 1;
+            }
+        }
+        billed as f64 / series.len() as f64
+    }
+
+    /// M8 usage meters, in millions of units over the run (per_month turns them monthly):
+    /// tokens (half price on the batch API), connection-minutes and messages.
+    fn meter_cost(&self, i: usize) -> f64 {
+        let (n, rt) = (&self.c.nodes[i], &self.nodes[i]);
+        let m = &n.cost.meters;
+        let batch = if n.spec.batch_api { 0.5 } else { 1.0 };
+        (m.tokens_in_m * rt.bill_tin + m.tokens_out_m * rt.bill_tout) * batch
+            + m.conn_minutes_m * rt.bill_conn_s / 60.0
+            + m.messages_m * rt.bill_msgs
+            // A price per TB, over per_month's per-million scale.
+            + m.tb_scanned * rt.bill_tb * 1e6
     }
 
     /// Billing units one request of type `ty` counts at card `node`.
@@ -2588,7 +4905,8 @@ impl Engine {
                     * f64::from(self.c.nodes[m as usize].spec.lanes)
                     * SCALE_EVERY_US as f64;
             }
-            if self.scale_pending[g] || cap <= 0.0 {
+            if self.scale_pending[g] || cap <= 0.0 || self.control_plane > 0 {
+                // S8: no scaling decisions while the control plane is down.
                 continue;
             }
             let util = busy / cap;
@@ -2615,6 +4933,10 @@ impl Engine {
 
     fn scale_apply(&mut self, g: u32, instances: f64) {
         self.scale_pending[g as usize] = false;
+        if self.control_plane > 0 {
+            // S8: the decision can't be carried out (no new instances start).
+            return;
+        }
         let now = self.now;
         let sample = self.c.sample;
         for m in self.c.scaling[g as usize].members.clone() {
@@ -2664,4 +4986,13 @@ pub fn mix(mut z: u64) -> u64 {
     z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
     z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
     z ^ (z >> 31)
+}
+
+/// S4: a job run as reported.
+fn ka_sim_job_result(ty: &str, j: &JobRt) -> crate::result::JobResult {
+    crate::result::JobResult {
+        ty: ty.to_owned(),
+        start_s: j.start as f64 / 1e6,
+        completion_s: j.completed_at.map(|t| (t - j.start) as f64 / 1e6),
+    }
 }

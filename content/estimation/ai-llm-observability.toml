@@ -1,0 +1,34 @@
+# Estimation drills for LLM Usage Analytics.
+
+[[drill]]
+id = "launch-tokens-per-minute"
+kind = "capacity"
+prompt = "Your assistant gets {peak_rps} messages a second at peak, and launch day brings {launch_x} times that. Each message sends {tokens_in} tokens to the model and gets {tokens_out} back. How many tokens a minute does the launch use?"
+prompt_es = "Tu asistente recibe {peak_rps} mensajes por segundo en el pico, y el día de lanzamiento trae {launch_x} veces eso. Cada mensaje envía {tokens_in} tokens al modelo y recibe {tokens_out}. ¿Cuántos tokens por minuto usa el lanzamiento?"
+inputs = { peak_rps = 5, launch_x = 4, tokens_in = 800, tokens_out = 300 }
+formula = "peak_rps * launch_x * 60 * (tokens_in + tokens_out)"
+unit = "count"
+solution = "{peak_rps} × {launch_x} × 60 s × ({tokens_in} + {tokens_out}) = {answer} tokens a minute. The account allows 2,000,000, so the model is not what the launch breaks. The traces are the new work to plan for."
+solution_es = "{peak_rps} × {launch_x} × 60 s × ({tokens_in} + {tokens_out}) = {answer} tokens por minuto. La cuenta permite 2 000 000, así que el modelo no es lo que rompe el lanzamiento. Las trazas son el trabajo nuevo que hay que planificar."
+
+[[drill]]
+id = "warehouse-slots-at-launch"
+kind = "servers"
+prompt = "At launch, {traces_per_s} traces a second go to the warehouse, and each write holds a warehouse slot for {write_s} seconds. How many slots are busy on average?"
+prompt_es = "En el lanzamiento llegan {traces_per_s} trazas por segundo al almacén, y cada escritura ocupa un hueco del almacén {write_s} segundos. ¿Cuántos huecos están ocupados de media?"
+inputs = { traces_per_s = 20, write_s = 0.3 }
+formula = "traces_per_s * write_s"
+unit = "count"
+solution = "{traces_per_s} × {write_s} s = {answer} slots busy on average, out of a Snowflake instance's 8: 75%. It keeps up, but with little room, and anything that slows the writes makes them queue."
+solution_es = "{traces_per_s} × {write_s} s = {answer} huecos ocupados de media, de los 8 de una instancia de Snowflake: un 75 %. Da abasto, pero con poco margen, y cualquier cosa que ralentice las escrituras las pone en cola."
+
+[[drill]]
+id = "backlog-during-slowdown"
+kind = "capacity"
+prompt = "The warehouse slows down for {slow_s} seconds. Traces arrive at {traces_per_s} a second, but the slowed warehouse finishes only {done_per_s} a second. How many traces are waiting when the slowdown ends?"
+prompt_es = "El almacén de datos se ralentiza durante {slow_s} segundos. Las trazas llegan a {traces_per_s} por segundo, pero el almacén lento solo termina {done_per_s} por segundo. ¿Cuántas trazas esperan cuando acaba la ralentización?"
+inputs = { slow_s = 40, traces_per_s = 5, done_per_s = 1 }
+formula = "(traces_per_s - done_per_s) * slow_s"
+unit = "count"
+solution = "({traces_per_s} − {done_per_s}) × {slow_s} s = {answer} traces waiting. Somewhere has to hold them. In a Stream they wait safely and only the dashboards are late; written inline, each one is a chat message whose user is waiting too."
+solution_es = "({traces_per_s} − {done_per_s}) × {slow_s} s = {answer} trazas esperando. Algún sitio tiene que guardarlas. En un Stream esperan a salvo y solo se retrasan los paneles; escritas en línea, cada una es un mensaje del chat cuyo usuario también está esperando."

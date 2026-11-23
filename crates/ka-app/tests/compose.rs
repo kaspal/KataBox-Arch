@@ -30,15 +30,15 @@ fn every_image_maps_to_its_card() {
     assert_eq!(card("lb"), (K::Lb, F::Haproxy));
     assert_eq!(card("db"), (K::Sql, F::Postgresql));
     assert_eq!(card("replica"), (K::Sql, F::Mysql));
-    assert_eq!(card("cache"), (K::Cache, F::Redis));
+    assert_eq!(card("cache"), (K::Cache, F::Valkey));
     assert_eq!(card("sessions"), (K::Cache, F::Memcached));
     assert_eq!(card("events"), (K::Stream, F::Kafka));
-    assert_eq!(card("stream2"), (K::Stream, F::Kafka));
+    assert_eq!(card("stream2"), (K::Stream, F::Redpanda));
     assert_eq!(card("queue"), (K::Queue, F::Rabbitmq));
     assert_eq!(card("search"), (K::Search, F::Elasticsearch));
     assert_eq!(card("search2"), (K::Search, F::Opensearch));
     assert_eq!(card("docs"), (K::Nosql, F::Mongodb));
-    assert_eq!(card("wide"), (K::Nosql, F::Cassandra));
+    assert_eq!(card("wide"), (K::Nosql, F::Scylladb));
     assert_eq!(card("ledger"), (K::Nosql, F::Cassandra));
     // A build-only service (through a merge key) and an unknown image are guessed.
     let guessed: Vec<&str> = r.guessed.iter().map(|g| g.service.as_str()).collect();

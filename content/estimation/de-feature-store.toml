@@ -1,0 +1,34 @@
+# Estimation drills for ML Feature Store.
+
+[[drill]]
+id = "warehouse-point-reads"
+kind = "qps"
+prompt = "A Data Warehouse instance runs {concurrency} queries at a time, and every query takes at least {overhead_s} s. At most how many online feature reads a second can one instance answer?"
+prompt_es = "Una instancia de almacén de datos ejecuta {concurrency} consultas a la vez, y cada consulta tarda al menos {overhead_s} s. ¿Cuántas lecturas de características en línea por segundo puede responder como mucho una instancia?"
+inputs = { concurrency = 8, overhead_s = 0.3 }
+formula = "concurrency / overhead_s"
+unit = "rps"
+solution = "{concurrency} / {overhead_s} s ≈ {answer} reads a second, and each one takes 300 ms. The feature store gets 800 online reads a second, so the warehouse can't be the online store, even behind a cache whose misses grow with the traffic."
+solution_es = "{concurrency} / {overhead_s} s ≈ {answer} lecturas por segundo, y cada una tarda 300 ms. El almacén de características recibe 800 lecturas en línea por segundo, así que el almacén de datos no puede ser el almacén en línea, ni siquiera detrás de una caché cuyos fallos crecen con el tráfico."
+
+[[drill]]
+id = "slots-for-slowdown"
+kind = "servers"
+prompt = "{updates_per_s} feature updates arrive a second, and while the stream processor is slow each record holds its slot for {record_s} s. How many records must be in flight at once to keep up?"
+prompt_es = "Llegan {updates_per_s} actualizaciones de características por segundo, y mientras el procesador de streams va lento cada registro retiene su hueco durante {record_s} s. ¿Cuántos registros tienen que estar en curso a la vez para seguir el ritmo?"
+inputs = { updates_per_s = 198, record_s = 0.1 }
+formula = "updates_per_s * record_s"
+unit = "count"
+solution = "{updates_per_s} × {record_s} s ≈ {answer} records in flight (Little's law). Both the Stream's partitions and the Stream Processor's slots must be above that, with room to spare: 6 partitions or 16 slots let the lag grow every second; 32 of each keep it flat."
+solution_es = "{updates_per_s} × {record_s} s ≈ {answer} registros en curso (ley de Little). Tanto las particiones del Stream como los huecos del procesador de streams tienen que estar por encima, con margen: con 6 particiones o 16 huecos el retraso crece cada segundo; con 32 de cada uno se mantiene plano."
+
+[[drill]]
+id = "online-store-size"
+kind = "storage"
+prompt = "The online store holds one row of features for each of {users} users, and a row is about {row_kb} KB. About how many GB does it hold?"
+prompt_es = "El almacén en línea guarda una fila de características para cada uno de {users} usuarios, y una fila ocupa unos {row_kb} KB. ¿Cuántos GB guarda más o menos?"
+inputs = { users = 1000000, row_kb = 2 }
+formula = "users * row_kb / 1000000"
+unit = "GB"
+solution = "{users} × {row_kb} KB ≈ {answer} GB. Every user fits in one small NoSQL node, so the online store can hold everyone, not just the users seen in the last hour. That is what makes any read fast, whoever arrives."
+solution_es = "{users} × {row_kb} KB ≈ {answer} GB. Todos los usuarios caben en un nodo NoSQL pequeño, así que el almacén en línea puede tenerlos a todos, no solo a los que se han visto en la última hora. Eso es lo que hace rápida cualquier lectura, llegue quien llegue."

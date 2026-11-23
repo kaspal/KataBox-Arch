@@ -1,0 +1,383 @@
+{
+  "schema_version": 4,
+  "id": "de-residency-platform-naive",
+  "name": "One Data Platform, Two Jurisdictions (naive)",
+  "problem_id": "de-residency-platform",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "retries": 2,
+        "backoff_ms": 200,
+        "jitter": "full"
+      },
+      "group_id": null
+    },
+    {
+      "id": "dns",
+      "kind": "dns",
+      "flavour": "route53",
+      "label": "dns",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {
+        "ttl_s": 30,
+        "routing": "failover"
+      },
+      "group_id": null
+    },
+    {
+      "id": "alb-w",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "alb-w",
+      "position": {
+        "x": 304,
+        "y": 112
+      },
+      "props": {},
+      "group_id": "euw"
+    },
+    {
+      "id": "col-w",
+      "kind": "app",
+      "flavour": "go",
+      "label": "col-w",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": "euw"
+    },
+    {
+      "id": "kafka-w",
+      "kind": "stream",
+      "flavour": "kafka",
+      "label": "kafka-w",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {
+        "partitions": 256
+      },
+      "group_id": "euw"
+    },
+    {
+      "id": "flink-w",
+      "kind": "streamproc",
+      "flavour": "flink",
+      "label": "flink-w",
+      "position": {
+        "x": 912,
+        "y": 112
+      },
+      "props": {
+        "instances": 2,
+        "concurrency": 128
+      },
+      "group_id": "euw"
+    },
+    {
+      "id": "consent-w",
+      "kind": "nosql",
+      "flavour": "dynamodb",
+      "label": "consent-w",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": "euw"
+    },
+    {
+      "id": "lake-w",
+      "kind": "lakehouse",
+      "flavour": "iceberg",
+      "label": "lake-w",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {
+        "partitioning": "day",
+        "compaction": "hourly"
+      },
+      "group_id": "euw"
+    },
+    {
+      "id": "alb-us",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "alb-us",
+      "position": {
+        "x": 304,
+        "y": 224
+      },
+      "props": {},
+      "group_id": "use"
+    },
+    {
+      "id": "col-us",
+      "kind": "app",
+      "flavour": "go",
+      "label": "col-us",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": "use"
+    },
+    {
+      "id": "kafka-us",
+      "kind": "stream",
+      "flavour": "kafka",
+      "label": "kafka-us",
+      "position": {
+        "x": 912,
+        "y": 224
+      },
+      "props": {
+        "partitions": 256
+      },
+      "group_id": "use"
+    },
+    {
+      "id": "flink-us",
+      "kind": "streamproc",
+      "flavour": "flink",
+      "label": "flink-us",
+      "position": {
+        "x": 912,
+        "y": 336
+      },
+      "props": {
+        "instances": 2,
+        "concurrency": 128
+      },
+      "group_id": "use"
+    },
+    {
+      "id": "consent-us",
+      "kind": "nosql",
+      "flavour": "dynamodb",
+      "label": "consent-us",
+      "position": {
+        "x": 1216,
+        "y": 224
+      },
+      "props": {},
+      "group_id": "use"
+    },
+    {
+      "id": "lake-us",
+      "kind": "lakehouse",
+      "flavour": "iceberg",
+      "label": "lake-us",
+      "position": {
+        "x": 1216,
+        "y": 336
+      },
+      "props": {
+        "partitioning": "day",
+        "compaction": "hourly"
+      },
+      "group_id": "use"
+    },
+    {
+      "id": "alb-bi",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "alb-bi",
+      "position": {
+        "x": 304,
+        "y": 336
+      },
+      "props": {},
+      "group_id": "use"
+    },
+    {
+      "id": "bi",
+      "kind": "app",
+      "flavour": "go",
+      "label": "bi",
+      "position": {
+        "x": 608,
+        "y": 224
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": "use"
+    },
+    {
+      "id": "wh",
+      "kind": "warehouse",
+      "flavour": "snowflake",
+      "label": "wh",
+      "position": {
+        "x": 1216,
+        "y": 448
+      },
+      "props": {},
+      "group_id": "use"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-dns-http",
+      "from": "client",
+      "to": "dns",
+      "protocol": "http"
+    },
+    {
+      "id": "e-dns-alb-w-http",
+      "from": "dns",
+      "to": "alb-w",
+      "protocol": "http"
+    },
+    {
+      "id": "e-dns-alb-us-http",
+      "from": "dns",
+      "to": "alb-us",
+      "protocol": "http"
+    },
+    {
+      "id": "e-alb-w-col-w-http",
+      "from": "alb-w",
+      "to": "col-w",
+      "protocol": "http"
+    },
+    {
+      "id": "e-alb-us-col-us-http",
+      "from": "alb-us",
+      "to": "col-us",
+      "protocol": "http"
+    },
+    {
+      "id": "e-col-w-kafka-w-publish",
+      "from": "col-w",
+      "to": "kafka-w",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-col-us-kafka-us-publish",
+      "from": "col-us",
+      "to": "kafka-us",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-kafka-w-flink-w-consume",
+      "from": "kafka-w",
+      "to": "flink-w",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-kafka-us-flink-us-consume",
+      "from": "kafka-us",
+      "to": "flink-us",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-flink-w-consent-w-query",
+      "from": "flink-w",
+      "to": "consent-w",
+      "protocol": "query"
+    },
+    {
+      "id": "e-flink-us-consent-us-query",
+      "from": "flink-us",
+      "to": "consent-us",
+      "protocol": "query"
+    },
+    {
+      "id": "e-flink-w-lake-w-query",
+      "from": "flink-w",
+      "to": "lake-w",
+      "protocol": "query"
+    },
+    {
+      "id": "e-flink-us-lake-us-query",
+      "from": "flink-us",
+      "to": "lake-us",
+      "protocol": "query"
+    },
+    {
+      "id": "e-consent-w-consent-us-replicate",
+      "from": "consent-w",
+      "to": "consent-us",
+      "protocol": "replicate"
+    },
+    {
+      "id": "e-client-alb-bi-http",
+      "from": "client",
+      "to": "alb-bi",
+      "protocol": "http"
+    },
+    {
+      "id": "e-alb-bi-bi-http",
+      "from": "alb-bi",
+      "to": "bi",
+      "protocol": "http"
+    },
+    {
+      "id": "e-bi-wh-query",
+      "from": "bi",
+      "to": "wh",
+      "protocol": "query"
+    }
+  ],
+  "groups": [
+    {
+      "id": "euw",
+      "kind": "region",
+      "label": "eu-west",
+      "position": {
+        "x": 280,
+        "y": -40
+      },
+      "size": {
+        "w": 1168,
+        "h": 240
+      },
+      "parent_id": null,
+      "region_tag": "eu"
+    },
+    {
+      "id": "use",
+      "kind": "region",
+      "label": "us-east",
+      "position": {
+        "x": 280,
+        "y": 72
+      },
+      "size": {
+        "w": 1168,
+        "h": 464
+      },
+      "parent_id": null,
+      "region_tag": "us"
+    }
+  ],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

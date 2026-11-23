@@ -1,0 +1,34 @@
+# Estimation drills for Schedule Jobs on a Shared GPU Cluster.
+
+[[drill]]
+id = "urgent-gpus"
+kind = "servers"
+prompt = "On release day, {urgent_rps} urgent jobs arrive a second, and each one holds a GPU for about {job_s} seconds. About how many GPUs are busy with urgent work alone?"
+prompt_es = "El día de lanzamiento llegan {urgent_rps} trabajos urgentes por segundo, y cada uno ocupa una GPU unos {job_s} segundos. ¿Cuántas GPU están ocupadas más o menos solo con trabajo urgente?"
+inputs = { urgent_rps = 12, job_s = 2 }
+formula = "urgent_rps * job_s"
+unit = "count"
+solution = "Jobs a second × seconds each = GPUs busy: {urgent_rps} × {job_s} = {answer} GPUs, before the slow tail (the average job is a little longer than the median). That is most of a 32-GPU cluster, with no bulk work at all."
+solution_es = "Trabajos por segundo × segundos cada uno = GPU ocupadas: {urgent_rps} × {job_s} = {answer} GPU, antes de la cola lenta (el trabajo medio es algo más largo que la mediana). Eso es casi todo un clúster de 32 GPU, sin nada de trabajo masivo."
+
+[[drill]]
+id = "nodes-with-one-lost"
+kind = "servers"
+prompt = "Urgent work needs about {urgent_gpus} GPUs at its peak. A node has {gpus_per_node} GPUs, and you want the GPUs to be at most {target_pct}% busy. How many nodes do you need so that this still holds with one node lost?"
+prompt_es = "El trabajo urgente necesita unas {urgent_gpus} GPU en su pico. Un nodo tiene {gpus_per_node} GPU, y quieres que las GPU estén ocupadas como mucho al {target_pct} %. ¿Cuántos nodos necesitas para que se cumpla también con un nodo perdido?"
+inputs = { urgent_gpus = 25, gpus_per_node = 8, target_pct = 80 }
+formula = "urgent_gpus / (gpus_per_node * target_pct / 100) + 1"
+unit = "count"
+solution = "{urgent_gpus} / ({gpus_per_node} × {target_pct} %) nodes carry the urgent work, plus one for the node that fails: {answer}, so round up to 5 nodes. Bulk work doesn't count here: with a priority queue it only gets the GPUs left over, and it can wait."
+solution_es = "{urgent_gpus} / ({gpus_per_node} × {target_pct} %) nodos llevan el trabajo urgente, más uno por el nodo que falla: {answer}, así que redondea a 5 nodos. El trabajo masivo no cuenta aquí: con una cola con prioridad solo recibe las GPU que sobran, y puede esperar."
+
+[[drill]]
+id = "fifo-backlog"
+kind = "capacity"
+prompt = "On release day the cluster is asked for {demand_gpus} GPUs' worth of work, urgent and bulk, but has only {gpus} GPUs. With a first-in, first-out queue, how many seconds longer does a new urgent job wait after a minute of this?"
+prompt_es = "El día de lanzamiento al clúster se le piden {demand_gpus} GPU de trabajo, urgente y masivo, pero solo tiene {gpus} GPU. Con una cola FIFO, ¿cuántos segundos más espera un trabajo urgente nuevo después de un minuto así?"
+inputs = { demand_gpus = 45, gpus = 32 }
+formula = "(demand_gpus - gpus) * 60 / gpus"
+unit = "s"
+solution = "Every second, ({demand_gpus} - {gpus}) GPU-seconds of work are left over, so after a minute the pile holds ({demand_gpus} - {gpus}) × 60 GPU-seconds. All {gpus} GPUs work it off, and a new urgent job is behind all of it: about {answer} s more, already about three times the 8 s limit, and still growing. With priority, the urgent job skips the pile."
+solution_es = "Cada segundo sobran ({demand_gpus} - {gpus}) GPU-segundos de trabajo, así que tras un minuto el montón tiene ({demand_gpus} - {gpus}) × 60 GPU-segundos. Las {gpus} GPU lo despachan, y un trabajo urgente nuevo está detrás de todo: unos {answer} s más, ya unas tres veces el límite de 8 s, y sigue creciendo. Con prioridad, el trabajo urgente se salta el montón."

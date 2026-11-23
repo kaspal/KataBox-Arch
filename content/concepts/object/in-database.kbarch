@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "concept-object-in-database",
   "name": "Pastebin (pastes in the database)",
   "problem_id": "pastebin",

@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "concept-object-in-buckets",
   "name": "Pastebin (pastes in object storage)",
   "problem_id": "pastebin",

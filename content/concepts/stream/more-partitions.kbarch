@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "concept-stream-more-partitions",
   "name": "Online Judge (a stream with 96 partitions)",
   "problem_id": "online-judge",

@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "flaw-no-rate-limiter-fixed",
   "name": "Public API",
   "problem_id": null,
@@ -26,8 +26,8 @@
         "y": 170
       },
       "props": {
-        "limit_rps": 200,
-        "burst": 400
+        "burst": 400,
+        "limit_rps": 200
       },
       "group_id": null
     },

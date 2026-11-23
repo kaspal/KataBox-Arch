@@ -33,6 +33,8 @@ items = [
   "concept:cdn",
   "problem:static-site-cdn",
   "problem:pastebin",
+  "problem:comments",
+  "problem:promo-codes",
 ]
 
 [[path]]
@@ -69,6 +71,9 @@ items = [
   "pattern:outbox",
   "pattern:backpressure",
   "problem:news-feed",
+  "problem:password-reset",
+  "problem:matchmaking",
+  "problem:audit-log",
 ]
 
 [[path]]
@@ -100,6 +105,9 @@ items = [
   "problem:ad-clicks",
   "problem:leaderboard",
   "problem:ride-sharing",
+  "problem:hotel-booking",
+  "problem:shopping-cart",
+  "problem:web-search",
 ]
 
 [[path]]
@@ -129,6 +137,12 @@ items = [
   "guide:logs",
   "guide:tracing",
   "problem:flash-sale",
+  "problem:weather-proxy",
+  "problem:geo-ip",
+  "problem:rtb",
+  "problem:maps-eta",
+  "problem:fraud-detection",
+  "replay:retry-storm",
 ]
 
 [[path]]
@@ -154,4 +168,103 @@ items = [
   "problem:ride-sharing",
   "problem:flash-sale",
   "problem:exchange",
+  "guide:ws",
+  "problem:live-scores",
+  "problem:live-streaming",
+]
+
+[[path]]
+id = "incident-response"
+number = 6
+title = "Incident response"
+title_es = "Respuesta a incidentes"
+blurb = "Well-known kinds of outage, replayed in the simulator: watch each one happen, then fix the design so it survives the incident, a normal day and the aftershock."
+blurb_es = "Tipos de caída conocidos, repetidos en el simulador: mira cómo ocurre cada uno y arregla el diseño para que aguante el incidente, un día normal y la réplica."
+items = [
+  "replay:cache-stampede",
+  "replay:retry-storm",
+  "replay:unbounded-queue",
+  "replay:dns-ttl-failover",
+  "replay:bad-deploy",
+  "replay:hot-key-melt",
+  "pattern:circuit-breaker",
+  "replay:pool-exhaustion",
+  "replay:reconnect-storm",
+  "replay:metastable-retries",
+  "replay:split-brain",
+  "replay:poison-message",
+  "replay:cold-autoscale",
+  "replay:cascading-dependency",
+  "replay:limiter-fails-closed",
+  "replay:control-plane-down",
+  "replay:sync-replication-stall",
+  "replay:health-check-spiral",
+  "replay:failover-data-loss",
+  "replay:global-config-push",
+  "replay:backlog-recovery",
+]
+
+[[path]]
+id = "ai-systems"
+number = 7
+title = "AI systems"
+title_es = "Sistemas de IA"
+blurb = "Serving language models in production: token limits, GPUs and batching, caches, retrieval, failover and cost. Latency, throughput, limits and cost only; answer quality is out of scope."
+blurb_es = "Servir modelos de lenguaje en producción: límites de tokens, GPU y batching, cachés, recuperación, failover y coste. Solo latencia, rendimiento, límites y coste; la calidad de las respuestas queda fuera."
+items = [
+  "guide:infer",
+  "problem:ai-chatbot",
+  "problem:ai-summarize-batch",
+  "problem:ai-faq-semantic-cache",
+  "problem:ai-embed-ingest",
+  "problem:ai-moderation",
+  "problem:ai-llm-gateway",
+  "guide:vector",
+  "problem:ai-rag-qa",
+  "problem:ai-provider-failover",
+  "problem:ai-self-hosted-vllm",
+  "problem:ai-model-router",
+  "problem:ai-recsys-retrieval",
+  "problem:ai-voice-assistant",
+  "problem:ai-agent-tools",
+  "problem:ai-llm-observability",
+  "problem:ai-multitenant-rag",
+  "problem:ai-global-serving",
+  "problem:ai-code-autocomplete",
+  "problem:ai-batch-inference-100m",
+  "problem:ai-gpu-job-scheduler",
+  "problem:ai-answer-engine",
+]
+
+[[path]]
+id = "data-engineering"
+number = 8
+title = "Data engineering"
+title_es = "Ingeniería de datos"
+blurb = "Pipelines from source to dashboard: replicas and exports, streams and windows, lake tables and compaction, warehouses and concurrency, CDC, deadlines, idempotence, residency and recovery."
+blurb_es = "Pipelines de la fuente al panel: réplicas y exportaciones, streams y ventanas, tablas de lago y compactación, almacenes y concurrencia, CDC, plazos, idempotencia, residencia y recuperación."
+items = [
+  "guide:warehouse",
+  "guide:lakehouse",
+  "guide:streamproc",
+  "problem:de-nightly-etl",
+  "problem:de-clickstream-to-lake",
+  "problem:de-daily-dashboard",
+  "problem:de-iot-telemetry",
+  "problem:de-partner-file-import",
+  "problem:de-log-partitioning",
+  "problem:de-cdc-to-warehouse",
+  "problem:de-realtime-metrics",
+  "problem:de-lakehouse-compaction",
+  "problem:de-bi-concurrency",
+  "problem:de-sessionization",
+  "problem:de-backfill",
+  "problem:de-gdpr-deletes",
+  "problem:de-feature-store",
+  "problem:de-dedup-pipeline",
+  "problem:de-skewed-join",
+  "problem:de-residency-platform",
+  "problem:de-anomaly-detection",
+  "problem:de-kappa-reprocessing",
+  "problem:de-warehouse-outage",
 ]

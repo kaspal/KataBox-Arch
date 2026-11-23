@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "pattern-rate-limiting",
   "name": "Rate limiting",
   "problem_id": null,

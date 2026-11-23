@@ -1,0 +1,34 @@
+# Estimation drills for LLM Gateway for Many Teams.
+
+[[drill]]
+id = "team-limit"
+kind = "qps"
+prompt = "Each team may spend {team_tpm} tokens a minute, and a typical request is {tokens_in} tokens in and {tokens_out} tokens out. Your Rate Limiter counts requests a second per API key. About what Limit matches a team's share?"
+prompt_es = "Cada equipo puede gastar {team_tpm} tokens por minuto, y una petición típica son {tokens_in} tokens de entrada y {tokens_out} de salida. Tu Limitador de tasa cuenta peticiones por segundo por clave de API. ¿Qué Límite corresponde más o menos a la cuota de un equipo?"
+inputs = { team_tpm = 55000, tokens_in = 400, tokens_out = 60 }
+formula = "team_tpm / ((tokens_in + tokens_out) * 60)"
+unit = "rps"
+solution = "A request is about {tokens_in} + {tokens_out} = 460 tokens, so {team_tpm} tokens a minute are {team_tpm} / 460 / 60 ≈ {answer} requests a second: a Limit of 2. The limiter counts requests, so a team that sends long prompts still gets 2 a second; a limit that counts tokens would catch that, and this simulator doesn't have one."
+solution_es = "Una petición son unos {tokens_in} + {tokens_out} = 460 tokens, así que {team_tpm} tokens por minuto son {team_tpm} / 460 / 60 ≈ {answer} peticiones por segundo: un Límite de 2. El limitador cuenta peticiones, así que un equipo que envía prompts largos sigue teniendo 2 por segundo; un límite que contara tokens lo detectaría, y este simulador no lo tiene."
+
+[[drill]]
+id = "flood-tokens"
+kind = "capacity"
+prompt = "Nine teams send {teams_rps} requests a second between them, and one team's script sends {flood_rps}. A request is about {tokens} tokens. With no per-team limit, about how many tokens a minute reach the provider account?"
+prompt_es = "Nueve equipos envían {teams_rps} peticiones por segundo entre todos, y el script de un equipo envía {flood_rps}. Una petición son unos {tokens} tokens. Sin límite por equipo, ¿cuántos tokens por minuto llegan más o menos a la cuenta del proveedor?"
+inputs = { teams_rps = 7.2, flood_rps = 32, tokens = 460 }
+formula = "(teams_rps + flood_rps) * tokens * 60"
+unit = "count"
+solution = "({teams_rps} + {flood_rps}) × {tokens} × 60 ≈ {answer} tokens a minute, almost three times the account's 400,000. The provider refuses the excess, and it can't tell the flooding team from the other nine: everybody gets 429s."
+solution_es = "({teams_rps} + {flood_rps}) × {tokens} × 60 ≈ {answer} tokens por minuto, casi tres veces los 400 000 de la cuenta. El proveedor rechaza lo que sobra, y no distingue al equipo que inunda de los otros nueve: todos reciben 429."
+
+[[drill]]
+id = "account-runs-out"
+kind = "capacity"
+prompt = "The provider account's limit is a bucket of {account_tpm} tokens, refilled at {account_tpm} a minute. A flood spends {flood_tpm} tokens a minute. Starting full, about how many seconds until the bucket is empty?"
+prompt_es = "El límite de la cuenta del proveedor es un bucket de {account_tpm} tokens que se rellena a {account_tpm} por minuto. Una avalancha gasta {flood_tpm} tokens por minuto. Si empieza lleno, ¿en cuántos segundos más o menos se vacía el bucket?"
+inputs = { account_tpm = 400000, flood_tpm = 1080000 }
+formula = "account_tpm / (flood_tpm - account_tpm) * 60"
+unit = "s"
+solution = "The bucket loses {flood_tpm} - {account_tpm} = 680,000 tokens a minute more than it gets back, so its {account_tpm} last {account_tpm} / 680,000 × 60 ≈ {answer} seconds. In the simulator the refusals start at about 30 s, a little sooner, since the long requests make the real average larger than 460 tokens. A per-team limit keeps the account from ever emptying, instead of only delaying it."
+solution_es = "El bucket pierde {flood_tpm} - {account_tpm} = 680 000 tokens por minuto más de los que recupera, así que sus {account_tpm} duran {account_tpm} / 680 000 × 60 ≈ {answer} segundos. En el simulador los rechazos empiezan hacia los 30 s, algo antes, porque las peticiones largas hacen que la media real supere los 460 tokens. Un límite por equipo evita que la cuenta llegue a vaciarse, en vez de solo retrasarlo."

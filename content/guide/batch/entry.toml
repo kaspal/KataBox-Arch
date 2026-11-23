@@ -1,0 +1,197 @@
+kind = "batch"
+one_liner = "A cluster that splits a large job into many tasks and runs them in parallel until the whole job is done."
+one_liner_es = "Un clúster que divide un trabajo grande en muchas tareas y las ejecuta en paralelo hasta terminar el trabajo entero."
+
+use_when = [
+  "A large amount of data must be processed by a deadline, such as a nightly report",
+  "Nobody waits for the result in a request",
+  "The work splits into many independent pieces",
+]
+use_when_es = [
+  "Hay que procesar una gran cantidad de datos antes de un plazo, como un informe nocturno",
+  "Nadie espera el resultado dentro de una petición",
+  "El trabajo se divide en muchas piezas independientes",
+]
+skip_when = [
+  "Results are needed within seconds of each event, which calls for a stream processor",
+  "The data is small enough for one server or one database query",
+]
+skip_when_es = [
+  "Los resultados se necesitan segundos después de cada evento, lo que pide un procesador de streams",
+  "Los datos son lo bastante pocos para un servidor o una consulta a la base de datos",
+]
+
+formula = "job time ≈ time until the last task finishes; parallel tasks = nodes × executors; each task = its share of the work + task overhead; skew makes a few tasks much bigger; salting splits the biggest; speculation re-runs slow tasks near the end; a spot interruption restarts its tasks from zero, or from the last checkpoint"
+formula_es = "tiempo del trabajo ≈ tiempo hasta que termina la última tarea; tareas en paralelo = nodos × ejecutores; cada tarea = su parte del trabajo + sobrecoste por tarea; el sesgo hace algunas tareas mucho más grandes; el salting divide las más grandes; la especulación relanza las tareas lentas al final; una interrupción spot reinicia sus tareas desde cero, o desde el último checkpoint"
+
+gains = [
+  "Huge jobs finish in hours instead of days",
+  "Adding nodes cuts the time, as long as the work spreads evenly",
+  "Cheaper, interruptible capacity can run much of the work",
+]
+gains_es = [
+  "Los trabajos enormes terminan en horas en lugar de días",
+  "Añadir nodos reduce el tiempo, siempre que el trabajo se reparta bien",
+  "Capacidad más barata e interrumpible puede hacer buena parte del trabajo",
+]
+costs = [
+  "The job is only as fast as its slowest task",
+  "Results are late by design: hours, not seconds",
+  "Interrupted nodes lose work unless the job checkpoints",
+]
+costs_es = [
+  "El trabajo va tan rápido como su tarea más lenta",
+  "Los resultados llegan tarde por diseño: horas, no segundos",
+  "Los nodos interrumpidos pierden trabajo salvo que el trabajo haga checkpoints",
+]
+
+works_with = ["object", "lakehouse", "warehouse", "scheduler", "sql"]
+practice = []
+
+interview_tip = "State the input size, the deadline and the number of parallel tasks, then talk about the slowest task: what skew is in the data and how salting fixes it."
+interview_tip_es = "Indica el tamaño de la entrada, el plazo y el número de tareas en paralelo, y luego habla de la tarea más lenta: qué sesgo hay en los datos y cómo lo arregla el salting."
+
+not_simulated = [
+  "Shuffle traffic between nodes over the network",
+  "Memory spills to disk",
+  "Cluster start-up time",
+  "Data locality",
+  "The query planner and its optimisations",
+]
+not_simulated_es = [
+  "El tráfico de shuffle entre nodos por la red",
+  "Los volcados de memoria a disco",
+  "El tiempo de arranque del clúster",
+  "La localidad de los datos",
+  "El planificador de consultas y sus optimizaciones",
+]
+
+[[sim]]
+prop = "instances"
+note = "Worker nodes in the cluster. More nodes run more tasks at once."
+note_es = "Nodos de trabajo del clúster. Más nodos ejecutan más tareas a la vez."
+
+[[sim]]
+prop = "executors"
+note = "Tasks one node runs in parallel."
+note_es = "Tareas que un nodo ejecuta en paralelo."
+
+[[sim]]
+prop = "task_overhead_ms"
+note = "Fixed time added to every task for scheduling and start-up. Many tiny tasks waste time on it."
+note_es = "Tiempo fijo que se suma a cada tarea por planificación y arranque. Muchas tareas diminutas lo desperdician."
+
+[[sim]]
+prop = "salting"
+note = "Splits each of the biggest, skewed tasks into this many pieces, so they spread over several executors."
+note_es = "Divide cada una de las tareas más grandes y sesgadas en este número de piezas, para que se repartan entre varios ejecutores."
+
+[[sim]]
+prop = "speculation"
+note = "Re-runs slow tasks on free executors near the end of the job. Helps with random stragglers, not with skew: a copy of a huge task is just as huge."
+note_es = "Relanza las tareas lentas en ejecutores libres cerca del final del trabajo. Ayuda con rezagadas aleatorias, no con el sesgo: una copia de una tarea enorme es igual de enorme."
+
+[[sim]]
+prop = "spot_share"
+note = "Share of nodes on cheaper, interruptible capacity. An interruption kills that node's executors and their tasks start again."
+note_es = "Parte de los nodos en capacidad más barata e interrumpible. Una interrupción mata los ejecutores de ese nodo y sus tareas vuelven a empezar."
+
+[[sim]]
+prop = "checkpoint"
+note = "When on, an interrupted task restarts from its last checkpoint instead of from zero."
+note_es = "Si está activo, una tarea interrumpida se reanuda desde su último checkpoint en lugar de desde cero."
+
+[[sim]]
+cost = "per_instance_month"
+note = "A monthly price per node, the same for every flavour. No spot discount is applied yet."
+note_es = "Un precio mensual por nodo, igual para todos los sabores. Aún no se aplica descuento spot."
+
+[flavours_compared]
+flavours = ["spark_emr", "dataproc", "databricks"]
+
+[[flavours_compared.rows]]
+label = "Cloud"
+label_es = "Nube"
+cells = ["AWS", "Google Cloud", "AWS, Azure or Google Cloud"]
+cells_es = ["AWS", "Google Cloud", "AWS, Azure o Google Cloud"]
+
+[[flavours_compared.rows]]
+label = "Engine"
+label_es = "Motor"
+cells = ["Open-source Spark", "Open-source Spark and Hadoop", "Spark with Databricks' own runtime"]
+cells_es = ["Spark de código abierto", "Spark y Hadoop de código abierto", "Spark con el runtime propio de Databricks"]
+
+[[flavours_compared.rows]]
+label = "What you manage"
+label_es = "Qué gestionas"
+cells = ["Cluster sizing and settings", "Cluster sizing and settings", "Less: the platform tunes much of it"]
+cells_es = ["El tamaño y los ajustes del clúster", "El tamaño y los ajustes del clúster", "Menos: la plataforma ajusta buena parte"]
+
+[[pitfalls]]
+title = "Skew makes one task the whole job"
+title_es = "El sesgo convierte una tarea en todo el trabajo"
+body = "One key holds a big share of the data, so its task is many times larger than the rest. Every other executor finishes and sits idle while that one task runs, and the job misses its deadline."
+body_es = "Una clave tiene una gran parte de los datos, así que su tarea es muchas veces mayor que las demás. Todos los demás ejecutores terminan y esperan ociosos mientras esa tarea sigue, y el trabajo no llega a su plazo."
+fix = "Salt the hot keys so the biggest tasks are split across several executors. Adding nodes alone doesn't help."
+fix_es = "Aplica salting a las claves calientes para que las tareas más grandes se repartan entre varios ejecutores. Añadir nodos por sí solo no ayuda."
+
+[[pitfalls]]
+title = "Speculation against skew"
+title_es = "Especulación contra el sesgo"
+body = "Speculation is turned on to fix a slow task caused by skew. The copy has the same amount of work, so it finishes no sooner and only burns an executor."
+body_es = "Se activa la especulación para arreglar una tarea lenta causada por el sesgo. La copia tiene la misma cantidad de trabajo, así que no termina antes y solo gasta un ejecutor."
+fix = "Use speculation for random stragglers, and salting for skew."
+fix_es = "Usa la especulación para rezagadas aleatorias, y el salting para el sesgo."
+
+[[pitfalls]]
+title = "Spot nodes without checkpoints"
+title_es = "Nodos spot sin checkpoints"
+body = "Most nodes run on interruptible capacity to save money. Each interruption throws away the progress of its long tasks, which start again from zero, and the job runs past its deadline."
+body_es = "La mayoría de los nodos usan capacidad interrumpible para ahorrar. Cada interrupción tira el progreso de sus tareas largas, que vuelven a empezar desde cero, y el trabajo se pasa de su plazo."
+fix = "Turn on checkpoints, or keep a smaller share of nodes on spot."
+fix_es = "Activa los checkpoints, o deja una parte menor de los nodos en spot."
+
+[[sources]]
+flavour = "spark_emr"
+title = "Amazon EMR documentation"
+url = "https://docs.aws.amazon.com/emr/"
+checked = false
+
+[[sources]]
+flavour = "dataproc"
+title = "Google Cloud Dataproc documentation"
+url = "https://cloud.google.com/dataproc/docs"
+checked = false
+
+[[sources]]
+flavour = "databricks"
+title = "Databricks documentation"
+url = "https://docs.databricks.com/"
+checked = false
+
+[[quiz]]
+q = "A job misses its deadline because one key holds most of the data. Which change helps most?"
+q_es = "Un trabajo no llega a su plazo porque una clave tiene la mayor parte de los datos. ¿Qué cambio ayuda más?"
+options = ["Turn on speculation", "Double the number of nodes", "Raise the task overhead", "Salt the hot key so its task is split"]
+options_es = ["Activar la especulación", "Duplicar el número de nodos", "Subir el sobrecoste por tarea", "Aplicar salting a la clave caliente para dividir su tarea"]
+answer = 3
+why = "The job waits for its biggest task. Salting splits it over several executors. More nodes don't shrink that one task, and a speculative copy of it is just as big."
+why_es = "El trabajo espera a su tarea más grande. El salting la reparte entre varios ejecutores. Más nodos no achican esa tarea, y una copia especulativa es igual de grande."
+
+[[quiz]]
+q = "A few tasks run slowly at random, on whatever node they land on. What fits best?"
+q_es = "Unas pocas tareas van lentas al azar, en el nodo donde caigan. ¿Qué encaja mejor?"
+options = ["Speculation, which re-runs slow tasks on free executors", "Salting", "Fewer executors per node", "Checkpoints"]
+options_es = ["La especulación, que relanza las tareas lentas en ejecutores libres", "El salting", "Menos ejecutores por nodo", "Los checkpoints"]
+answer = 0
+why = "A random straggler finishes sooner as a fresh copy elsewhere. Salting is for tasks that are big because of the data, not slow by chance."
+why_es = "Una rezagada aleatoria termina antes como copia nueva en otro sitio. El salting es para tareas grandes por los datos, no lentas por azar."
+
+[[quiz]]
+q = "Half the nodes are on spot capacity and get interrupted during a long job. What does checkpointing change?"
+q_es = "La mitad de los nodos están en capacidad spot y se interrumpen durante un trabajo largo. ¿Qué cambia el checkpointing?"
+options = ["Interruptions no longer happen", "Interrupted tasks resume from their last checkpoint instead of from zero", "Spot nodes cost the same as regular ones", "The job skips the interrupted tasks"]
+options_es = ["Las interrupciones dejan de ocurrir", "Las tareas interrumpidas se reanudan desde su último checkpoint en lugar de desde cero", "Los nodos spot cuestan lo mismo que los normales", "El trabajo se salta las tareas interrumpidas"]
+answer = 1
+why = "Interruptions still kill executors, but the lost work is only what ran since the last checkpoint, so the job stays closer to its deadline."
+why_es = "Las interrupciones siguen matando ejecutores, pero el trabajo perdido es solo lo hecho desde el último checkpoint, así que el trabajo se mantiene más cerca de su plazo."

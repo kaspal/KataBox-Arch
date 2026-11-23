@@ -1,0 +1,7 @@
+A media server sits in the middle of live audio and video. It works in one of two ways. As an **SFU** (selective forwarding unit), it receives each participant's stream once and forwards it to the others, with no re-encoding, so the delay stays under a second. Video calls and live rooms work this way. As a **live encoder**, it transcodes a channel into one or more qualities (renditions) and cuts it into short **segments** that players fetch over HTTP, usually through a CDN.
+
+The two modes trade delay for reach. An SFU is fast but each server forwards only so many streams. Segment-based delivery reaches a huge audience through a CDN, but players stay about **three segments** behind live, so a stream with segments of a few seconds is several seconds late. Shorter segments lower the delay at the cost of more requests.
+
+In the simulator, each instance has a stream capacity: forwarded streams for an SFU, transcoded channels for an encoder. Latency is processing time for an SFU, and about three segments plus processing for an encoder. The renditions and bandwidth settings on the card describe the server but aren't used in the simulation.
+
+**How the simulator bills this.** LiveKit and mediasoup run on an SFU node at $70 a month per instance. Wowza is $250 a month per instance. AWS Elemental MediaLive is $2,190 a month per instance, a channel running all month. These are teaching prices; source to be confirmed.

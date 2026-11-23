@@ -1,0 +1,34 @@
+# Estimation drills for Orders Into the Warehouse.
+
+[[drill]]
+id = "writes-in-flight"
+kind = "capacity"
+prompt = "Your pipeline copies {rate} order changes a second into the warehouse, and each warehouse write takes about {write_s} s. How many writes are in flight at once, on average?"
+prompt_es = "Tu tubería copia {rate} cambios de pedido por segundo al almacén de datos, y cada escritura en el almacén tarda unos {write_s} s. ¿Cuántas escrituras hay en curso a la vez, de media?"
+inputs = { rate = 12, write_s = 0.34 }
+formula = "rate * write_s"
+unit = "count"
+solution = "Writes in flight = rate × time per write: {rate} × {write_s} s ≈ {answer}. Each of them holds a Stream partition, a Stream Processor slot and a warehouse slot, so the smallest of those three caps has to be well above this number."
+solution_es = "Escrituras en curso = ritmo × tiempo por escritura: {rate} × {write_s} s ≈ {answer}. Cada una retiene una partición del Stream, un hueco del procesador de streams y un hueco del almacén, así que el menor de esos tres topes tiene que quedar muy por encima de este número."
+
+[[drill]]
+id = "slow-warehouse-slots"
+kind = "servers"
+prompt = "The warehouse slows down and every write now takes {write_s} s instead of 0.34 s. Changes still arrive at {rate} a second. How many writes must be in flight at once (partitions, processor slots and warehouse slots alike) for the pipeline to keep up?"
+prompt_es = "El almacén de datos se ralentiza y cada escritura tarda ahora {write_s} s en lugar de 0,34 s. Los cambios siguen llegando a {rate} por segundo. ¿Cuántas escrituras tienen que estar en curso a la vez (particiones, huecos del procesador y huecos del almacén por igual) para que la tubería siga el ritmo?"
+inputs = { rate = 12, write_s = 1.84 }
+formula = "rate * write_s"
+unit = "count"
+solution = "{rate} × {write_s} s ≈ {answer} writes in flight. A Stream with 6 partitions can't get there, however many processor slots you add; 24 partitions, 24 Flink slots and 3 Snowflake instances (24 writes) can."
+solution_es = "{rate} × {write_s} s ≈ {answer} escrituras en curso. Un Stream con 6 particiones no llega, por muchos huecos de procesador que añadas; 24 particiones, 24 huecos de Flink y 3 instancias de Snowflake (24 escrituras) sí."
+
+[[drill]]
+id = "burst-backlog"
+kind = "capacity"
+prompt = "During a flash sale, {burst_rate} changes a second arrive for {burst_s} seconds, but the pipeline writes at most {capacity} a second. How many changes pile up in the Stream by the end of the sale?"
+prompt_es = "Durante una venta flash llegan {burst_rate} cambios por segundo durante {burst_s} segundos, pero la tubería escribe como mucho {capacity} por segundo. ¿Cuántos cambios se acumulan en el Stream al final de la venta?"
+inputs = { burst_rate = 36, burst_s = 30, capacity = 18 }
+formula = "(burst_rate - capacity) * burst_s"
+unit = "count"
+solution = "({burst_rate} - {capacity}) × {burst_s} s = {answer} changes waiting. Nothing is lost, because the Stream keeps them, but after the sale they clear only at the capacity left over (18 - 12 = 6 a second), so the last ones wait well over the 15 s freshness limit."
+solution_es = "({burst_rate} - {capacity}) × {burst_s} s = {answer} cambios esperando. No se pierde nada, porque el Stream los guarda, pero tras la venta solo se vacían a la capacidad que sobra (18 - 12 = 6 por segundo), así que los últimos esperan mucho más que el límite de frescura de 15 s."

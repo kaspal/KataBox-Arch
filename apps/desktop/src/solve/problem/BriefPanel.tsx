@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Calculator, ChevronDown, Lightbulb, Lock, Ruler } from "lucide-react";
+import { Calculator, CheckCircle2, ChevronDown, Lightbulb, Lock, Ruler, Wallet } from "lucide-react";
 import type { ProblemBrief } from "@/bindings";
 import { useReportError } from "@/app/dialogs";
 import { Markdown } from "@/components/Markdown";
@@ -14,7 +14,8 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { queryKeys, useDrills, useEstimateStatuses, useSubmissions } from "@/lib/queries";
 import { EstimateDrill } from "@/practice/EstimateDrill";
-import { DifficultyBadge, StatusMark, useLocalized } from "@/pages/Problems";
+import { DifficultyBadge, problemNumber, StatusMark, useLocalized } from "@/pages/Problems";
+import { toDesign, useEditor } from "@/solve/store";
 import { CompareButton } from "@/solve/compare/CompareButton";
 import { CostSpeedChart } from "@/solve/problem/CostSpeedChart";
 
@@ -55,6 +56,62 @@ export function useUnlockHint(id: string) {
   return { unlock, busy };
 }
 
+/** M8.5: the "same SLO, half the cost" challenge: locked until the problem is solved, then
+ * its target, the best try, and a button that judges the canvas against the target. */
+export function ChallengeBanner({ brief }: { brief: ProblemBrief }) {
+  const { t, i18n } = useTranslation();
+  const report = useReportError();
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const [outcome, setOutcome] = useState<{ passed: boolean; cost: number } | null>(null);
+  const c = brief.summary.challenge;
+  if (!c) return null;
+  const usd = new Intl.NumberFormat(i18n.language, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  const label = c.ratio <= 0.5 ? t("challenge.half").toLowerCase() : t("challenge.minus", { pct: Math.round((1 - c.ratio) * 100) });
+  const submit = async () => {
+    setBusy(true);
+    try {
+      const j = await api.submitChallenge(brief.summary.id, toDesign(useEditor.getState()));
+      setOutcome({ passed: j.verdict === "accepted", cost: j.cost_month });
+      await qc.invalidateQueries({ queryKey: queryKeys.brief(brief.summary.id) });
+      await qc.invalidateQueries({ queryKey: queryKeys.problems });
+    } catch (e) {
+      report(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <section className="space-y-2 rounded-xl border border-dashed bg-card p-3" data-testid="challenge-banner" aria-labelledby="challenge-h">
+      <h3 id="challenge-h" className="flex items-center gap-1.5 text-sm font-semibold">
+        <Wallet aria-hidden className="size-4" />
+        {t("challenge.filter")}
+        {c.solved && <CheckCircle2 aria-label={t("challenge.solved")} className="size-4 text-green" />}
+      </h3>
+      {!brief.solved ? (
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Lock aria-hidden className="size-3.5" />
+          {t("challenge.locked")}
+        </p>
+      ) : (
+        <>
+          <p className="text-xs">{t("challenge.banner", { label, target: usd.format(c.target_cost), pct: Math.round(c.ratio * 100) })}</p>
+          {c.best_cost !== null && <p className="text-xs text-muted-foreground">{t("challenge.best", { cost: usd.format(c.best_cost) })}</p>}
+          <Button size="sm" variant="outline" className="h-auto w-full gap-2 whitespace-normal py-1.5 text-left" disabled={busy} onClick={() => void submit()} data-testid="challenge-submit">
+            <Wallet aria-hidden className="size-3.5" />
+            {t("challenge.submit")}
+          </Button>
+          {outcome && (
+            <p role="status" className={outcome.passed ? "text-xs text-green" : "text-xs text-terracotta-ink"}>
+              {t(outcome.passed ? "challenge.passed" : "challenge.failed", { cost: usd.format(outcome.cost), target: usd.format(c.target_cost) })}
+            </p>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
 export function BriefPanel({ brief }: { brief: ProblemBrief }) {
   const { t, i18n } = useTranslation();
   const loc = useLocalized();
@@ -66,6 +123,8 @@ export function BriefPanel({ brief }: { brief: ProblemBrief }) {
   const hints = loc.es ? brief.hints_es : brief.hints_en;
   // A Find-the-flaw drill (M5.3) runs as the problem `flaw--<id>`: no difficulty, no topic.
   const drill = p.id.startsWith("flaw--");
+  // An outage replay (M10) runs as the problem `outage--<id>`.
+  const replay = p.id.startsWith("outage--");
   // Text from an imported pack renders with images as alt text (M6.4).
   const trust = p.pack !== null ? "pack" : "app";
 
@@ -73,11 +132,12 @@ export function BriefPanel({ brief }: { brief: ProblemBrief }) {
     <div className="space-y-5" data-testid="brief">
       <div className="space-y-1">
         <div className="flex items-center gap-3">
-          <span className="font-mono text-xs text-muted-foreground">#{p.number}</span>
+          <span className="font-mono text-xs text-muted-foreground">{problemNumber(p)}</span>
           {drill ? <span className="text-xs font-semibold text-terracotta-ink">{t("flaws.drill")}</span> : <DifficultyBadge d={p.difficulty} />}
+          {replay && <span className="text-xs font-semibold text-terracotta-ink">{t("replays.drill")}</span>}
           <StatusMark status={p.status} />
         </div>
-        {drill ? <p className="text-xs text-muted-foreground">{t("flaws.task")}</p> : <p className="text-xs text-muted-foreground">{t("brief.teaches", { what: loc.teaches(p) })}</p>}
+        {drill ? <p className="text-xs text-muted-foreground">{t("flaws.task")}</p> : replay ? <p className="text-xs text-muted-foreground">{t("replays.task")}</p> : <p className="text-xs text-muted-foreground">{t("brief.teaches", { what: loc.teaches(p) })}</p>}
       </div>
       <Markdown trust={trust}>{loc.es ? brief.statement_es : brief.statement_en}</Markdown>
       <Section title={t("brief.targets")}>
@@ -93,6 +153,7 @@ export function BriefPanel({ brief }: { brief: ProblemBrief }) {
           {t("brief.numbers")}
         </Link>
       </Section>
+      <ChallengeBanner brief={brief} />
       <EstimateFirst problemId={p.id} />
       <Section title={t("brief.traffic")}>
         <ul className="space-y-1 text-sm">

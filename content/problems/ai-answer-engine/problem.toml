@@ -1,0 +1,59 @@
+id = "ai-answer-engine"
+number = 20
+set = 1
+track = "ai"
+difficulty = "hard"
+title = "Web Answer Engine"
+title_es = "Motor de respuestas web"
+teaches = "Put an exact answer cache in front of a search, vector and chat-model pipeline, so trending queries and long peaks stay inside the model's per-minute limits and the token bill"
+teaches_es = "Poner una caché exacta de respuestas delante de un pipeline de búsqueda, búsqueda vectorial y modelo de chat, para que las consultas en tendencia y los picos largos queden dentro de los límites por minuto del modelo y de la factura de tokens"
+tags = ["ai", "answer-cache", "key-skew", "rate-limits", "token-cost", "vector-search"]
+requires = ["search", "vector", "infer"]
+
+[nfr]
+peak_rps = 200
+p95_ms = 10000
+availability = 0.99
+budget_usd = 5000000
+
+[[request_types]]
+id = "ask"
+name = "Ask the answer engine a question"
+name_es = "Hacer una pregunta al motor de respuestas"
+share = 1.0
+route = ["edge?", "compute", "cache?", "datastore:search", "model:embed", "datastore:vector", "model:chat"]
+cacheable = true
+key_space = 20000000
+key_skew = { zipf = 0.95 }
+value_kb = 4
+tokens_in = { mean = 1500, p95 = 2500 }
+tokens_out = { mean = 250, p95 = 500 }
+top_k = 20
+semantic_repeat_share = 0.25
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "storm"
+name = "A story breaks: everyone asks the same few questions"
+name_es = "Estalla una noticia: todos hacen las mismas pocas preguntas"
+hidden = true
+duration_s = 180
+traffic = { spike = { at = 10, x = 3, for = 170 } }
+key_skew_override = { zipf = 1.2 }
+pass = { error_rate = 0.02, availability = 0.98 }
+
+[[tests]]
+id = "long-peak"
+name = "The evening peak lasts four minutes"
+name_es = "El pico de la tarde dura cuatro minutos"
+hidden = true
+duration_s = 240
+traffic = { flat = 2 }
+pass = { error_rate = 0.02, availability = 0.98 }
+
+[pass]
+error_rate = 0.01

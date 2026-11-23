@@ -27,16 +27,43 @@ pub const SIM_FIELDS: [&str; 6] = [
     "failover_s",
     "write_slots",
 ];
-pub const COST_FIELDS: [&str; 5] = [
+pub const COST_FIELDS: &[&str] = &[
     "per_instance_month",
     "per_lane_month",
     "per_gb_month",
     "per_million",
     "per_million_write",
+    // Usage meters (M8).
+    "tokens_in_m",
+    "tokens_out_m",
+    "tb_scanned",
+    "conn_minutes_m",
+    "messages_m",
+];
+/// Kinds added in M8: their entries must list what isn't simulated and say how the
+/// simulator bills them.
+pub const M8_KINDS: &[ComponentKind] = &[
+    ComponentKind::Ws,
+    ComponentKind::Idp,
+    ComponentKind::External,
+    ComponentKind::Infer,
+    ComponentKind::Batch,
+    ComponentKind::Media,
+    ComponentKind::Coord,
+    ComponentKind::Vector,
+    ComponentKind::Warehouse,
+    ComponentKind::Lakehouse,
+    ComponentKind::Tsdb,
+    ComponentKind::Dbproxy,
+    ComponentKind::Graph,
+    ComponentKind::Streamproc,
+    ComponentKind::Mqtt,
+    ComponentKind::Connector,
+    ComponentKind::Config,
 ];
 /// Props the simulator doesn't read (design notes only): an "In the simulator" row may not
 /// name them. `tests/guide.rs` checks `ka-sim` still ignores each one.
-pub const NOT_SIMULATED: [&str; 9] = [
+pub const NOT_SIMULATED: &[&str] = &[
     "consistency",
     "eviction",
     "interval_s",
@@ -46,6 +73,11 @@ pub const NOT_SIMULATED: [&str; 9] = [
     "retention_days",
     "retention_h",
     "sample_rate",
+    // M8 kinds: described in their entries, not simulated.
+    "client_limit",
+    "renditions",
+    "bandwidth_gbps",
+    "dims",
 ];
 
 #[derive(Debug, Clone)]
@@ -181,6 +213,28 @@ pub fn validate_guide(
         let (pe, ps) = (paragraphs(&g.md_en), paragraphs(&g.md_es));
         if pe == 0 || pe != ps {
             bad(format!("entry.md has {pe} paragraphs and entry.es.md {ps}"));
+        }
+        // M8: what isn't simulated, and how it is billed.
+        if e.not_simulated.len() != e.not_simulated_es.len()
+            || e.not_simulated
+                .iter()
+                .chain(&e.not_simulated_es)
+                .any(|s| s.trim().is_empty())
+        {
+            bad("`not_simulated` needs the same items in English and Spanish".into());
+        }
+        if M8_KINDS.contains(&e.kind) {
+            if e.not_simulated.is_empty() {
+                bad("`not_simulated` needs at least one item for a kind added in M8".into());
+            }
+            if !g.md_en.contains("**How the simulator bills this.**")
+                || !g.md_es.contains("**Cómo lo factura el simulador.**")
+            {
+                bad(
+                    "entry.md needs a \"How the simulator bills this\" paragraph (both languages)"
+                        .into(),
+                );
+            }
         }
         // The simulator rows name real registry values; numbers come from the registry.
         if e.sim.is_empty() {

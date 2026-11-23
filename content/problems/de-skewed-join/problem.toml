@@ -1,0 +1,59 @@
+id = "de-skewed-join"
+track = "de"
+number = 16
+set = 1
+difficulty = "hard"
+title = "A Join with One Giant Key"
+title_es = "Un join con una clave gigante"
+teaches = "Split the hot key of a skewed join (salting) so no single task sets the job's length; more executors and speculative execution don't help"
+teaches_es = "Dividir la clave caliente de un join sesgado (salting) para que ninguna tarea sola marque la duración del trabajo; más ejecutores y la ejecución especulativa no ayudan"
+tags = ["batch", "spark", "skew", "salting", "spot", "checkpoints", "deadlines"]
+
+# Scaled time: the real job has a 4-hour window; here it is 480 simulated seconds
+# (1 simulated second stands for 30 real seconds). The statement and editorial say so.
+# The job is the only work: no client traffic.
+# The job's skew is fixed (a job's shape can't vary per test), so the hidden tests vary the
+# spot interruptions instead: the hot-key task is what they hurt.
+
+[nfr]
+peak_rps = 0
+p95_ms = 1000
+availability = 0.999
+budget_usd = 2500
+
+[[request_types]]
+id = "join"
+name = "Join tonight's orders with sellers"
+name_es = "Unir los pedidos de esta noche con los vendedores"
+kind = "job"
+share = 0.0
+route = ["datastore:object", "datastore:write:warehouse"]
+# 2,000 tasks (one per seller partition), Zipf skew 1.0: the biggest seller holds about 12%
+# of the work, about 330 executor-seconds in a single task.
+job = { work_units = 2700, tasks = 2000, skew = 1.0, starts = [0] }
+
+[[tests]]
+id = "normal"
+name = "A regular night"
+name_es = "Una noche normal"
+duration_s = 700
+
+[[tests]]
+id = "spot-early"
+name = "All spot executors are taken back for two hours, early in the night"
+name_es = "Te quitan todos los ejecutores spot durante dos horas, al principio de la noche"
+hidden = true
+duration_s = 700
+chaos = [{ spot = { kind = "batch", all = true, at = 60, share = 1.0, for = 240 } }]
+
+[[tests]]
+id = "spot-late"
+name = "All spot executors are taken back for 15 minutes, late in the night"
+name_es = "Te quitan todos los ejecutores spot durante 15 minutos, al final de la noche"
+hidden = true
+duration_s = 700
+chaos = [{ spot = { kind = "batch", all = true, at = 300, share = 1.0, for = 30 } }]
+
+[pass]
+error_rate = 0.001
+job_deadline_s = 480

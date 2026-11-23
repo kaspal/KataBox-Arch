@@ -9,6 +9,7 @@ pub mod frames;
 pub mod guide;
 pub mod kbarch;
 pub mod live;
+pub mod outages;
 pub mod packs;
 pub mod patterns;
 pub mod practice;
@@ -29,6 +30,8 @@ use serde::Serialize;
 use serde_json::Value;
 
 pub use error::{AppError, AppErrorCode};
+/// The judge's verdict on a design (for the challenge command, M8.5).
+pub use ka_judge::Judgement;
 pub use runs::{ProblemTest, RunControl, RunInfo, RunRequest, SANDBOX_SEED, breaking_point};
 pub use sandbox::SandboxPreset;
 

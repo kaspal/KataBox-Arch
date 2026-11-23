@@ -1,0 +1,54 @@
+id = "ai-code-autocomplete"
+number = 17
+set = 1
+track = "ai"
+difficulty = "hard"
+title = "Code Autocomplete as You Type"
+title_es = "Autocompletado de código mientras escribes"
+teaches = "Fit a model call into a keystroke's budget: a small fast model on GPUs with room to spare, a cache that answers repeated prefixes before they reach a GPU, and cards split so the loss of one leaves enough"
+teaches_es = "Hacer caber una llamada a un modelo en el presupuesto de una pulsación: un modelo pequeño y rápido en GPU con margen, una caché que responde a los prefijos repetidos antes de que lleguen a una GPU, y tarjetas repartidas para que la pérdida de una deje suficiente"
+tags = ["llm", "gpu", "latency", "caching", "capacity", "redundancy"]
+requires = ["infer"]
+
+[nfr]
+peak_rps = 1500
+p95_ms = 150
+availability = 0.99
+budget_usd = 7000
+
+[[request_types]]
+id = "complete"
+name = "Suggest the rest of the line"
+name_es = "Sugerir el resto de la línea"
+share = 1.0
+route = ["edge?", "compute", "cache?", "model:chat"]
+key_space = 15000000
+key_skew = { zipf = 0.6 }
+value_kb = 1
+tokens_in = { mean = 800, p95 = 2000 }
+tokens_out = { mean = 10, p95 = 30 }
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "busy"
+name = "A busy hour: four times the typing"
+name_es = "Una hora punta: cuatro veces más tecleo"
+hidden = true
+duration_s = 90
+traffic = { spike = { at = 20, x = 4, for = 60 } }
+
+[[tests]]
+id = "gpu-lost"
+name = "A GPU card is lost"
+name_es = "Se pierde una tarjeta de GPU"
+hidden = true
+duration_s = 90
+chaos = [{ kill = { kind = "infer", at = 20, for = 70 } }]
+pass = { error_rate = 0.02, availability = 0.98 }
+
+[pass]
+error_rate = 0.01

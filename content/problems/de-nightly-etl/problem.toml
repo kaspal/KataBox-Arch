@@ -1,0 +1,74 @@
+id = "de-nightly-etl"
+number = 1
+set = 1
+track = "de"
+difficulty = "easy"
+title = "Nightly Export from PostgreSQL"
+title_es = "Exportación nocturna desde PostgreSQL"
+teaches = "Run a heavy export against a read replica, not the primary, so the live app keeps its latency while the export runs"
+teaches_es = "Lanzar una exportación pesada contra una réplica de lectura, no contra la principal, para que la app en vivo conserve su latencia mientras corre la exportación"
+tags = ["etl", "read-replicas", "batch", "scheduler"]
+requires = ["sql", "scheduler"]
+
+[nfr]
+peak_rps = 2000
+p95_ms = 300
+availability = 0.999
+budget_usd = 2000
+
+[[request_types]]
+id = "view"
+name = "Open an order"
+name_es = "Abrir un pedido"
+share = 0.6
+route = ["edge?", "compute", "datastore"]
+key_space = 2000000
+key_skew = { zipf = 0.8 }
+
+[[request_types]]
+id = "update"
+name = "Update an order"
+name_es = "Actualizar un pedido"
+share = 0.1
+route = ["edge?", "compute", "datastore:write"]
+key_space = 2000000
+key_skew = { zipf = 0.8 }
+payload_kb = 2
+
+[[request_types]]
+# The nightly export, scaled: a test simulates a minute of it at its working rate. Measured by
+# completion so a throttled export that falls behind (pages waiting in the queue) shows in the p95.
+# "3× the data" in the same window = 3× the page rate (type_multipliers).
+id = "export"
+name = "Export a page of orders"
+name_es = "Exportar una página de pedidos"
+share = 0.3
+route = ["broker", "worker", "datastore"]
+source = "scheduler"
+key_space = 2000000
+payload_kb = 576
+measure = "completion"
+
+[[tests]]
+id = "normal"
+name = "A night with the export running"
+name_es = "Una noche con la exportación en marcha"
+
+[[tests]]
+id = "triple"
+name = "The export carries 3× the data"
+name_es = "La exportación lleva el triple de datos"
+hidden = true
+type_multipliers = { export = 3 }
+
+[[tests]]
+id = "replica-down"
+name = "A replica fails during the export"
+name_es = "Una réplica cae durante la exportación"
+hidden = true
+duration_s = 90
+chaos = [{ kill = { kind = "sql", role = "replica", at = 20, for = 40 } }]
+pass = { error_rate = 0.03, availability = 0.97 }
+
+[pass]
+error_rate = 0.01

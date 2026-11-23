@@ -200,6 +200,16 @@ fn mermaid_text(design: Design, names: std::collections::BTreeMap<String, String
     ka_core::mermaid::to_mermaid(&design, &names)
 }
 
+/// M13 share links: the design as canonical `.kbarch` JSON (the same checks and serializer
+/// as Save). The UI compresses it into the link; nothing leaves the machine here.
+#[tauri::command]
+#[specta::specta]
+fn share_payload(state: State<'_, AppState>, design: Design) -> Res<String> {
+    let app = state.app()?;
+    let bytes = ka_app::kbarch::to_bytes(&design, app.registry())?;
+    String::from_utf8(bytes).map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))
+}
+
 /// Show the Save dialog and write the design as a `.mmd` file. `None` when cancelled.
 #[tauri::command]
 #[specta::specta]
@@ -550,6 +560,20 @@ async fn list_flaws(state: State<'_, AppState>) -> Res<Vec<ka_core::flaw::FlawSu
     state.app()?.list_flaws().await
 }
 
+/// The outage replays (M10), each marked fixed or not.
+#[tauri::command]
+#[specta::specta]
+async fn list_outages(state: State<'_, AppState>) -> Res<Vec<ka_core::outage::OutageSummary>> {
+    state.app()?.list_outages().await
+}
+
+/// A replay's "Watch it happen": what happened, the lesson and the walkthrough.
+#[tauri::command]
+#[specta::specta]
+async fn outage_story(state: State<'_, AppState>, id: String) -> Res<ka_app::outages::OutageStory> {
+    state.app()?.outage_story(&id).await
+}
+
 /// The learning paths with each item's progress (M5.4).
 #[tauri::command]
 #[specta::specta]
@@ -674,6 +698,27 @@ async fn submit_design(
     .await
     .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
     app.record_submission(&design, judgement, &local_day).await
+}
+
+/// M8.5: judge a "same SLO, half the cost" try (the problem's tests, the challenge budget)
+/// and record it. Open once the problem is solved.
+#[tauri::command]
+#[specta::specta]
+async fn submit_challenge(
+    state: State<'_, AppState>,
+    id: String,
+    design: Design,
+) -> Res<ka_app::Judgement> {
+    let app = state.app()?;
+    let (problem, ref_cost) = app.challenge_for_judging(&id).await?;
+    let registry = app.registry().clone();
+    let judgement = tauri::async_runtime::spawn_blocking(move || {
+        ka_app::problems::judge_design(&problem, &design, &registry, ref_cost)
+    })
+    .await
+    .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    app.record_challenge(&id, &judgement).await?;
+    Ok(judgement)
 }
 
 #[tauri::command]
@@ -803,6 +848,7 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         unlock_hint,
         save_draft,
         submit_design,
+        submit_challenge,
         submissions,
         progress,
         list_samples,
@@ -814,6 +860,8 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         check_estimate,
         estimate_statuses,
         list_flaws,
+        list_outages,
+        outage_story,
         learning_paths,
         set_concept_played,
         quiz,
@@ -834,6 +882,7 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         pick_pdf_path,
         print_pdf,
         mermaid_text,
+        share_payload,
         save_mermaid,
         preview_pack,
         apply_pack,

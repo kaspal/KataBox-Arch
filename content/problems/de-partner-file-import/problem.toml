@@ -1,0 +1,70 @@
+id = "de-partner-file-import"
+track = "de"
+number = 5
+set = 1
+difficulty = "easy"
+title = "Partner File Import"
+title_es = "Importación de ficheros de socios"
+teaches = "Load uploaded files through a queue whose retries outlast a database failover, with workers sized for giant files and a dead-letter queue for what still fails"
+teaches_es = "Cargar ficheros subidos a través de una cola cuyos reintentos duran más que un failover de la base de datos, con workers dimensionados para ficheros gigantes y una cola de mensajes fallidos para lo que aún falle"
+tags = ["queues", "retries", "dlq", "failover", "object-storage"]
+
+[nfr]
+peak_rps = 50
+p95_ms = 30000
+availability = 0.999
+budget_usd = 4500
+
+[[request_types]]
+id = "file"
+name = "Upload a file"
+name_es = "Subir un fichero"
+share = 0.78
+route = ["edge?", "compute", "datastore:write:object", "broker", "worker", "datastore:object", "datastore:write:sql"]
+key_space = 100000
+payload_kb = 256
+measure = "completion"
+
+[[request_types]]
+id = "giant"
+name = "Upload a giant file"
+name_es = "Subir un fichero gigante"
+share = 0.02
+route = ["edge?", "compute", "datastore:write:object", "broker", "worker", "datastore:object", "datastore:write:sql"]
+key_space = 100000
+payload_kb = 256
+fanout = { mean = 25 }
+measure = "completion"
+
+[[request_types]]
+id = "status"
+name = "Check an import's status"
+name_es = "Consultar el estado de una importación"
+share = 0.2
+route = ["edge?", "compute", "datastore:sql"]
+key_space = 100000
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "giant-files"
+name = "A partner sends a month of giant files"
+name_es = "Un socio envía un mes de ficheros gigantes"
+hidden = true
+type_multipliers = { giant = 20 }
+
+[[tests]]
+id = "db-failover"
+name = "The database's primary dies"
+name_es = "Se cae la primaria de la base de datos"
+hidden = true
+duration_s = 120
+chaos = [{ kill = { kind = "sql", role = "primary", at = 20 } }]
+pass = { p95_ms = 45000, error_rate = 0.02, availability = 0.98 }
+
+[pass]
+error_rate = 0.001
+lost = 0

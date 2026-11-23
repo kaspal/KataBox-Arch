@@ -1,0 +1,175 @@
+kind = "graph"
+one_liner = "A database that stores things and the links between them, and walks those links fast."
+one_liner_es = "Una base de datos que guarda cosas y los vínculos entre ellas, y recorre esos vínculos rápido."
+
+use_when = [
+  "The question is about relationships, such as friends of friends or who follows whom",
+  "A query needs several hops that would be many self-joins in SQL",
+  "The links change often and the shape of the data is irregular",
+]
+use_when_es = [
+  "La pregunta trata de relaciones, como amigos de amigos o quién sigue a quién",
+  "Una consulta necesita varios saltos que en SQL serían muchos autojoins",
+  "Los vínculos cambian a menudo y la forma de los datos es irregular",
+]
+skip_when = [
+  "Reads fetch one record by its key, with no links to follow",
+  "The work is totals and reports over many rows",
+  "One hop is enough, which an index in SQL handles well",
+]
+skip_when_es = [
+  "Las lecturas traen un registro por su clave, sin vínculos que seguir",
+  "El trabajo son totales e informes sobre muchas filas",
+  "Basta con un salto, algo que un índice en SQL resuelve bien",
+]
+
+formula = "visited = fan-out + fan-out² + … + fan-out^hops (from the request type); time = service time + visited ÷ edges per ms; reads can go to replicas, writes go to the leader"
+formula_es = "visitados = abanico + abanico² + … + abanico^saltos (según el tipo de petición); tiempo = tiempo de servicio + visitados ÷ aristas por ms; las lecturas pueden ir a réplicas, las escrituras van al líder"
+
+gains = [
+  "Multi-hop questions answer in one query instead of many joins",
+  "Adding a new kind of link doesn't need a schema change",
+]
+gains_es = [
+  "Las preguntas de varios saltos se responden en una consulta en lugar de muchos joins",
+  "Añadir un nuevo tipo de vínculo no necesita un cambio de esquema",
+]
+costs = [
+  "Each extra hop multiplies the work, so deep queries get slow fast",
+  "Writes go to one leader, so write throughput is limited",
+  "It is one more database to run, back up and keep in sync",
+]
+costs_es = [
+  "Cada salto extra multiplica el trabajo, así que las consultas profundas se vuelven lentas enseguida",
+  "Las escrituras van a un solo líder, así que el rendimiento de escritura es limitado",
+  "Es una base de datos más que operar, respaldar y mantener sincronizada",
+]
+
+works_with = ["app", "cache", "sql", "connector", "search"]
+practice = []
+
+interview_tip = "Say how many hops the query needs and how many links each node has, then estimate the edges visited before you pick a graph database."
+interview_tip_es = "Di cuántos saltos necesita la consulta y cuántos vínculos tiene cada nodo, y estima las aristas visitadas antes de elegir una base de datos de grafos."
+
+not_simulated = [
+  "The query planner: every traversal costs exactly the edges it visits",
+  "Supernodes with far more links than the fan-out the request type declares",
+  "Splitting one graph across several machines and the hops between them",
+]
+not_simulated_es = [
+  "El planificador de consultas: cada recorrido cuesta exactamente las aristas que visita",
+  "Supernodos con muchos más vínculos que el abanico que declara el tipo de petición",
+  "Repartir un grafo entre varias máquinas y los saltos entre ellas",
+]
+
+[[sim]]
+prop = "instances"
+note = "Database servers on this card. Read replicas are separate cards joined by Replicate edges."
+note_es = "Servidores de base de datos en esta tarjeta. Las réplicas de lectura son tarjetas aparte unidas con aristas Replicate."
+
+[[sim]]
+prop = "edges_per_ms"
+note = "How many relationships a traversal walks per millisecond. The edges visited are divided by this and added to the service time."
+note_es = "Cuántas relaciones recorre una consulta por milisegundo. Las aristas visitadas se dividen por este valor y se suman al tiempo de servicio."
+
+[[sim]]
+prop = "service_ms"
+note = "The fixed cost of a query before it walks any edge: parsing, lookup of the start node and the reply."
+note_es = "El coste fijo de una consulta antes de recorrer ninguna arista: análisis, búsqueda del nodo inicial y la respuesta."
+
+[[sim]]
+prop = "failover_s"
+note = "How long writes fail after the leader dies, until a replica takes over."
+note_es = "Cuánto tiempo fallan las escrituras tras caer el líder, hasta que una réplica toma el relevo."
+
+[[sim]]
+sim = "servers_per_instance"
+note = "Queries one server runs at the same time. More wait in its queue."
+note_es = "Consultas que un servidor ejecuta a la vez. Las demás esperan en su cola."
+
+[[sim]]
+cost = "per_instance_month"
+note = "A fixed monthly price per server. Neptune is a managed instance and costs more than a self-hosted node."
+note_es = "Un precio mensual fijo por servidor. Neptune es una instancia gestionada y cuesta más que un nodo propio."
+
+[flavours_compared]
+flavours = ["neo4j", "neptune", "janusgraph"]
+
+[[flavours_compared.rows]]
+label = "Who runs it"
+label_es = "Quién lo opera"
+cells = ["You, or Neo4j's hosted service", "AWS, fully managed", "You, on top of a storage backend"]
+cells_es = ["Tú, o el servicio alojado de Neo4j", "AWS, totalmente gestionado", "Tú, sobre un backend de almacenamiento"]
+
+[[flavours_compared.rows]]
+label = "Query language"
+label_es = "Lenguaje de consulta"
+cells = ["Cypher", "Gremlin, openCypher and SPARQL", "Gremlin"]
+cells_es = ["Cypher", "Gremlin, openCypher y SPARQL", "Gremlin"]
+
+[[flavours_compared.rows]]
+label = "Storage"
+label_es = "Almacenamiento"
+cells = ["Its own native graph store", "AWS's own storage, shared by its replicas", "A separate store such as Cassandra or HBase"]
+cells_es = ["Su propio almacén nativo de grafos", "El almacenamiento propio de AWS, compartido por sus réplicas", "Un almacén aparte como Cassandra o HBase"]
+
+[[pitfalls]]
+title = "One more hop"
+title_es = "Un salto más"
+body = "A query goes from friends to friends of friends of friends. With hundreds of links per node, the edges visited jump by that factor at each hop and latency explodes."
+body_es = "Una consulta pasa de amigos a amigos de amigos de amigos. Con cientos de vínculos por nodo, las aristas visitadas se multiplican por ese factor en cada salto y la latencia se dispara."
+fix = "Cap the hops, limit how many links each hop follows, or precompute the deep results and cache them."
+fix_es = "Limita los saltos, limita cuántos vínculos sigue cada salto, o precalcula los resultados profundos y cachéalos."
+
+[[pitfalls]]
+title = "Writes on the leader only"
+title_es = "Escrituras solo en el líder"
+body = "Read replicas are added for a write-heavy load. Reads get faster, but every new link still goes to one leader, which stays the bottleneck."
+body_es = "Se añaden réplicas de lectura para una carga con muchas escrituras. Las lecturas van más rápido, pero cada vínculo nuevo sigue yendo a un solo líder, que sigue siendo el cuello de botella."
+fix = "Batch writes behind a queue, or keep the graph for reads and write the source of truth elsewhere, feeding it through a connector."
+fix_es = "Agrupa las escrituras tras una cola, o usa el grafo solo para lecturas y escribe la fuente de verdad en otro sitio, alimentándolo con un conector."
+
+[[sources]]
+flavour = "neo4j"
+title = "Neo4j documentation"
+url = "https://neo4j.com/docs/"
+checked = false
+
+[[sources]]
+flavour = "neptune"
+title = "Amazon Neptune documentation"
+url = "https://docs.aws.amazon.com/neptune/"
+checked = false
+
+[[sources]]
+flavour = "janusgraph"
+title = "JanusGraph documentation"
+url = "https://docs.janusgraph.org/"
+checked = false
+
+[[quiz]]
+q = "A recommendation query goes from two hops to three, and each user has about two hundred links. What happens to its cost?"
+q_es = "Una consulta de recomendaciones pasa de dos saltos a tres, y cada usuario tiene unos doscientos vínculos. ¿Qué le pasa a su coste?"
+options = ["It grows by about half, one more hop out of two", "It grows about two hundred times, because each hop multiplies the edges visited", "It stays the same, because a graph database follows links in constant time", "It drops, because the third hop is served from a replica"]
+options_es = ["Crece más o menos la mitad, un salto más de dos", "Crece unas doscientas veces, porque cada salto multiplica las aristas visitadas", "Se queda igual, porque una base de datos de grafos sigue vínculos en tiempo constante", "Baja, porque el tercer salto lo sirve una réplica"]
+answer = 1
+why = "Edges visited add up as fan-out, fan-out squared, fan-out cubed. Each link is cheap to follow, but there are many more of them at every hop."
+why_es = "Las aristas visitadas suman abanico, abanico al cuadrado, abanico al cubo. Cada vínculo es barato de seguir, pero en cada salto hay muchos más."
+
+[[quiz]]
+q = "A social graph gets many new follows per second and the leader is saturated. Which change helps?"
+q_es = "Un grafo social recibe muchos seguimientos nuevos por segundo y el líder está saturado. ¿Qué cambio ayuda?"
+options = ["Add read replicas joined by Replicate edges", "Raise edges per ms on the replicas", "Lower the failover time", "Absorb the writes with a queue and batch them into the leader"]
+options_es = ["Añadir réplicas de lectura unidas con aristas Replicate", "Subir las aristas por ms en las réplicas", "Bajar el tiempo de failover", "Absorber las escrituras con una cola y agruparlas hacia el líder"]
+answer = 3
+why = "Writes only go to the leader, so replicas and faster reads don't help. Smoothing and batching the writes does."
+why_es = "Las escrituras solo van al líder, así que las réplicas y las lecturas más rápidas no ayudan. Suavizar y agrupar las escrituras sí."
+
+[[quiz]]
+q = "The app reads one user profile by id. Is a graph database the right store for this?"
+q_es = "La aplicación lee un perfil de usuario por su id. ¿Es una base de datos de grafos el almacén adecuado para esto?"
+options = ["Not for that alone: a key lookup with no links to follow fits a key-value store or SQL", "Yes, because every user is a node", "Yes, because graph reads are always faster than SQL"]
+options_es = ["No solo por eso: una búsqueda por clave sin vínculos que seguir encaja en un almacén clave-valor o en SQL", "Sí, porque cada usuario es un nodo", "Sí, porque las lecturas en un grafo siempre son más rápidas que en SQL"]
+answer = 0
+why = "A graph pays off when the query walks relationships. A single lookup by key gains nothing from it and adds a database to run."
+why_es = "Un grafo compensa cuando la consulta recorre relaciones. Una sola búsqueda por clave no gana nada y añade una base de datos que operar."

@@ -26,6 +26,9 @@ pub struct FlawScenario {
     pub pass: PassCriteria,
     #[serde(default)]
     pub sample_cap: Option<f64>,
+    /// M10: async SQL failovers lose the lag window's writes.
+    #[serde(default)]
+    pub replication_loss: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -72,6 +75,10 @@ impl FlawDef {
             tests: self.scenario.tests.clone(),
             pass: self.scenario.pass.clone(),
             sample_cap: self.scenario.sample_cap,
+            track: Default::default(),
+            challenge_ratio: None,
+            connections: false,
+            replication_loss: self.scenario.replication_loss,
         }
     }
 }

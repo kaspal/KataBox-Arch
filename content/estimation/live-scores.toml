@@ -1,0 +1,34 @@
+# Estimation drills for Live Sports Scores.
+
+[[drill]]
+id = "goal-burst"
+kind = "qps"
+prompt = "{fans} fans each receive a score update on average every {update_every_s} seconds. A late goal multiplies the updates by {burst_x} for a few seconds. How many messages a second must the gateways push during the burst?"
+prompt_es = "{fans} aficionados reciben cada uno una actualización del marcador de media cada {update_every_s} segundos. Un gol al final multiplica las actualizaciones por {burst_x} durante unos segundos. ¿Cuántos mensajes por segundo tienen que enviar los gateways durante la ráfaga?"
+inputs = { fans = 5000000, update_every_s = 50, burst_x = 10 }
+formula = "fans / update_every_s * burst_x"
+unit = "rps"
+solution = "Normally {fans} ÷ {update_every_s} s = 100,000 messages a second. × {burst_x} = {answer} a second during the goal. 8 instances at 200,000 a second push 1,600,000, so the burst fits; 6 instances at 100,000 push only 600,000, and a backlog builds."
+solution_es = "Normalmente {fans} ÷ {update_every_s} s = 100 000 mensajes por segundo. × {burst_x} = {answer} por segundo durante el gol. 8 instancias a 200 000 por segundo envían 1 600 000, así que la ráfaga cabe; 6 instancias a 100 000 envían solo 600 000, y se forma un atasco."
+
+[[drill]]
+id = "gateways-n-minus-1"
+kind = "servers"
+prompt = "{fans} fans hold open connections, and a gateway instance accepts at most {max_connections} of them. Gateways come in cards of {per_card} instances, and a whole card can die. How many instances do you need so that the rest still hold everyone after losing one card?"
+prompt_es = "{fans} aficionados mantienen conexiones abiertas, y una instancia de gateway acepta como mucho {max_connections}. Los gateways van en tarjetas de {per_card} instancias, y puede caer una tarjeta entera. ¿Cuántas instancias necesitas para que el resto siga alojando a todos tras perder una tarjeta?"
+inputs = { fans = 5000000, max_connections = 1000000, per_card = 2 }
+formula = "fans / max_connections + per_card"
+unit = "count"
+solution = "{fans} ÷ {max_connections} = 5 instances just to hold everyone, plus the {per_card} of the card you can lose: {answer} instances. In cards of {per_card}, that rounds up to 4 cards, 8 instances. 3 cards look fine with all of them up, but lose one and 4 instances can't hold 5,000,000 fans."
+solution_es = "{fans} ÷ {max_connections} = 5 instancias solo para alojar a todos, más las {per_card} de la tarjeta que puedes perder: {answer} instancias. En tarjetas de {per_card}, eso se redondea a 4 tarjetas, 8 instancias. 3 tarjetas parecen bastar con todas en marcha, pero si cae una, 4 instancias no pueden alojar 5 000 000 de aficionados."
+
+[[drill]]
+id = "reconnect-rate"
+kind = "qps"
+prompt = "A gateway card holding {dropped} fans dies. Each client waits a random 0 to {jitter_s} seconds before reconnecting. On average, how many reconnects a second reach the surviving gateways?"
+prompt_es = "Cae una tarjeta de gateway con {dropped} aficionados. Cada cliente espera un tiempo aleatorio de 0 a {jitter_s} segundos antes de reconectar. De media, ¿cuántas reconexiones por segundo llegan a los gateways supervivientes?"
+inputs = { dropped = 1250000, jitter_s = 20 }
+formula = "dropped / jitter_s"
+unit = "rps"
+solution = "{dropped} ÷ {jitter_s} s = {answer} reconnects a second, under the 120,000 new connections a second that 6 surviving instances accept. Without jitter all {dropped} arrive in the same instant, and nearly all of them are refused, again and again."
+solution_es = "{dropped} ÷ {jitter_s} s = {answer} reconexiones por segundo, por debajo de las 120 000 conexiones nuevas por segundo que aceptan las 6 instancias supervivientes. Sin variación, los {dropped} llegan en el mismo instante, y casi todos se rechazan, una y otra vez."

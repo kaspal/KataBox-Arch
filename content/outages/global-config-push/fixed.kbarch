@@ -1,0 +1,245 @@
+{
+  "schema_version": 4,
+  "id": "global-config-push-fixed",
+  "name": "Global config push (fixed)",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app-us",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app-us",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 3
+      },
+      "group_id": "us"
+    },
+    {
+      "id": "app-eu",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app-eu",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 3
+      },
+      "group_id": "eu"
+    },
+    {
+      "id": "app-ap",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app-ap",
+      "position": {
+        "x": 608,
+        "y": 224
+      },
+      "props": {
+        "instances": 3
+      },
+      "group_id": "ap"
+    },
+    {
+      "id": "db-us",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "db-us",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "service_ms": 20
+      },
+      "group_id": "us"
+    },
+    {
+      "id": "db-eu",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "db-eu",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {
+        "service_ms": 20
+      },
+      "group_id": "eu"
+    },
+    {
+      "id": "db-ap",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "db-ap",
+      "position": {
+        "x": 1216,
+        "y": 224
+      },
+      "props": {
+        "service_ms": 20
+      },
+      "group_id": "ap"
+    },
+    {
+      "id": "flags",
+      "kind": "config",
+      "flavour": "launchdarkly",
+      "label": "flags",
+      "position": {
+        "x": 1520,
+        "y": 0
+      },
+      "props": {
+        "staged": true,
+        "stages": 3,
+        "bake_s": 30,
+        "kill_switch": true
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app-us-http",
+      "from": "lb",
+      "to": "app-us",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app-eu-http",
+      "from": "lb",
+      "to": "app-eu",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app-ap-http",
+      "from": "lb",
+      "to": "app-ap",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-us-db-us-query",
+      "from": "app-us",
+      "to": "db-us",
+      "protocol": "query"
+    },
+    {
+      "id": "e-app-eu-db-eu-query",
+      "from": "app-eu",
+      "to": "db-eu",
+      "protocol": "query"
+    },
+    {
+      "id": "e-app-ap-db-ap-query",
+      "from": "app-ap",
+      "to": "db-ap",
+      "protocol": "query"
+    },
+    {
+      "id": "e-app-us-flags-http",
+      "from": "app-us",
+      "to": "flags",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-eu-flags-http",
+      "from": "app-eu",
+      "to": "flags",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-ap-flags-http",
+      "from": "app-ap",
+      "to": "flags",
+      "protocol": "http"
+    }
+  ],
+  "groups": [
+    {
+      "id": "us",
+      "kind": "region",
+      "label": "US",
+      "position": {
+        "x": 584,
+        "y": -40
+      },
+      "size": {
+        "w": 864,
+        "h": 128
+      },
+      "parent_id": null
+    },
+    {
+      "id": "eu",
+      "kind": "region",
+      "label": "Europe",
+      "position": {
+        "x": 584,
+        "y": 72
+      },
+      "size": {
+        "w": 864,
+        "h": 128
+      },
+      "parent_id": null
+    },
+    {
+      "id": "ap",
+      "kind": "region",
+      "label": "Asia-Pacific",
+      "position": {
+        "x": 584,
+        "y": 184
+      },
+      "size": {
+        "w": 864,
+        "h": 128
+      },
+      "parent_id": null
+    }
+  ],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

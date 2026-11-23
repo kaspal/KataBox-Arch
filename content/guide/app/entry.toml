@@ -148,6 +148,18 @@ flavour = "django"
 title = "Django documentation"
 url = "https://docs.djangoproject.com/"
 
+[[sources]]
+flavour = "aspnet_core"
+title = "ASP.NET Core documentation"
+url = "https://learn.microsoft.com/en-us/aspnet/core/"
+checked = false
+
+[[sources]]
+flavour = "rails"
+title = "Ruby on Rails documentation"
+url = "https://guides.rubyonrails.org/"
+checked = false
+
 [[quiz]]
 q = "The database behind your app servers slows from 10 ms to 200 ms per query, while the app's own work stays the same. What happens to the app tier?"
 q_es = "La base de datos detrás de tus servidores de aplicación pasa de 10 ms a 200 ms por consulta, mientras el trabajo propio de la aplicación sigue igual. ¿Qué le pasa a la capa de aplicación?"

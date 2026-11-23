@@ -1,0 +1,111 @@
+{
+  "schema_version": 4,
+  "id": "cache-stampede-fixed",
+  "name": "Cache stampede (fixed)",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "timeout_ms": 2000
+      },
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 20
+      },
+      "group_id": null
+    },
+    {
+      "id": "cache",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "cache",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "memory_gb": 8,
+        "ttl_s": 30,
+        "stampede_guard": true
+      },
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "db",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {
+        "service_ms": 200
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app-http",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-cache-query",
+      "from": "app",
+      "to": "cache",
+      "protocol": "query"
+    },
+    {
+      "id": "e-app-db-query",
+      "from": "app",
+      "to": "db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

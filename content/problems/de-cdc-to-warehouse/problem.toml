@@ -1,0 +1,52 @@
+id = "de-cdc-to-warehouse"
+number = 7
+set = 1
+track = "de"
+difficulty = "medium"
+title = "Orders Into the Warehouse"
+title_es = "Pedidos hacia el almacén de datos"
+teaches = "Copy every database change to the warehouse with change data capture through a stream, with enough parallel loaders for a burst and for a slow warehouse"
+teaches_es = "Copiar cada cambio de la base de datos al almacén de datos con captura de cambios a través de un stream, con suficientes cargadores en paralelo para un pico y para un almacén lento"
+tags = ["cdc", "streams", "data-warehouse", "freshness"]
+requires = ["warehouse"]
+
+challenge_ratio = 0.7
+[nfr]
+peak_rps = 12
+p95_ms = 15000
+availability = 0.999
+budget_usd = 8000
+
+[[request_types]]
+id = "change"
+name = "Change an order"
+name_es = "Cambiar un pedido"
+share = 1.0
+route = ["edge?", "compute", "datastore:write:sql", "cdc", "worker", "datastore:write:warehouse"]
+key_space = 1_000_000
+measure = "completion"
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "write-burst"
+name = "A flash sale: 3 times the changes for 30 s"
+name_es = "Una venta flash: 3 veces los cambios durante 30 s"
+hidden = true
+duration_s = 90
+traffic = { spike = { at = 20, x = 3, for = 30 } }
+
+[[tests]]
+id = "slow-warehouse"
+name = "The warehouse slows down: every write takes 1.5 s longer for 30 s"
+name_es = "El almacén de datos se ralentiza: cada escritura tarda 1,5 s más durante 30 s"
+hidden = true
+duration_s = 90
+chaos = [{ latency = { kind = "warehouse", all = true, at = 20, for = 30, add_ms = 1500 } }]
+
+[pass]
+error_rate = 0.001
+lost = 0

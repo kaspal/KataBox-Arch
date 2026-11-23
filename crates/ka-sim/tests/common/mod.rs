@@ -54,6 +54,25 @@ pub fn rtype(id: &str, share: f64, route: &[&str]) -> RequestType {
         fanout: None,
         measure: Measure::Response,
         source: Source::Client,
+        contended: None,
+        kind: Default::default(),
+        connected: 0.0,
+        ramp_s: 0.0,
+        push_rps: 0.0,
+        tokens_in: None,
+        tokens_out: None,
+        semantic_repeat_share: 0.0,
+        poison_share: 0.0,
+        bulk: false,
+        batch_ok: false,
+        job: None,
+        event_delay: None,
+        scan: None,
+        residency: None,
+        traversal: None,
+        top_k: None,
+        series: 0.0,
+        span_h: 0.0,
     }
 }
 
@@ -68,6 +87,8 @@ pub fn scenario(peak_rps: f64, duration_s: f64, types: Vec<RequestType>) -> Scen
         type_multipliers: BTreeMap::new(),
         key_skew_override: None,
         cold_caches: false,
+        connections: false,
+        replication_loss: false,
     }
 }
 

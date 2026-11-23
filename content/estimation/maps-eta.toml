@@ -1,0 +1,34 @@
+# Estimation drills for Maps and Arrival Times.
+
+[[drill]]
+id = "route-rate"
+kind = "qps"
+prompt = "A maps app peaks at {peak_rps} requests a second. {tile_pct}% of them load a map tile and the rest plan a route. How many routes a second do the App Servers have to plan?"
+prompt_es = "Una app de mapas llega a un pico de {peak_rps} peticiones por segundo. El {tile_pct} % carga un mosaico del mapa y el resto planifica una ruta. ¿Cuántas rutas por segundo tienen que planificar los servidores de aplicaciones?"
+inputs = { peak_rps = 4000, tile_pct = 70 }
+formula = "peak_rps * (100 - tile_pct) / 100"
+unit = "rps"
+solution = "Routes are the other 30%: {peak_rps} × 0.3 = {answer} routes a second. The 2,800 tiles a second never need an App Server: a CDN in front of object storage answers almost all of them."
+solution_es = "Las rutas son el otro 30 %: {peak_rps} × 0,3 = {answer} rutas por segundo. Los 2800 mosaicos por segundo nunca necesitan un servidor de aplicaciones: una CDN delante del almacenamiento de objetos responde casi todos."
+
+[[drill]]
+id = "graph-walk"
+kind = "capacity"
+prompt = "A route search walks 6 hops of the road graph, and {fanout} roads leave each junction. How many relationships does one route visit? (Count {fanout} at the first hop, {fanout} × {fanout} at the second, and so on.)"
+prompt_es = "Una búsqueda de ruta recorre 6 saltos del grafo de carreteras, y de cada cruce salen {fanout} carreteras. ¿Cuántas relaciones visita una ruta? (Cuenta {fanout} en el primer salto, {fanout} × {fanout} en el segundo, y así sucesivamente.)"
+inputs = { fanout = 3 }
+formula = "fanout + fanout * fanout + fanout * fanout * fanout + fanout * fanout * fanout * fanout + fanout * fanout * fanout * fanout * fanout + fanout * fanout * fanout * fanout * fanout * fanout"
+unit = "count"
+solution = "3 + 9 + 27 + 81 + 243 + 729 = {answer} relationships, about 1,100 per route. At 1,200 routes a second that is about 1.3 million a second, which is why the graph database needs a few instances."
+solution_es = "3 + 9 + 27 + 81 + 243 + 729 = {answer} relaciones, unas 1100 por ruta. Con 1200 rutas por segundo son unos 1,3 millones por segundo, y por eso la base de datos de grafos necesita varias instancias."
+
+[[drill]]
+id = "waiting-slots"
+kind = "capacity"
+prompt = "{routes_per_s} routes a second each call a traffic feed that is down. Without a call timeout, each call waits about {wait_ms} ms before it fails, holding a server slot. How many slots are busy just waiting?"
+prompt_es = "{routes_per_s} rutas por segundo llaman cada una a un feed de tráfico que está caído. Sin tiempo límite de llamada, cada llamada espera unos {wait_ms} ms antes de fallar, ocupando un hueco del servidor. ¿Cuántos huecos están ocupados solo esperando?"
+inputs = { routes_per_s = 1200, wait_ms = 1000 }
+formula = "routes_per_s * wait_ms / 1000"
+unit = "count"
+solution = "Slots in use = arrival rate × time held. {routes_per_s} a second × 1 s = {answer} slots, against about 48 when the feed answers in 40 ms. A Call timeout of 150 ms cuts it to 180, and once the circuit breaker opens the routers stop calling the feed at all."
+solution_es = "Huecos en uso = ritmo de llegada × tiempo ocupado. {routes_per_s} por segundo × 1 s = {answer} huecos, frente a unos 48 cuando el feed responde en 40 ms. Un Tiempo límite de llamada de 150 ms lo baja a 180, y cuando el cortocircuito se abre los routers dejan de llamar al feed."

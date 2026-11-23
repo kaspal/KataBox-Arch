@@ -1,0 +1,90 @@
+{
+  "schema_version": 4,
+  "id": "bulk-email-challenge",
+  "name": "Bulk Email Campaigns (reference)",
+  "problem_id": "bulk-email",
+  "nodes": [
+    {
+      "id": "sched",
+      "kind": "scheduler",
+      "flavour": "airflow",
+      "label": "Campaign scheduler",
+      "position": {
+        "x": 260,
+        "y": 0
+      },
+      "props": {
+        "interval_s": 1
+      },
+      "group_id": null
+    },
+    {
+      "id": "queue",
+      "kind": "queue",
+      "flavour": "rabbitmq",
+      "label": "Outgoing mail",
+      "position": {
+        "x": 260,
+        "y": 170
+      },
+      "props": {
+        "max_retries": 10
+      },
+      "group_id": null
+    },
+    {
+      "id": "dlq",
+      "kind": "dlq",
+      "flavour": "generic",
+      "label": "Undeliverable",
+      "position": {
+        "x": 520,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "senders",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Mail senders",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {
+        "concurrency": 64,
+        "instances": 2
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "sched",
+      "to": "queue",
+      "protocol": "publish"
+    },
+    {
+      "id": "e1",
+      "from": "queue",
+      "to": "senders",
+      "protocol": "consume"
+    },
+    {
+      "id": "e2",
+      "from": "queue",
+      "to": "dlq",
+      "protocol": "publish"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

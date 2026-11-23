@@ -1,0 +1,197 @@
+{
+  "schema_version": 4,
+  "id": "dns-ttl-failover-fixed",
+  "name": "Two Regions behind failover DNS, fixed",
+  "problem_id": "outage--dns-ttl-failover",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "dns",
+      "kind": "dns",
+      "flavour": "route53",
+      "label": "dns",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {
+        "ttl_s": 30,
+        "routing": "failover"
+      },
+      "group_id": null
+    },
+    {
+      "id": "lb_east",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb_east",
+      "position": {
+        "x": 304,
+        "y": 112
+      },
+      "props": {},
+      "group_id": "east"
+    },
+    {
+      "id": "app_east",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app_east",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": "east"
+    },
+    {
+      "id": "db_east",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "db_east",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": "east"
+    },
+    {
+      "id": "lb_west",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb_west",
+      "position": {
+        "x": 304,
+        "y": 224
+      },
+      "props": {},
+      "group_id": "west"
+    },
+    {
+      "id": "app_west",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app_west",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 3
+      },
+      "group_id": "west"
+    },
+    {
+      "id": "db_west",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "db_west",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {},
+      "group_id": "west"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-dns-http",
+      "from": "client",
+      "to": "dns",
+      "protocol": "http"
+    },
+    {
+      "id": "e-dns-lb_east-http",
+      "from": "dns",
+      "to": "lb_east",
+      "protocol": "http"
+    },
+    {
+      "id": "e-dns-lb_west-http",
+      "from": "dns",
+      "to": "lb_west",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb_east-app_east-http",
+      "from": "lb_east",
+      "to": "app_east",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb_west-app_west-http",
+      "from": "lb_west",
+      "to": "app_west",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app_east-db_east-query",
+      "from": "app_east",
+      "to": "db_east",
+      "protocol": "query"
+    },
+    {
+      "id": "e-app_west-db_west-query",
+      "from": "app_west",
+      "to": "db_west",
+      "protocol": "query"
+    },
+    {
+      "id": "e-db_east-db_west-replicate",
+      "from": "db_east",
+      "to": "db_west",
+      "protocol": "replicate"
+    }
+  ],
+  "groups": [
+    {
+      "id": "east",
+      "kind": "region",
+      "label": "us-east",
+      "position": {
+        "x": 280,
+        "y": -40
+      },
+      "size": {
+        "w": 1168,
+        "h": 240
+      },
+      "parent_id": null
+    },
+    {
+      "id": "west",
+      "kind": "region",
+      "label": "us-west",
+      "position": {
+        "x": 280,
+        "y": 72
+      },
+      "size": {
+        "w": 1168,
+        "h": 240
+      },
+      "parent_id": null
+    }
+  ],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

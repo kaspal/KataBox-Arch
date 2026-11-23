@@ -193,6 +193,18 @@ async submitDesign(id: string, design: Design, localDay: string) : Promise<Resul
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * M8.5: judge a "same SLO, half the cost" try (the problem's tests, the challenge budget)
+ * and record it. Open once the problem is solved.
+ */
+async submitChallenge(id: string, design: Design) : Promise<Result<Judgement, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("submit_challenge", { id, design }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async submissions(id: string) : Promise<Result<SubmissionSummary[], AppError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("submissions", { id }) };
@@ -306,6 +318,28 @@ async estimateStatuses() : Promise<Result<EstimateStatus[], AppError>> {
 async listFlaws() : Promise<Result<FlawSummary[], AppError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("list_flaws") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * The outage replays (M10), each marked fixed or not.
+ */
+async listOutages() : Promise<Result<OutageSummary[], AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_outages") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * A replay's "Watch it happen": what happened, the lesson and the walkthrough.
+ */
+async outageStory(id: string) : Promise<Result<OutageStory, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("outage_story", { id }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -531,6 +565,18 @@ async mermaidText(design: Design, names: Partial<{ [key in string]: string }>) :
     return await TAURI_INVOKE("mermaid_text", { design, names });
 },
 /**
+ * M13 share links: the design as canonical `.kbarch` JSON (the same checks and serializer
+ * as Save). The UI compresses it into the link; nothing leaves the machine here.
+ */
+async sharePayload(design: Design) : Promise<Result<string, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("share_payload", { design }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Show the Save dialog and write the design as a `.mmd` file. `None` when cancelled.
  */
 async saveMermaid(design: Design, names: Partial<{ [key in string]: string }>, suggestedName: string) : Promise<Result<string | null, AppError>> {
@@ -705,6 +751,11 @@ export type AppErrorCode =
  */
 "export_busy" | 
 /**
+ * M8.5: the "half the cost" challenge opens once the problem is solved (or the problem
+ * has none).
+ */
+"challenge_locked" | 
+/**
  * A PDF request's token is unknown, used or expired (M7b.3).
  */
 "pdf_token" | 
@@ -785,7 +836,16 @@ export type CalibrationStatus =
 /**
  * A conservative ballpark; its source still has to be confirmed.
  */
-"needed"
+"needed" | 
+/**
+ * A simulator knob no vendor publishes (a tail multiplier, backlog slots, a managed
+ * service's "effectively unlimited" concurrency); the source cell says why.
+ */
+"model" | 
+/**
+ * A rule of thumb rather than a measured figure.
+ */
+"rule_of_thumb"
 /**
  * "p95 latency: ~~400 ms~~ 18 ms". `before` is this run on the previous step's design;
  * `after` is this step's. `validate --run` checks both against the simulator.
@@ -836,6 +896,11 @@ export type Category =
  */
 "ops"
 /**
+ * M8.5: a problem's challenge: its budget (a share of the reference's cost, and dollars),
+ * and the user's best pass and tries.
+ */
+export type ChallengeState = { ratio: number; target_cost: number; best_cost: number | null; solved: boolean; attempts: number }
+/**
  * Something going wrong at time `at` (seconds), optionally for `for` seconds.
  */
 export type ChaosEvent = 
@@ -861,14 +926,48 @@ export type ChaosEvent =
  */
 { traffic: { x: number; at: number; for?: number | null } } | 
 /**
- * A cache or CDN is emptied (a restart, a purge).
+ * A cache or CDN is emptied (a restart, a purge). `cache_flush` is the same event.
  */
 { flush: { target: Selector; at: number } } | 
 /**
  * An external provider goes down, slows by `add_ms`, or cuts its rate limit to `rate`
  * calls per second.
  */
-{ external: { name: string; at: number; for?: number | null; down?: boolean; add_ms?: number; rate?: number | null } }
+{ external: { name: string; at: number; for?: number | null; down?: boolean; add_ms?: number; rate?: number | null } } | 
+/**
+ * S8: a bad build is deployed to the compute cards selected. Its instances fail
+ * `error_rate` of their requests and add `add_ms`. It rolls out by each card's
+ * `rollout_percent` every `bake_s`, rolls back by itself with `auto_rollback`, and is
+ * rolled back by hand after `for` seconds.
+ */
+{ deploy: { target: Selector; at: number; error_rate?: number; add_ms?: number; for?: number | null } } | 
+/**
+ * S8: a bad config change reaches every service. A Config card with `staged` sends it
+ * one Region at a time, every `bake_s`, and halts at the first stage that breaks; with
+ * `kill_switch` the change is rolled back a second after it is noticed.
+ */
+{ config_push: { at: number; error_rate?: number; add_ms?: number; for?: number | null } } | 
+/**
+ * S8: DNS can't answer. Clients keep using answers they cached within the TTL of the
+ * DNS card on their path; the rest can't resolve.
+ */
+{ dns_outage: { at: number; for?: number | null } } | 
+/**
+ * S8: the cloud control plane is down: no scaling decisions apply and no replacement
+ * instances start, while running instances keep serving.
+ */
+{ control_plane: { at: number; for?: number | null } } | 
+/**
+ * M8: the time series written multiply by `x` (a cardinality explosion: a new label
+ * with many values).
+ */
+{ cardinality: { x: number; at: number; for?: number | null } } | 
+/**
+ * S4: the cloud takes back spot capacity: `share` of the selected batch cards'
+ * executors stop, and the tasks they ran start again (from their last checkpoint with
+ * `checkpoint`), until `for` seconds later.
+ */
+{ spot: { target: Selector; at: number; share: number; for?: number | null } }
 /**
  * How close an answer was.
  */
@@ -891,9 +990,9 @@ export type CompareRow = { label: string; label_es: string;
  */
 cells: string[]; cells_es: string[] }
 /**
- * The 25 component kinds. Ids match the icon ids (`icons.json`).
+ * The 42 component kinds. Ids match the glyph ids (`solve/glyphs.ts`).
  */
-export type ComponentKind = "client" | "dns" | "cdn" | "waf" | "lb" | "gateway" | "ratelimit" | "app" | "micro" | "worker" | "serverless" | "autoscale" | "sql" | "nosql" | "cache" | "object" | "search" | "queue" | "stream" | "pubsub" | "dlq" | "scheduler" | "metrics" | "logs" | "tracing"
+export type ComponentKind = "client" | "dns" | "cdn" | "waf" | "lb" | "gateway" | "ratelimit" | "ws" | "idp" | "external" | "app" | "micro" | "worker" | "serverless" | "autoscale" | "infer" | "batch" | "media" | "sql" | "nosql" | "cache" | "object" | "search" | "coord" | "vector" | "warehouse" | "lakehouse" | "tsdb" | "dbproxy" | "graph" | "queue" | "stream" | "pubsub" | "dlq" | "scheduler" | "streamproc" | "mqtt" | "connector" | "metrics" | "logs" | "tracing" | "config"
 /**
  * What the import did, for the summary dialog.
  */
@@ -940,7 +1039,15 @@ per_million_write: number | null;
  * Billing unit size: a request counts `max(1, payload_kb / unit_kb)` units; 0 counts
  * every request as one.
  */
-unit_kb: number }
+unit_kb: number; 
+/**
+ * Usage meters for products billed by something other than requests (M8).
+ */
+meters?: Meters; 
+/**
+ * Bill instance time only while the card is busy (auto-suspending warehouses).
+ */
+active_only?: boolean }
 export type DecideFlow = { id: string; number: number; title: string; title_es: string; intro: string; intro_es: string; 
 /**
  * The first question's id.
@@ -1017,7 +1124,7 @@ at_s: number; utilisation: number }
  * Real-product flavours. A flavour belongs to one kind (`Generic` is shared by kinds with
  * no product choice yet). Vendor names belong to their owners; no logos are used.
  */
-export type Flavour = "generic" | "web" | "mobile" | "route53" | "cloudflare_dns" | "cloudfront" | "cloudflare_cdn" | "fastly" | "aws_waf" | "cloudflare_waf" | "nginx" | "haproxy" | "aws_alb" | "aws_nlb" | "kong" | "aws_api_gateway" | "envoy" | "redis_token_bucket" | "nodejs" | "spring_boot" | "go" | "django" | "celery" | "sidekiq" | "aws_lambda" | "cloud_run" | "kubernetes_hpa" | "aws_asg" | "postgresql" | "mysql" | "dynamodb" | "cassandra" | "mongodb" | "redis" | "memcached" | "s3" | "gcs" | "elasticsearch" | "opensearch" | "rabbitmq" | "sqs" | "kafka" | "kinesis" | "google_pubsub" | "sns" | "redis_pubsub" | "cron" | "airflow" | "prometheus_grafana" | "elk" | "loki" | "jaeger"
+export type Flavour = "generic" | "web" | "mobile" | "route53" | "cloudflare_dns" | "cloudfront" | "cloudflare_cdn" | "fastly" | "aws_waf" | "cloudflare_waf" | "nginx" | "haproxy" | "aws_alb" | "aws_nlb" | "kong" | "aws_api_gateway" | "envoy" | "redis_token_bucket" | "nodejs" | "spring_boot" | "go" | "django" | "celery" | "sidekiq" | "aws_lambda" | "cloud_run" | "kubernetes_hpa" | "aws_asg" | "postgresql" | "mysql" | "dynamodb" | "cassandra" | "mongodb" | "redis" | "memcached" | "s3" | "gcs" | "elasticsearch" | "opensearch" | "rabbitmq" | "sqs" | "kafka" | "kinesis" | "google_pubsub" | "sns" | "redis_pubsub" | "cron" | "airflow" | "prometheus_grafana" | "elk" | "loki" | "jaeger" | "socket_io" | "aws_apigw_ws" | "phoenix" | "auth0" | "cognito" | "keycloak" | "okta" | "stripe" | "twilio" | "sendgrid" | "claude_api" | "openai_api" | "bedrock" | "gemini_api" | "vllm" | "triton" | "spark_emr" | "dataproc" | "databricks" | "livekit" | "mediasoup" | "elemental_live" | "wowza" | "etcd" | "zookeeper" | "consul" | "pgvector" | "pinecone" | "qdrant" | "milvus" | "snowflake" | "bigquery" | "redshift" | "clickhouse" | "databricks_sql" | "iceberg" | "delta" | "hudi" | "influxdb" | "timescaledb" | "timestream" | "mimir" | "pgbouncer" | "rds_proxy" | "proxysql" | "vtgate" | "neo4j" | "neptune" | "janusgraph" | "flink" | "kafka_streams" | "spark_streaming" | "emqx" | "aws_iot_core" | "mosquitto" | "hivemq" | "kafka_connect" | "debezium" | "fivetran" | "airbyte" | "launchdarkly" | "aws_appconfig" | "unleash" | "scylladb" | "bigtable" | "cosmos_db" | "cockroachdb" | "aurora_postgresql" | "spanner" | "postgis" | "citus" | "valkey" | "dragonfly" | "hazelcast" | "azure_service_bus" | "amazon_mq" | "sqs_fifo" | "redpanda" | "pulsar" | "azure_event_hubs" | "nats" | "azure_web_pubsub" | "eventbridge" | "solr" | "meilisearch" | "azure_blob" | "cloudflare_r2" | "minio" | "envoy_lb" | "traefik" | "global_accelerator" | "akamai" | "azure_apim" | "litellm" | "apollo_router" | "cloudflare_workers" | "azure_functions" | "aspnet_core" | "rails" | "bullmq" | "temporal_worker" | "ffmpeg" | "mediaconvert" | "temporal" | "dagster" | "k8s_cronjob" | "iot_device" | "partner_server"
 /**
  * A flavour of a kind, with the props it changes from the kind's defaults.
  */
@@ -1051,7 +1158,17 @@ parent_id: string | null;
 /**
  * The scaling policy of an Autoscale wrapper (and only of one).
  */
-scaling?: Scaling | null }
+scaling?: Scaling | null; 
+/**
+ * A Region's residency tag (v4, S9), e.g. `eu`: requests that must stay in a region
+ * check the tags of the stores they touch.
+ */
+region_tag?: string | null; 
+/**
+ * A service mesh over the cards in this Region or AZ (v4): sidecar latency and the
+ * mesh's retries, timeouts and circuit breaking.
+ */
+mesh?: Mesh | null }
 export type GroupKind = "region" | "az" | 
 /**
  * An autoscaling group wrapped around compute cards (v2).
@@ -1070,6 +1187,10 @@ formula: string; formula_es: string; flavours_compared?: FlavoursCompared | null
  * Problem ids where this kind is a key move.
  */
 practice?: string[]; interview_tip: string; interview_tip_es: string; sources: Source[]; 
+/**
+ * What the simulator leaves out for this kind (M8; required for the kinds added in M8).
+ */
+not_simulated: string[]; not_simulated_es: string[]; 
 /**
  * Three quick-check questions (M5.5). Never sent to the UI with the entry: the app
  * serves them without their answers.
@@ -1123,7 +1244,16 @@ export type IssueCode =
 /**
  * A wrapper kind (Autoscaling) placed as a card.
  */
-"wrapper_as_card"
+"wrapper_as_card" | 
+/**
+ * A residency tag on a zone that isn't a Region, or a malformed tag; or a service mesh on
+ * a zone that isn't a Region or AZ, or with an unknown or out-of-range prop (v4).
+ */
+"bad_zone_setting"
+/**
+ * S4: one job run.
+ */
+export type JobResult = { ty: string; start_s: number; completion_s: number | null }
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
 export type Judgement = { problem_id: string; 
 /**
@@ -1186,10 +1316,43 @@ max_label: number;
 max_note: number }
 export type MappedService = { service: string; image: string | null; kind: ComponentKind; flavour: Flavour }
 /**
+ * A zone's service mesh (v4): the product and its policy props (`registry.mesh_props`).
+ */
+export type Mesh = { flavour: MeshFlavour; props: Partial<{ [key in string]: PropValue }> }
+/**
+ * Service-mesh products.
+ */
+export type MeshFlavour = "istio" | "linkerd"
+/**
  * Canvas items that are not components.
  */
 export type MetaKind = "region" | "az" | "note"
 export type MetaSpec = { kind: MetaKind; icon: string }
+/**
+ * Prices per unit of usage (M8): tokens, scanned data, connection time, messages. Zero means
+ * the product doesn't bill that way.
+ */
+export type Meters = { 
+/**
+ * Per million input (prompt) tokens.
+ */
+tokens_in_m: number; 
+/**
+ * Per million output (generated) tokens.
+ */
+tokens_out_m: number; 
+/**
+ * Per TB scanned.
+ */
+tb_scanned: number; 
+/**
+ * Per million connection-minutes.
+ */
+conn_minutes_m: number; 
+/**
+ * Per million messages sent to connections.
+ */
+messages_m: number }
 /**
  * The non-functional requirements shown in the brief.
  */
@@ -1250,6 +1413,15 @@ export type NumberGroup = "memory" | "storage" | "network" | "servers" | "sizes"
  */
 export type OpenedDesign = { path: string; design: Design }
 /**
+ * "Watch it happen": the replay's story and its walkthrough (a sample whose steps play the
+ * replay's tests).
+ */
+export type OutageStory = { summary: OutageSummary; story: string; story_es: string; lesson: string; lesson_es: string; real_world: string[]; walkthrough: Sample }
+/**
+ * One row of the Replays list.
+ */
+export type OutageSummary = { id: string; number: number; difficulty: Difficulty; title: string; title_es: string; summary: string; summary_es: string; kinds: ComponentKind[]; solved: boolean }
+/**
  * What applying a previewed pack would do.
  */
 export type PackChange = 
@@ -1301,7 +1473,39 @@ p99_ms?: number | null; error_rate?: number | null; availability?: number | null
 /**
  * Messages that may be lost (usually 0).
  */
-lost?: number | null }
+lost?: number | null; 
+/**
+ * S8 metastable check: from this second to the end of the test, every second must be
+ * within the test's error and p95 limits (the system recovered after its trigger).
+ */
+recovered_by_s?: number | null; 
+/**
+ * S7: writes that raced or landed on a stale primary (usually 0). Tests that set it
+ * must run unsampled.
+ */
+conflicts?: number | null; 
+/**
+ * S1: the least share of the target connections that must be connected in every
+ * second after `ramp_s` + 10 s.
+ */
+connected_min?: number | null; 
+/**
+ * S2: time to first token, 95th percentile, of the requests that call a model.
+ */
+ttft_p95_ms?: number | null; 
+/**
+ * S4: every job must finish within this many seconds of its start.
+ */
+job_deadline_s?: number | null; 
+/**
+ * S5: the most windowed records that may be late (a share), and the most duplicate
+ * results a crash may emit (a count, usually 0).
+ */
+late_rate?: number | null; duplicates?: number | null; 
+/**
+ * S9: data stored or sent outside its residency (usually 0).
+ */
+residency_violations?: number | null }
 /**
  * One step of a path as the UI shows it.
  */
@@ -1311,7 +1515,7 @@ export type PathItem = { kind: PathItemKind; target: string;
  * the UI from the component kind.
  */
 title: string | null; title_es: string | null; done: boolean }
-export type PathItemKind = "guide" | "concept" | "pattern" | "problem" | "estimate" | "flaw" | "quiz"
+export type PathItemKind = "guide" | "concept" | "pattern" | "problem" | "estimate" | "flaw" | "replay" | "quiz"
 export type PathView = { id: string; number: number; title: string; title_es: string; blurb: string; blurb_es: string; items: PathItem[] }
 export type PatternEntry = { id: string; 
 /**
@@ -1392,13 +1596,25 @@ best_cost: number | null;
 /**
  * The name of the pack it came from (M6.4); None for built-in problems.
  */
-pack: string | null }
+pack: string | null; 
+/**
+ * `core`, `ai` or `de` (M8).
+ */
+track: string; 
+/**
+ * The "same SLO, half the cost" challenge, when the problem has one (M8.5).
+ */
+challenge: ChallengeState | null }
 export type ProblemTest = { problem_id: string; test_id: string }
 export type Progress = { easy: DifficultyCount; medium: DifficultyCount; hard: DifficultyCount; streak: number; 
 /**
  * The next unsolved problem in catalogue order, and the most recently attempted one.
  */
-recommended: string | null; continue_with: string | null }
+recommended: string | null; continue_with: string | null; 
+/**
+ * M8.5: challenges solved, and how many problems have one.
+ */
+challenges_solved: number; challenges_total: number }
 export type PropOverride = { key: string; value: PropValue }
 export type PropSpec = { key: string; ty: PropType; default: PropValue; unit: Unit; 
 /**
@@ -1417,7 +1633,12 @@ export type PropType =
 /**
  * One of `options` (ids, translated as `registry.choice.<option>`).
  */
-{ type: "choice"; options: string[] }
+{ type: "choice"; options: string[] } | 
+/**
+ * M8: the name of one of the problem's declared providers (a Third-Party API card's
+ * binding); any short name in the Sandbox.
+ */
+{ type: "binding" }
 /**
  * A prop value. Numbers are one type: JavaScript can't tell `2` from `2.0`, so an
  * integer prop is a number that the registry checks is whole (`PropType::Int`).
@@ -1464,7 +1685,12 @@ export type ReferencePoint = { cost_usd: number; p95_ms: number }
 /**
  * Everything the editor needs to know about components, sent to the UI once.
  */
-export type Registry = { categories: Category[]; kinds: KindSpec[]; meta: MetaSpec[]; wiring: WiringTable; limits: Limits }
+export type Registry = { categories: Category[]; kinds: KindSpec[]; meta: MetaSpec[]; 
+/**
+ * A zone's service-mesh policy props (v4); their defaults leave the mesh's retries,
+ * timeouts and circuit breaking off.
+ */
+mesh_props: PropSpec[]; wiring: WiringTable; limits: Limits }
 export type RequestTypeBrief = { id: string; name: string | null; name_es: string | null; share: number }
 export type Role = "primary" | "replica" | "any"
 /**
@@ -1527,7 +1753,35 @@ completion: Percentiles | null; lost: number; dead_lettered: number;
 /**
  * Failed attempts that were retried: not errors, since the message lived on (review F3).
  */
-retried?: number; stale_reads: number; stale_rate: number; cost_month: number; per_type: TypeResult[]; nodes: NodeResult[]; 
+retried?: number; stale_reads: number; stale_rate: number; 
+/**
+ * S7: writes that raced on a contended key or landed on a stale primary in a split.
+ */
+conflicts: number; 
+/**
+ * S1: the least share of the target connections connected in any judged second (from
+ * `ramp_s` + 10 s to the end), and connection attempts refused (capacity, accept rate).
+ */
+connected_min: number; conn_drops: number; 
+/**
+ * S2: time to first token over every model call, and calls a provider refused (429).
+ */
+ttft?: Percentiles | null; rate_limited: number; 
+/**
+ * S4: every job run (type, start, seconds to finish; None if it never finished), and
+ * tasks started again (failures, spot interruptions).
+ */
+jobs: JobResult[]; tasks_retried: number; 
+/**
+ * S5: windowed records that arrived past their window's allowed lateness (not lost,
+ * left out of the results), their share of windowed records, and results emitted twice
+ * after a crash replayed from a checkpoint.
+ */
+late: number; late_rate: number; duplicates: number; 
+/**
+ * S9: requests whose data a store, cache or broker outside their residency held.
+ */
+residency_violations: number; cost_month: number; per_type: TypeResult[]; nodes: NodeResult[]; 
 /**
  * One entry per simulated second.
  */
@@ -1636,7 +1890,8 @@ export type SimRow = (
  */
 { sim: string } | 
 /**
- * A `Cost` field: `per_instance_month`, `per_gb_month`, `per_million`.
+ * A `Cost` field (`per_instance_month`, `per_gb_month`, `per_million`…) or a usage meter
+ * (`tokens_in_m`, `tokens_out_m`, `tb_scanned`, `conn_minutes_m`, `messages_m`).
  */
 { cost: string }) & { 
 /**
@@ -1740,11 +1995,23 @@ limits: PassCriteria; bottleneck: Bottleneck | null;
  * bottleneck appears, or at the start).
  */
 replay_at_s: number | null; seed: number }
-export type TypeResult = { id: string; requests: number; errors: number; latency: Percentiles; response: Percentiles; completion: Percentiles | null }
+export type TypeResult = { id: string; requests: number; errors: number; latency: Percentiles; response: Percentiles; completion: Percentiles | null; 
+/**
+ * S2: time to first token, for types that call a model.
+ */
+ttft?: Percentiles | null }
 /**
  * The unit shown after a prop's value (`units.<unit>` in the UI).
  */
-export type Unit = "none" | "count" | "ms" | "s" | "h" | "days" | "percent" | "rps" | "gb"
+export type Unit = "none" | "count" | "ms" | "s" | "h" | "days" | "percent" | "rps" | "gb" | "kb" | "mb" | "gbps" | "tokens" | 
+/**
+ * Tokens per second.
+ */
+"tps" | 
+/**
+ * Per minute (request and token limits of hosted models).
+ */
+"per_min"
 /**
  * A test's outcome, in the order the checks run: the first that fails is the verdict.
  */

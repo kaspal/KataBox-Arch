@@ -142,6 +142,12 @@ flavour = "fastly"
 title = "Fastly documentation"
 url = "https://docs.fastly.com/"
 
+[[sources]]
+flavour = "akamai"
+title = "Akamai documentation"
+url = "https://techdocs.akamai.com/"
+checked = false
+
 [[quiz]]
 q = "Every page depends on the logged-in user's account. How much does a CDN help with those pages?"
 q_es = "Cada página depende de la cuenta del usuario que ha iniciado sesión. ¿Cuánto ayuda una CDN con esas páginas?"

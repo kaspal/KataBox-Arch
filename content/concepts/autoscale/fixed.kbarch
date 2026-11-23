@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "concept-autoscale-fixed",
   "name": "Online Judge (a fixed pool)",
   "problem_id": "online-judge",

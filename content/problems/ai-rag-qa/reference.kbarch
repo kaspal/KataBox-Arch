@@ -1,0 +1,161 @@
+{
+  "schema_version": 4,
+  "id": "ai-rag-qa-reference",
+  "name": "Ask the Docs (reference)",
+  "problem_id": "ai-rag-qa",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "timeout_ms": 15000
+      },
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "api",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 4,
+        "concurrency": 512
+      },
+      "group_id": null
+    },
+    {
+      "id": "embed",
+      "kind": "infer",
+      "flavour": "triton",
+      "label": "embed",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "model_type": "embed",
+        "instances": 2,
+        "prefill_tps": 50000
+      },
+      "group_id": null
+    },
+    {
+      "id": "vec-a",
+      "kind": "vector",
+      "flavour": "qdrant",
+      "label": "vec-a",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "shards": 2,
+        "vectors_m": 1000
+      },
+      "group_id": null
+    },
+    {
+      "id": "vec-b",
+      "kind": "vector",
+      "flavour": "qdrant",
+      "label": "vec-b",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {
+        "shards": 2,
+        "vectors_m": 1000
+      },
+      "group_id": null
+    },
+    {
+      "id": "chat",
+      "kind": "infer",
+      "flavour": "vllm",
+      "label": "chat",
+      "position": {
+        "x": 608,
+        "y": 224
+      },
+      "props": {
+        "instances": 12,
+        "batch_slots": 128
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-api-http",
+      "from": "lb",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e-api-embed-grpc",
+      "from": "api",
+      "to": "embed",
+      "protocol": "grpc"
+    },
+    {
+      "id": "e-api-vec-a-query",
+      "from": "api",
+      "to": "vec-a",
+      "protocol": "query"
+    },
+    {
+      "id": "e-api-vec-b-query",
+      "from": "api",
+      "to": "vec-b",
+      "protocol": "query"
+    },
+    {
+      "id": "e-api-chat-grpc",
+      "from": "api",
+      "to": "chat",
+      "protocol": "grpc"
+    },
+    {
+      "id": "e-vec-a-vec-b-replicate",
+      "from": "vec-a",
+      "to": "vec-b",
+      "protocol": "replicate"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

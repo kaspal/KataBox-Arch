@@ -1,0 +1,52 @@
+id = "ai-rag-qa"
+number = 7
+set = 1
+track = "ai"
+difficulty = "medium"
+title = "Ask the Docs (RAG)"
+title_es = "Pregunta a la documentación (RAG)"
+teaches = "Size the vector search in a retrieval pipeline with shards and a replica, so a traffic surge or a lost node doesn't turn questions into errors"
+teaches_es = "Dimensionar la búsqueda vectorial de un pipeline de recuperación con shards y una réplica, para que un pico de tráfico o un nodo perdido no conviertan las preguntas en errores"
+tags = ["rag", "vector-search", "sharding", "replication", "ml-inference"]
+
+[nfr]
+peak_rps = 150
+p95_ms = 8000
+availability = 0.999
+budget_usd = 20000
+
+[[request_types]]
+id = "ask"
+name = "Ask a question"
+name_es = "Hacer una pregunta"
+share = 1.0
+route = ["edge?", "compute", "model:embed", "datastore:vector", "model:chat"]
+key_space = 1000000
+tokens_in = { mean = 1200, p95 = 2000 }
+tokens_out = { mean = 150, p95 = 300 }
+top_k = 100
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "surge"
+name = "Questions double for 30 s"
+name_es = "Las preguntas se duplican durante 30 s"
+hidden = true
+traffic = { spike = { at = 15, x = 2, for = 30 } }
+
+[[tests]]
+id = "node-lost"
+name = "A vector search node is lost on launch day"
+name_es = "Se pierde un nodo de búsqueda vectorial el día del lanzamiento"
+hidden = true
+traffic = { flat = 1.5 }
+chaos = [{ kill = { kind = "vector", at = 20, for = 30 } }]
+pass = { error_rate = 0.03, availability = 0.97 }
+
+[pass]
+error_rate = 0.01
+ttft_p95_ms = 2000

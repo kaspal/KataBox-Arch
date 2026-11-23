@@ -1,0 +1,250 @@
+kind = "infer"
+one_liner = "A machine-learning model behind an API: it takes a prompt in tokens and returns tokens, an embedding or a label."
+one_liner_es = "Un modelo de aprendizaje automático detrás de una API: recibe un prompt en tokens y devuelve tokens, un embedding o una etiqueta."
+
+use_when = [
+  "A feature needs a language model, such as a summary, a chat answer or a moderation check",
+  "You need embeddings to search by meaning",
+  "A small classifier must label a high volume of items quickly",
+]
+use_when_es = [
+  "Una función necesita un modelo de lenguaje, como un resumen, una respuesta de chat o una revisión de moderación",
+  "Necesitas embeddings para buscar por significado",
+  "Un clasificador pequeño debe etiquetar un gran volumen de elementos rápidamente",
+]
+skip_when = [
+  "A rule, a lookup or a database query gives the right answer",
+  "The request must answer in a few milliseconds and a model would take seconds",
+  "The answer must be exact and auditable, such as a price or a balance",
+]
+skip_when_es = [
+  "Una regla, una consulta a una tabla o a la base de datos da la respuesta correcta",
+  "La petición debe responder en pocos milisegundos y un modelo tardaría segundos",
+  "La respuesta debe ser exacta y auditable, como un precio o un saldo",
+]
+
+formula = "time to first token = queue wait + first-token time + prompt tokens ÷ prefill speed; total = time to first token + output tokens ÷ decode speed per request; self-hosted batches up to the batch slots (each request slower, total faster); hosted flavours answer a rate-limit error past requests or tokens per minute; batch mode trades latency for half the price"
+formula_es = "tiempo hasta el primer token = espera en cola + tiempo del primer token + tokens del prompt ÷ velocidad de prefill; total = tiempo hasta el primer token + tokens de salida ÷ velocidad de decodificación por petición; lo propio agrupa hasta las plazas de lote (cada petición más lenta, el total más rápido); los sabores alojados responden con un error de límite por encima de las peticiones o tokens por minuto; el modo lote cambia latencia por la mitad de precio"
+
+gains = [
+  "Hard language tasks become one API call",
+  "Hosted models need no GPUs and no operations",
+  "Self-hosted GPUs serve a steady, high volume at a fixed price",
+]
+gains_es = [
+  "Las tareas de lenguaje difíciles se convierten en una llamada a una API",
+  "Los modelos alojados no necesitan GPU ni operación",
+  "Las GPU propias sirven un volumen alto y constante a precio fijo",
+]
+costs = [
+  "Answers take seconds, and long outputs take longer",
+  "Hosted APIs cap requests and tokens per minute",
+  "Token prices add up quickly at scale",
+  "The answer can be wrong, and nothing in the latency tells you",
+]
+costs_es = [
+  "Las respuestas tardan segundos, y las salidas largas tardan más",
+  "Las API alojadas limitan peticiones y tokens por minuto",
+  "Los precios por token suben rápido a gran escala",
+  "La respuesta puede ser incorrecta, y nada en la latencia te lo dice",
+]
+
+works_with = ["worker", "queue", "app", "vector", "cache"]
+practice = []
+
+interview_tip = "Estimate tokens in and out per request, then derive latency, tokens per minute against the limit, and monthly cost. Say which calls can wait and go through batch mode at half the price."
+interview_tip_es = "Estima los tokens de entrada y salida por petición, y de ahí deduce la latencia, los tokens por minuto frente al límite y el coste mensual. Di qué llamadas pueden esperar y pasar por el modo lote a mitad de precio."
+
+not_simulated = [
+  "Answer quality: relevance, accuracy and hallucinations are not measured at all",
+  "Prompt caching discounts",
+  "KV-cache memory and GPU memory limits",
+  "Model loading time",
+  "Speculative decoding",
+]
+not_simulated_es = [
+  "La calidad de la respuesta: la relevancia, la exactitud y las alucinaciones no se miden en absoluto",
+  "Los descuentos por caché de prompts",
+  "La memoria de la caché KV y los límites de memoria de la GPU",
+  "El tiempo de carga del modelo",
+  "La decodificación especulativa",
+]
+
+[[sim]]
+prop = "model_type"
+note = "Chat returns output tokens. Embed returns a vector and produces no output tokens. Classify returns a short label."
+note_es = "Chat devuelve tokens de salida. Embed devuelve un vector y no produce tokens de salida. Classify devuelve una etiqueta corta."
+
+[[sim]]
+prop = "api_mode"
+note = "Realtime answers each request now. Batch returns results by a deadline instead, at half the token price."
+note_es = "Realtime responde cada petición al momento. Batch devuelve los resultados antes de un plazo, a mitad del precio por token."
+
+[[sim]]
+prop = "ttft_ms"
+note = "Fixed time before the first token, on top of queue wait and prompt processing."
+note_es = "Tiempo fijo antes del primer token, sumado a la espera en cola y al procesado del prompt."
+
+[[sim]]
+prop = "prefill_tps"
+note = "How fast the prompt is read. Long prompts delay the first token."
+note_es = "Lo rápido que se lee el prompt. Los prompts largos retrasan el primer token."
+
+[[sim]]
+prop = "tokens_per_s"
+note = "Output tokens per second for one request. Long answers take proportionally longer."
+note_es = "Tokens de salida por segundo para una petición. Las respuestas largas tardan proporcionalmente más."
+
+[[sim]]
+prop = "batch_slots"
+note = "Self-hosted only: requests one GPU node decodes together. More in a batch makes each one slower but the node faster in total."
+note_es = "Solo en lo propio: peticiones que un nodo GPU decodifica juntas. Más en un lote hace cada una más lenta pero el nodo más rápido en total."
+
+[[sim]]
+prop = "instances"
+note = "Self-hosted only: GPU nodes. Each one runs its own batch."
+note_es = "Solo en lo propio: nodos GPU. Cada uno ejecuta su propio lote."
+
+[[sim]]
+prop = "rpm"
+note = "Hosted only: requests per minute the account may send. Past it, calls get a rate-limit error."
+note_es = "Solo en lo alojado: peticiones por minuto que puede enviar la cuenta. Por encima, las llamadas reciben un error de límite."
+
+[[sim]]
+prop = "tpm"
+note = "Hosted only: tokens per minute, input and output together. Long prompts hit this before the request limit."
+note_es = "Solo en lo alojado: tokens por minuto, entrada y salida juntas. Los prompts largos llegan a este límite antes que al de peticiones."
+
+[[sim]]
+sim = "queue_per_server"
+note = "Requests that may wait for a free batch slot before new ones are refused."
+note_es = "Peticiones que pueden esperar a una plaza de lote libre antes de rechazar las nuevas."
+
+[[sim]]
+cost = "tokens_in_m"
+note = "Hosted flavours bill per million input tokens, halved in batch mode."
+note_es = "Los sabores alojados cobran por millón de tokens de entrada, a mitad de precio en modo lote."
+
+[[sim]]
+cost = "tokens_out_m"
+note = "Hosted flavours bill per million output tokens, which cost several times more than input tokens."
+note_es = "Los sabores alojados cobran por millón de tokens de salida, que cuestan varias veces más que los de entrada."
+
+[[sim]]
+cost = "per_instance_month"
+note = "Self-hosted flavours pay a fixed monthly price per GPU node and nothing per token."
+note_es = "Los sabores propios pagan un precio mensual fijo por nodo GPU y nada por token."
+
+[flavours_compared]
+flavours = ["claude_api", "openai_api", "bedrock", "gemini_api", "vllm", "triton"]
+
+[[flavours_compared.rows]]
+label = "Who runs it"
+label_es = "Quién lo opera"
+cells = ["Anthropic", "OpenAI", "AWS, hosting several model families", "Google", "You, on your GPUs", "You, on your GPUs"]
+cells_es = ["Anthropic", "OpenAI", "AWS, con varias familias de modelos", "Google", "Tú, en tus GPU", "Tú, en tus GPU"]
+
+[[flavours_compared.rows]]
+label = "How you pay"
+label_es = "Cómo pagas"
+cells = ["Per token", "Per token", "Per token", "Per token", "Per GPU node", "Per GPU node"]
+cells_es = ["Por token", "Por token", "Por token", "Por token", "Por nodo GPU", "Por nodo GPU"]
+
+[[flavours_compared.rows]]
+label = "Limits"
+label_es = "Límites"
+cells = ["Requests and tokens per minute", "Requests and tokens per minute", "Requests and tokens per minute", "Requests and tokens per minute", "Your GPUs' capacity", "Your GPUs' capacity"]
+cells_es = ["Peticiones y tokens por minuto", "Peticiones y tokens por minuto", "Peticiones y tokens por minuto", "Peticiones y tokens por minuto", "La capacidad de tus GPU", "La capacidad de tus GPU"]
+
+[[flavours_compared.rows]]
+label = "Typical use"
+label_es = "Uso típico"
+cells = ["Chat and long documents", "Chat and embeddings", "Models on AWS, inside your account", "Chat and long context", "Serving an open language model", "Small classifiers at high volume"]
+cells_es = ["Chat y documentos largos", "Chat y embeddings", "Modelos en AWS, dentro de tu cuenta", "Chat y contexto largo", "Servir un modelo de lenguaje abierto", "Clasificadores pequeños a gran volumen"]
+
+[[pitfalls]]
+title = "Hitting the tokens-per-minute limit"
+title_es = "Chocar con el límite de tokens por minuto"
+body = "The design checks requests per minute but sends long prompts. Tokens per minute run out first, and the provider answers with rate-limit errors at peak."
+body_es = "El diseño comprueba las peticiones por minuto pero envía prompts largos. Los tokens por minuto se agotan antes, y el proveedor responde con errores de límite en el pico."
+fix = "Compute tokens per minute at peak, shorten prompts, put a queue in front to smooth the rate, or self-host for steady high volume."
+fix_es = "Calcula los tokens por minuto del pico, acorta los prompts, pon una cola delante para suavizar el ritmo, o usa modelos propios para un volumen alto y constante."
+
+[[pitfalls]]
+title = "A model call on the user's path"
+title_es = "Una llamada al modelo en el camino del usuario"
+body = "The page waits for a long generated answer. Decode time grows with the output length, so the request takes seconds and misses its latency goal."
+body_es = "La página espera una respuesta generada larga. El tiempo de decodificación crece con la longitud de la salida, así que la petición tarda segundos y no cumple su objetivo de latencia."
+fix = "Cap output tokens, stream the answer, or move the call to a worker and deliver the result later. Use batch mode when a deadline is enough."
+fix_es = "Limita los tokens de salida, transmite la respuesta por partes, o pasa la llamada a un worker y entrega el resultado después. Usa el modo lote cuando baste con un plazo."
+
+[[pitfalls]]
+title = "Treating a fast answer as a good answer"
+title_es = "Tomar una respuesta rápida por una buena respuesta"
+body = "The design meets every latency and cost goal, but nobody checked what the model says. The simulator measures time and money only, never answer quality."
+body_es = "El diseño cumple todos los objetivos de latencia y coste, pero nadie comprobó lo que dice el modelo. El simulador mide solo tiempo y dinero, nunca la calidad de la respuesta."
+fix = "Plan an evaluation set and checks on the output, and say in the design how wrong answers are caught."
+fix_es = "Planifica un conjunto de evaluación y controles sobre la salida, y di en el diseño cómo se detectan las respuestas incorrectas."
+
+[[sources]]
+flavour = "claude_api"
+title = "Anthropic API pricing"
+url = "https://www.anthropic.com/pricing"
+checked = false
+
+[[sources]]
+flavour = "openai_api"
+title = "OpenAI platform documentation"
+url = "https://platform.openai.com/docs"
+checked = false
+
+[[sources]]
+flavour = "bedrock"
+title = "Amazon Bedrock documentation"
+url = "https://docs.aws.amazon.com/bedrock/"
+checked = false
+
+[[sources]]
+flavour = "gemini_api"
+title = "Gemini API documentation"
+url = "https://ai.google.dev/gemini-api/docs"
+checked = false
+
+[[sources]]
+flavour = "vllm"
+title = "vLLM documentation"
+url = "https://docs.vllm.ai/"
+checked = false
+
+[[sources]]
+flavour = "triton"
+title = "NVIDIA Triton Inference Server documentation"
+url = "https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/"
+checked = false
+
+[[quiz]]
+q = "A self-hosted GPU node raises its batch slots. What happens to latency and throughput?"
+q_es = "Un nodo GPU propio sube sus plazas de lote. ¿Qué pasa con la latencia y el rendimiento?"
+options = ["Each request gets faster and the total gets faster", "Each request gets slower, but the node finishes more requests in total", "Nothing changes, because the GPU speed is fixed", "Requests fail with rate-limit errors"]
+options_es = ["Cada petición va más rápida y el total también", "Cada petición va más lenta, pero el nodo termina más peticiones en total", "No cambia nada, porque la velocidad de la GPU es fija", "Las peticiones fallan con errores de límite"]
+answer = 1
+why = "Continuous batching shares the GPU among more requests. Each decodes more slowly, but more are in progress at once, so throughput rises."
+why_es = "El batching continuo reparte la GPU entre más peticiones. Cada una decodifica más despacio, pero hay más en curso a la vez, así que el rendimiento sube."
+
+[[quiz]]
+q = "A nightly job summarises a million documents with a hosted model. Nobody waits for the results until morning. What is the best move?"
+q_es = "Un trabajo nocturno resume un millón de documentos con un modelo alojado. Nadie espera los resultados hasta la mañana. ¿Qué es lo mejor?"
+options = ["Send them all at once in realtime mode", "Buy GPU nodes for the night", "Use an embedding model instead", "Use batch mode: results by a deadline at half the token price"]
+options_es = ["Enviarlos todos a la vez en modo realtime", "Comprar nodos GPU para la noche", "Usar un modelo de embeddings en su lugar", "Usar el modo lote: resultados antes de un plazo a mitad del precio por token"]
+answer = 3
+why = "Batch mode trades latency for price and avoids the per-minute limits of realtime calls. Sending everything in realtime would hit the rate limits."
+why_es = "El modo lote cambia latencia por precio y evita los límites por minuto de las llamadas realtime. Enviarlo todo en realtime chocaría con los límites."
+
+[[quiz]]
+q = "Your design passes every latency, error and cost goal with a hosted chat model. What has the simulator not checked?"
+q_es = "Tu diseño cumple todos los objetivos de latencia, errores y coste con un modelo de chat alojado. ¿Qué no ha comprobado el simulador?"
+options = ["Whether the answers are correct", "Whether the tokens-per-minute limit was hit", "How long the first token took", "What the tokens cost"]
+options_es = ["Si las respuestas son correctas", "Si se llegó al límite de tokens por minuto", "Cuánto tardó el primer token", "Cuánto costaron los tokens"]
+answer = 0
+why = "The simulator models time, limits and price. Answer quality, such as relevance or hallucination, is not simulated and needs its own evaluation."
+why_es = "El simulador modela tiempo, límites y precio. La calidad de la respuesta, como la relevancia o las alucinaciones, no se simula y necesita su propia evaluación."

@@ -1,0 +1,60 @@
+id = "ai-voice-assistant"
+track = "ai"
+number = 12
+set = 1
+difficulty = "medium"
+title = "Voice Assistant"
+title_es = "Asistente de voz"
+teaches = "Budget a voice turn as the sum of three model stages, and keep every stage fast and its GPUs out of saturation, so one slow stage or a surge does not break the turn"
+teaches_es = "Presupuestar un turno de voz como la suma de tres etapas de modelo, y mantener cada etapa rápida y sus GPU lejos de la saturación, para que una etapa lenta o un pico no rompan el turno"
+tags = ["llm", "latency-budget", "websockets", "ml-inference"]
+requires = ["infer", "ws"]
+
+challenge_ratio = 0.75
+[nfr]
+peak_rps = 20
+p95_ms = 1200
+availability = 0.999
+budget_usd = 10000
+
+[[request_types]]
+id = "sessions"
+name = "Devices with a session open"
+name_es = "Dispositivos con una sesión abierta"
+share = 0.0
+kind = "connection"
+route = ["edge"]
+connected = 150000
+
+[[request_types]]
+id = "turn"
+name = "A spoken turn"
+name_es = "Un turno hablado"
+share = 1.0
+route = ["edge:ws", "compute", "model:embed", "model:chat", "model:classify"]
+key_space = 150000
+tokens_in = { mean = 300, p95 = 450 }
+tokens_out = { mean = 15, p95 = 30 }
+
+[[tests]]
+id = "normal"
+name = "A normal evening"
+name_es = "Una tarde normal"
+
+[[tests]]
+id = "slow-stage"
+name = "One model slows down by 300 ms"
+name_es = "Un modelo va 300 ms más lento"
+hidden = true
+chaos = [{ latency = { kind = "infer", at = 15, for = 40, add_ms = 300 } }]
+
+[[tests]]
+id = "surge"
+name = "Three times the turns for 30 s"
+name_es = "El triple de turnos durante 30 s"
+hidden = true
+traffic = { spike = { at = 15, x = 3, for = 30 } }
+
+[pass]
+error_rate = 0.01
+connected_min = 0.95

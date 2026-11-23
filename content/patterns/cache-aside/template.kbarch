@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "pattern-cache-aside",
   "name": "Cache-aside",
   "problem_id": null,

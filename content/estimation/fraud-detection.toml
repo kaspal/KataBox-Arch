@@ -1,0 +1,34 @@
+# Estimation drills for Payment Fraud Scoring.
+
+[[drill]]
+id = "scores-in-flight"
+kind = "capacity"
+prompt = "The fraud check takes {peak_rps} requests a second, and {score_pct}% of them ask the model for a score. The model needs {model_ms} ms per score, and the API holds a slot while it waits. How many scores are in flight at once?"
+prompt_es = "La comprobación de fraude recibe {peak_rps} solicitudes por segundo, y el {score_pct} % de ellas pide una puntuación al modelo. El modelo necesita {model_ms} ms por puntuación, y la API retiene un hueco mientras espera. ¿Cuántas puntuaciones hay en curso a la vez?"
+inputs = { peak_rps = 3000, score_pct = 60, model_ms = 20 }
+formula = "peak_rps * score_pct / 100 * model_ms / 1000"
+unit = "count"
+solution = "Scores a second = {peak_rps} × 0.6 = 1,800. In flight = rate × time = 1,800 × 0.02 s = {answer} scores at once. That is light work for the model, and for the API slots that wait on it."
+solution_es = "Puntuaciones por segundo = {peak_rps} × 0,6 = 1800. En curso = ritmo × tiempo = 1800 × 0,02 s = {answer} puntuaciones a la vez. Es poco trabajo para el modelo y para los huecos de la API que lo esperan."
+
+[[drill]]
+id = "slow-model-waiting"
+kind = "capacity"
+prompt = "The API scores {scores_per_s} payments a second. The model, which usually needs {model_ms} ms, slows down by {added_ms} ms, and the API has no call timeout. How many payments are waiting for a score at once?"
+prompt_es = "La API puntúa {scores_per_s} pagos por segundo. El modelo, que suele necesitar {model_ms} ms, se vuelve {added_ms} ms más lento, y la API no tiene tiempo límite de llamada. ¿Cuántos pagos esperan una puntuación a la vez?"
+inputs = { scores_per_s = 1800, model_ms = 20, added_ms = 80 }
+formula = "scores_per_s * (model_ms + added_ms) / 1000"
+unit = "count"
+solution = "Each score now takes {model_ms} + {added_ms} = 100 ms, so {scores_per_s} × 0.1 s = {answer} payments wait at once, five times as many as usual, and each one is already past the 60 ms p95. A call timeout of 40 ms caps the wait: at most 1,800 × 0.04 s = 72 are waiting, and the late ones are decided by rules."
+solution_es = "Cada puntuación tarda ahora {model_ms} + {added_ms} = 100 ms, así que {scores_per_s} × 0,1 s = {answer} pagos esperan a la vez, cinco veces más de lo normal, y cada uno ya supera el p95 de 60 ms. Un tiempo límite de llamada de 40 ms acota la espera: como mucho esperan 1800 × 0,04 s = 72, y las reglas deciden los que llegan tarde."
+
+[[drill]]
+id = "events-per-partition"
+kind = "qps"
+prompt = "On Black Friday the traffic is {spike_x} times the normal {peak_rps} requests a second, and {event_pct}% of it is card events. The events go to a stream with {partitions} partitions. How many events a second does each partition carry?"
+prompt_es = "En Black Friday el tráfico es {spike_x} veces las {peak_rps} solicitudes por segundo normales, y el {event_pct} % son eventos de tarjeta. Los eventos van a un stream con {partitions} particiones. ¿Cuántos eventos por segundo lleva cada partición?"
+inputs = { peak_rps = 3000, spike_x = 3, event_pct = 40, partitions = 24 }
+formula = "peak_rps * spike_x * event_pct / 100 / partitions"
+unit = "rps"
+solution = "Events a second = {peak_rps} × {spike_x} × 0.4 = 3,600. Spread over {partitions} partitions, that is {answer} events a second each. A partition hands out one message at a time, so the partitions and the Flink instances together must keep up with this rate, or the features in Redis fall behind."
+solution_es = "Eventos por segundo = {peak_rps} × {spike_x} × 0,4 = 3600. Repartidos entre {partitions} particiones, son {answer} eventos por segundo en cada una. Una partición entrega un mensaje cada vez, así que las particiones y las instancias de Flink juntas tienen que seguir este ritmo, o las características en Redis se quedan atrás."

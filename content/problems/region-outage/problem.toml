@@ -8,6 +8,7 @@ teaches = "Run in several regions behind DNS, with replicas that can be promoted
 teaches_es = "Funcionar en varias regiones detrás de DNS, con réplicas que se pueden promover, para sobrevivir a la pérdida de una región o de los enlaces entre regiones"
 tags = ["regions", "dns", "replication", "failover", "partitioning"]
 
+challenge_ratio = 0.6
 [nfr]
 peak_rps = 6000
 read_ratio = 0.9

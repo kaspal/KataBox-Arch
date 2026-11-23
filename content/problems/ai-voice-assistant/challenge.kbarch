@@ -1,0 +1,129 @@
+{
+  "schema_version": 4,
+  "id": "ai-voice-assistant-challenge",
+  "name": "Voice assistant (reference)",
+  "problem_id": "ai-voice-assistant",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "mobile",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "ws",
+      "kind": "ws",
+      "flavour": "socket_io",
+      "label": "ws",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 1
+      },
+      "group_id": null
+    },
+    {
+      "id": "stt",
+      "kind": "infer",
+      "flavour": "triton",
+      "label": "stt",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 1,
+        "model_type": "embed"
+      },
+      "group_id": null
+    },
+    {
+      "id": "llm",
+      "kind": "infer",
+      "flavour": "vllm",
+      "label": "llm",
+      "position": {
+        "x": 608,
+        "y": 224
+      },
+      "props": {
+        "instances": 3
+      },
+      "group_id": null
+    },
+    {
+      "id": "tts",
+      "kind": "infer",
+      "flavour": "triton",
+      "label": "tts",
+      "position": {
+        "x": 608,
+        "y": 336
+      },
+      "props": {
+        "model_type": "classify",
+        "prefill_tps": 50000
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-ws-ws",
+      "from": "client",
+      "to": "ws",
+      "protocol": "ws"
+    },
+    {
+      "id": "e-ws-app-http",
+      "from": "ws",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-stt-grpc",
+      "from": "app",
+      "to": "stt",
+      "protocol": "grpc"
+    },
+    {
+      "id": "e-app-llm-grpc",
+      "from": "app",
+      "to": "llm",
+      "protocol": "grpc"
+    },
+    {
+      "id": "e-app-tts-grpc",
+      "from": "app",
+      "to": "tts",
+      "protocol": "grpc"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "schema_version": 4,
+  "id": "de-sessionization-naive",
+  "name": "Clickstream sessionization (first try)",
+  "problem_id": "de-sessionization",
+  "nodes": [
+    {
+      "id": "users",
+      "kind": "client",
+      "flavour": "web",
+      "label": "users",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "collector",
+      "kind": "app",
+      "flavour": "go",
+      "label": "collector",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "clicks",
+      "kind": "stream",
+      "flavour": "kafka",
+      "label": "clicks",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {
+        "partitions": 12
+      },
+      "group_id": null
+    },
+    {
+      "id": "sessionizer",
+      "kind": "streamproc",
+      "flavour": "flink",
+      "label": "sessionizer",
+      "position": {
+        "x": 912,
+        "y": 112
+      },
+      "props": {
+        "instances": 2,
+        "window": "sliding",
+        "window_s": 60,
+        "slide_s": 1,
+        "watermark_s": 5,
+        "checkpoint_s": 600,
+        "state_kb": 128,
+        "memory_gb": 1
+      },
+      "group_id": null
+    },
+    {
+      "id": "sessions",
+      "kind": "nosql",
+      "flavour": "scylladb",
+      "label": "sessions",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-users-collector-http",
+      "from": "users",
+      "to": "collector",
+      "protocol": "http"
+    },
+    {
+      "id": "e-collector-clicks-publish",
+      "from": "collector",
+      "to": "clicks",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-clicks-sessionizer-consume",
+      "from": "clicks",
+      "to": "sessionizer",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-sessionizer-sessions-query",
+      "from": "sessionizer",
+      "to": "sessions",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

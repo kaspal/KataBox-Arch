@@ -1,0 +1,96 @@
+{
+  "schema_version": 4,
+  "id": "naive",
+  "name": "Analysts at 9 a.m. (first try)",
+  "problem_id": "de-bi-concurrency",
+  "nodes": [
+    {
+      "id": "analysts",
+      "kind": "client",
+      "flavour": "web",
+      "label": "analysts",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "rps": 12,
+        "timeout_ms": 120000
+      },
+      "group_id": null
+    },
+    {
+      "id": "bi",
+      "kind": "app",
+      "flavour": "go",
+      "label": "bi",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "notebooks",
+      "kind": "micro",
+      "flavour": "generic",
+      "label": "notebooks",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "wh",
+      "kind": "warehouse",
+      "flavour": "snowflake",
+      "label": "wh",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-analysts-bi-http",
+      "from": "analysts",
+      "to": "bi",
+      "protocol": "http"
+    },
+    {
+      "id": "e-analysts-notebooks-http",
+      "from": "analysts",
+      "to": "notebooks",
+      "protocol": "http"
+    },
+    {
+      "id": "e-bi-wh-query",
+      "from": "bi",
+      "to": "wh",
+      "protocol": "query"
+    },
+    {
+      "id": "e-notebooks-wh-query",
+      "from": "notebooks",
+      "to": "wh",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

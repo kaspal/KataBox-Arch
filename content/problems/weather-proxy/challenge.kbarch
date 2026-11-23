@@ -1,0 +1,116 @@
+{
+  "schema_version": 4,
+  "id": "weather-proxy-challenge",
+  "name": "Weather proxy (reference)",
+  "problem_id": "weather-proxy",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "call_timeout_ms": 200,
+        "instances": 6
+      },
+      "group_id": null
+    },
+    {
+      "id": "cache-a",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "cache-a",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "failover_s": 5,
+        "memory_gb": 0.5,
+        "serve_stale_s": 3600,
+        "stampede_guard": true,
+        "ttl_s": 600
+      },
+      "group_id": null
+    },
+    {
+      "id": "cache-b",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "cache-b",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {
+        "failover_s": 5,
+        "memory_gb": 0.5,
+        "serve_stale_s": 3600,
+        "stampede_guard": true,
+        "ttl_s": 600
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app-http",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-cache-a-query",
+      "from": "app",
+      "to": "cache-a",
+      "protocol": "query"
+    },
+    {
+      "id": "e-cache-a-cache-b-replicate",
+      "from": "cache-a",
+      "to": "cache-b",
+      "protocol": "replicate"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

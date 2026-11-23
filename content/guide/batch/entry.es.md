@@ -1,0 +1,7 @@
+Un clúster de cómputo por lotes toma un trabajo grande, como reconstruir un informe a partir de un día de logs, y divide el trabajo en muchas **tareas**. Cada nodo ejecuta varios **ejecutores**, y cada ejecutor ejecuta una tarea a la vez. Más nodos significa más tareas en paralelo, así que el trabajo termina antes, siempre que el trabajo se reparta por igual.
+
+Rara vez ocurre. Un trabajo termina solo cuando termina su **última** tarea. Si una clave tiene muchos más datos que las demás (**sesgo**), su tarea es enorme y todos los demás ejecutores la esperan. El **salting** divide las tareas más grandes en piezas para que varios ejecutores las compartan. La **especulación** lanza una segunda copia de una tarea lenta en un ejecutor libre cerca del final; eso ayuda cuando una tarea va lenta por mala suerte, pero no cuando va lenta por el sesgo, porque la copia tiene el mismo trabajo.
+
+Los clústeres suelen ejecutar parte de sus nodos en capacidad más barata e **interrumpible** (spot). Cuando se retira uno de esos nodos, sus tareas vuelven a empezar desde cero, salvo que el trabajo escriba **checkpoints**, en cuyo caso se reanudan desde el último. Lo que se evalúa es el plazo que el problema fija para el trabajo.
+
+**Cómo lo factura el simulador.** Todos los sabores cobran 140 $ al mes por nodo, una máquina de clase m5.xlarge (0,192 $ la hora durante 730 horas). El simulador aún no aplica descuento spot, así que por ahora los nodos spot cuestan lo mismo que los normales. Son precios didácticos; fuente por confirmar.

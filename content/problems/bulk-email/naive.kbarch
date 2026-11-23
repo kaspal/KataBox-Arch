@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "bulk-email-naive",
   "name": "Bulk Email Campaigns (first try)",
   "problem_id": "bulk-email",
@@ -40,8 +40,8 @@
         "y": 340
       },
       "props": {
-        "instances": 4,
-        "concurrency": 64
+        "concurrency": 64,
+        "instances": 4
       },
       "group_id": null
     }

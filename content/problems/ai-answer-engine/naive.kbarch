@@ -1,0 +1,151 @@
+{
+  "schema_version": 4,
+  "id": "ai-answer-engine-naive",
+  "name": "Web answer engine (first try)",
+  "problem_id": "ai-answer-engine",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "timeout_ms": 20000
+      },
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "api",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 8,
+        "concurrency": 512
+      },
+      "group_id": null
+    },
+    {
+      "id": "search",
+      "kind": "search",
+      "flavour": "elasticsearch",
+      "label": "search",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "embed",
+      "kind": "infer",
+      "flavour": "triton",
+      "label": "embed",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "model_type": "embed",
+        "prefill_tps": 50000
+      },
+      "group_id": null
+    },
+    {
+      "id": "vec",
+      "kind": "vector",
+      "flavour": "qdrant",
+      "label": "vec",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {
+        "shards": 2,
+        "vectors_m": 100
+      },
+      "group_id": null
+    },
+    {
+      "id": "chat",
+      "kind": "infer",
+      "flavour": "claude_api",
+      "label": "chat",
+      "position": {
+        "x": 608,
+        "y": 224
+      },
+      "props": {
+        "rpm": 16000,
+        "tpm": 30000000
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-api-http",
+      "from": "lb",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e-api-search-query",
+      "from": "api",
+      "to": "search",
+      "protocol": "query"
+    },
+    {
+      "id": "e-api-embed-grpc",
+      "from": "api",
+      "to": "embed",
+      "protocol": "grpc"
+    },
+    {
+      "id": "e-api-vec-query",
+      "from": "api",
+      "to": "vec",
+      "protocol": "query"
+    },
+    {
+      "id": "e-api-chat-http",
+      "from": "api",
+      "to": "chat",
+      "protocol": "http"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

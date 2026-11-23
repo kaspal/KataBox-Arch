@@ -1,6 +1,6 @@
 {
   "design": {
-    "schema_version": 3,
+    "schema_version": 4,
     "id": "compose-e68ab3738fdeb4a4",
     "name": "shop",
     "problem_id": null,
@@ -22,7 +22,7 @@
       {
         "id": "cache",
         "kind": "cache",
-        "flavour": "redis",
+        "flavour": "valkey",
         "label": "cache",
         "position": {
           "x": 912,
@@ -154,7 +154,7 @@
       {
         "id": "stream2",
         "kind": "stream",
-        "flavour": "kafka",
+        "flavour": "redpanda",
         "label": "stream2",
         "position": {
           "x": 608,
@@ -178,7 +178,7 @@
       {
         "id": "wide",
         "kind": "nosql",
-        "flavour": "cassandra",
+        "flavour": "scylladb",
         "label": "wide",
         "position": {
           "x": 912,
@@ -253,7 +253,7 @@
       "service": "cache",
       "image": "valkey/valkey:8",
       "kind": "cache",
-      "flavour": "redis"
+      "flavour": "valkey"
     },
     {
       "service": "db",
@@ -319,7 +319,7 @@
       "service": "stream2",
       "image": "redpanda",
       "kind": "stream",
-      "flavour": "kafka"
+      "flavour": "redpanda"
     },
     {
       "service": "web",
@@ -331,7 +331,7 @@
       "service": "wide",
       "image": "scylladb/scylla",
       "kind": "nosql",
-      "flavour": "cassandra"
+      "flavour": "scylladb"
     }
   ],
   "guessed": [

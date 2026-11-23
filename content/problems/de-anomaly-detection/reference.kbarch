@@ -1,0 +1,147 @@
+{
+  "schema_version": 4,
+  "id": "de-anomaly-detection-reference",
+  "name": "Turbine anomaly alerts (reference)",
+  "problem_id": "de-anomaly-detection",
+  "nodes": [
+    {
+      "id": "sensors",
+      "kind": "client",
+      "flavour": "web",
+      "label": "sensors",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "broker",
+      "kind": "mqtt",
+      "flavour": "emqx",
+      "label": "broker",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "ingest",
+      "kind": "app",
+      "flavour": "go",
+      "label": "ingest",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "kafka",
+      "kind": "stream",
+      "flavour": "kafka",
+      "label": "kafka",
+      "position": {
+        "x": 912,
+        "y": 112
+      },
+      "props": {
+        "partitions": 384
+      },
+      "group_id": null
+    },
+    {
+      "id": "scorer",
+      "kind": "streamproc",
+      "flavour": "flink",
+      "label": "scorer",
+      "position": {
+        "x": 912,
+        "y": 224
+      },
+      "props": {
+        "instances": 6,
+        "concurrency": 64
+      },
+      "group_id": null
+    },
+    {
+      "id": "triton",
+      "kind": "infer",
+      "flavour": "triton",
+      "label": "triton",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 4
+      },
+      "group_id": null
+    },
+    {
+      "id": "tsdb",
+      "kind": "tsdb",
+      "flavour": "influxdb",
+      "label": "tsdb",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "instances": 3,
+        "points_per_s": 20000
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-sensors-broker-publish",
+      "from": "sensors",
+      "to": "broker",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-sensors-ingest-http",
+      "from": "sensors",
+      "to": "ingest",
+      "protocol": "http"
+    },
+    {
+      "id": "e-ingest-kafka-publish",
+      "from": "ingest",
+      "to": "kafka",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-kafka-scorer-consume",
+      "from": "kafka",
+      "to": "scorer",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-scorer-triton-http",
+      "from": "scorer",
+      "to": "triton",
+      "protocol": "http"
+    },
+    {
+      "id": "e-scorer-tsdb-query",
+      "from": "scorer",
+      "to": "tsdb",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

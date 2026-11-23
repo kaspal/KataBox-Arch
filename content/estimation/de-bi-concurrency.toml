@@ -1,0 +1,35 @@
+# Estimation drills for Analysts at 9 a.m.
+
+[[drill]]
+id = "busy-slots"
+kind = "capacity"
+prompt = "Analysts send {qps} ad-hoc queries a second. Each takes an overhead of {overhead_s} s plus a scan of {gb} GB at {scan_gbps} GB/s. About how many warehouse slots are busy at once?"
+prompt_es = "Los analistas mandan {qps} consultas ad hoc por segundo. Cada una tarda una sobrecarga de {overhead_s} s más un escaneo de {gb} GB a {scan_gbps} GB/s. ¿Cuántos huecos del almacén están ocupados a la vez, más o menos?"
+inputs = { qps = 12, overhead_s = 0.3, gb = 0.1, scan_gbps = 1 }
+formula = "qps * (overhead_s + gb / scan_gbps)"
+unit = "count"
+solution = "Each query holds a slot for {overhead_s} + {gb} / {scan_gbps} = 0.4 s, so {qps} a second keep {answer} slots busy (Little's law). One cluster has 8, so a normal hour fits. The few repeats the result cache answers make it a little less."
+solution_es = "Cada consulta ocupa un hueco durante {overhead_s} + {gb} / {scan_gbps} = 0,4 s, así que {qps} por segundo mantienen {answer} huecos ocupados (ley de Little). Un clúster tiene 8, así que una hora normal cabe. Las pocas repeticiones que responde la caché de resultados lo bajan un poco."
+
+[[drill]]
+id = "rush-clusters"
+kind = "servers"
+prompt = "At 9 a.m. the analysts send {rush_qps} queries a second, each holding a slot for {query_s} s. A cluster runs {slots} queries at once, and you want at most a share of {target_util} of its slots busy. How many clusters does the warehouse need?"
+prompt_es = "A las 9 de la mañana los analistas mandan {rush_qps} consultas por segundo, y cada una ocupa un hueco durante {query_s} s. Un clúster ejecuta {slots} consultas a la vez, y quieres ocupada como mucho una fracción de {target_util} de sus huecos. ¿Cuántos clústeres necesita el almacén?"
+inputs = { rush_qps = 48, query_s = 0.4, slots = 8, target_util = 0.8 }
+formula = "rush_qps * query_s / (slots * target_util)"
+unit = "count"
+tolerance = 0.1
+solution = "{rush_qps} × {query_s} s ≈ 19 busy slots; with {target_util} × {slots} usable slots per cluster, that is {answer} clusters. One cluster sized for the average hour would queue from the first seconds of the rush."
+solution_es = "{rush_qps} × {query_s} s ≈ 19 huecos ocupados; con {target_util} × {slots} huecos útiles por clúster, salen {answer} clústeres. Un clúster dimensionado para la hora media haría cola desde los primeros segundos de la avalancha."
+
+[[drill]]
+id = "exploration-slots"
+kind = "capacity"
+prompt = "The data science team sends {explore_qps} exploration queries a second. Each scans {gb} GB at {scan_gbps} GB/s. Once the first ones have been running for a while, how many slots do they hold at once?"
+prompt_es = "El equipo de ciencia de datos manda {explore_qps} consultas de exploración por segundo. Cada una escanea {gb} GB a {scan_gbps} GB/s. Cuando las primeras ya llevan un rato en marcha, ¿cuántos huecos ocupan a la vez?"
+inputs = { explore_qps = 0.48, gb = 60, scan_gbps = 1 }
+formula = "explore_qps * gb / scan_gbps"
+unit = "count"
+solution = "Each query holds a slot for {gb} / {scan_gbps} = 60 s, so {explore_qps} a second hold about {answer} slots: more than three clusters' worth. On a warehouse the analysts share, their queries wait behind these. On a warehouse of its own that auto-suspends, the notebooks pay only while they explore."
+solution_es = "Cada consulta ocupa un hueco durante {gb} / {scan_gbps} = 60 s, así que {explore_qps} por segundo ocupan unos {answer} huecos: más de lo que dan tres clústeres. En un almacén que comparten los analistas, sus consultas esperan detrás de estas. En un almacén propio que se suspende solo, los notebooks pagan solo mientras exploran."

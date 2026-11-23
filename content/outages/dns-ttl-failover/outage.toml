@@ -1,0 +1,86 @@
+id = "dns-ttl-failover"
+number = 4
+difficulty = "easy"
+title = "The one-day TTL"
+title_es = "El TTL de un día"
+summary = "A Region went dark and DNS failed over in seconds, but clients had cached the old answer for a day."
+summary_es = "Una región se apagó y el DNS hizo el failover en segundos, pero los clientes tenían guardada la respuesta antigua durante un día."
+story = "A product catalogue ran in two Regions: us-east served everyone, and us-west was a warm standby with one App Server. Route 53 had failover routing with health checks, so on paper losing us-east was covered. But the record's TTL had been set to one day (86,400 s) long ago and never revisited. At 20 s us-east was cut off. Health checks noticed within seconds and Route 53 started answering with us-west, but clients and resolvers had cached the us-east answer and kept using it. In the simulator every request keeps going to the dead Region for the rest of the test, and the standby never sees a single one."
+story_es = "Un catálogo de productos funcionaba en dos regiones: us-east atendía a todo el mundo y us-west era una región en espera con un App Server. Route 53 tenía enrutamiento por failover con health checks, así que, en teoría, perder us-east estaba cubierto. Pero el TTL del registro se había puesto en un día (86.400 s) hacía tiempo y nadie lo había revisado. A los 20 s us-east quedó aislada. Los health checks lo detectaron en segundos y Route 53 empezó a responder con us-west, pero los clientes y los resolvers tenían guardada la respuesta de us-east y la siguieron usando. En el simulador todas las peticiones siguen yendo a la región caída hasta el final de la prueba, y la región en espera no recibe ni una."
+lesson = "Failover DNS only moves the clients that ask again, and a client asks again only when its cached answer expires. The TTL is how long a failover takes to reach everyone: with one day, the failover happens inside Route 53 and nowhere else. Keep failover records short (30 to 60 s; here 30 s, so the errors fade out about 30 s after the switch), and size the standby to carry the full peak, with room for a busier hour, or failing over just moves the outage to the other Region."
+lesson_es = "El DNS con failover solo mueve a los clientes que vuelven a preguntar, y un cliente vuelve a preguntar solo cuando caduca la respuesta que tiene guardada. El TTL es lo que tarda un failover en llegar a todos: con un día, el failover ocurre dentro de Route 53 y en ningún otro sitio. Usa TTL cortos en los registros con failover (de 30 a 60 s; aquí 30 s, así que los errores desaparecen unos 30 s después del cambio) y dimensiona la región en espera para que aguante el pico completo, con margen para una hora con más tráfico, o el failover solo trasladará la caída a la otra región."
+target_test = "incident"
+kinds = ["dns", "lb"]
+real_world = [
+    "https://aws.amazon.com/message/101925",
+    "https://slack.engineering/what-happened-during-slacks-dnssec-rollout/",
+]
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "As it was"
+title_es = "Como era"
+caption = "Route 53 with failover routing sends everyone to us-east, where two App Servers answer 6,000 requests a second well under the 100 ms target. us-west waits with one App Server. The DNS answer's TTL is 86,400 s: one day."
+caption_es = "Route 53 con enrutamiento por failover envía a todo el mundo a us-east, donde dos App Servers responden 6000 peticiones por segundo muy por debajo del objetivo de 100 ms. us-west espera con un App Server. El TTL de la respuesta DNS es de 86.400 s: un día."
+focus = ["dns", "lb_east", "lb_west"]
+run = { test = "normal", start_s = 5 }
+callout = { metric = "p95_ms", after = 30.5, target = 100 }
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "us-east goes dark"
+title_es = "us-east se apaga"
+caption = "At 20 s us-east is cut off. Health checks see it within seconds and Route 53 answers with us-west, but every client still holds the us-east answer for a day. Every request after 20 s fails at the dead Region; us-west stays idle."
+caption_es = "A los 20 s us-east queda aislada. Los health checks lo ven en segundos y Route 53 responde con us-west, pero cada cliente sigue teniendo la respuesta de us-east durante un día. Todas las peticiones a partir de los 20 s fallan en la región caída; us-west sigue sin trabajo."
+focus = ["dns", "lb_east", "lb_west"]
+run = { test = "incident", start_s = 15 }
+callout = { metric = "error_rate", after = 0.916 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "A 30 s TTL and a standby that can take everyone"
+title_es = "Un TTL de 30 s y una región en espera que aguanta a todos"
+caption = "The same outage with a 30 s TTL and three App Servers in us-west. After the switch, clients move over as their cached answers expire: the errors fall to zero about 30 s later, and us-west carries the whole peak."
+caption_es = "La misma caída con un TTL de 30 s y tres App Servers en us-west. Tras el cambio, los clientes se mueven a medida que caducan sus respuestas guardadas: los errores llegan a cero unos 30 s después, y us-west soporta todo el pico."
+focus = ["dns", "lb_west", "app_west"]
+run = { test = "incident", start_s = 15 }
+callout = { metric = "error_rate", before = 0.916, after = 0.071 }
+
+[scenario.nfr]
+peak_rps = 6000
+p95_ms = 100
+availability = 0.999
+budget_usd = 3000
+
+[[scenario.request_types]]
+id = "read"
+name = "Load a product page"
+name_es = "Cargar la página de un producto"
+share = 1.0
+route = ["edge?", "compute", "datastore"]
+key_space = 1000000
+
+[[scenario.tests]]
+id = "incident"
+name = "us-east is cut off at 20 s"
+name_es = "us-east queda aislada a los 20 s"
+duration_s = 240
+chaos = [{ partition = { zone = "us-east", at = 20 } }]
+pass = { recovered_by_s = 70, p95_ms = 1000, error_rate = 0.1, availability = 0.9 }
+
+[[scenario.tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[scenario.tests]]
+id = "aftershock"
+name = "us-east is cut off again at a busier hour"
+name_es = "us-east vuelve a quedar aislada en una hora con más tráfico"
+duration_s = 240
+traffic = { flat = 1.5 }
+chaos = [{ partition = { zone = "us-east", at = 20 } }]
+pass = { recovered_by_s = 70, p95_ms = 1000, error_rate = 0.1, availability = 0.9 }
+
+[scenario.pass]
+error_rate = 0.01

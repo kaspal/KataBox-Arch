@@ -1,0 +1,128 @@
+{
+  "schema_version": 4,
+  "id": "de-iot-telemetry-reference",
+  "name": "Fleet telemetry (reference)",
+  "problem_id": "de-iot-telemetry",
+  "nodes": [
+    {
+      "id": "devices",
+      "kind": "client",
+      "flavour": "web",
+      "label": "devices",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "broker",
+      "kind": "mqtt",
+      "flavour": "emqx",
+      "label": "broker",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "ingest",
+      "kind": "app",
+      "flavour": "go",
+      "label": "ingest",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "kafka",
+      "kind": "stream",
+      "flavour": "kafka",
+      "label": "kafka",
+      "position": {
+        "x": 912,
+        "y": 112
+      },
+      "props": {
+        "partitions": 192
+      },
+      "group_id": null
+    },
+    {
+      "id": "writers",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "writers",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 6,
+        "concurrency": 32,
+        "service_ms": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "tsdb",
+      "kind": "tsdb",
+      "flavour": "influxdb",
+      "label": "tsdb",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "instances": 3,
+        "points_per_s": 4000
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-devices-broker-publish",
+      "from": "devices",
+      "to": "broker",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-devices-ingest-http",
+      "from": "devices",
+      "to": "ingest",
+      "protocol": "http"
+    },
+    {
+      "id": "e-ingest-kafka-publish",
+      "from": "ingest",
+      "to": "kafka",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-kafka-writers-consume",
+      "from": "kafka",
+      "to": "writers",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-writers-tsdb-query",
+      "from": "writers",
+      "to": "tsdb",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

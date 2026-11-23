@@ -8,6 +8,7 @@ teaches = "Count through a stream: partitions and consumers sized for bursts and
 teaches_es = "Contar a través de un stream: particiones y consumidores dimensionados para picos y consumidores lentos, lecturas desde una caché"
 tags = ["streams", "partitioning", "workers", "caching"]
 
+challenge_ratio = 0.75
 [nfr]
 peak_rps = 3000
 p95_ms = 3000

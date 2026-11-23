@@ -1,0 +1,49 @@
+id = "matchmaking"
+number = 39
+set = 3
+difficulty = "medium"
+title = "Game Matchmaking"
+title_es = "Emparejamiento de partidas"
+teaches = "Run a matchmaking queue in each Region with its own workers, so a lost Region only moves its players and a busy weekend has room to drain"
+teaches_es = "Tener una cola de emparejamiento en cada región con sus propios workers, para que perder una región solo mueva a sus jugadores y un fin de semana con mucho tráfico tenga margen para vaciarse"
+tags = ["queues", "multi-region", "workers", "completion-time"]
+
+[nfr]
+peak_rps = 1000
+p95_ms = 5000
+availability = 0.999
+budget_usd = 3500
+
+[[request_types]]
+id = "find"
+name = "Find a match"
+name_es = "Buscar partida"
+share = 1.0
+route = ["edge?", "compute", "broker", "worker", "datastore:write"]
+key_space = 1000000
+measure = "completion"
+
+[[tests]]
+id = "normal"
+name = "A weekday evening"
+name_es = "Una tarde entre semana"
+
+[[tests]]
+id = "weekend"
+name = "Saturday night"
+name_es = "Sábado por la noche"
+hidden = true
+traffic = { spike = { at = 15, x = 2, for = 30 } }
+
+[[tests]]
+id = "region-lost"
+name = "A Region goes dark"
+name_es = "Se apaga una región"
+hidden = true
+duration_s = 120
+chaos = [{ partition = { zone = "us", at = 30 } }]
+pass = { error_rate = 0.08, availability = 0.92, p95_ms = 10000 }
+
+[pass]
+error_rate = 0.01
+lost = 0

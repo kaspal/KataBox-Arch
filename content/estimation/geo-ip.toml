@@ -1,0 +1,34 @@
+# Estimation drills for Geo-IP Lookup.
+
+[[drill]]
+id = "busy-hour-per-region"
+kind = "qps"
+prompt = "The lookup service peaks at {peak_rps} requests a second. In the busiest hour of the week the traffic is {busy_x} times that, and DNS spreads it evenly over {regions} Regions. How many requests a second does each Region carry?"
+prompt_es = "El servicio de consulta tiene un pico de {peak_rps} peticiones por segundo. En la hora más ocupada de la semana el tráfico es {busy_x} veces eso, y el DNS lo reparte por igual entre {regions} regiones. ¿Cuántas peticiones por segundo lleva cada región?"
+inputs = { peak_rps = 30000, busy_x = 2, regions = 2 }
+formula = "peak_rps * busy_x / regions"
+unit = "rps"
+solution = "{peak_rps} × {busy_x} = 60,000 rps in all, split over {regions} Regions: {answer} rps each. That is the same load one Region carries alone when the other goes dark, so one sizing covers both hidden tests."
+solution_es = "{peak_rps} × {busy_x} = 60 000 peticiones/s en total, repartidas entre {regions} regiones: {answer} peticiones/s cada una. Es la misma carga que lleva una región sola cuando la otra se apaga, así que un solo dimensionado cubre las dos pruebas ocultas."
+
+[[drill]]
+id = "failover-failed-requests"
+kind = "capacity"
+prompt = "Callers send {peak_rps} requests a second, split evenly over 2 Regions. One Region goes dark, and DNS health checks take about {detect_s} seconds to steer everyone to the other. How many requests fail in that time?"
+prompt_es = "Quien llama envía {peak_rps} peticiones por segundo, repartidas por igual entre 2 regiones. Una región se apaga, y las comprobaciones de salud del DNS tardan unos {detect_s} segundos en llevar a todos a la otra. ¿Cuántas peticiones fallan en ese tiempo?"
+inputs = { peak_rps = 30000, detect_s = 2 }
+formula = "peak_rps / 2 * detect_s"
+unit = "count"
+solution = "Half the requests, 15,000 a second, still go to the dark Region for {detect_s} s: {answer} failed requests. Over a 120-second run of 3.6 million requests that is under 1%, far inside the test's 8%. With one Region, every request after the outage fails."
+solution_es = "La mitad de las peticiones, 15 000 por segundo, siguen yendo a la región apagada durante {detect_s} s: {answer} peticiones fallidas. En una ejecución de 120 segundos con 3,6 millones de peticiones es menos del 1 %, muy por debajo del 8 % de la prueba. Con una sola región, falla cada petición después del apagón."
+
+[[drill]]
+id = "region-headroom"
+kind = "capacity"
+prompt = "On a normal day a Region carries {region_rps} requests a second, and its Go App Servers are {busy_pct}% busy. Roughly how many requests a second can that Region carry before its App Servers are fully busy?"
+prompt_es = "En un día normal una región lleva {region_rps} peticiones por segundo, y sus Go App Servers van ocupados al {busy_pct} %. ¿Cuántas peticiones por segundo puede llevar esa región, más o menos, antes de que sus App Servers estén ocupados del todo?"
+inputs = { region_rps = 15000, busy_pct = 28 }
+formula = "region_rps * 100 / busy_pct"
+unit = "rps"
+solution = "{region_rps} ÷ 0.28 ≈ {answer} rps. That covers the 30,000 rps a Region must carry alone, with room left over. A single Region with 4 instances runs 85% busy at 30,000 rps, so doubling the traffic saturates it."
+solution_es = "{region_rps} ÷ 0,28 ≈ {answer} peticiones/s. Eso cubre las 30 000 peticiones/s que una región tiene que llevar sola, con margen de sobra. Una sola región con 4 instancias va ocupada al 85 % con 30 000 peticiones/s, así que duplicar el tráfico la satura."

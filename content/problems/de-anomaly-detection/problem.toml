@@ -1,0 +1,58 @@
+id = "de-anomaly-detection"
+number = 18
+set = 1
+track = "de"
+difficulty = "hard"
+title = "Turbine Anomaly Alerts"
+title_es = "Alertas de anomalías en turbinas"
+teaches = "Score sensor points with a classifier in the stream path instead of inline at ingest, size the model server for a storm's burst, and budget time-series so a cardinality explosion doesn't stop the alerts"
+teaches_es = "Puntuar los puntos de los sensores con un clasificador en el camino del stream en lugar de en línea al recibirlos, dimensionar el servidor del modelo para la ráfaga de una tormenta y presupuestar las series para que una explosión de cardinalidad no pare las alertas"
+tags = ["iot", "anomaly-detection", "ml-inference", "stream-processing", "time-series", "cardinality"]
+
+[nfr]
+peak_rps = 3000
+p95_ms = 1000
+availability = 0.999
+budget_usd = 8000
+
+[[request_types]]
+id = "sensors"
+name = "Sensors connected over MQTT"
+name_es = "Sensores conectados por MQTT"
+share = 0.0
+kind = "connection"
+route = ["edge"]
+connected = 30000
+
+[[request_types]]
+id = "points"
+name = "Score and store a point"
+name_es = "Puntuar y guardar un punto"
+share = 1.0
+route = ["edge?", "compute", "broker?", "worker", "model:classify", "datastore:write:tsdb"]
+tokens_in = { mean = 30, p95 = 60 }
+series = 300000
+measure = "completion"
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "storm"
+name = "A storm: the sensors send 5 times as many points"
+name_es = "Una tormenta: los sensores envían 5 veces más puntos"
+hidden = true
+traffic = { spike = { at = 20, x = 5, for = 20 } }
+
+[[tests]]
+id = "cardinality"
+name = "A firmware update multiplies the series by 8"
+name_es = "Una actualización de firmware multiplica las series por 8"
+hidden = true
+chaos = [{ cardinality = { x = 8, at = 20, for = 20 } }]
+
+[pass]
+error_rate = 0.01
+connected_min = 0.95

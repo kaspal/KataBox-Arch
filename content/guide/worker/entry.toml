@@ -148,6 +148,30 @@ flavour = "sidekiq"
 title = "Sidekiq wiki"
 url = "https://github.com/sidekiq/sidekiq/wiki"
 
+[[sources]]
+flavour = "bullmq"
+title = "BullMQ documentation"
+url = "https://docs.bullmq.io/"
+checked = false
+
+[[sources]]
+flavour = "temporal_worker"
+title = "Temporal workers documentation"
+url = "https://docs.temporal.io/workers"
+checked = false
+
+[[sources]]
+flavour = "ffmpeg"
+title = "FFmpeg transcoding documentation"
+url = "https://ffmpeg.org/documentation.html"
+checked = false
+
+[[sources]]
+flavour = "mediaconvert"
+title = "AWS Elemental MediaConvert documentation"
+url = "https://docs.aws.amazon.com/mediaconvert/"
+checked = false
+
 [[quiz]]
 q = "Jobs arrive at 100 per second. The pool has 4 instances, each running 5 jobs at once, and a job takes about a second. What happens?"
 q_es = "Los trabajos llegan a 100 por segundo. El grupo tiene 4 instancias, cada una ejecuta 5 trabajos a la vez, y un trabajo tarda alrededor de un segundo. ¿Qué pasa?"

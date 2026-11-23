@@ -1,0 +1,158 @@
+{
+  "schema_version": 4,
+  "id": "failover-data-loss-fixed",
+  "name": "Payments ledger, fixed",
+  "problem_id": "outage--failover-data-loss",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 4
+      },
+      "group_id": "az-a"
+    },
+    {
+      "id": "db-a",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "db-a",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "failover_s": 10,
+        "replication_lag_ms": 100,
+        "sync": "quorum"
+      },
+      "group_id": "az-a"
+    },
+    {
+      "id": "db-b",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "db-b",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {
+        "failover_s": 10,
+        "replication_lag_ms": 100,
+        "sync": "quorum"
+      },
+      "group_id": "az-b"
+    },
+    {
+      "id": "db-c",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "db-c",
+      "position": {
+        "x": 1216,
+        "y": 224
+      },
+      "props": {
+        "failover_s": 10,
+        "replication_lag_ms": 100,
+        "sync": "quorum"
+      },
+      "group_id": "az-c"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-app-http",
+      "from": "client",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-db-a-query",
+      "from": "app",
+      "to": "db-a",
+      "protocol": "query"
+    },
+    {
+      "id": "e-db-a-db-b-replicate",
+      "from": "db-a",
+      "to": "db-b",
+      "protocol": "replicate"
+    },
+    {
+      "id": "e-db-a-db-c-replicate",
+      "from": "db-a",
+      "to": "db-c",
+      "protocol": "replicate"
+    }
+  ],
+  "groups": [
+    {
+      "id": "az-a",
+      "kind": "az",
+      "label": "AZ-a",
+      "position": {
+        "x": 584,
+        "y": -40
+      },
+      "size": {
+        "w": 864,
+        "h": 128
+      },
+      "parent_id": null
+    },
+    {
+      "id": "az-b",
+      "kind": "az",
+      "label": "AZ-b",
+      "position": {
+        "x": 1192,
+        "y": 72
+      },
+      "size": {
+        "w": 256,
+        "h": 128
+      },
+      "parent_id": null
+    },
+    {
+      "id": "az-c",
+      "kind": "az",
+      "label": "AZ-c",
+      "position": {
+        "x": 1192,
+        "y": 184
+      },
+      "size": {
+        "w": 256,
+        "h": 128
+      },
+      "parent_id": null
+    }
+  ],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

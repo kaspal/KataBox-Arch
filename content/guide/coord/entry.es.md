@@ -1,0 +1,7 @@
+Un servicio de coordinación es un almacén pequeño en el que un grupo de máquinas confía para obtener una única respuesta. Unos pocos miembros, normalmente tres o cinco, guardan los mismos datos por **consenso**: una escritura solo cuenta cuando la mayoría la tiene. Los sistemas lo usan para los pocos datos que nunca deben diferir: quién es el líder, quién tiene un bloqueo, qué nodos están vivos, algo de configuración compartida.
+
+Aquí los bloqueos son **concesiones** (leases). Un worker toma un bloqueo por un tiempo y lo va renovando. Si el worker muere, la concesión caduca y otro puede tomar el relevo, sin intervención humana. El problema es que un worker puede pausarse, perder su concesión sin saberlo y despertar creyendo que aún tiene el bloqueo. Un diseño seguro entrega un **token de cercado** con cada concesión, y el almacén de datos rechaza las escrituras que llevan un token más antiguo.
+
+El precio del acuerdo es la disponibilidad. Cuando la red divide a los miembros, solo el lado con mayoría puede escribir; el otro lado rechaza. Cuando se pierde el líder, las escrituras se pausan durante una elección. El simulador modela todo esto: escrituras por mayoría, el rechazo del lado minoritario, la pausa de la elección, las concesiones y lo que hace un almacén con y sin cercado durante una partición.
+
+**Cómo lo factura el simulador.** Cada miembro es un nodo propio a 70 $ al mes (precio didáctico; fuente por confirmar). No hay coste por escritura ni por bloqueo, así que un clúster de tres miembros cuesta 210 $ al mes y uno de cinco, 350 $.

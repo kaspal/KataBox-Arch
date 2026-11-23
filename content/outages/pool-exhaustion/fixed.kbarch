@@ -1,0 +1,107 @@
+{
+  "schema_version": 4,
+  "id": "pool-exhaustion-fixed",
+  "name": "Pool exhaustion (fixed)",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 4,
+        "call_timeout_ms": 200,
+        "bulkhead": true
+      },
+      "group_id": null
+    },
+    {
+      "id": "recs",
+      "kind": "micro",
+      "flavour": "generic",
+      "label": "recs",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 4
+      },
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "db",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app-http",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-recs-grpc",
+      "from": "app",
+      "to": "recs",
+      "protocol": "grpc"
+    },
+    {
+      "id": "e-app-db-query",
+      "from": "app",
+      "to": "db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

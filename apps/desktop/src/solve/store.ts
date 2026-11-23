@@ -25,7 +25,7 @@ import type {
 } from "@/bindings";
 
 /** The `.kbarch` format version (ADR 0003); a test keeps it equal to Rust's. */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 /** The card size the canvas draws (also used before React Flow has measured a card). */
 export const CARD_W = 208;
@@ -93,7 +93,7 @@ type Actions = {
   /** Drop a prop the user set, so the card follows its flavour's default again. */
   resetProp: (id: string, key: string) => void;
   setFlavour: (registry: Registry, id: string, flavour: Flavour) => void;
-  updateGroup: (id: string, patch: Partial<Pick<Group, "label" | "size" | "position">>) => void;
+  updateGroup: (id: string, patch: Partial<Pick<Group, "label" | "size" | "position" | "region_tag" | "mesh">>) => void;
   updateNote: (id: string, patch: Partial<Pick<Note, "text" | "size" | "position">>) => void;
 
   beginDrag: () => void;

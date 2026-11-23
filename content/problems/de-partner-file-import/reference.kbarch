@@ -1,0 +1,173 @@
+{
+  "schema_version": 4,
+  "id": "de-partner-file-import-ref",
+  "name": "Partner file import (reference)",
+  "problem_id": "de-partner-file-import",
+  "nodes": [
+    {
+      "id": "partners",
+      "kind": "client",
+      "flavour": "partner_server",
+      "label": "partners",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "rps": 50
+      },
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "api",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "files",
+      "kind": "object",
+      "flavour": "s3",
+      "label": "files",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "imports",
+      "kind": "queue",
+      "flavour": "sqs",
+      "label": "imports",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {
+        "max_retries": 8
+      },
+      "group_id": null
+    },
+    {
+      "id": "dead",
+      "kind": "dlq",
+      "flavour": "generic",
+      "label": "dead",
+      "position": {
+        "x": 912,
+        "y": 112
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "loaders",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "loaders",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 16
+      },
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "db",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "db-replica",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "db-replica",
+      "position": {
+        "x": 1216,
+        "y": 224
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-partners-api-http",
+      "from": "partners",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e-api-files-query",
+      "from": "api",
+      "to": "files",
+      "protocol": "query"
+    },
+    {
+      "id": "e-api-imports-publish",
+      "from": "api",
+      "to": "imports",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-api-db-query",
+      "from": "api",
+      "to": "db",
+      "protocol": "query"
+    },
+    {
+      "id": "e-imports-loaders-consume",
+      "from": "imports",
+      "to": "loaders",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-imports-dead-publish",
+      "from": "imports",
+      "to": "dead",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-loaders-files-query",
+      "from": "loaders",
+      "to": "files",
+      "protocol": "query"
+    },
+    {
+      "id": "e-loaders-db-query",
+      "from": "loaders",
+      "to": "db",
+      "protocol": "query"
+    },
+    {
+      "id": "e-db-db-replica-replicate",
+      "from": "db",
+      "to": "db-replica",
+      "protocol": "replicate"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

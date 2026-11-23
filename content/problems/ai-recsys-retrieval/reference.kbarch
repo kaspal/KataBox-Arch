@@ -1,0 +1,130 @@
+{
+  "schema_version": 4,
+  "id": "ai-recsys-retrieval-reference",
+  "name": "Recommendations (reference)",
+  "problem_id": "ai-recsys-retrieval",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "api",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 4
+      },
+      "group_id": null
+    },
+    {
+      "id": "recs",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "recs",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "memory_gb": 4,
+        "ttl_s": 300
+      },
+      "group_id": null
+    },
+    {
+      "id": "items",
+      "kind": "vector",
+      "flavour": "qdrant",
+      "label": "items",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {
+        "shards": 2,
+        "vectors_m": 5
+      },
+      "group_id": null
+    },
+    {
+      "id": "rerank",
+      "kind": "infer",
+      "flavour": "triton",
+      "label": "rerank",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "model_type": "classify",
+        "instances": 1
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-api-http",
+      "from": "lb",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e-api-recs-query",
+      "from": "api",
+      "to": "recs",
+      "protocol": "query"
+    },
+    {
+      "id": "e-api-items-query",
+      "from": "api",
+      "to": "items",
+      "protocol": "query"
+    },
+    {
+      "id": "e-api-rerank-grpc",
+      "from": "api",
+      "to": "rerank",
+      "protocol": "grpc"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

@@ -138,3 +138,35 @@ The arguments are parsed by hand, as in KataBox.
   works unchanged.
 - **`content.db` schema 2** stores all of these in one generic `docs (kind, id, json)` table, so new practice
   content adds rows, not schemas.
+
+## Tracks and challenges (M8)
+- **`problem.toml` gains `track`** (`core` by default, `ai` or `de`). Problems are unique by (track, set, number);
+  AI and data engineering problems use `set = 1`.
+- **`challenge_ratio`** (optional): the "same SLO, half the cost" budget as a share of the reference's cost, when
+  0.5 isn't reachable.
+- **`challenge.kbarch`** (optional): the proof that the challenge is feasible. `validate --run` judges it on every
+  test with a budget of `challenge_ratio` (0.5 by default, at most 0.80) times the reference's first-test cost; it
+  must be Accepted. Without the file the problem has no challenge. `ka-pack challenge [--write]` searches proofs:
+  from the reference it keeps any move (fewer instances, shards, partitions or memory; a flavour whose price is
+  cited; a card removed; a smaller autoscaling range) that lowers the cost while every test stays Accepted, and
+  writes the proof and the ratio rounded up to the next 5% (none above 80%). It never swaps to a flavour with a
+  placeholder price, so a proof doesn't lean on figures the citations will change.
+- **`content.db` schema 3:** `problems.track` and `problems.challenge_ratio` (NULL = no challenge). The catalogue is
+  ordered core, AI, data engineering, then set and number. Outage replays are `docs` rows of kind `outage`.
+
+## M10 addition: outage replays
+
+`content/outages/<id>/` holds `outage.toml` (title, one-line summary, the story of what happened, the lesson, the
+kinds, the target test, `real_world` links added by the citations step, the scenario in the Find-the-flaw format,
+and `[[step]]`s in the sample story format), `hints.md`/`hints.es.md` (three tiers), `as_it_was.kbarch` and
+`fixed.kbarch`. Steps may only show those two designs and only play the scenario's tests; every callout is checked
+against the simulator by `validate --run`, like a sample's. `--run` also requires the as-it-was design to fail the
+target test and pass `normal`, and the fixed design to be Accepted on every test (the aftershock included).
+
+A replay is stored as a `docs` row of kind `outage` (no new table; `content.db` stays at schema 3) and is played as
+a walkthrough (`outage_story`) and judged as the problem `outage--<id>` (like `flaw--<id>`), starting from the
+as-it-was design. `outage` is reserved as a pack prefix. Learning paths name replays as `replay:<id>`.
+
+Replays are composites of common incident types told in the simulator's terms, not records of a company's outage;
+the UI says so. Cost challenges for replays are not shipped in M10 (the challenge flow reads the `problems` table;
+logged as a deferral).

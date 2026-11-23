@@ -1,0 +1,59 @@
+id = "de-bi-concurrency"
+number = 10
+set = 1
+track = "de"
+difficulty = "medium"
+title = "Analysts at 9 a.m."
+title_es = "Analistas a las 9 de la mañana"
+teaches = "Give a warehouse enough clusters for the morning's concurrent queries, and put heavy queries on a warehouse of their own that sleeps when idle"
+teaches_es = "Dar a un almacén de datos clústeres suficientes para las consultas simultáneas de la mañana, y llevar las consultas pesadas a un almacén propio que se suspende cuando no se usa"
+tags = ["data-warehouse", "concurrency", "workload-isolation", "capacity", "cost"]
+requires = ["warehouse"]
+
+[nfr]
+peak_rps = 12
+p95_ms = 2000
+availability = 0.999
+budget_usd = 7000
+
+[[request_types]]
+id = "adhoc"
+name = "Run an ad-hoc query from the BI tool"
+name_es = "Lanzar una consulta ad hoc desde la herramienta de BI"
+share = 0.9998
+route = ["edge?", "compute:app", "datastore:warehouse"]
+key_space = 1000000
+scan = { gb = 0.1, repeat_share = 0.05 }
+
+[[request_types]]
+id = "explore"
+name = "Run a heavy exploration query from a notebook"
+name_es = "Lanzar una consulta pesada de exploración desde un notebook"
+share = 0.0002
+route = ["edge?", "compute:micro", "datastore:warehouse"]
+key_space = 1000000
+scan = { gb = 60, repeat_share = 0.0 }
+
+[[tests]]
+id = "normal"
+name = "A normal working hour"
+name_es = "Una hora normal de trabajo"
+
+[[tests]]
+id = "rush"
+name = "9 a.m.: four times the queries for 40 s"
+name_es = "Las 9 de la mañana: cuatro veces las consultas durante 40 s"
+hidden = true
+duration_s = 90
+traffic = { spike = { at = 10, x = 4, for = 40 } }
+
+[[tests]]
+id = "explore"
+name = "The data science team starts exploring the full history"
+name_es = "El equipo de ciencia de datos se pone a explorar todo el histórico"
+hidden = true
+duration_s = 120
+type_multipliers = { explore = 200 }
+
+[pass]
+error_rate = 0.01

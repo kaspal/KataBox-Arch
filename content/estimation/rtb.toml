@@ -1,0 +1,34 @@
+# Estimation drills for Real-Time Ad Auction.
+
+[[drill]]
+id = "auction-slots"
+kind = "capacity"
+prompt = "An auction service runs {auctions_per_s} auctions a second, and the bidders take {bidder_ms} ms per call at the median. An App Server holds its slot for the whole call. How many calls are in flight at once?"
+prompt_es = "Un servicio de subastas hace {auctions_per_s} subastas por segundo, y los pujadores tardan {bidder_ms} ms por llamada en la mediana. Un Servidor de aplicaciones mantiene ocupado su hueco durante toda la llamada. ¿Cuántas llamadas hay en curso a la vez?"
+inputs = { auctions_per_s = 20000, bidder_ms = 30 }
+formula = "auctions_per_s * bidder_ms / 1000"
+unit = "count"
+solution = "Calls in flight = arrival rate × time per call. {auctions_per_s} a second × 0.03 s = {answer} calls at once. That is only the median; the bidders' p99 is 90 ms and prime time doubles the traffic, so plan a few times as many slots. 8 Go instances at a concurrency of 256 give 2,048."
+solution_es = "Llamadas en curso = ritmo de llegada × tiempo por llamada. {auctions_per_s} por segundo × 0,03 s = {answer} llamadas a la vez. Eso es solo la mediana; el p99 de los pujadores es de 90 ms y el horario de máxima audiencia duplica el tráfico, así que planifica varias veces más huecos. 8 instancias Go con concurrencia 256 dan 2048."
+
+[[drill]]
+id = "slow-bidder-slots"
+kind = "capacity"
+prompt = "The bidders usually take {bidder_ms} ms, but one big bidder slows down and adds {extra_ms} ms to every call. With no call timeout, every auction waits for it. At {auctions_per_s} auctions a second, how many slots are busy at once?"
+prompt_es = "Los pujadores suelen tardar {bidder_ms} ms, pero un pujador grande se vuelve lento y añade {extra_ms} ms a cada llamada. Sin tiempo límite de llamada, cada subasta lo espera. Con {auctions_per_s} subastas por segundo, ¿cuántos huecos están ocupados a la vez?"
+inputs = { auctions_per_s = 20000, bidder_ms = 30, extra_ms = 80 }
+formula = "auctions_per_s * (bidder_ms + extra_ms) / 1000"
+unit = "count"
+solution = "{auctions_per_s} a second × 0.11 s = {answer} slots, more than twice the 1,024 slots of 4 instances at 256. The slots run out, and requests queue and fail. A 70 ms call timeout caps every call, so the slow bidder costs bids, not slots."
+solution_es = "{auctions_per_s} por segundo × 0,11 s = {answer} huecos, más del doble de los 1024 huecos de 4 instancias con 256. Los huecos se agotan, y las peticiones hacen cola y fallan. Un tiempo límite de llamada de 70 ms pone tope a cada llamada, así que el pujador lento cuesta pujas, no huecos."
+
+[[drill]]
+id = "timeout-instances"
+kind = "servers"
+prompt = "With a call timeout of {timeout_ms} ms, no bidder call holds a slot for longer than that. At {auctions_per_s} auctions a second and a concurrency of {concurrency} per instance, how many App Server instances cover the worst case, when every call runs to the timeout?"
+prompt_es = "Con un tiempo límite de llamada de {timeout_ms} ms, ninguna llamada a los pujadores ocupa un hueco más tiempo. Con {auctions_per_s} subastas por segundo y una concurrencia de {concurrency} por instancia, ¿cuántas instancias de Servidor de aplicaciones cubren el peor caso, en el que cada llamada llega al tiempo límite?"
+inputs = { auctions_per_s = 20000, timeout_ms = 70, concurrency = 256 }
+formula = "auctions_per_s * timeout_ms / 1000 / concurrency"
+unit = "count"
+solution = "{auctions_per_s} × 0.07 s = 1,400 slots, / {concurrency} = {answer}, so round up to 6 instances. The timeout turns an open-ended wait into a number you can size for. The reference runs 8, which also leaves room for prime time's twice-normal traffic at the usual 30 ms."
+solution_es = "{auctions_per_s} × 0,07 s = 1400 huecos, / {concurrency} = {answer}, así que redondea a 6 instancias. El tiempo límite convierte una espera sin fin en un número para el que puedes dimensionar. La referencia usa 8, que además deja margen para el doble de tráfico del horario de máxima audiencia con los 30 ms habituales."

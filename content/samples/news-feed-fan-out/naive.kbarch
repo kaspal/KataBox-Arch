@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "sample-news-feed-naive",
   "name": "news-feed: first try",
   "problem_id": "news-feed",

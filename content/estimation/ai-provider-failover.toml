@@ -1,0 +1,34 @@
+# Estimation drills for Chat Provider Failover.
+
+[[drill]]
+id = "backup-tokens-per-minute"
+kind = "capacity"
+prompt = "Your chat assistant peaks at {peak_rps} messages a second. A message carries about {tokens_in} prompt tokens and {tokens_out} answer tokens. When one provider fails, the other carries every message. How many tokens a minute does it then use?"
+prompt_es = "Tu asistente de chat tiene un pico de {peak_rps} mensajes por segundo. Un mensaje lleva unos {tokens_in} tokens de prompt y {tokens_out} de respuesta. Cuando falla un proveedor, el otro lleva todos los mensajes. ¿Cuántos tokens por minuto usa entonces?"
+inputs = { peak_rps = 20, tokens_in = 600, tokens_out = 60 }
+formula = "peak_rps * 60 * (tokens_in + tokens_out)"
+unit = "count"
+solution = "{peak_rps} × 60 = 1,200 messages a minute, × ({tokens_in} + {tokens_out}) tokens = {answer} tokens a minute. The OpenAI account allows 1,000,000, so it can take the whole load with about 20% to spare. At the card's default of 400,000 it could carry its usual half (396,000) but not the whole."
+solution_es = "{peak_rps} × 60 = 1200 mensajes por minuto, × ({tokens_in} + {tokens_out}) tokens = {answer} tokens por minuto. La cuenta de OpenAI admite 1 000 000, así que puede con toda la carga con un 20 % de margen más o menos. Con el valor por defecto de la tarjeta, 400 000, podría con su mitad habitual (396 000) pero no con todo."
+
+[[drill]]
+id = "calls-before-breaker"
+kind = "capacity"
+prompt = "One of your two providers hangs. Your App Servers send it {share_pct}% of {peak_rps} messages a second, and each call waits for a call timeout of {timeout_ms} ms before it fails. How many calls are waiting on the hanging provider when the first timeouts fire?"
+prompt_es = "Uno de tus dos proveedores se cuelga. Tus Servidores de aplicaciones le envían el {share_pct} % de {peak_rps} mensajes por segundo, y cada llamada espera un tiempo límite de llamada de {timeout_ms} ms antes de fallar. ¿Cuántas llamadas esperan al proveedor colgado cuando saltan los primeros tiempos límite?"
+inputs = { peak_rps = 20, share_pct = 50, timeout_ms = 5000 }
+formula = "peak_rps * share_pct / 100 * timeout_ms / 1000"
+unit = "count"
+solution = "{peak_rps} × {share_pct}% = 10 calls a second, × {timeout_ms} ms = {answer} calls waiting. Each of those users waits 5 s before the retry sends their message to the other provider. A circuit breaker that opens after the first timeouts stops new calls from joining them, so the wait is paid for a few seconds instead of for the whole outage."
+solution_es = "{peak_rps} × {share_pct} % = 10 llamadas por segundo, × {timeout_ms} ms = {answer} llamadas esperando. Cada uno de esos usuarios espera 5 s antes de que el reintento mande su mensaje al otro proveedor. Un cortocircuito que se abre tras los primeros tiempos límite impide que se sumen llamadas nuevas, así que la espera se paga durante unos segundos y no durante toda la caída."
+
+[[drill]]
+id = "stuck-without-timeout"
+kind = "capacity"
+prompt = "Your only provider hangs, and your App Servers have no call timeout. Messages arrive at {peak_rps} a second, and the chat app gives up after {client_timeout_s} s. How many messages are stuck waiting at once?"
+prompt_es = "Tu único proveedor se cuelga, y tus Servidores de aplicaciones no tienen tiempo límite de llamada. Los mensajes llegan a {peak_rps} por segundo, y la app de chat se rinde a los {client_timeout_s} s. ¿Cuántos mensajes están atascados esperando a la vez?"
+inputs = { peak_rps = 20, client_timeout_s = 30 }
+formula = "peak_rps * client_timeout_s"
+unit = "count"
+solution = "{peak_rps} a second × {client_timeout_s} s = {answer} messages waiting at once, every one of them headed for an error. Nothing fails for the first 30 s, so nothing tells you to move away from the provider: the errors only start when the users give up."
+solution_es = "{peak_rps} por segundo × {client_timeout_s} s = {answer} mensajes esperando a la vez, todos camino de un error. Nada falla durante los primeros 30 s, así que nada te avisa de que te alejes del proveedor: los errores solo empiezan cuando los usuarios se rinden."

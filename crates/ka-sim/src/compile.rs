@@ -6,11 +6,11 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt;
 
 use ka_core::rng::Zipf;
-use ka_core::scenario::{RequestType, Scenario, Source};
+use ka_core::scenario::{RequestType, Scenario, Source, TypeKind};
 use ka_core::{ComponentKind, Design, Flavour, GroupKind, Protocol, Registry, detmath};
 
 use crate::behaviour::{NodeSpec, node_spec};
-use crate::route::{Role, Route, Step, parse_route};
+use crate::route::{Role, Route, Segment, Step, parse_route};
 
 /// Simulated arrivals per second above which requests are sampled (ADR 0006, ★1).
 pub const SAMPLE_CAP_RPS: f64 = 5_000.0;
@@ -65,8 +65,23 @@ pub struct CNode {
     pub lane_servers: u32,
     pub lane_queue: usize,
     pub service_stretch: f64,
+    /// S8 load shedding: waiting requests per lane past which new ones are turned away
+    /// (usize::MAX = never), after sampling.
+    pub shed_queue: usize,
     /// The flavour's monthly price model.
     pub cost: ka_core::Cost,
+    /// M8: the service mesh the card sits in (its zone's), if any.
+    pub mesh: Option<MeshRt>,
+}
+
+/// M8: a service mesh as the simulator sees it: latency each sidecar pair adds to a hop or
+/// call between two meshed cards, the CPU its sidecar takes from a service, and its call
+/// retries.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MeshRt {
+    pub sidecar_us: u64,
+    pub cpu: f64,
+    pub retries: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -101,6 +116,18 @@ pub struct CType {
     pub harmonic: f64,
     pub skew: f64,
     pub plan: TypePlan,
+    /// S1 connection types: where the connections land.
+    pub conn: Option<ConnPlan>,
+    /// S4 job types: the batch cards that can run the tasks (node order).
+    pub job: Option<Vec<u32>>,
+}
+
+/// S1: a connection type's holders (WebSocket gateways, IoT brokers its clients reach
+/// through edge hops) and the client whose reconnect policy it follows.
+#[derive(Debug, Clone)]
+pub struct ConnPlan {
+    pub holders: Vec<u32>,
+    pub client: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -116,6 +143,8 @@ pub struct CSource {
 pub struct Zone {
     pub id: String,
     pub label: String,
+    /// S9: a Region's residency tag.
+    pub tag: Option<String>,
 }
 
 /// An autoscaling wrapper: the compute cards inside it and its policy.
@@ -149,6 +178,12 @@ pub struct Compiled {
     /// Zones by group index (CNode::az / region point here).
     pub zones: Vec<Zone>,
     pub scaling: Vec<ScaleGroup>,
+    /// S8: distinct dependencies (call targets) per caller, for bulkhead pools.
+    pub deps: Vec<u32>,
+    /// S5: a stream processor whose every data sink writes idempotently (`dedup`).
+    pub dedup_sinks: Vec<bool>,
+    /// S6: the lake table a warehouse reads in place (its first external-table edge).
+    pub table_of: Vec<Option<u32>>,
 }
 
 const SYNC: [Protocol; 3] = [Protocol::Http, Protocol::Grpc, Protocol::Ws];
@@ -163,13 +198,19 @@ pub fn hop_latency_us(c: &Compiled, a: u32, b: u32, proto: Protocol) -> u64 {
         Protocol::Replicate => 0,
     };
     let (na, nb) = (&c.nodes[a as usize], &c.nodes[b as usize]);
-    let zone = match (na.region, nb.region) {
-        (Some(ra), Some(rb)) if ra != rb => 70_000,
-        _ => match (na.az, nb.az) {
-            (Some(x), Some(y)) if x != y => 1_500,
-            _ => 200,
-        },
+    // M8: between two meshed cards the request passes two sidecars.
+    let sidecars = match (na.mesh, nb.mesh) {
+        (Some(x), Some(y)) => x.sidecar_us.max(y.sidecar_us),
+        _ => 0,
     };
+    let zone = sidecars
+        + match (na.region, nb.region) {
+            (Some(ra), Some(rb)) if ra != rb => 70_000,
+            _ => match (na.az, nb.az) {
+                (Some(x), Some(y)) if x != y => 1_500,
+                _ => 200,
+            },
+        };
     base + zone
 }
 
@@ -207,9 +248,16 @@ pub fn compile(
         return Err(SimError::BadScenario("duration_s must be positive".into()));
     }
     let share_sum: f64 = scenario.request_types.iter().map(|t| t.share).sum();
-    if scenario.request_types.is_empty() || share_sum.is_nan() || share_sum <= 0.0 {
+    // S1, S4: connection and job types have no share of the request rate.
+    let only_models = scenario
+        .request_types
+        .iter()
+        .all(|t| t.kind != TypeKind::Request);
+    if scenario.request_types.is_empty() || share_sum.is_nan() || (share_sum <= 0.0 && !only_models)
+    {
         return Err(SimError::BadScenario("no request types".into()));
     }
+    let share_sum = share_sum.max(1e-12);
 
     // --- Nodes, zones, edges -----------------------------------------------------------
     let index: BTreeMap<&str, u32> = design
@@ -260,12 +308,14 @@ pub fn compile(
                 out: Vec::new(),
                 lane_servers: 1,
                 lane_queue: 1,
+                shed_queue: usize::MAX,
                 service_stretch: 1.0,
                 cost: registry
                     .kind(n.kind)
                     .flavour(n.flavour)
                     .map(|f| f.cost)
                     .unwrap_or_default(),
+                mesh: None,
             }
         })
         .collect();
@@ -275,6 +325,43 @@ pub fn compile(
         }
     }
     let n_nodes = nodes.len();
+    // M8 service mesh: the innermost meshed zone around a card; its policy props become the
+    // defaults of the card's call timeout and circuit breaker.
+    for (i, n) in design.nodes.iter().enumerate() {
+        let mut at = n.group_id.as_deref();
+        let mut guard = 0;
+        while let Some(id) = at {
+            guard += 1;
+            if guard > 64 {
+                break;
+            }
+            let Some(g) = groups.get(id) else { break };
+            if let Some(m) = &g.mesh {
+                let num = |k: &str| match m.props.get(k) {
+                    Some(ka_core::PropValue::Number(v)) => *v,
+                    _ => 0.0,
+                };
+                let (sidecar_us, cpu) = match m.flavour {
+                    ka_core::MeshFlavour::Istio => (2_000, 1.10),
+                    ka_core::MeshFlavour::Linkerd => (1_000, 1.05),
+                };
+                let spec = &mut nodes[i].spec;
+                if spec.call_timeout_us == 0 {
+                    spec.call_timeout_us = (num("mesh_timeout_ms").max(0.0) * 1000.0) as u64;
+                }
+                if spec.breaker_pct == 0.0 {
+                    spec.breaker_pct = num("mesh_breaker_errors_pct").clamp(0.0, 100.0) / 100.0;
+                }
+                nodes[i].mesh = Some(MeshRt {
+                    sidecar_us,
+                    cpu,
+                    retries: num("mesh_retries").max(0.0) as u32,
+                });
+                break;
+            }
+            at = g.parent_id.as_deref();
+        }
+    }
 
     // --- Autoscaling wrappers ------------------------------------------------------------
     let autoscale = registry.kind(ComponentKind::Autoscale);
@@ -393,9 +480,34 @@ pub fn compile(
     let externals = scenario.externals.clone();
     let mut types = Vec::new();
     for def in &scenario.request_types {
-        let route = parse_route(&def.route, def.source == Source::Scheduler)
+        if def.kind == TypeKind::Connection {
+            types.push(connection_type(&nodes, def)?);
+            continue;
+        }
+        let is_job = def.kind == TypeKind::Job;
+        if is_job && def.job.is_none() {
+            return Err(SimError::BadScenario(format!(
+                "job type `{}` has no `job`",
+                def.id
+            )));
+        }
+        let route = parse_route(&def.route, def.source == Source::Scheduler || is_job)
             .map_err(|e| SimError::BadScenario(format!("route of `{}`: {e}", def.id)))?;
         let plan = plan_type(&nodes, &clusters, &cluster_of, &externals, def, &route)?;
+        let job = if is_job {
+            let runners: Vec<u32> = (0..n_nodes as u32)
+                .filter(|&i| kind(i) == ComponentKind::Batch && plan.calls[0][i as usize].is_some())
+                .collect();
+            if runners.is_empty() {
+                return Err(SimError::NoPath {
+                    request_type: def.id.clone(),
+                    reason: "no batch card can run its tasks".into(),
+                });
+            }
+            Some(runners)
+        } else {
+            None
+        };
         let skew = scenario
             .key_skew_override
             .or(def.key_skew)
@@ -409,6 +521,8 @@ pub fn compile(
             harmonic: harmonic(def.key_space, skew),
             skew,
             plan,
+            conn: None,
+            job,
         });
     }
 
@@ -431,6 +545,11 @@ pub fn compile(
         .map(|i| client_rps[i])
         .sum();
     for (ti, t) in types.iter_mut().enumerate() {
+        if t.conn.is_some() || t.job.is_some() {
+            // S1, S4: connections and jobs aren't arrivals; their own models drive them.
+            t.rate = 0.0;
+            continue;
+        }
         let want = t.def.source;
         let candidates: Vec<u32> = (0..n_nodes as u32)
             .filter(|&i| match want {
@@ -489,6 +608,10 @@ pub fn compile(
             sample = sample.max((MIN_EFFECTIVE_SERVERS / per_lane).min(1.0));
         }
     }
+    // S4: tasks are counted one by one, so a run with jobs is never sampled.
+    if types.iter().any(|t| t.job.is_some()) {
+        sample = 1.0;
+    }
     for n in &mut nodes {
         let per_lane = n.spec.servers / f64::from(n.spec.lanes);
         let scaled = per_lane * sample;
@@ -498,7 +621,54 @@ pub fn compile(
         n.lane_queue = ((n.spec.queue_cap / f64::from(n.spec.lanes)) * sample)
             .round()
             .max(1.0) as usize;
+        if n.spec.shed_queue > 0.0 {
+            n.shed_queue = ((n.spec.shed_queue / f64::from(n.spec.lanes)) * sample)
+                .round()
+                .max(1.0) as usize;
+        }
     }
+
+    // S8 bulkheads: the distinct dependencies each caller calls, over every type.
+    let mut dep_sets: Vec<BTreeSet<Target>> = vec![BTreeSet::new(); n_nodes];
+    for t in &types {
+        for seg in &t.plan.calls {
+            for (caller, steps) in seg.iter().enumerate() {
+                for step in steps.iter().flatten() {
+                    dep_sets[caller].extend(step.iter().copied());
+                }
+            }
+        }
+    }
+    let deps: Vec<u32> = dep_sets.iter().map(|s| s.len() as u32).collect();
+    let table_of: Vec<Option<u32>> = nodes
+        .iter()
+        .map(|n| {
+            (n.kind == ComponentKind::Warehouse)
+                .then(|| {
+                    n.out
+                        .iter()
+                        .find(|(b, p)| {
+                            *p == Protocol::Query
+                                && nodes[*b as usize].kind == ComponentKind::Lakehouse
+                        })
+                        .map(|(b, _)| *b)
+                })
+                .flatten()
+        })
+        .collect();
+    let dedup_sinks: Vec<bool> = nodes
+        .iter()
+        .map(|n| {
+            let sinks: Vec<&CNode> = n
+                .out
+                .iter()
+                .filter(|(_, p)| matches!(p, Protocol::Query | Protocol::Publish))
+                .map(|(b, _)| &nodes[*b as usize])
+                .filter(|b| matches!(b.spec.role, Role::Datastore | Role::Cache))
+                .collect();
+            !sinks.is_empty() && sinks.iter().all(|b| b.spec.dedup)
+        })
+        .collect();
 
     let mut feeds: Vec<Vec<u32>> = vec![Vec::new(); n_nodes];
     for (b, n) in nodes.iter().enumerate() {
@@ -528,9 +698,81 @@ pub fn compile(
             .map(|g| Zone {
                 id: g.id.clone(),
                 label: g.label.clone(),
+                tag: g.region_tag.clone(),
             })
             .collect(),
         scaling,
+        deps,
+        dedup_sinks,
+        table_of,
+    })
+}
+
+/// S1: a connection type lands on the WebSocket gateways and IoT brokers its clients reach
+/// through edge hops (in node order).
+fn connection_type(nodes: &[CNode], def: &RequestType) -> Result<CType, SimError> {
+    let n = nodes.len();
+    let holder = |k: ComponentKind| {
+        matches!(
+            k,
+            ComponentKind::Ws | ComponentKind::Mqtt | ComponentKind::Media
+        )
+    };
+    let (mut holders, mut client) = (BTreeSet::new(), None);
+    for c in (0..n as u32).filter(|&i| nodes[i as usize].kind == ComponentKind::Client) {
+        let mut seen = vec![false; n];
+        let mut todo = VecDeque::from([c]);
+        while let Some(i) = todo.pop_front() {
+            for &(b, p) in &nodes[i as usize].out {
+                if seen[b as usize] || matches!(p, Protocol::Query | Protocol::Replicate) {
+                    continue;
+                }
+                seen[b as usize] = true;
+                let k = nodes[b as usize].kind;
+                if holder(k) {
+                    holders.insert(b);
+                    client.get_or_insert(c);
+                } else if nodes[b as usize].spec.role == Role::Edge {
+                    todo.push_back(b);
+                }
+            }
+        }
+    }
+    let Some(client) = client else {
+        return Err(SimError::NoPath {
+            request_type: def.id.clone(),
+            reason: "no client reaches a WebSocket gateway or IoT broker".into(),
+        });
+    };
+    Ok(CType {
+        def: def.clone(),
+        route: Route {
+            hops_allowed: true,
+            hops_required: false,
+            ws: false,
+            entry: None,
+            segments: vec![Segment {
+                broker: None,
+                consumer: None,
+                calls: Vec::new(),
+            }],
+        },
+        rate: 0.0,
+        zipf: None,
+        harmonic: 1.0,
+        skew: 0.0,
+        plan: TypePlan {
+            next_hops: vec![Vec::new(); n],
+            entry_ok: vec![false; n],
+            calls: vec![vec![None; n]],
+            brokers: vec![vec![Vec::new(); n]],
+            consumers: vec![vec![Vec::new(); n]],
+        },
+        conn: Some(ConnPlan {
+            holders: holders.into_iter().collect(),
+            client,
+        }),
+        job: None,
     })
 }
 
@@ -575,9 +817,25 @@ fn targets_for_step(
                 out.push(Target::External(i as u32));
             }
             Role::Cache | Role::Datastore => {
+                // M8: a connection pooler in between passes the call on to its database.
+                let mut reach: Vec<u32> = Vec::new();
                 for (b, p) in &nodes[caller as usize].out {
-                    if *p == Protocol::Query && alt.accepts(nodes[*b as usize].kind) {
-                        let t = cluster_of[*b as usize].map_or(Target::Node(*b), Target::Cluster);
+                    if *p != Protocol::Query {
+                        continue;
+                    }
+                    if nodes[*b as usize].kind == ComponentKind::Dbproxy {
+                        for (c, q) in &nodes[*b as usize].out {
+                            if *q == Protocol::Query {
+                                reach.push(*c);
+                            }
+                        }
+                    } else {
+                        reach.push(*b);
+                    }
+                }
+                for b in reach {
+                    if alt.accepts(nodes[b as usize].kind) {
+                        let t = cluster_of[b as usize].map_or(Target::Node(b), Target::Cluster);
                         if !out.contains(&t) {
                             out.push(t);
                         }
@@ -588,6 +846,33 @@ fn targets_for_step(
                 for (b, p) in &nodes[caller as usize].out {
                     if matches!(p, Protocol::Http | Protocol::Grpc)
                         && alt.accepts(nodes[*b as usize].kind)
+                    {
+                        out.push(Target::Node(*b));
+                    }
+                }
+            }
+            // M8: identity providers on an HTTP/gRPC edge.
+            Role::Auth => {
+                for (b, p) in &nodes[caller as usize].out {
+                    if matches!(p, Protocol::Http | Protocol::Grpc)
+                        && alt.accepts(nodes[*b as usize].kind)
+                        && !out.contains(&Target::Node(*b))
+                    {
+                        out.push(Target::Node(*b));
+                    }
+                }
+            }
+            // S2: inference cards on an HTTP/gRPC edge, of the asked model type.
+            Role::Model => {
+                for (b, p) in &nodes[caller as usize].out {
+                    let n = &nodes[*b as usize];
+                    if matches!(p, Protocol::Http | Protocol::Grpc)
+                        && alt.accepts(n.kind)
+                        && alt
+                            .model_type
+                            .as_ref()
+                            .is_none_or(|t| *t == n.spec.model_type)
+                        && !out.contains(&Target::Node(*b))
                     {
                         out.push(Target::Node(*b));
                     }

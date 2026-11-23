@@ -1,0 +1,34 @@
+# Estimation drills for Support Agent with Tools.
+
+[[drill]]
+id = "busy-slots"
+kind = "servers"
+prompt = "Your agent runs {tasks_per_s} tasks a second, and a task holds a Worker slot for about {task_s} seconds while it waits on the model and the tools. How many slots are busy at once?"
+prompt_es = "Tu agente ejecuta {tasks_per_s} tareas por segundo, y una tarea retiene un hueco del Worker unos {task_s} segundos mientras espera al modelo y a las herramientas. ¿Cuántos huecos están ocupados a la vez?"
+inputs = { tasks_per_s = 2, task_s = 6 }
+formula = "tasks_per_s * task_s"
+unit = "count"
+solution = "{tasks_per_s} × {task_s} s = {answer} slots busy at once (Little's law). A Celery Worker has 8 slots per instance, so 2 instances would already be 75% busy; leave room for the long tasks and for a bad day."
+solution_es = "{tasks_per_s} × {task_s} s = {answer} huecos ocupados a la vez (la ley de Little). Un Worker Celery tiene 8 huecos por instancia, así que 2 instancias ya estarían ocupadas un 75 %; deja sitio para las tareas largas y para un mal día."
+
+[[drill]]
+id = "slow-tool-slots"
+kind = "servers"
+prompt = "The same {tasks_per_s} tasks a second normally take {task_s} seconds each. One tool now takes {slow_s} seconds a call, and nothing stops waiting for it. How many slots are busy at once?"
+prompt_es = "Las mismas {tasks_per_s} tareas por segundo tardan normalmente {task_s} segundos cada una. Ahora una herramienta tarda {slow_s} segundos por llamada, y nada deja de esperarla. ¿Cuántos huecos están ocupados a la vez?"
+inputs = { tasks_per_s = 2, task_s = 6, slow_s = 40 }
+formula = "tasks_per_s * (task_s + slow_s)"
+unit = "count"
+solution = "{tasks_per_s} × ({task_s} + {slow_s}) s = {answer} slots. One slow tool multiplies the slots the agent needs by almost 8; no sensible pool covers that, and every task waits behind the ones already stuck. A call timeout of 10 s brings it down to about 2 × (6 + 10) = 32."
+solution_es = "{tasks_per_s} × ({task_s} + {slow_s}) s = {answer} huecos. Una sola herramienta lenta multiplica casi por 8 los huecos que necesita el agente; ningún grupo razonable lo cubre, y cada tarea espera detrás de las que ya están atascadas. Un tiempo límite de llamada de 10 s lo baja a unos 2 × (6 + 10) = 32."
+
+[[drill]]
+id = "bounded-refund"
+kind = "capacity"
+prompt = "A refund makes {model_calls} model calls of about {model_s} seconds each, plus about {tools_s} seconds of quick tool calls. The tracking call has a timeout of {timeout_s} seconds, and the agent goes on without it. What is the longest a refund takes when tracking hangs?"
+prompt_es = "Un reembolso hace {model_calls} llamadas al modelo de unos {model_s} segundos cada una, más unos {tools_s} segundos de llamadas rápidas a herramientas. La llamada de seguimiento tiene un tiempo límite de {timeout_s} segundos, y el agente sigue sin ella. ¿Cuánto tarda como mucho un reembolso cuando el seguimiento se cuelga?"
+inputs = { model_calls = 4, model_s = 2.2, tools_s = 0.3, timeout_s = 10 }
+formula = "model_calls * model_s + tools_s + timeout_s"
+unit = "s"
+solution = "{model_calls} × {model_s} s + {tools_s} s + {timeout_s} s ≈ {answer} s, under the 25 s goal however long tracking hangs. Without the timeout the same refund takes as long as the tool does."
+solution_es = "{model_calls} × {model_s} s + {tools_s} s + {timeout_s} s ≈ {answer} s, por debajo del objetivo de 25 s por mucho que se cuelgue el seguimiento. Sin el tiempo límite, el mismo reembolso tarda lo que tarde la herramienta."

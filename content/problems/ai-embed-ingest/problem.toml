@@ -1,0 +1,52 @@
+id = "ai-embed-ingest"
+track = "ai"
+number = 4
+set = 1
+difficulty = "easy"
+title = "Embedding Ingest"
+title_es = "Ingesta de embeddings"
+teaches = "Put a queue between uploads and a rate-limited embeddings API, and size the workers to the provider's limits, so a bulk import waits instead of failing"
+teaches_es = "Poner una cola entre las subidas y una API de embeddings con límites, y dimensionar los workers según esos límites, para que una importación masiva espere en vez de fallar"
+tags = ["ml-inference", "embeddings", "queues", "rate-limits"]
+
+[nfr]
+peak_rps = 5
+p95_ms = 30000
+availability = 0.999
+budget_usd = 35000
+
+[[request_types]]
+id = "ingest"
+name = "Add a document"
+name_es = "Añadir un documento"
+share = 1.0
+route = ["edge?", "compute", "broker?", "worker", "model:embed", "datastore:write:vector"]
+key_space = 10000000
+tokens_in = { mean = 500, p95 = 1500 }
+measure = "completion"
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "bulk"
+name = "A customer imports their archive (×10 for 45 s)"
+name_es = "Un cliente importa su archivo (×10 durante 45 s)"
+hidden = true
+duration_s = 120
+traffic = { spike = { at = 20, x = 10, for = 45 } }
+pass = { p95_ms = 60000 }
+
+[[tests]]
+id = "slow"
+name = "The embeddings API slows down"
+name_es = "La API de embeddings se vuelve lenta"
+hidden = true
+duration_s = 120
+chaos = [{ latency = { kind = "infer", at = 20, for = 30, add_ms = 5000 } }]
+
+[pass]
+error_rate = 0.001
+lost = 0

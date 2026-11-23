@@ -1,0 +1,94 @@
+{
+  "schema_version": 4,
+  "id": "de-log-partitioning-challenge",
+  "name": "Log search, partitioned by day",
+  "problem_id": "de-log-partitioning",
+  "nodes": [
+    {
+      "id": "engineers",
+      "kind": "client",
+      "flavour": "web",
+      "label": "engineers",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "timeout_ms": 60000
+      },
+      "group_id": null
+    },
+    {
+      "id": "search-api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "search-api",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 1
+      },
+      "group_id": null
+    },
+    {
+      "id": "bigquery",
+      "kind": "warehouse",
+      "flavour": "snowflake",
+      "label": "bigquery",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "concurrency": 32,
+        "instances": 1
+      },
+      "group_id": null
+    },
+    {
+      "id": "logs",
+      "kind": "lakehouse",
+      "flavour": "iceberg",
+      "label": "logs",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {
+        "compaction": "daily",
+        "partitioning": "day",
+        "stored_tb": 0.04
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-engineers-search-api-http",
+      "from": "engineers",
+      "to": "search-api",
+      "protocol": "http"
+    },
+    {
+      "id": "e-search-api-bigquery-query",
+      "from": "search-api",
+      "to": "bigquery",
+      "protocol": "query"
+    },
+    {
+      "id": "e-bigquery-logs-query",
+      "from": "bigquery",
+      "to": "logs",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

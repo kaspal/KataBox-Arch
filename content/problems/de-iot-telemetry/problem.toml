@@ -1,0 +1,58 @@
+id = "de-iot-telemetry"
+number = 4
+set = 1
+track = "de"
+difficulty = "easy"
+title = "IoT Fleet Telemetry"
+title_es = "Telemetría de una flota IoT"
+teaches = "Put a stream between the devices and the time-series database, size its ingest for bursts, and budget series so a cardinality explosion slows writes instead of refusing them"
+teaches_es = "Poner un stream entre los dispositivos y la base de series temporales, dimensionar su ingesta para las ráfagas y presupuestar las series para que una explosión de cardinalidad frene las escrituras en vez de rechazarlas"
+tags = ["iot", "mqtt", "time-series", "streams", "cardinality"]
+
+[nfr]
+peak_rps = 2500
+p95_ms = 2000
+availability = 0.999
+budget_usd = 3000
+
+[[request_types]]
+id = "devices"
+name = "Devices connected over MQTT"
+name_es = "Dispositivos conectados por MQTT"
+share = 0.0
+kind = "connection"
+route = ["edge"]
+connected = 25000
+
+[[request_types]]
+id = "points"
+name = "Write a reading"
+name_es = "Escribir una lectura"
+share = 1.0
+route = ["edge?", "compute", "broker:stream?", "worker", "datastore:write:tsdb"]
+series = 250000
+measure = "completion"
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "reconnect-burst"
+name = "The fleet reconnects after a network outage"
+name_es = "La flota se reconecta tras un corte de red"
+hidden = true
+traffic = { spike = { at = 20, x = 4, for = 20 } }
+pass = { p95_ms = 10000 }
+
+[[tests]]
+id = "cardinality"
+name = "A firmware update multiplies the series by 10"
+name_es = "Una actualización de firmware multiplica las series por 10"
+hidden = true
+chaos = [{ cardinality = { x = 10, at = 20, for = 20 } }]
+
+[pass]
+error_rate = 0.01
+connected_min = 0.95

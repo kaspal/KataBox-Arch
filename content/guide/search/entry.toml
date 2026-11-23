@@ -153,6 +153,18 @@ flavour = "opensearch"
 title = "OpenSearch documentation"
 url = "https://docs.opensearch.org/latest/"
 
+[[sources]]
+flavour = "solr"
+title = "Apache Solr documentation"
+url = "https://solr.apache.org/guide/"
+checked = false
+
+[[sources]]
+flavour = "meilisearch"
+title = "Meilisearch documentation"
+url = "https://www.meilisearch.com/docs"
+checked = false
+
 [[quiz]]
 q = "In a typeahead, a few very popular prefixes saturate one shard of the search index while the others sit idle. What fixes it?"
 q_es = "En un autocompletado, unos pocos prefijos muy populares saturan una partición del índice de búsqueda mientras las demás están ociosas. ¿Qué lo soluciona?"

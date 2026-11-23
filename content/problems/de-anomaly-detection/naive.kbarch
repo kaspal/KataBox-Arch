@@ -1,0 +1,103 @@
+{
+  "schema_version": 4,
+  "id": "de-anomaly-detection-naive",
+  "name": "Turbine anomaly alerts (first try)",
+  "problem_id": "de-anomaly-detection",
+  "nodes": [
+    {
+      "id": "sensors",
+      "kind": "client",
+      "flavour": "web",
+      "label": "sensors",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "broker",
+      "kind": "mqtt",
+      "flavour": "emqx",
+      "label": "broker",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "ingest",
+      "kind": "app",
+      "flavour": "go",
+      "label": "ingest",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "triton",
+      "kind": "infer",
+      "flavour": "triton",
+      "label": "triton",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "tsdb",
+      "kind": "tsdb",
+      "flavour": "influxdb",
+      "label": "tsdb",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "points_per_s": 20000
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-sensors-broker-publish",
+      "from": "sensors",
+      "to": "broker",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-sensors-ingest-http",
+      "from": "sensors",
+      "to": "ingest",
+      "protocol": "http"
+    },
+    {
+      "id": "e-ingest-triton-grpc",
+      "from": "ingest",
+      "to": "triton",
+      "protocol": "grpc"
+    },
+    {
+      "id": "e-ingest-tsdb-query",
+      "from": "ingest",
+      "to": "tsdb",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

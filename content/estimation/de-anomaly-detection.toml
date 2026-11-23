@@ -1,0 +1,34 @@
+# Estimation drills for Turbine Anomaly Alerts.
+
+[[drill]]
+id = "storm-points"
+kind = "qps"
+prompt = "{sensors} sensors each send one point every {interval_s} seconds. In a storm they switch to fast sampling and send {x} times as many. How many points a second must be scored during the storm?"
+prompt_es = "{sensors} sensores envían cada uno un punto cada {interval_s} segundos. En una tormenta pasan a muestreo rápido y envían {x} veces más. ¿Cuántos puntos por segundo hay que puntuar durante la tormenta?"
+inputs = { sensors = 30000, interval_s = 10, x = 5 }
+formula = "sensors / interval_s * x"
+unit = "rps"
+solution = "{sensors} / {interval_s} s = 3,000 points a second on a normal day, × {x} = {answer} in a storm. Size the classifier and its callers for this number, not for the normal day."
+solution_es = "{sensors} / {interval_s} s = 3000 puntos por segundo en un día normal, × {x} = {answer} en una tormenta. Dimensiona el clasificador y quien lo llama para este número, no para el día normal."
+
+[[drill]]
+id = "classifier-gpus"
+kind = "servers"
+prompt = "A storm brings {rps} points a second, and scoring one holds a Triton batch slot for about {score_ms} ms. Each GPU has {slots} batch slots. How many GPUs keep the slots at or under {target_pct}% busy (round up)?"
+prompt_es = "Una tormenta trae {rps} puntos por segundo, y puntuar uno ocupa un hueco de lote de Triton unos {score_ms} ms. Cada GPU tiene {slots} huecos de lote. ¿Cuántas GPU dejan los huecos ocupados al {target_pct} % o menos (redondea hacia arriba)?"
+inputs = { rps = 15000, score_ms = 12, slots = 64, target_pct = 75 }
+formula = "rps * score_ms / 1000 / (slots * target_pct / 100)"
+unit = "count"
+solution = "{rps} × {score_ms} ms = 180 scores in flight at once. At {target_pct}% of {slots} slots, 48 per GPU: {answer}, so 4 GPUs. Three would run at about 94% and slow every score down; two can't keep up, and the points pile up or are refused."
+solution_es = "{rps} × {score_ms} ms = 180 puntuaciones en curso a la vez. Al {target_pct} % de {slots} huecos, 48 por GPU: {answer}, así que 4 GPU. Con tres irían a un 94 % y cada puntuación se frenaría; con dos no dan abasto, y los puntos se acumulan o se rechazan."
+
+[[drill]]
+id = "series-budget"
+kind = "servers"
+prompt = "{sensors} sensors write {per_sensor} series each. A firmware bug can multiply the series by {x}, and one database node indexes {limit} series. How many nodes keep each node at or under its limit during the explosion (round up)?"
+prompt_es = "{sensors} sensores escriben {per_sensor} series cada uno. Un fallo de firmware puede multiplicar las series por {x}, y un nodo de base de datos indexa {limit} series. ¿Cuántos nodos dejan a cada uno en su límite o por debajo durante la explosión (redondea hacia arriba)?"
+inputs = { sensors = 30000, per_sensor = 10, x = 8, limit = 1000000 }
+formula = "sensors * per_sensor * x / limit"
+unit = "count"
+solution = "{sensors} × {per_sensor} × {x} = 2,400,000 series, over {limit} per node: {answer}, so 3 nodes, 800,000 series each. With 2 nodes each holds 1,200,000 and writes four times slower; with 1 node it is past twice the limit and refuses every write, so no alert fires."
+solution_es = "{sensors} × {per_sensor} × {x} = 2 400 000 series, entre {limit} por nodo: {answer}, así que 3 nodos, 800 000 series cada uno. Con 2 nodos cada uno lleva 1 200 000 y escribe cuatro veces más despacio; con 1 nodo supera el doble del límite y rechaza todas las escrituras, así que no salta ninguna alerta."

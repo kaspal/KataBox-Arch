@@ -172,6 +172,36 @@ flavour = "mysql"
 title = "MySQL documentation"
 url = "https://dev.mysql.com/doc/"
 
+[[sources]]
+flavour = "cockroachdb"
+title = "CockroachDB documentation"
+url = "https://www.cockroachlabs.com/docs/"
+checked = false
+
+[[sources]]
+flavour = "aurora_postgresql"
+title = "Amazon Aurora (PostgreSQL) documentation"
+url = "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/"
+checked = false
+
+[[sources]]
+flavour = "spanner"
+title = "Google Cloud Spanner documentation"
+url = "https://cloud.google.com/spanner/docs"
+checked = false
+
+[[sources]]
+flavour = "postgis"
+title = "PostGIS (PostgreSQL with geo) documentation"
+url = "https://postgis.net/documentation/"
+checked = false
+
+[[sources]]
+flavour = "citus"
+title = "Citus (sharded PostgreSQL) documentation"
+url = "https://docs.citusdata.com/"
+checked = false
+
 [[quiz]]
 q = "The write rate has grown past what one primary's connections can serve. Which change actually adds write capacity?"
 q_es = "El ritmo de escrituras ha superado lo que pueden atender las conexiones de una principal. ¿Qué cambio añade de verdad capacidad de escritura?"

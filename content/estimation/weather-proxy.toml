@@ -1,0 +1,34 @@
+# Estimation drills for Weather API Proxy.
+
+[[drill]]
+id = "warm-provider-calls"
+kind = "qps"
+prompt = "Your cache holds forecasts for {cities} cities, and each entry expires after a TTL of {ttl_s} seconds. When the cache is warm, about how many calls a second does it make to the weather provider?"
+prompt_es = "Tu caché guarda previsiones de {cities} ciudades, y cada entrada caduca tras un TTL de {ttl_s} segundos. Con la caché caliente, ¿cuántas llamadas por segundo hace más o menos al proveedor del tiempo?"
+inputs = { cities = 40000, ttl_s = 600 }
+formula = "cities / ttl_s"
+unit = "rps"
+solution = "Each city expires about once per TTL, and the next read refreshes it: {cities} / {ttl_s} s ≈ {answer} calls a second. That is far under the provider's limit of 200, so a warm cache is safe. The danger is a cache that is cold or cannot refresh."
+solution_es = "Cada ciudad caduca más o menos una vez por TTL, y la siguiente lectura la refresca: {cities} / {ttl_s} s ≈ {answer} llamadas por segundo. Eso queda muy por debajo del límite de 200 del proveedor, así que una caché caliente es segura. El peligro es una caché fría o que no puede refrescarse."
+
+[[drill]]
+id = "cold-refill"
+kind = "capacity"
+prompt = "A cache node restarts empty. There are {cities} cities to fetch again, and the provider accepts at most {rate_limit} calls a second. How many seconds does it take to fill the cache again?"
+prompt_es = "Un nodo de caché se reinicia vacío. Hay que volver a pedir {cities} ciudades, y el proveedor acepta como mucho {rate_limit} llamadas por segundo. ¿Cuántos segundos se tarda en volver a llenar la caché?"
+inputs = { cities = 40000, rate_limit = 200 }
+formula = "cities / rate_limit"
+unit = "s"
+solution = "{cities} / {rate_limit} a second = {answer} seconds, more than three minutes, and only if every call is a new city. Meanwhile 20,000 requests a second miss and most are refused. A replica that takes over, and that the restarted node resyncs from, avoids the cold start."
+solution_es = "{cities} / {rate_limit} por segundo = {answer} segundos, más de tres minutos, y solo si cada llamada es una ciudad nueva. Mientras tanto, 20 000 peticiones por segundo fallan en la caché y la mayoría se rechazan. Una réplica que toma el relevo, y con la que se sincroniza el nodo reiniciado, evita el arranque en frío."
+
+[[drill]]
+id = "uncached-refusals"
+kind = "qps"
+prompt = "Your app gets {peak_rps} forecast requests a second, and the weather provider accepts at most {rate_limit} calls a second. If every request went to the provider, how many a second would it refuse?"
+prompt_es = "Tu app recibe {peak_rps} peticiones de previsión por segundo, y el proveedor del tiempo acepta como mucho {rate_limit} llamadas por segundo. Si todas las peticiones fueran al proveedor, ¿cuántas por segundo rechazaría?"
+inputs = { peak_rps = 20000, rate_limit = 200 }
+formula = "peak_rps - rate_limit"
+unit = "rps"
+solution = "{peak_rps} - {rate_limit} = {answer} requests a second refused: 99% of the traffic. Here the cache is not an optimisation; it is the only way the product works at all."
+solution_es = "{peak_rps} - {rate_limit} = {answer} peticiones por segundo rechazadas: el 99 % del tráfico. Aquí la caché no es una optimización; es la única forma de que el producto funcione."

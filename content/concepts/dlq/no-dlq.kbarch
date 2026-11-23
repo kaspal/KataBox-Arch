@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "concept-dlq-no-dlq",
   "name": "Notifications (no dead-letter queue)",
   "problem_id": "notifications",

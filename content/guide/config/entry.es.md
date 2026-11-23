@@ -1,0 +1,7 @@
+Un servicio de configuración guarda los ajustes y los **feature flags** que leen tus aplicaciones: tiempos de espera, límites, qué funciones están activas. Cambiar un valor ahí cambia cómo se comportan las aplicaciones sin una compilación ni un despliegue nuevos. Las aplicaciones reciben los cambios por **stream**, enviados en cuanto se hacen, o por **sondeo**, preguntando cada pocos segundos.
+
+Ese poder es también el riesgo. Un cambio de configuración es un despliegue disfrazado, y un valor malo enviado a todos a la vez tumba toda la flota de golpe. Un despliegue **por etapas** envía el cambio a un grupo de servidores cada vez, espera un **tiempo de observación** para vigilar la tasa de errores y se detiene si suben. Un **interruptor de emergencia** va un paso más allá y revierte el cambio en menos de un segundo cuando el despliegue se detiene. El simulador modela ambos.
+
+El servicio de configuración no está en el camino de la petición. Cada aplicación guarda una copia local de su configuración y lee de ella, así que cuando el servicio cae, las peticiones siguen funcionando con los últimos valores conocidos y solo esperan los cambios nuevos.
+
+**Cómo lo factura el simulador.** LaunchDarkly, AWS AppConfig y Unleash cuestan todos una cuota fija de 20 $ al mes (precio didáctico; fuente por confirmar). En el simulador el precio no crece con el número de aplicaciones, flags o cambios.

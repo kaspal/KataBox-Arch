@@ -1,0 +1,203 @@
+kind = "vector"
+one_liner = "A store that finds the items whose embeddings are closest to a query embedding."
+one_liner_es = "Un almacén que encuentra los elementos cuyos embeddings están más cerca del embedding de una consulta."
+
+use_when = [
+  "Search by meaning, not by exact words, such as semantic search or retrieval for an AI model",
+  "Recommendations of the form \"items similar to this one\"",
+  "Finding near-duplicate images, documents or products",
+]
+use_when_es = [
+  "Buscar por significado, no por palabras exactas, como la búsqueda semántica o la recuperación para un modelo de IA",
+  "Recomendaciones del tipo \"elementos parecidos a este\"",
+  "Encontrar imágenes, documentos o productos casi duplicados",
+]
+skip_when = [
+  "Users search by exact words, prefixes or filters: a search engine or an index does that better",
+  "There are only a few thousand vectors: a brute-force scan in the app or the SQL database is enough",
+  "You need exact answers every time: the index is approximate",
+]
+skip_when_es = [
+  "Los usuarios buscan por palabras exactas, prefijos o filtros: un buscador o un índice lo hace mejor",
+  "Solo hay unos pocos miles de vectores: basta con recorrerlos todos en la aplicación o en la base SQL",
+  "Necesitas respuestas exactas siempre: el índice es aproximado",
+]
+
+formula = "a query fans out to every shard; each shard takes service time plus HNSW search time that grows with top_k and with vectors per shard (vectors_m ÷ shards); the answer waits for the slowest shard; upserts go to the primary, and replicas joined by Replicate edges serve reads"
+formula_es = "una consulta se reparte a todos los shards; cada shard tarda el tiempo de servicio más la búsqueda HNSW, que crece con top_k y con los vectores por shard (vectors_m ÷ shards); la respuesta espera al shard más lento; las inserciones van al primario, y las réplicas unidas con aristas Replicate sirven lecturas"
+
+gains = [
+  "Finds similar items among millions in milliseconds",
+  "More shards make each shard's search smaller and faster",
+  "Read replicas add query capacity",
+]
+gains_es = [
+  "Encuentra elementos parecidos entre millones en milisegundos",
+  "Más shards hacen la búsqueda de cada shard más pequeña y rápida",
+  "Las réplicas de lectura añaden capacidad de consulta",
+]
+costs = [
+  "Every query touches every shard, so one slow shard slows every answer",
+  "Results are approximate: a close neighbour can be missed",
+  "Embeddings must be computed first, usually by a model on the write path",
+]
+costs_es = [
+  "Cada consulta toca todos los shards, así que un shard lento frena todas las respuestas",
+  "Los resultados son aproximados: puede perderse un vecino cercano",
+  "Primero hay que calcular los embeddings, normalmente con un modelo en el camino de escritura",
+]
+
+works_with = ["infer", "app", "worker", "search", "cache"]
+practice = []
+
+interview_tip = "Say where the embeddings come from, how many vectors each shard holds, and how you keep top_k small; mention that the index trades a little recall for speed."
+interview_tip_es = "Di de dónde salen los embeddings, cuántos vectores guarda cada shard y cómo mantienes top_k pequeño; menciona que el índice cambia un poco de exhaustividad por velocidad."
+
+not_simulated = [
+  "Recall: how often the approximate index misses a true nearest neighbour",
+  "The time to build or rebuild the index",
+  "Memory per vector, which grows with the dimension count (dims is a design note only)",
+  "The extra cost of metadata filters on a query",
+]
+not_simulated_es = [
+  "La exhaustividad: cuántas veces el índice aproximado se pierde un vecino realmente cercano",
+  "El tiempo de construir o reconstruir el índice",
+  "La memoria por vector, que crece con el número de dimensiones (dims es solo una nota de diseño)",
+  "El coste extra de los filtros por metadatos en una consulta",
+]
+
+[[sim]]
+prop = "shards"
+note = "Each query goes to every shard and waits for the slowest. More shards mean fewer vectors to search in each."
+note_es = "Cada consulta va a todos los shards y espera al más lento. Más shards significan menos vectores que buscar en cada uno."
+
+[[sim]]
+prop = "vectors_m"
+note = "Millions of vectors stored, split evenly across the shards. Search time grows with the vectors per shard."
+note_es = "Millones de vectores guardados, repartidos a partes iguales entre los shards. El tiempo de búsqueda crece con los vectores por shard."
+
+[[sim]]
+prop = "service_ms"
+note = "Base time for one shard to answer, before the search itself."
+note_es = "Tiempo base para que un shard responda, antes de la búsqueda en sí."
+
+[[sim]]
+sim = "servers_per_instance"
+note = "Queries one shard runs at once before the rest wait."
+note_es = "Consultas que un shard ejecuta a la vez antes de que el resto espere."
+
+[[sim]]
+sim = "failover_s"
+note = "How long a shard is unavailable when its node fails, until a replica takes over."
+note_es = "Cuánto tiempo no está disponible un shard cuando cae su nodo, hasta que una réplica toma el relevo."
+
+[[sim]]
+cost = "per_instance_month"
+note = "A fixed monthly price per node for self-hosted flavours such as pgvector, Qdrant or Milvus."
+note_es = "Un precio mensual fijo por nodo para los sabores propios como pgvector, Qdrant o Milvus."
+
+[[sim]]
+cost = "per_million"
+note = "Pinecone bills read units per query instead of nodes."
+note_es = "Pinecone cobra unidades de lectura por consulta en lugar de nodos."
+
+[[sim]]
+cost = "per_million_write"
+note = "Pinecone bills write units per upsert."
+note_es = "Pinecone cobra unidades de escritura por inserción."
+
+[flavours_compared]
+flavours = ["pgvector", "pinecone", "qdrant", "milvus"]
+
+[[flavours_compared.rows]]
+label = "Who runs it"
+label_es = "Quién lo opera"
+cells = ["You, inside PostgreSQL", "Pinecone, fully managed", "You, or Qdrant Cloud", "You, or Zilliz Cloud"]
+cells_es = ["Tú, dentro de PostgreSQL", "Pinecone, totalmente gestionado", "Tú, o Qdrant Cloud", "Tú, o Zilliz Cloud"]
+
+[[flavours_compared.rows]]
+label = "Best for"
+label_es = "Ideal para"
+cells = ["Vectors next to the rows they describe, at modest scale", "No servers to run, pay per use", "A dedicated engine with rich filters", "Very large collections spread over many nodes"]
+cells_es = ["Vectores junto a las filas que describen, a escala modesta", "Sin servidores que operar, pago por uso", "Un motor dedicado con filtros ricos", "Colecciones muy grandes repartidas en muchos nodos"]
+
+[[flavours_compared.rows]]
+label = "Billing in the simulator"
+label_es = "Facturación en el simulador"
+cells = ["Per node", "Per read and write unit", "Per node", "Per node"]
+cells_es = ["Por nodo", "Por unidad de lectura y escritura", "Por nodo", "Por nodo"]
+
+[[pitfalls]]
+title = "One huge shard"
+title_es = "Un único shard enorme"
+body = "All the vectors sit in one shard. Each query searches the whole collection, latency climbs as the data grows, and the node can't take more load."
+body_es = "Todos los vectores están en un shard. Cada consulta busca en toda la colección, la latencia sube al crecer los datos y el nodo no admite más carga."
+fix = "Split the vectors across more shards so each search is smaller, and add replicas for read throughput."
+fix_es = "Reparte los vectores en más shards para que cada búsqueda sea más pequeña, y añade réplicas para el rendimiento de lectura."
+
+[[pitfalls]]
+title = "Asking for too many neighbours"
+title_es = "Pedir demasiados vecinos"
+body = "Every query asks for hundreds of results to re-rank later. Search time grows with top_k on every shard, and most of the results are thrown away."
+body_es = "Cada consulta pide cientos de resultados para reordenarlos después. El tiempo de búsqueda crece con top_k en cada shard, y la mayoría de resultados se descartan."
+fix = "Keep top_k close to what the page shows, or re-rank a small candidate set."
+fix_es = "Mantén top_k cerca de lo que muestra la página, o reordena un conjunto pequeño de candidatos."
+
+[[pitfalls]]
+title = "Embedding on the read path for every query"
+title_es = "Calcular el embedding en cada lectura"
+body = "Each search first calls a model to embed the query, so the model's latency and rate limits add to every search."
+body_es = "Cada búsqueda llama primero a un modelo para calcular el embedding de la consulta, así que la latencia y los límites del modelo se suman a cada búsqueda."
+fix = "Cache embeddings of common queries, and embed documents ahead of time on the write path with a worker."
+fix_es = "Guarda en caché los embeddings de las consultas frecuentes, y calcula los de los documentos de antemano en el camino de escritura con un worker."
+
+[[sources]]
+flavour = "pgvector"
+title = "pgvector on GitHub"
+url = "https://github.com/pgvector/pgvector"
+checked = false
+
+[[sources]]
+flavour = "pinecone"
+title = "Pinecone documentation"
+url = "https://docs.pinecone.io/"
+checked = false
+
+[[sources]]
+flavour = "qdrant"
+title = "Qdrant documentation"
+url = "https://qdrant.tech/documentation/"
+checked = false
+
+[[sources]]
+flavour = "milvus"
+title = "Milvus documentation"
+url = "https://milvus.io/docs"
+checked = false
+
+[[quiz]]
+q = "A vector store holds all its vectors in one shard, and search latency keeps rising as the collection grows. What helps most?"
+q_es = "Un almacén vectorial guarda todos sus vectores en un shard, y la latencia de búsqueda sigue subiendo al crecer la colección. ¿Qué ayuda más?"
+options = ["Raise top_k so each query finds more matches", "Add read replicas of the single shard", "Split the vectors across more shards", "Lower the dimension count"]
+options_es = ["Subir top_k para que cada consulta encuentre más coincidencias", "Añadir réplicas de lectura del único shard", "Repartir los vectores en más shards", "Reducir el número de dimensiones"]
+answer = 2
+why = "Search time grows with the vectors per shard. More shards make each search smaller, and they run in parallel. Replicas add throughput, not a faster single search."
+why_es = "El tiempo de búsqueda crece con los vectores por shard. Más shards hacen cada búsqueda más pequeña, y se ejecutan en paralelo. Las réplicas añaden rendimiento, no una búsqueda individual más rápida."
+
+[[quiz]]
+q = "A query fans out to eight shards. Seven answer quickly and one is slow. When does the user get results?"
+q_es = "Una consulta se reparte a ocho shards. Siete responden rápido y uno es lento. ¿Cuándo recibe el usuario los resultados?"
+options = ["When the slow shard answers too", "As soon as the seven fast shards answer", "After the average of the eight times"]
+options_es = ["Cuando también responde el shard lento", "En cuanto responden los siete shards rápidos", "Tras la media de los ocho tiempos"]
+answer = 0
+why = "The nearest neighbours could be on any shard, so the query waits for all of them. The slowest shard sets the latency."
+why_es = "Los vecinos más cercanos pueden estar en cualquier shard, así que la consulta los espera a todos. El shard más lento marca la latencia."
+
+[[quiz]]
+q = "Why is a vector store's answer called approximate?"
+q_es = "¿Por qué se dice que la respuesta de un almacén vectorial es aproximada?"
+options = ["The embeddings are rounded before they are stored", "Replicas may return older data", "The scores are random within a range", "The index skips most vectors to be fast, so it can miss a true nearest neighbour"]
+options_es = ["Los embeddings se redondean antes de guardarse", "Las réplicas pueden devolver datos antiguos", "Las puntuaciones son aleatorias dentro de un rango", "El índice se salta la mayoría de vectores para ser rápido, así que puede perder un vecino realmente cercano"]
+answer = 3
+why = "An index such as HNSW walks a graph instead of comparing the query with every vector. It is fast but not exhaustive. The simulator models its speed, not its recall."
+why_es = "Un índice como HNSW recorre un grafo en lugar de comparar la consulta con cada vector. Es rápido pero no exhaustivo. El simulador modela su velocidad, no su exhaustividad."

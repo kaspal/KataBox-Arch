@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "rate-limiter-reference",
   "name": "Rate Limiter (reference)",
   "problem_id": "rate-limiter",

@@ -1,0 +1,7 @@
+A WebSocket gateway keeps a connection open to each client for as long as the client stays. Because the connection is already there, the server can **push** a message the moment something happens, instead of waiting for the client to ask. Chat, live documents, dashboards and multiplayer games all work this way.
+
+That changes how you size it. A normal server is sized by requests per second. A gateway is sized by **connections**: each open connection holds memory even when it is idle, so a server can hold only so many, and it can open only so many new ones per second. Pushes are a third limit. When a message goes to many clients spread over many servers, it is delivered only when the last server has pushed it.
+
+The dangerous moment is a failure. When a gateway server dies, all of its clients try to reconnect. If they all try in the same second, the other servers can't accept them fast enough, attempts fail and retry, and clients stay offline. In the simulator, the client's reconnect jitter spreads those reconnects out; with no jitter you get a **reconnect storm**.
+
+**How the simulator bills this.** Socket.IO and Phoenix are self-hosted, one EC2 m5.large-class server per instance at $70 a month. AWS API Gateway WebSocket has no instance fee: it bills $1.00 per million messages and $0.25 per million connection-minutes, so idle clients still cost money. These are teaching prices; source to be confirmed.

@@ -8,6 +8,7 @@ teaches = "Fan edits out to every sync server through pub/sub, so editors on dif
 teaches_es = "Repartir las ediciones a todos los servidores de sincronización con pub/sub, para que editores en servidores distintos se vean y un servidor pueda caer"
 tags = ["websockets", "pub-sub", "fan-out", "failover"]
 
+challenge_ratio = 0.75
 [nfr]
 peak_rps = 6000
 p95_ms = 150

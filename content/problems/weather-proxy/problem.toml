@@ -1,0 +1,56 @@
+id = "weather-proxy"
+number = 31
+set = 3
+difficulty = "easy"
+title = "Weather API Proxy"
+title_es = "Proxy de una API del tiempo"
+teaches = "Cache a paid, rate-limited API in front of your users, and keep answering from stale copies when it fails"
+teaches_es = "Cachear una API de pago y limitada delante de tus usuarios, y seguir respondiendo con copias caducadas cuando falla"
+tags = ["caching", "external-providers", "rate-limits", "stale-while-revalidate"]
+requires = ["cache"]
+
+challenge_ratio = 0.75
+[nfr]
+peak_rps = 20000
+p95_ms = 100
+availability = 0.999
+budget_usd = 1000
+
+[[externals]]
+name = "weather"
+median_ms = 150
+p99_ms = 600
+rate_limit = 200
+
+[[request_types]]
+id = "forecast"
+name = "Get a city's forecast"
+name_es = "Pedir la previsión de una ciudad"
+share = 1.0
+route = ["edge?", "compute", "cache?", "external:weather"]
+key_space = 40000
+key_skew = { zipf = 1.0 }
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "outage"
+name = "The weather provider is down for 40 s"
+name_es = "El proveedor del tiempo cae durante 40 s"
+hidden = true
+duration_s = 90
+chaos = [{ external = { name = "weather", at = 20, for = 40, down = true } }]
+
+[[tests]]
+id = "restart"
+name = "A cache node restarts"
+name_es = "Un nodo de caché se reinicia"
+hidden = true
+chaos = [{ kill = { kind = "cache", at = 20, for = 5 } }]
+pass = { error_rate = 0.03, availability = 0.97 }
+
+[pass]
+error_rate = 0.01

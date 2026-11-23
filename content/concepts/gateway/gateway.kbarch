@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "concept-gateway-gateway",
   "name": "URL Shortener behind an API gateway",
   "problem_id": "url-shortener",

@@ -1,0 +1,191 @@
+kind = "media"
+one_liner = "A server that forwards or transcodes live audio and video streams for many viewers."
+one_liner_es = "Un servidor que reenvía o transcodifica flujos de audio y vídeo en directo para muchos espectadores."
+
+use_when = [
+  "Users talk to each other live, as in a video call, which needs an SFU",
+  "A live broadcast must be encoded into segments for players and a CDN",
+  "Peer-to-peer video breaks down because each sender would upload to every viewer",
+]
+use_when_es = [
+  "Los usuarios hablan entre sí en directo, como en una videollamada, que necesita una SFU",
+  "Una emisión en directo debe codificarse en segmentos para los reproductores y una CDN",
+  "El vídeo entre pares no funciona porque cada emisor tendría que subir a cada espectador",
+]
+skip_when = [
+  "The video is recorded ahead of time, so it can be transcoded once by workers and served from object storage and a CDN",
+  "Only text or small updates are sent live, which a WebSocket gateway does better",
+]
+skip_when_es = [
+  "El vídeo se graba de antemano, así que unos workers pueden transcodificarlo una vez y servirlo desde almacenamiento de objetos y una CDN",
+  "Solo se envían en directo texto o pequeñas novedades, algo que un gateway de WebSocket hace mejor",
+]
+
+formula = "streams per instance ≤ capacity (forwarded streams for an SFU, transcoded channels for an encoder); glass-to-glass latency ≈ processing for an SFU, or about three segments + processing for segment-based delivery"
+formula_es = "flujos por instancia ≤ capacidad (flujos reenviados en una SFU, canales transcodificados en un codificador); latencia de extremo a extremo ≈ procesado en una SFU, o unos tres segmentos + procesado en la entrega por segmentos"
+
+gains = [
+  "An SFU gives sub-second, two-way video for calls",
+  "Segment-based delivery lets a CDN serve a huge audience",
+  "Each sender uploads one stream, whatever the number of viewers",
+]
+gains_es = [
+  "Una SFU da vídeo bidireccional por debajo del segundo para llamadas",
+  "La entrega por segmentos deja que una CDN sirva a un público enorme",
+  "Cada emisor sube un solo flujo, sea cual sea el número de espectadores",
+]
+costs = [
+  "Segment-based delivery adds seconds of delay",
+  "Transcoding is expensive per channel",
+  "Each instance holds only so many streams, so big rooms need many servers",
+]
+costs_es = [
+  "La entrega por segmentos añade segundos de retraso",
+  "Transcodificar es caro por canal",
+  "Cada instancia solo admite cierto número de flujos, así que las salas grandes necesitan muchos servidores",
+]
+
+works_with = ["cdn", "object", "lb", "ws", "client"]
+practice = []
+
+interview_tip = "First say whether viewers talk back. Two-way calls need an SFU and sub-second latency; broadcasts can use segments and a CDN and accept a few seconds. Then size streams per server."
+interview_tip_es = "Di primero si los espectadores responden. Las llamadas bidireccionales necesitan una SFU y latencia por debajo del segundo; las emisiones pueden usar segmentos y una CDN y aceptar unos segundos. Luego dimensiona los flujos por servidor."
+
+not_simulated = [
+  "Codecs and bitrate ladders",
+  "The number of renditions and the network bandwidth, which are shown on the card but not used",
+  "Network jitter and packet loss",
+  "Player buffering",
+  "DRM",
+]
+not_simulated_es = [
+  "Los códecs y las escaleras de bitrate",
+  "El número de renditions y el ancho de banda de red, que se muestran en la tarjeta pero no se usan",
+  "El jitter de red y la pérdida de paquetes",
+  "El buffer del reproductor",
+  "El DRM",
+]
+
+[[sim]]
+prop = "mode"
+note = "SFU forwards streams as they come, with very low delay. Transcode re-encodes each channel and packages it into segments, which adds delay."
+note_es = "SFU reenvía los flujos tal como llegan, con muy poco retraso. Transcode recodifica cada canal y lo empaqueta en segmentos, lo que añade retraso."
+
+[[sim]]
+prop = "streams_per_instance"
+note = "Streams one instance handles: forwarded streams for an SFU, channels for an encoder. Past it, new streams are refused."
+note_es = "Flujos que atiende una instancia: flujos reenviados en una SFU, canales en un codificador. Por encima, los flujos nuevos se rechazan."
+
+[[sim]]
+prop = "segment_s"
+note = "Length of one segment in transcode mode. Players stay about three segments behind live, so shorter segments mean lower delay."
+note_es = "Duración de un segmento en modo transcode. Los reproductores van unos tres segmentos por detrás del directo, así que segmentos más cortos dan menos retraso."
+
+[[sim]]
+prop = "instances"
+note = "Media servers. Total stream capacity grows with them."
+note_es = "Servidores de medios. La capacidad total de flujos crece con ellos."
+
+[[sim]]
+sim = "service_ms"
+note = "Processing time a stream adds as it passes through the server, before any segment delay."
+note_es = "Tiempo de procesado que añade un flujo al pasar por el servidor, antes de cualquier retraso por segmentos."
+
+[[sim]]
+cost = "per_instance_month"
+note = "A monthly price per instance. A managed live encoder channel running all month costs far more than an SFU node."
+note_es = "Un precio mensual por instancia. Un canal de codificación gestionado en marcha todo el mes cuesta mucho más que un nodo SFU."
+
+[flavours_compared]
+flavours = ["livekit", "mediasoup", "elemental_live", "wowza"]
+
+[[flavours_compared.rows]]
+label = "What it does"
+label_es = "Qué hace"
+cells = ["WebRTC SFU", "WebRTC SFU library", "Live transcode and packaging", "Live transcode and packaging"]
+cells_es = ["SFU WebRTC", "Biblioteca de SFU WebRTC", "Transcodificación y empaquetado en directo", "Transcodificación y empaquetado en directo"]
+
+[[flavours_compared.rows]]
+label = "Who runs it"
+label_es = "Quién lo opera"
+cells = ["You, or LiveKit's cloud", "You, inside your own Node.js server", "AWS, fully managed", "You, or Wowza's cloud"]
+cells_es = ["Tú, o la nube de LiveKit", "Tú, dentro de tu propio servidor Node.js", "AWS, totalmente gestionado", "Tú, o la nube de Wowza"]
+
+[[flavours_compared.rows]]
+label = "Typical latency"
+label_es = "Latencia típica"
+cells = ["Under a second", "Under a second", "Several seconds", "Several seconds"]
+cells_es = ["Menos de un segundo", "Menos de un segundo", "Varios segundos", "Varios segundos"]
+
+[[flavours_compared.rows]]
+label = "Typical use"
+label_es = "Uso típico"
+cells = ["Video calls and live rooms", "Custom video call products", "Broadcasting to a CDN", "Broadcasting to a CDN"]
+cells_es = ["Videollamadas y salas en directo", "Productos de videollamada a medida", "Emitir hacia una CDN", "Emitir hacia una CDN"]
+
+[[pitfalls]]
+title = "Segments for a conversation"
+title_es = "Segmentos para una conversación"
+body = "A live Q&A is delivered through a transcoder and segments. Viewers are several segments behind, so questions and answers no longer line up and the latency goal fails."
+body_es = "Una sesión de preguntas en directo se entrega con un transcodificador y segmentos. Los espectadores van varios segmentos por detrás, así que preguntas y respuestas ya no encajan y no se cumple el objetivo de latencia."
+fix = "Use an SFU for anyone who talks back, or shorten the segments when a few seconds are acceptable."
+fix_es = "Usa una SFU para quien responde, o acorta los segmentos cuando unos segundos son aceptables."
+
+[[pitfalls]]
+title = "A transcoder for every viewer"
+title_es = "Un transcodificador por espectador"
+body = "The design sends every viewer to the media server. A transcoder handles channels, not viewers, and quickly runs out of capacity."
+body_es = "El diseño manda a cada espectador al servidor de medios. Un transcodificador atiende canales, no espectadores, y se queda sin capacidad enseguida."
+fix = "Transcode each channel once, put the segments in object storage, and let a CDN serve the viewers."
+fix_es = "Transcodifica cada canal una vez, pon los segmentos en almacenamiento de objetos y deja que una CDN sirva a los espectadores."
+
+[[sources]]
+flavour = "livekit"
+title = "LiveKit documentation"
+url = "https://docs.livekit.io/"
+checked = false
+
+[[sources]]
+flavour = "mediasoup"
+title = "mediasoup documentation"
+url = "https://mediasoup.org/documentation/"
+checked = false
+
+[[sources]]
+flavour = "elemental_live"
+title = "AWS Elemental MediaLive documentation"
+url = "https://docs.aws.amazon.com/medialive/"
+checked = false
+
+[[sources]]
+flavour = "wowza"
+title = "Wowza documentation"
+url = "https://www.wowza.com/docs"
+checked = false
+
+[[quiz]]
+q = "A team builds video calls for groups of six. Which mode fits?"
+q_es = "Un equipo construye videollamadas para grupos de seis. ¿Qué modo encaja?"
+options = ["Transcode with long segments", "SFU, which forwards streams with sub-second delay", "Transcode with short segments", "No media server: serve the video from a CDN"]
+options_es = ["Transcode con segmentos largos", "SFU, que reenvía los flujos con retraso por debajo del segundo", "Transcode con segmentos cortos", "Sin servidor de medios: servir el vídeo desde una CDN"]
+answer = 1
+why = "A call is two-way, so it needs sub-second delay. Segment-based delivery keeps viewers several segments behind, even with short segments."
+why_es = "Una llamada es bidireccional, así que necesita un retraso por debajo del segundo. La entrega por segmentos deja a los espectadores varios segmentos por detrás, incluso con segmentos cortos."
+
+[[quiz]]
+q = "A broadcast uses segment-based delivery and viewers are too far behind live. Which change lowers the delay most directly?"
+q_es = "Una emisión usa entrega por segmentos y los espectadores van demasiado por detrás del directo. ¿Qué cambio reduce el retraso de forma más directa?"
+options = ["Add more media server instances", "Add more renditions", "Put a load balancer in front", "Shorten the segment length"]
+options_es = ["Añadir más instancias del servidor de medios", "Añadir más renditions", "Poner un balanceador delante", "Acortar la duración del segmento"]
+answer = 3
+why = "Players stay about three segments behind, so the segment length sets most of the delay. More instances add capacity, not speed."
+why_es = "Los reproductores van unos tres segmentos por detrás, así que la duración del segmento marca la mayor parte del retraso. Más instancias añaden capacidad, no velocidad."
+
+[[quiz]]
+q = "A live event expects a million viewers of one channel. Where should the viewers be served from?"
+q_es = "Un evento en directo espera un millón de espectadores de un canal. ¿Desde dónde se debe servir a los espectadores?"
+options = ["A CDN, fed by one transcoded channel", "One SFU per viewer", "The transcoder directly", "A WebSocket gateway"]
+options_es = ["Una CDN, alimentada por un canal transcodificado", "Una SFU por espectador", "Directamente el transcodificador", "Un gateway de WebSocket"]
+answer = 0
+why = "The transcoder works per channel. Its segments are ordinary files, so a CDN can serve any number of viewers."
+why_es = "El transcodificador trabaja por canal. Sus segmentos son ficheros normales, así que una CDN puede servir a cualquier número de espectadores."

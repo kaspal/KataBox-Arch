@@ -1,0 +1,148 @@
+{
+  "schema_version": 4,
+  "id": "live-streaming-naive",
+  "name": "Live streaming (first try)",
+  "problem_id": "live-streaming",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "cdn",
+      "kind": "cdn",
+      "flavour": "cloudfront",
+      "label": "cdn",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {
+        "ttl_s": 4
+      },
+      "group_id": null
+    },
+    {
+      "id": "segments",
+      "kind": "object",
+      "flavour": "s3",
+      "label": "segments",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 112
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "api",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "chat-1",
+      "kind": "ws",
+      "flavour": "socket_io",
+      "label": "chat-1",
+      "position": {
+        "x": 304,
+        "y": 224
+      },
+      "props": {
+        "instances": 2,
+        "max_connections": 150000,
+        "msgs_per_s": 100000,
+        "accept_per_s": 20000
+      },
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "nosql",
+      "flavour": "dynamodb",
+      "label": "db",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {
+        "partitions": 16
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-cdn-http",
+      "from": "client",
+      "to": "cdn",
+      "protocol": "http"
+    },
+    {
+      "id": "e-cdn-segments-http",
+      "from": "cdn",
+      "to": "segments",
+      "protocol": "http"
+    },
+    {
+      "id": "e-client-lb-ws",
+      "from": "client",
+      "to": "lb",
+      "protocol": "ws"
+    },
+    {
+      "id": "e-lb-chat-1-ws",
+      "from": "lb",
+      "to": "chat-1",
+      "protocol": "ws"
+    },
+    {
+      "id": "e-client-api-http",
+      "from": "client",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e-api-db-query",
+      "from": "api",
+      "to": "db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

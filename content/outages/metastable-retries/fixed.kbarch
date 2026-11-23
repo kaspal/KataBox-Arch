@@ -1,0 +1,136 @@
+{
+  "schema_version": 4,
+  "id": "metastable-retries-fixed",
+  "name": "Metastable retries (fixed)",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "timeout_ms": 1000,
+        "retries": 2,
+        "backoff_ms": 0
+      },
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 6
+      },
+      "group_id": "mesh"
+    },
+    {
+      "id": "profile",
+      "kind": "micro",
+      "flavour": "generic",
+      "label": "profile",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 4,
+        "concurrency": 8,
+        "service_ms": 30,
+        "shed_queue": 8
+      },
+      "group_id": "mesh"
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "db",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "service_ms": 5
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app-http",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-profile-grpc",
+      "from": "app",
+      "to": "profile",
+      "protocol": "grpc"
+    },
+    {
+      "id": "e-app-db-query",
+      "from": "app",
+      "to": "db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [
+    {
+      "id": "mesh",
+      "kind": "region",
+      "label": "Mesh",
+      "position": {
+        "x": 584,
+        "y": -40
+      },
+      "size": {
+        "w": 256,
+        "h": 240
+      },
+      "parent_id": null,
+      "mesh": {
+        "flavour": "linkerd",
+        "props": {
+          "mesh_retries": 3,
+          "mesh_timeout_ms": 200
+        }
+      }
+    }
+  ],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

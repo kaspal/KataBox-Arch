@@ -1,0 +1,34 @@
+# Estimation drills for Promo Codes.
+
+[[drill]]
+id = "spike-lookups"
+kind = "qps"
+prompt = "A promo-code service peaks at {peak_rps} rps, and code lookups at checkout are a {lookup_share} share of the requests. An influencer shares a code and the traffic jumps to {spike_x} times the peak. How many lookups a second arrive during the spike?"
+prompt_es = "Un servicio de códigos promocionales tiene un pico de {peak_rps} rps, y las consultas de códigos al pagar son una fracción {lookup_share} de las peticiones. Una influencer comparte un código y el tráfico salta a {spike_x} veces el pico. ¿Cuántas consultas por segundo llegan durante el pico?"
+inputs = { peak_rps = 2000, lookup_share = 0.95, spike_x = 6 }
+formula = "peak_rps * spike_x * lookup_share"
+unit = "rps"
+solution = "{peak_rps} × {spike_x} = 12,000 rps, and 95% of that is {answer} lookups a second. They read the same few codes over and over, so a small cache answers most of them and the database and the App Servers barely notice the spike."
+solution_es = "{peak_rps} × {spike_x} = 12 000 rps, y el 95 % de eso son {answer} consultas por segundo. Leen una y otra vez los mismos pocos códigos, así que una caché pequeña responde a la mayoría y ni la base de datos ni los App Servers notan apenas el pico."
+
+[[drill]]
+id = "hot-code-redeems"
+kind = "qps"
+prompt = "During the spike the service takes {spike_rps} rps. Redeems are a {redeem_share} share of requests, and a {hot_share} share of the redeems is on the one code everyone is using. How many redeems a second race for that one code's count?"
+prompt_es = "Durante el pico el servicio recibe {spike_rps} rps. Los canjes son una fracción {redeem_share} de las peticiones, y una fracción {hot_share} de los canjes es del único código que usa todo el mundo. ¿Cuántos canjes por segundo compiten por la cuenta de ese único código?"
+inputs = { spike_rps = 12000, redeem_share = 0.05, hot_share = 0.3 }
+formula = "spike_rps * redeem_share * hot_share"
+unit = "rps"
+solution = "{spike_rps} × 5% = 600 redeems a second, and 30% of those is {answer} a second on one code. At that rate two redeems reading \"1 use left\" at the same moment is to be expected, not bad luck. Only a write that checks the count and takes one off in the same step lets exactly one of them win."
+solution_es = "{spike_rps} × 5 % = 600 canjes por segundo, y el 30 % de esos son {answer} por segundo en un solo código. A ese ritmo, que dos canjes lean «queda 1 uso» en el mismo momento es lo esperable, no mala suerte. Solo una escritura que comprueba la cuenta y resta uno en el mismo paso deja ganar exactamente a uno."
+
+[[drill]]
+id = "failover-error-budget"
+kind = "capacity"
+prompt = "A test runs for {test_s} seconds at {peak_rps} rps, and kills the database primary partway through. It allows an error rate of {allowed_errors}. How many requests may fail in the whole test?"
+prompt_es = "Una prueba dura {test_s} segundos a {peak_rps} rps y mata la primaria de la base de datos a mitad. Admite una tasa de errores de {allowed_errors}. ¿Cuántas peticiones pueden fallar en toda la prueba?"
+inputs = { test_s = 60, peak_rps = 2000, allowed_errors = 0.02 }
+formula = "test_s * peak_rps * allowed_errors"
+unit = "count"
+solution = "{test_s} s × {peak_rps} rps = 120,000 requests, and 2% of them is {answer}. A 10-second failover in which every request failed would cost 20,000, far over budget; with no replica to promote, the failures never stop. The reference fails only about 0.9% of its requests, all in the seconds before the replica takes over."
+solution_es = "{test_s} s × {peak_rps} rps = 120 000 peticiones, y el 2 % de ellas son {answer}. Un failover de 10 segundos en el que fallara todo costaría 20 000, muy por encima del margen; sin réplica que promover, los fallos no paran nunca. La referencia solo falla cerca del 0,9 % de sus peticiones, todas en los segundos antes de que la réplica tome el relevo."

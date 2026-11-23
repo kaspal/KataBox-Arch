@@ -1,0 +1,170 @@
+{
+  "schema_version": 4,
+  "id": "payments-ledger-challenge",
+  "name": "Payments Ledger (reference)",
+  "problem_id": "payments-ledger",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Payment apps",
+      "position": {
+        "x": 390,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "Load balancer",
+      "position": {
+        "x": 390,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Ledger API",
+      "position": {
+        "x": 390,
+        "y": 340
+      },
+      "props": {
+        "instances": 1
+      },
+      "group_id": null
+    },
+    {
+      "id": "ledger",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Ledger",
+      "position": {
+        "x": 260,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "ledger_r",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Ledger replica",
+      "position": {
+        "x": 520,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "changes",
+      "kind": "stream",
+      "flavour": "kafka",
+      "label": "Ledger changes",
+      "position": {
+        "x": 260,
+        "y": 680
+      },
+      "props": {
+        "partitions": 32
+      },
+      "group_id": null
+    },
+    {
+      "id": "projector",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Balance projector",
+      "position": {
+        "x": 260,
+        "y": 850
+      },
+      "props": {
+        "instances": 2,
+        "service_ms": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "balances",
+      "kind": "nosql",
+      "flavour": "cassandra",
+      "label": "Balances",
+      "position": {
+        "x": 520,
+        "y": 850
+      },
+      "props": {
+        "partitions": 1
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "api",
+      "to": "ledger",
+      "protocol": "query"
+    },
+    {
+      "id": "e3",
+      "from": "ledger",
+      "to": "ledger_r",
+      "protocol": "replicate"
+    },
+    {
+      "id": "e4",
+      "from": "ledger",
+      "to": "changes",
+      "protocol": "publish"
+    },
+    {
+      "id": "e5",
+      "from": "ledger_r",
+      "to": "changes",
+      "protocol": "publish"
+    },
+    {
+      "id": "e6",
+      "from": "changes",
+      "to": "projector",
+      "protocol": "consume"
+    },
+    {
+      "id": "e7",
+      "from": "projector",
+      "to": "balances",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

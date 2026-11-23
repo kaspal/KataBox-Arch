@@ -1,0 +1,34 @@
+# Estimation drills for Ask the Docs (RAG).
+
+[[drill]]
+id = "shard-searches"
+kind = "capacity"
+prompt = "A shard of your vector index runs {slots} searches at a time, and one search over its share of the index takes {search_ms} ms. About how many searches a second can one shard finish?"
+prompt_es = "Un shard de tu índice vectorial ejecuta {slots} búsquedas a la vez, y una búsqueda sobre su parte del índice tarda {search_ms} ms. ¿Cuántas búsquedas por segundo puede terminar más o menos un shard?"
+inputs = { slots = 16, search_ms = 70 }
+formula = "slots * 1000 / search_ms"
+unit = "rps"
+solution = "{slots} searches at a time, each taking {search_ms} ms: {slots} × 1000 / {search_ms} ≈ {answer} searches a second, and fewer once the slow tail is counted. A normal day sends 150, so one shard is already three quarters busy, and twice the traffic overflows it."
+solution_es = "{slots} búsquedas a la vez, cada una de {search_ms} ms: {slots} × 1000 / {search_ms} ≈ {answer} búsquedas por segundo, y menos si se cuenta la cola lenta. Un día normal envía 150, así que un shard ya está ocupado tres cuartas partes del tiempo, y el doble de tráfico lo desborda."
+
+[[drill]]
+id = "survivor-slots"
+kind = "servers"
+prompt = "On launch day, {rps} questions a second each make one vector search of {search_ms} ms. One of your two vector nodes is lost, so the survivor takes every search. How many searches does it have in progress at once, on average?"
+prompt_es = "El día del lanzamiento, {rps} preguntas por segundo hacen cada una una búsqueda vectorial de {search_ms} ms. Se pierde uno de tus dos nodos vectoriales, así que el superviviente recibe todas las búsquedas. ¿Cuántas búsquedas tiene en curso a la vez, de media?"
+inputs = { rps = 225, search_ms = 70 }
+formula = "rps * search_ms / 1000"
+unit = "count"
+solution = "{rps} a second × {search_ms} ms ≈ {answer} searches in progress at once. One shard has 16 slots, so a survivor with 1 shard is over its limit; with 2 shards it has 32 slots and stays about half busy."
+solution_es = "{rps} por segundo × {search_ms} ms ≈ {answer} búsquedas en curso a la vez. Un shard tiene 16 huecos, así que un superviviente con 1 shard pasa de su límite; con 2 shards tiene 32 huecos y queda ocupado en torno a la mitad."
+
+[[drill]]
+id = "gpu-slots"
+kind = "servers"
+prompt = "{rps} questions a second each hold a chat model's batch slot for about {answer_s} seconds while the answer is written. Each GPU has {slots_per_gpu} batch slots. How many GPUs are full with no headroom at all?"
+prompt_es = "{rps} preguntas por segundo ocupan cada una un hueco de lote del modelo de chat durante unos {answer_s} segundos mientras se escribe la respuesta. Cada GPU tiene {slots_per_gpu} huecos de lote. ¿Cuántas GPU se llenan sin ningún margen?"
+inputs = { rps = 150, answer_s = 2.5, slots_per_gpu = 128 }
+formula = "rps * answer_s / slots_per_gpu"
+unit = "count"
+solution = "{rps} × {answer_s} s = 375 answers in progress at once, over {slots_per_gpu} slots per GPU ≈ {answer} GPUs. An answer slows down as a GPU fills, and the traffic can double, so the reference runs 12: about a quarter busy on a normal day."
+solution_es = "{rps} × {answer_s} s = 375 respuestas en curso a la vez, entre {slots_per_gpu} huecos por GPU ≈ {answer} GPU. Una respuesta se ralentiza a medida que se llena una GPU, y el tráfico puede duplicarse, así que la referencia usa 12: ocupadas en torno a una cuarta parte en un día normal."

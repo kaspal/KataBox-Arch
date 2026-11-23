@@ -8,6 +8,7 @@ teaches = "Keep the matching path short and the tail tight: enough partitions fo
 teaches_es = "Mantener corto el camino de casamiento y ajustada la cola de latencias: particiones suficientes para la apertura y un segundo matcher para que una caída no detenga el casamiento"
 tags = ["streams", "partitioning", "p99", "failover", "caching"]
 
+challenge_ratio = 0.65
 [nfr]
 peak_rps = 10000
 p95_ms = 30

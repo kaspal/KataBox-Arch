@@ -1,0 +1,41 @@
+# Solución comentada
+
+## Adónde va la carga
+
+30 000 sensores envían un punto cada 10 segundos: 3000 puntos por segundo. Cada punto hace dos llamadas: una al clasificador para su puntuación y después una escritura en la Base de datos de series temporales. Puntuar un punto ocupa un hueco de lote de Triton unos 12 ms (el tiempo hasta el primer token para unos 30 tokens de entrada; la única puntuación de salida llega con él), así que 3000 × 0,012 s mantienen unas 36 puntuaciones en curso. Quien llama al clasificador también espera esos 12 ms, ocupando uno de sus propios huecos. La base de datos va sobrada en un día normal: un nodo escribe 20 000 puntos por segundo.
+
+Las pruebas ocultas aprietan en dos sitios distintos. En la tormenta los puntos llegan 5 veces más rápido durante 20 segundos (desde el segundo 20): 15 000 por segundo y unas 180 puntuaciones en curso, lo que necesita unas 3 GPU de 64 huecos de lote cada una antes de dejar ningún margen. Con la actualización de firmware las 300 000 series pasan a 2 400 000 durante 20 segundos. Un nodo indexa 1 000 000; por encima de 2 000 000 rechaza las escrituras, y un punto que no se guarda no levanta ninguna alerta.
+
+Así que las preguntas son: ¿quién espera al modelo, cuántas GPU necesita una tormenta y cuántos nodos de base de datos necesitan las series?
+
+## El diseño de referencia
+
+Los sensores mantienen sus conexiones MQTT en un Broker IoT EMQX con las 2 instancias por defecto. Los puntos entran por un Servidor de aplicaciones Go (2 instancias), que solo publica cada uno en un Stream Apache Kafka con 384 particiones. Apache Flink, un Procesador de streams con 6 instancias y Concurrencia 64 por instancia (384 huecos, uno por partición), consume el stream, llama a una tarjeta de Inferencia de modelos NVIDIA Triton (Tipo de modelo Clasificador) con 4 instancias, y escribe el punto y su puntuación en una Base de datos de series temporales InfluxDB con 3 instancias de 20 000 puntos por segundo cada una. Cuesta unos 4569 $ al mes, y las GPU son la mayor parte: Triton 2936 $, InfluxDB 780 $, Flink 420 $, Kafka 153 $, y el broker y los Servidores de aplicaciones 140 $ cada uno. Un día normal tiene un p95 de latencia de alerta de unos 37 ms y ningún error; las GPU están ocupadas un 14 %, Flink un 15 % y los Servidores de aplicaciones un 14 %.
+
+«Una tormenta: los sensores envían 5 veces más puntos» es donde se nota el dimensionado. Los Servidores de aplicaciones solo publican, así que cinco veces más puntos los llevan a un 70 % de ocupación, no por encima de su límite. Los huecos de Flink y las GPU cargan con la puntuación: unas 180 puntuaciones en curso sobre 256 huecos de lote es un 70 % de ocupación, así que ningún punto espera un hueco. El p95 se queda en unos 37 ms, sin errores. Con tres GPU también se supera, a un 94 % de ocupación en la tormenta; la cuarta es margen, para una tormenta un poco más fuerte que esta.
+
+«Una actualización de firmware multiplica las series por 8» es el presupuesto de series. Con 3 instancias, cada nodo lleva 2 400 000 / 3 = 800 000 series durante la explosión, por debajo de su límite de 1 000 000. Las escrituras mantienen su velocidad normal, y el p95 se queda en unos 37 ms sin errores. Los puntos por segundo nunca necesitaron 3 nodos; las series sí. Dos nodos llevarían 1 200 000 cada uno: por encima del límite, pero por debajo del doble, así que escriben cuatro veces más despacio en vez de rechazar. Esta carga lo aguanta (el p95 sube a unos 49 ms), pero un presupuesto que se queda por debajo del límite deja sitio para una etiqueta peor.
+
+La búsqueda del reto de coste no encontró ningún diseño por debajo del 80 % del coste de la referencia (lo mejor que alcanzó fue 3695 $, un 81 %), así que este problema no tiene reto de coste. Las GPU marcan el suelo: la tormenta necesita tres cambie lo que cambie.
+
+## Por qué falla el primer intento
+
+Un primer intento habitual tiene el mismo Broker IoT y los mismos Servidores de aplicaciones, con el Servidor de aplicaciones puntuando cada punto en línea: llama a Triton con las 2 instancias por defecto y después escribe en un único nodo de InfluxDB. Sin stream. Cuesta unos 2008 $ y supera «Un día normal» con un p95 de unos 35 ms. Pero los Servidores de aplicaciones ya están ocupados un 56 %: cada uno ocupa un hueco mientras su punto se puntúa y se escribe, no solo mientras publica.
+
+En la tormenta, cinco veces eso supera con mucho lo que aguantan dos Servidores de aplicaciones. Sus huecos se llenan, los puntos nuevos se rechazan, y fallan un 64 % de los puntos en cada segundo de la tormenta: un 45,4 % de errores en la prueba, con un límite del 1 %. Las dos GPU también se quedan cortas (un 135 % de sus huecos en la tormenta). Arreglar solo una cosa apenas ayuda: con 4 instancias de Triton los errores siguen en un 45,4 %, porque los Servidores de aplicaciones son el primer muro; con 8 Servidores de aplicaciones y 2 Triton bajan a un 17,8 %, porque ahora el muro son las GPU.
+
+La actualización de firmware rompe el único nodo: 2 400 000 series superan el doble de su límite, así que rechaza todas las escrituras durante 20 segundos. Eso es un 33,3 % de errores en la prueba, y ninguna alerta mientras dura.
+
+Un diseño en línea puede pasar si está dimensionado para la tormenta en todas partes: 8 Servidores de aplicaciones, 4 instancias de Triton y 3 nodos de base de datos superan las tres pruebas por unos 4416 $. El diseño con stream cuesta más o menos lo mismo; lo que compra es dónde se espera. Con un stream, los Servidores de aplicaciones nunca esperan al modelo, y un clasificador que se queda corto en una tormenta retrasa las alertas en lugar de perder puntos. Pon Triton a 2 instancias en la referencia y ejecuta la tormenta: no hay errores, pero la latencia de alerta sube hasta unos 7 s y el p95 queda en unos 6,8 s, así que la prueba falla por tiempo, con todos los puntos guardados. En línea, la misma escasez pierde los puntos.
+
+La idea es esta: pon la llamada al modelo donde esperar sale barato. Un procesador de streams delante del clasificador mantiene rápida la ingesta y convierte una escasez en retraso, no en datos perdidos. Después dimensiona el clasificador para la tormenta que esperas, con margen, porque una alerta tardía en una tormenta es justo la que importa. Y dimensiona una base de series temporales por sus series además de por sus puntos.
+
+## Lo que el simulador deja fuera
+
+La calidad del clasificador no se simula: si una puntuación encuentra una anomalía real, las falsas alarmas y las que se escapan no forman parte de este problema, y un punto cuenta igual sea cual sea su puntuación. La alerta en sí (el aviso de guardia, agrupar y silenciar alertas) tampoco se simula; aquí la latencia de alerta termina cuando se guarda el punto puntuado. Un punto entra por una tarjeta de Servidor de aplicaciones que representa el puente del broker, porque el simulador empieza cada petición en un servicio; el ritmo de mensajes del broker y su QoS no afectan a los puntos. Una tormenta y un firmware defectuoso duran horas en la vida real; las pruebas ejecutan 20 segundos de cada uno. Cada punto se puntúa solo; los puntuadores reales suelen agrupar en una llamada una ventana de puntos de un sensor. El precio de la GPU es la cifra didáctica del registro para un nodo tipo g5.xlarge, y los puntos por segundo y el límite de series son lo que escribes en la tarjeta, no un tamaño de nodo medido, así que el enunciado los fija. La retención, el submuestreo y el precio de guardar los puntos no se simulan.
+
+## Cosas que probar
+
+- Pon Triton a 2 instancias en la referencia y ejecuta la tormenta. Mira cómo se llena el stream y sube la latencia de alerta, sin errores.
+- Pon Triton a 3 instancias y ejecuta la tormenta. Se supera, pero fíjate en lo ocupadas que van las GPU, y pregúntate cuánto más fuerte tendría que ser la tormenta para romperlo.
+- Pon la base de datos a 2 instancias y ejecuta la actualización de firmware. Cada nodo lleva 1 200 000 series y escribe cuatro veces más despacio; con 1500 puntos por segundo por nodo sigue pasando, con un p95 de unos 49 ms. Después pruébalo con 1 instancia.

@@ -1,0 +1,155 @@
+{
+  "schema_version": 4,
+  "id": "fraud-detection-naive",
+  "name": "Fraud scoring (first try)",
+  "problem_id": "fraud-detection",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "partner_server",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "api",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 6
+      },
+      "group_id": null
+    },
+    {
+      "id": "features",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "features",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "memory_gb": 16,
+        "ttl_s": 0
+      },
+      "group_id": null
+    },
+    {
+      "id": "model",
+      "kind": "infer",
+      "flavour": "triton",
+      "label": "model",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 2,
+        "model_type": "classify"
+      },
+      "group_id": null
+    },
+    {
+      "id": "events",
+      "kind": "stream",
+      "flavour": "kafka",
+      "label": "events",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {
+        "partitions": 24
+      },
+      "group_id": null
+    },
+    {
+      "id": "agg",
+      "kind": "streamproc",
+      "flavour": "flink",
+      "label": "agg",
+      "position": {
+        "x": 912,
+        "y": 112
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-api-http",
+      "from": "lb",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e-api-features-query",
+      "from": "api",
+      "to": "features",
+      "protocol": "query"
+    },
+    {
+      "id": "e-api-model-http",
+      "from": "api",
+      "to": "model",
+      "protocol": "http"
+    },
+    {
+      "id": "e-api-events-publish",
+      "from": "api",
+      "to": "events",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-events-agg-consume",
+      "from": "events",
+      "to": "agg",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-agg-features-query",
+      "from": "agg",
+      "to": "features",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

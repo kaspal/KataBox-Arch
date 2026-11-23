@@ -45,7 +45,7 @@ describe("pages", () => {
     expect(await screen.findByTestId("library")).toBeInTheDocument();
     expect(screen.getByTestId("canvas")).toBeInTheDocument();
     expect(screen.getByTestId("inspector")).toBeInTheDocument();
-    expect(screen.getAllByTestId("library-row")).toHaveLength(25 + 3);
+    expect(screen.getAllByTestId("library-row")).toHaveLength(42 + 3);
     expect(unnamed(document.body)).toEqual([]);
   });
 
@@ -79,11 +79,11 @@ describe("library", () => {
 
   it("categories collapse and show their counts", async () => {
     const { user } = renderApp("/sandbox");
-    const header = await screen.findByRole("button", { name: "Clients & Edge · 7" });
+    const header = await screen.findByRole("button", { name: "Clients & Edge · 10" });
     expect(header).toHaveAttribute("aria-expanded", "true");
     await user.click(header);
     expect(header).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getAllByTestId("library-row")).toHaveLength(25 + 3 - 7);
+    expect(screen.getAllByTestId("library-row")).toHaveLength(42 + 3 - 10);
   });
 
   it("Enter on a row opens the flavour picker with the default preselected, then adds the card", async () => {
@@ -169,11 +169,11 @@ describe("inspector", () => {
     act(() => useEditor.getState().setSelection(["a1"]));
     renderApp("/sandbox");
     await screen.findByLabelText("Instances");
-    // An app server: concurrency and service time are calibrated, instances is a choice.
+    // An app server: concurrency and service time are tagged, instances is a choice.
     const tags = screen.getAllByTestId("calibration-tag");
     expect(tags).toHaveLength(2);
-    expect(tags[0]).toHaveTextContent("ballpark");
-    expect(tags[0]).toHaveAttribute("title", expect.stringMatching(/source is still being confirmed/));
+    expect(tags[0]).toHaveTextContent("modelling choice");
+    expect(tags[0]).toHaveAttribute("title", expect.stringMatching(/A simulator knob no vendor publishes/));
     expect(screen.getByText(/Tagged defaults are calibrated figures/)).toBeInTheDocument();
     expect(screen.queryByText(/placeholders until the simulator/)).not.toBeInTheDocument();
   });
@@ -283,7 +283,7 @@ describe("live runs", () => {
     await waitFor(() => expect(fake().api.startRun).toHaveBeenCalledTimes(1));
     const [sent, options] = vi.mocked(fake().api.startRun).mock.calls[0];
     expect(sent.nodes.map((n) => n.id)).toEqual(["c1", "a1"]);
-    expect(sent.schema_version).toBe(3);
+    expect(sent.schema_version).toBe(4);
     expect(options).toEqual({ preset: "normal", problem: null, speed: 1, chaos: [], startS: 0 });
     expect(screen.getByRole("tab", { name: "Metrics" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText("Run the design to see live metrics.")).toBeInTheDocument();

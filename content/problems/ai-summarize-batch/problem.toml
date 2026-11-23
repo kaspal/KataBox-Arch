@@ -1,0 +1,60 @@
+id = "ai-summarize-batch"
+track = "ai"
+number = 2
+set = 1
+difficulty = "easy"
+title = "Summarise a Document Backlog"
+title_es = "Resumir un atraso de documentos"
+teaches = "Send work that can wait through a model's batch API: half the token price and no per-minute limits, so the backlog is limited only by your own workers"
+teaches_es = "Enviar el trabajo que puede esperar por la API por lotes del modelo: mitad del precio por token y sin límites por minuto, así que el atraso solo lo limitan tus propios workers"
+tags = ["llm", "batch-api", "rate-limits", "queues", "deadlines", "scheduler"]
+
+# Scaled time: the real backlog is summarised overnight; here it lands in 30 s and the
+# deadline is 45 s from queued to summarised (the statement says so). Batch mode skips the
+# per-minute limits; its delivery window is not simulated (ADR 0006 S2), the editorial says so.
+[nfr]
+peak_rps = 15
+p95_ms = 45000
+availability = 0.999
+budget_usd = 38000
+
+[[request_types]]
+id = "summarise"
+name = "Summarise a document"
+name_es = "Resumir un documento"
+share = 1.0
+route = ["broker", "worker", "model:chat"]
+source = "scheduler"
+measure = "completion"
+# Overnight work: nobody waits for a summary, so the batch API may serve it.
+batch_ok = true
+tokens_in = { mean = 600, p95 = 1200 }
+tokens_out = { mean = 100, p95 = 200 }
+
+[[tests]]
+id = "normal"
+name = "Tonight's backlog"
+name_es = "El atraso de esta noche"
+duration_s = 120
+traffic = { steps = [[0, 1], [30, 0]] }
+
+[[tests]]
+id = "triple"
+name = "Three times the backlog"
+name_es = "El triple de atraso"
+hidden = true
+duration_s = 120
+traffic = { steps = [[0, 3], [30, 0]] }
+
+[[tests]]
+id = "slow-provider"
+name = "The model provider slows down"
+name_es = "El proveedor del modelo se vuelve lento"
+hidden = true
+duration_s = 120
+traffic = { steps = [[0, 1], [30, 0]] }
+chaos = [{ latency = { kind = "infer", at = 0, for = 90, add_ms = 3000 } }]
+
+[pass]
+error_rate = 0.001
+lost = 0

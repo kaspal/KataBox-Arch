@@ -1,0 +1,197 @@
+kind = "idp"
+one_liner = "A service that signs users in and issues the tokens your system checks on every request."
+one_liner_es = "Un servicio que inicia la sesión de los usuarios y emite los tokens que tu sistema comprueba en cada petición."
+
+use_when = [
+  "Users sign in and you don't want to store passwords yourself",
+  "Several apps or services must trust the same sign-in",
+  "You need social login, single sign-on or MFA without building it",
+]
+use_when_es = [
+  "Los usuarios inician sesión y no quieres guardar contraseñas tú mismo",
+  "Varias aplicaciones o servicios deben confiar en el mismo inicio de sesión",
+  "Necesitas inicio de sesión social, inicio de sesión único o MFA sin construirlos",
+]
+skip_when = [
+  "The traffic is anonymous, such as a public page or a short link redirect",
+  "Only machines call the API, and a simple API key at the gateway is enough",
+  "Every request would call the provider to check its token, and a local check would do",
+]
+skip_when_es = [
+  "El tráfico es anónimo, como una página pública o la redirección de un enlace corto",
+  "Solo llaman máquinas a la API, y basta con una clave de API sencilla en el gateway",
+  "Cada petición llamaría al proveedor para comprobar su token, y una comprobación local bastaría",
+]
+
+formula = "login = login time, capped at the login rate limit; token check = verify time at the provider when verify is remote, or free inside the app when verify is local; while the provider is down, logins and remote checks fail and local checks keep working"
+formula_es = "inicio de sesión = tiempo de inicio de sesión, con tope en el límite de inicios por segundo; comprobación de token = tiempo de verificación en el proveedor si la verificación es remota, o gratis dentro de la aplicación si es local; mientras el proveedor está caído, los inicios de sesión y las comprobaciones remotas fallan y las locales siguen funcionando"
+
+gains = [
+  "Passwords, MFA and account recovery are someone else's job",
+  "One sign-in works across all your apps",
+  "With local verification, token checks cost nothing and survive an outage",
+]
+gains_es = [
+  "Las contraseñas, el MFA y la recuperación de cuentas son trabajo de otro",
+  "Un solo inicio de sesión sirve para todas tus aplicaciones",
+  "Con verificación local, las comprobaciones de token no cuestan nada y sobreviven a una caída",
+]
+costs = [
+  "Logins are slow and rate-limited",
+  "If the provider is down, nobody new can sign in",
+  "Managed providers bill per user, which grows with your audience",
+]
+costs_es = [
+  "Los inicios de sesión son lentos y tienen límite de ritmo",
+  "Si el proveedor cae, nadie nuevo puede iniciar sesión",
+  "Los proveedores gestionados cobran por usuario, y eso crece con tu público",
+]
+
+works_with = ["gateway", "app", "client", "cache", "lb"]
+practice = []
+
+interview_tip = "Separate the login, which is rare and slow, from the token check, which happens on every request. Say that the check is local with cached signing keys, and what happens to sign-ins when the provider is down."
+interview_tip_es = "Separa el inicio de sesión, que es raro y lento, de la comprobación del token, que ocurre en cada petición. Di que la comprobación es local con las claves de firma en caché, y qué pasa con los inicios de sesión cuando el proveedor cae."
+
+not_simulated = [
+  "Multi-factor authentication steps",
+  "Tuning the cost of password hashing",
+  "The delay before a revoked session stops working when tokens are verified locally",
+  "Social login redirects to other sites",
+  "Rotation of the signing keys",
+]
+not_simulated_es = [
+  "Los pasos de la autenticación multifactor",
+  "El ajuste del coste del hash de contraseñas",
+  "El retraso hasta que una sesión revocada deja de funcionar cuando los tokens se verifican en local",
+  "Las redirecciones del inicio de sesión social a otros sitios",
+  "La rotación de las claves de firma",
+]
+
+[[sim]]
+prop = "login_ms"
+note = "How long one sign-in takes at the provider."
+note_es = "Lo que tarda un inicio de sesión en el proveedor."
+
+[[sim]]
+prop = "logins_per_s"
+note = "The most sign-ins the provider accepts per second. Past it, sign-ins are refused."
+note_es = "El máximo de inicios de sesión por segundo que acepta el proveedor. Por encima, se rechazan."
+
+[[sim]]
+prop = "verify_ms"
+note = "How long one remote token check takes at the provider."
+note_es = "Lo que tarda una comprobación remota de token en el proveedor."
+
+[[sim]]
+prop = "verify"
+note = "Remote: every token check calls the provider. Local: the app checks tokens itself with cached signing keys, at no cost, and keeps working when the provider is down."
+note_es = "Remota: cada comprobación de token llama al proveedor. Local: la aplicación comprueba los tokens con las claves de firma en caché, sin coste, y sigue funcionando cuando el proveedor cae."
+
+[[sim]]
+prop = "instances"
+note = "Servers of a self-hosted provider such as Keycloak. Each adds capacity for sign-ins and checks."
+note_es = "Servidores de un proveedor propio como Keycloak. Cada uno añade capacidad para inicios de sesión y comprobaciones."
+
+[[sim]]
+sim = "servers_per_instance"
+note = "Requests one instance handles at the same time. Extra requests wait."
+note_es = "Peticiones que una instancia atiende a la vez. Las demás esperan."
+
+[[sim]]
+cost = "per_million"
+note = "Managed providers bill per million sign-ins, standing in for their price per monthly active user."
+note_es = "Los proveedores gestionados cobran por millón de inicios de sesión, en lugar de su precio por usuario activo al mes."
+
+[[sim]]
+cost = "per_instance_month"
+note = "Keycloak is self-hosted: a fixed monthly price per server and no fee per sign-in."
+note_es = "Keycloak es propio: un precio mensual fijo por servidor y sin coste por inicio de sesión."
+
+[flavours_compared]
+flavours = ["auth0", "cognito", "keycloak", "okta"]
+
+[[flavours_compared.rows]]
+label = "Who runs it"
+label_es = "Quién lo opera"
+cells = ["Okta, as a managed service", "AWS, fully managed", "You, on your own servers", "Okta, as a managed service"]
+cells_es = ["Okta, como servicio gestionado", "AWS, totalmente gestionado", "Tú, en tus propios servidores", "Okta, como servicio gestionado"]
+
+[[flavours_compared.rows]]
+label = "Typical users"
+label_es = "Usuarios típicos"
+cells = ["Customers of an app", "Customers of an app on AWS", "Customers or staff, when data must stay in house", "Staff of a company, single sign-on"]
+cells_es = ["Clientes de una aplicación", "Clientes de una aplicación en AWS", "Clientes o empleados, cuando los datos deben quedarse en casa", "Empleados de una empresa, inicio de sesión único"]
+
+[[flavours_compared.rows]]
+label = "How you pay"
+label_es = "Cómo pagas"
+cells = ["Per monthly active user", "Per monthly active user", "Your servers, no licence fee", "Per user"]
+cells_es = ["Por usuario activo al mes", "Por usuario activo al mes", "Tus servidores, sin coste de licencia", "Por usuario"]
+
+[[pitfalls]]
+title = "Every request calls the provider"
+title_es = "Cada petición llama al proveedor"
+body = "Token checks are remote, so each API call waits on the provider and counts against its limits. When the provider goes down, the whole API goes down with it, not just sign-in."
+body_es = "Las comprobaciones de token son remotas, así que cada llamada a la API espera al proveedor y cuenta contra sus límites. Cuando el proveedor cae, cae toda la API con él, no solo el inicio de sesión."
+fix = "Verify tokens locally with cached signing keys. Only sign-ins then depend on the provider."
+fix_es = "Verifica los tokens en local con las claves de firma en caché. Así solo los inicios de sesión dependen del proveedor."
+
+[[pitfalls]]
+title = "A login surge hits the rate limit"
+title_es = "Un pico de inicios de sesión choca con el límite"
+body = "A big launch or a forced sign-out sends everyone to sign in at once. The provider refuses sign-ins above its rate limit and users see errors."
+body_es = "Un gran lanzamiento o un cierre de sesión forzado manda a todos a iniciar sesión a la vez. El proveedor rechaza los inicios por encima de su límite y los usuarios ven errores."
+fix = "Keep sessions long enough that sign-ins stay rare, avoid forcing everyone out at once, and plan the provider's limit for the peak."
+fix_es = "Mantén sesiones lo bastante largas para que los inicios sean raros, evita echar a todos a la vez y planifica el límite del proveedor para el pico."
+
+[[sources]]
+flavour = "auth0"
+title = "Auth0 documentation"
+url = "https://auth0.com/docs"
+checked = false
+
+[[sources]]
+flavour = "cognito"
+title = "Amazon Cognito documentation"
+url = "https://docs.aws.amazon.com/cognito/"
+checked = false
+
+[[sources]]
+flavour = "keycloak"
+title = "Keycloak documentation"
+url = "https://www.keycloak.org/documentation"
+checked = false
+
+[[sources]]
+flavour = "okta"
+title = "Okta developer documentation"
+url = "https://developer.okta.com/docs/"
+checked = false
+
+[[quiz]]
+q = "Your API checks every token by calling the identity provider. The provider has an outage. What fails?"
+q_es = "Tu API comprueba cada token llamando al proveedor de identidad. El proveedor sufre una caída. ¿Qué falla?"
+options = ["Only new sign-ins", "Sign-ins and every API call that needs a token check", "Nothing, because tokens already issued are still valid", "Only users who signed in during the outage"]
+options_es = ["Solo los inicios de sesión nuevos", "Los inicios de sesión y cada llamada a la API que necesita comprobar un token", "Nada, porque los tokens ya emitidos siguen siendo válidos", "Solo los usuarios que iniciaron sesión durante la caída"]
+answer = 1
+why = "With remote verification every check depends on the provider. Verifying locally with cached signing keys keeps existing sessions working; only new sign-ins fail."
+why_es = "Con verificación remota cada comprobación depende del proveedor. Verificar en local con las claves de firma en caché mantiene las sesiones existentes; solo fallan los inicios de sesión nuevos."
+
+[[quiz]]
+q = "Which design keeps token checks fast and cheap at high request rates?"
+q_es = "¿Qué diseño mantiene rápidas y baratas las comprobaciones de token con muchas peticiones?"
+options = ["Add more instances of the identity provider", "Make users sign in again on every request", "Cache the provider's answer per request in the database", "Verify tokens inside the app with the provider's cached signing keys"]
+options_es = ["Añadir más instancias del proveedor de identidad", "Hacer que los usuarios inicien sesión en cada petición", "Guardar la respuesta del proveedor por petición en la base de datos", "Verificar los tokens dentro de la aplicación con las claves de firma del proveedor en caché"]
+answer = 3
+why = "A signed token can be checked locally without a network call. The provider is then only on the path for sign-ins, which are rare."
+why_es = "Un token firmado se puede comprobar en local sin llamada de red. El proveedor queda entonces solo en el camino de los inicios de sesión, que son raros."
+
+[[quiz]]
+q = "What does local token verification give up compared with remote verification?"
+q_es = "¿Qué se pierde con la verificación local de tokens frente a la remota?"
+options = ["A revoked session can keep working until its token expires", "Tokens can no longer be signed", "Sign-ins become slower", "The app can no longer read the user's id"]
+options_es = ["Una sesión revocada puede seguir funcionando hasta que caduque su token", "Los tokens ya no se pueden firmar", "Los inicios de sesión se vuelven más lentos", "La aplicación ya no puede leer el id del usuario"]
+answer = 0
+why = "The app trusts any valid signature until expiry, so revocation takes effect late. Short token lifetimes keep that window small. The simulator doesn't model this lag."
+why_es = "La aplicación confía en cualquier firma válida hasta que caduca, así que la revocación llega tarde. Una vida corta del token reduce esa ventana. El simulador no modela este retraso."

@@ -1,0 +1,132 @@
+{
+  "schema_version": 4,
+  "id": "page-view-counter-challenge",
+  "name": "Page-View Counter (reference)",
+  "problem_id": "page-view-counter",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Websites",
+      "position": {
+        "x": 260,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "Load balancer",
+      "position": {
+        "x": 260,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Collector",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {
+        "instances": 1
+      },
+      "group_id": null
+    },
+    {
+      "id": "stream",
+      "kind": "stream",
+      "flavour": "kafka",
+      "label": "Page views",
+      "position": {
+        "x": 130,
+        "y": 510
+      },
+      "props": {
+        "partitions": 48
+      },
+      "group_id": null
+    },
+    {
+      "id": "counters",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Counters",
+      "position": {
+        "x": 130,
+        "y": 680
+      },
+      "props": {
+        "instances": 5,
+        "service_ms": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Counts",
+      "position": {
+        "x": 312,
+        "y": 850
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "api",
+      "to": "stream",
+      "protocol": "publish"
+    },
+    {
+      "id": "e3",
+      "from": "stream",
+      "to": "counters",
+      "protocol": "consume"
+    },
+    {
+      "id": "e4",
+      "from": "counters",
+      "to": "db",
+      "protocol": "query"
+    },
+    {
+      "id": "e6",
+      "from": "api",
+      "to": "db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

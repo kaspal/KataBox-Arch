@@ -1,0 +1,158 @@
+kind = "external"
+one_liner = "A third-party API your system calls, such as a payment, SMS or email provider, drawn on the canvas so you can route to it."
+one_liner_es = "Una API de terceros a la que llama tu sistema, como un proveedor de pagos, SMS o correo, dibujada en el lienzo para que puedas enrutar hacia ella."
+
+use_when = [
+  "The problem declares a provider and you want to show which components call it",
+  "Different callers should reach the provider by their own path, for example a worker behind a queue",
+  "You want the shared rate limit of one provider account to be visible in the design",
+]
+use_when_es = [
+  "El problema declara un proveedor y quieres mostrar qué componentes lo llaman",
+  "Distintos llamadores deben llegar al proveedor por su propio camino, por ejemplo un worker detrás de una cola",
+  "Quieres que el límite de ritmo compartido de una cuenta del proveedor se vea en el diseño",
+]
+skip_when = [
+  "The problem declares no provider",
+  "The work is something you run yourself, which belongs on an app, worker or database card",
+]
+skip_when_es = [
+  "El problema no declara ningún proveedor",
+  "El trabajo es algo que ejecutas tú, y va en una tarjeta de aplicación, worker o base de datos",
+]
+
+formula = "a call takes the provider's declared latency; calls beyond the account's rate limit are refused, and all cards bound to the same provider share that limit; during a declared outage every call fails"
+formula_es = "una llamada tarda la latencia declarada del proveedor; las llamadas por encima del límite de la cuenta se rechazan, y todas las tarjetas vinculadas al mismo proveedor comparten ese límite; durante una caída declarada todas las llamadas fallan"
+
+gains = [
+  "You buy a hard capability, such as card payments or SMS delivery, instead of building it",
+  "The design shows exactly which components depend on the provider",
+]
+gains_es = [
+  "Compras una capacidad difícil, como pagos con tarjeta o envío de SMS, en lugar de construirla",
+  "El diseño muestra exactamente qué componentes dependen del proveedor",
+]
+costs = [
+  "Its latency, limits and outages are outside your control",
+  "Some providers bill per call, which grows with traffic",
+  "A slow or failing provider can drag down every caller that waits on it",
+]
+costs_es = [
+  "Su latencia, sus límites y sus caídas escapan a tu control",
+  "Algunos proveedores cobran por llamada, y eso crece con el tráfico",
+  "Un proveedor lento o caído puede arrastrar a cada llamador que lo espera",
+]
+
+works_with = ["worker", "queue", "app", "dlq", "ratelimit"]
+practice = ["bulk-email", "checkout", "flash-sale", "notifications", "web-crawler", "webhooks"]
+
+interview_tip = "Name each provider, its rate limit and what happens when it is down. Then show which calls wait on it in the user's request and which go through a queue."
+interview_tip_es = "Nombra cada proveedor, su límite de ritmo y qué pasa cuando cae. Luego muestra qué llamadas lo esperan dentro de la petición del usuario y cuáles pasan por una cola."
+
+not_simulated = [
+  "What happens inside the provider",
+  "Webhooks the provider sends back to you (model them as client traffic)",
+  "Idempotency keys on the provider's side",
+  "Request signing and authentication",
+  "Stripe's fee as a share of each payment",
+]
+not_simulated_es = [
+  "Lo que ocurre dentro del proveedor",
+  "Los webhooks que el proveedor te devuelve (modélalos como tráfico de cliente)",
+  "Las claves de idempotencia del lado del proveedor",
+  "La firma y la autenticación de las peticiones",
+  "La comisión de Stripe como parte de cada pago",
+]
+
+[[sim]]
+cost = "per_million"
+note = "A price per million calls, for providers that bill per message, such as SMS or email. Latency, rate limit and outages come from the problem, not from the card."
+note_es = "Un precio por millón de llamadas, para proveedores que cobran por mensaje, como SMS o correo. La latencia, el límite de ritmo y las caídas vienen del problema, no de la tarjeta."
+
+[flavours_compared]
+flavours = ["generic", "stripe", "twilio", "sendgrid"]
+
+[[flavours_compared.rows]]
+label = "What it does"
+label_es = "Qué hace"
+cells = ["Any HTTP API the problem names", "Card payments", "SMS and voice", "Email delivery"]
+cells_es = ["Cualquier API HTTP que nombre el problema", "Pagos con tarjeta", "SMS y voz", "Envío de correo"]
+
+[[flavours_compared.rows]]
+label = "How it bills"
+label_es = "Cómo cobra"
+cells = ["Nothing in the simulator", "A share of each payment, not per call", "Per message", "Per email"]
+cells_es = ["Nada en el simulador", "Una parte de cada pago, no por llamada", "Por mensaje", "Por correo"]
+
+[[flavours_compared.rows]]
+label = "Typical call"
+label_es = "Llamada típica"
+cells = ["Depends on the API", "Charge a card while the user waits", "Send a code or an alert", "Send a receipt or a newsletter"]
+cells_es = ["Depende de la API", "Cobrar una tarjeta mientras el usuario espera", "Enviar un código o una alerta", "Enviar un recibo o un boletín"]
+
+[[pitfalls]]
+title = "Calling the provider inside the user's request"
+title_es = "Llamar al proveedor dentro de la petición del usuario"
+body = "The app sends an email or SMS while the user waits. When the provider slows down or fails, the user's request slows down or fails with it."
+body_es = "La aplicación envía un correo o un SMS mientras el usuario espera. Cuando el proveedor se ralentiza o falla, la petición del usuario se ralentiza o falla con él."
+fix = "Put a queue and a worker between the app and the provider, so the user gets a quick answer and the call is retried later."
+fix_es = "Pon una cola y un worker entre la aplicación y el proveedor, para que el usuario reciba una respuesta rápida y la llamada se reintente después."
+
+[[pitfalls]]
+title = "Two cards, one limit"
+title_es = "Dos tarjetas, un límite"
+body = "Two callers each get their own card for the same provider, and the design assumes each has the full rate limit. The limit belongs to the account, so together they exceed it and calls are refused."
+body_es = "Dos llamadores tienen cada uno su propia tarjeta para el mismo proveedor, y el diseño supone que cada uno tiene el límite completo. El límite es de la cuenta, así que juntos lo superan y las llamadas se rechazan."
+fix = "Budget the provider's limit across all callers, and pace the bulk ones with a queue or a rate limiter."
+fix_es = "Reparte el límite del proveedor entre todos los llamadores, y regula los masivos con una cola o un limitador de ritmo."
+
+[[sources]]
+flavour = "generic"
+title = "MDN: HTTP"
+url = "https://developer.mozilla.org/en-US/docs/Web/HTTP"
+checked = false
+
+[[sources]]
+flavour = "stripe"
+title = "Stripe documentation"
+url = "https://docs.stripe.com/"
+checked = false
+
+[[sources]]
+flavour = "twilio"
+title = "Twilio documentation"
+url = "https://www.twilio.com/docs"
+checked = false
+
+[[sources]]
+flavour = "sendgrid"
+title = "Twilio SendGrid documentation"
+url = "https://www.twilio.com/docs/sendgrid"
+checked = false
+
+[[quiz]]
+q = "An app sends a confirmation email inside the checkout request. The email provider is down for a few minutes. What happens?"
+q_es = "Una aplicación envía un correo de confirmación dentro de la petición de compra. El proveedor de correo cae unos minutos. ¿Qué pasa?"
+options = ["Checkouts fail or hang while the provider is down", "The emails are delayed but checkouts succeed", "The provider queues the emails for you", "Nothing, because email is optional"]
+options_es = ["Las compras fallan o se cuelgan mientras el proveedor está caído", "Los correos se retrasan pero las compras salen bien", "El proveedor encola los correos por ti", "Nada, porque el correo es opcional"]
+answer = 0
+why = "A call inside the request ties the request to the provider. Sending the email through a queue and a worker lets checkout succeed and retries the email later."
+why_es = "Una llamada dentro de la petición ata la petición al proveedor. Enviar el correo por una cola y un worker deja que la compra salga bien y reintenta el correo después."
+
+[[quiz]]
+q = "Two external cards are bound to the same SMS provider, one for a bulk campaign and one for login codes. How do their rate limits work?"
+q_es = "Dos tarjetas externas están vinculadas al mismo proveedor de SMS, una para una campaña masiva y otra para códigos de inicio de sesión. ¿Cómo funcionan sus límites?"
+options = ["Each card has the full limit", "The limit is split evenly between the cards", "They share one limit, so the campaign can starve the login codes", "Login codes always go first"]
+options_es = ["Cada tarjeta tiene el límite completo", "El límite se reparte a partes iguales entre las tarjetas", "Comparten un límite, así que la campaña puede dejar sin hueco a los códigos de inicio de sesión", "Los códigos de inicio de sesión siempre van primero"]
+answer = 2
+why = "The rate limit belongs to the provider account, not to the card. Pacing the bulk sender keeps room for the urgent traffic."
+why_es = "El límite pertenece a la cuenta del proveedor, no a la tarjeta. Regular el envío masivo deja sitio para el tráfico urgente."
+
+[[quiz]]
+q = "Why draw an external card at all, when the simulator already knows the problem's providers?"
+q_es = "¿Por qué dibujar una tarjeta externa, si el simulador ya conoce los proveedores del problema?"
+options = ["It makes the provider faster", "It removes the provider's rate limit", "It is required for the provider to bill", "It lets you route to the provider explicitly and give different callers their own path"]
+options_es = ["Hace que el proveedor sea más rápido", "Quita el límite de ritmo del proveedor", "Es obligatoria para que el proveedor cobre", "Te deja enrutar hacia el proveedor de forma explícita y dar a cada llamador su propio camino"]
+answer = 3
+why = "Without a card the provider is implicit. With one, the design shows who calls it and by which path, for example through a queue and a worker."
+why_es = "Sin tarjeta el proveedor es implícito. Con ella, el diseño muestra quién lo llama y por qué camino, por ejemplo a través de una cola y un worker."

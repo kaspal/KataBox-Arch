@@ -70,3 +70,15 @@ Each migration rule has its own test with a v1 file.
 Tests: `crates/ka-app/tests/migrations.rs` opens a real v1 and v2 file
 (`tests/fixtures/v1.kbarch`, `v2.kbarch`), checks each dropped placeholder, the flavour rule, the
 rename, and that a migrated file saves as v3 and reads back the same.
+
+## Version 4 (M8, 2026-11-23)
+- **Zones gain two optional fields:**
+  - `region_tag` (a Region only; 2–8 lowercase letters, e.g. `eu`): the residency the stores inside it satisfy
+    (simulator feature S9);
+  - `mesh` (a Region or AZ): `{ flavour: istio | linkerd, props }`, with props from `registry.mesh_props`
+    (`mesh_retries`, `mesh_timeout_ms`, `mesh_breaker_errors_pct`).
+  - A bad tag or mesh is `bad_zone_setting`.
+- **Migration:** v3 → v4 changes only `schema_version`; both fields are absent in a v3 file. Readers stay strict.
+- **Content:** `ka-pack migrate` rewrote the 135 shipped files (version lines, and props in key order).
+- **Tests:** `crates/ka-app/tests/fixtures/v3.kbarch` opens as v4, equal to the v3 file but for its version, and
+  saves as v4.

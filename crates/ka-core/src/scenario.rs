@@ -52,6 +52,172 @@ pub struct RequestType {
     pub measure: Measure,
     #[serde(default)]
     pub source: Source,
+    /// S7: a share of these requests check, then write, one of a few hot keys (the last
+    /// room, a promo code's counter): overlapping check-then-write windows are races.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contended: Option<Contended>,
+    /// What the type is (M8): requests (the default), or long-lived connections (S1).
+    #[serde(default, skip_serializing_if = "TypeKind::is_request")]
+    pub kind: TypeKind,
+    /// S1 connection types: connections the clients keep open (at a traffic multiplier of
+    /// 1), reached over `ramp_s` seconds from the start (0: connected from the start), and the
+    /// messages the server pushes to each per second (scaled by the traffic curve).
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub connected: f64,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub ramp_s: f64,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub push_rps: f64,
+    /// S2: the tokens a request sends to a model and gets back (lognormal).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tokens_in: Option<Tokens>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tokens_out: Option<Tokens>,
+    /// S3: the share of these requests that are near-repeats of an earlier one (what a
+    /// semantic cache can answer). The traffic declares it; a design can't raise it.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub semantic_repeat_share: f64,
+    /// M10: the share of these messages that can never be processed (a poison message):
+    /// every consumer attempt fails, so they are retried, dead-lettered or lost.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub poison_share: f64,
+    /// M10: background work (a backfill, a replay): a queue or stream with `priority`
+    /// dispatches every other message first.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub bulk: bool,
+    /// M11: this work can wait hours for its results (an overnight job), so a model card in
+    /// `api_mode = batch` may serve it. Batch calls for any other type fail: someone is waiting.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub batch_ok: bool,
+    /// S4: a job type's work (kind = "job").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub job: Option<JobSpec>,
+    /// S5: how late events arrive after they happen (event time to arrival; lognormal).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub event_delay: Option<Delay>,
+    /// S6: what a query scans (a warehouse or lake read).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scan: Option<Scan>,
+    /// S9: these requests' data must stay in Regions with this residency tag (e.g. `eu`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub residency: Option<String>,
+    /// M8 graph reads: `hops` levels of `fanout` relationships each.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub traversal: Option<Traversal>,
+    /// M8 vector reads: nearest neighbours asked for (10 if unset).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub top_k: Option<u32>,
+    /// M8 time series: active series the writes spread over (cardinality), and the time span
+    /// a read covers, in hours.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub series: f64,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub span_h: f64,
+}
+
+/// M8: a graph traversal.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(deny_unknown_fields)]
+pub struct Traversal {
+    pub hops: u32,
+    pub fanout: f64,
+}
+
+/// S6: a query over `gb` of table data whose time filter needs `range_share` of it (the
+/// table spans `span_days`); `repeat_share` of the queries repeat an earlier one (what a
+/// result cache can answer); streaming ingest leaves files of `small_file_mb` until
+/// compaction merges them.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(deny_unknown_fields)]
+pub struct Scan {
+    pub gb: f64,
+    #[serde(default = "one")]
+    pub range_share: f64,
+    #[serde(default = "year")]
+    pub span_days: f64,
+    #[serde(default)]
+    pub repeat_share: f64,
+    #[serde(default = "small_files")]
+    pub small_file_mb: f64,
+}
+
+fn year() -> f64 {
+    365.0
+}
+fn small_files() -> f64 {
+    8.0
+}
+
+/// S5: a delay's median and 99th percentile.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(deny_unknown_fields)]
+pub struct Delay {
+    pub median_ms: f64,
+    pub p99_ms: f64,
+}
+
+/// S4: a batch job: `work_units` executor-seconds split into `tasks`, sized by a Zipf skew
+/// (0 = equal tasks), started at each of `starts` (seconds). Each task makes the type's route
+/// calls once, as its batch card's caller.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(deny_unknown_fields)]
+pub struct JobSpec {
+    pub work_units: f64,
+    pub tasks: u32,
+    #[serde(default)]
+    pub skew: f64,
+    #[serde(default = "default_starts")]
+    pub starts: Vec<f64>,
+}
+
+fn default_starts() -> Vec<f64> {
+    vec![0.0]
+}
+
+/// S2: a token count's mean and 95th percentile.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(deny_unknown_fields)]
+pub struct Tokens {
+    pub mean: f64,
+    pub p95: f64,
+}
+
+fn is_zero(v: &f64) -> bool {
+    *v == 0.0
+}
+
+/// What a request type stands for (M8).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(rename_all = "snake_case")]
+pub enum TypeKind {
+    /// Requests arriving at `share` of the problem's rate (everything before M8).
+    #[default]
+    Request,
+    /// S1: long-lived connections to a WebSocket gateway or IoT broker.
+    Connection,
+    /// S4: batch jobs (see `job`).
+    Job,
+}
+
+impl TypeKind {
+    pub fn is_request(&self) -> bool {
+        *self == TypeKind::Request
+    }
+}
+
+/// S7: `share` of a type's requests hit one of `keys` hot keys.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(deny_unknown_fields)]
+pub struct Contended {
+    pub keys: u64,
+    pub share: f64,
 }
 
 fn default_key_space() -> u64 {
@@ -269,7 +435,8 @@ pub enum ChaosEvent {
         #[serde(default, rename = "for")]
         for_s: Option<f64>,
     },
-    /// A cache or CDN is emptied (a restart, a purge).
+    /// A cache or CDN is emptied (a restart, a purge). `cache_flush` is the same event.
+    #[serde(alias = "cache_flush")]
     Flush {
         #[serde(flatten)]
         target: Selector,
@@ -289,6 +456,66 @@ pub enum ChaosEvent {
         #[serde(default)]
         rate: Option<f64>,
     },
+    /// S8: a bad build is deployed to the compute cards selected. Its instances fail
+    /// `error_rate` of their requests and add `add_ms`. It rolls out by each card's
+    /// `rollout_percent` every `bake_s`, rolls back by itself with `auto_rollback`, and is
+    /// rolled back by hand after `for` seconds.
+    Deploy {
+        #[serde(flatten)]
+        target: Selector,
+        at: f64,
+        #[serde(default)]
+        error_rate: f64,
+        #[serde(default)]
+        add_ms: f64,
+        #[serde(default, rename = "for")]
+        for_s: Option<f64>,
+    },
+    /// S8: a bad config change reaches every service. A Config card with `staged` sends it
+    /// one Region at a time, every `bake_s`, and halts at the first stage that breaks; with
+    /// `kill_switch` the change is rolled back a second after it is noticed.
+    ConfigPush {
+        at: f64,
+        #[serde(default)]
+        error_rate: f64,
+        #[serde(default)]
+        add_ms: f64,
+        #[serde(default, rename = "for")]
+        for_s: Option<f64>,
+    },
+    /// S8: DNS can't answer. Clients keep using answers they cached within the TTL of the
+    /// DNS card on their path; the rest can't resolve.
+    DnsOutage {
+        at: f64,
+        #[serde(default, rename = "for")]
+        for_s: Option<f64>,
+    },
+    /// S8: the cloud control plane is down: no scaling decisions apply and no replacement
+    /// instances start, while running instances keep serving.
+    ControlPlane {
+        at: f64,
+        #[serde(default, rename = "for")]
+        for_s: Option<f64>,
+    },
+    /// M8: the time series written multiply by `x` (a cardinality explosion: a new label
+    /// with many values).
+    Cardinality {
+        x: f64,
+        at: f64,
+        #[serde(default, rename = "for")]
+        for_s: Option<f64>,
+    },
+    /// S4: the cloud takes back spot capacity: `share` of the selected batch cards'
+    /// executors stop, and the tasks they ran start again (from their last checkpoint with
+    /// `checkpoint`), until `for` seconds later.
+    Spot {
+        #[serde(flatten)]
+        target: Selector,
+        at: f64,
+        share: f64,
+        #[serde(default, rename = "for")]
+        for_s: Option<f64>,
+    },
 }
 
 impl ChaosEvent {
@@ -300,7 +527,13 @@ impl ChaosEvent {
             | ChaosEvent::Split { at, .. }
             | ChaosEvent::Traffic { at, .. }
             | ChaosEvent::Flush { at, .. }
-            | ChaosEvent::External { at, .. } => *at,
+            | ChaosEvent::External { at, .. }
+            | ChaosEvent::Deploy { at, .. }
+            | ChaosEvent::ConfigPush { at, .. }
+            | ChaosEvent::DnsOutage { at, .. }
+            | ChaosEvent::ControlPlane { at, .. }
+            | ChaosEvent::Spot { at, .. }
+            | ChaosEvent::Cardinality { at, .. } => *at,
         }
     }
 }
@@ -325,6 +558,33 @@ pub struct PassCriteria {
     /// Messages that may be lost (usually 0).
     #[serde(default)]
     pub lost: Option<f64>,
+    /// S8 metastable check: from this second to the end of the test, every second must be
+    /// within the test's error and p95 limits (the system recovered after its trigger).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub recovered_by_s: Option<f64>,
+    /// S7: writes that raced or landed on a stale primary (usually 0). Tests that set it
+    /// must run unsampled.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub conflicts: Option<f64>,
+    /// S1: the least share of the target connections that must be connected in every
+    /// second after `ramp_s` + 10 s.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub connected_min: Option<f64>,
+    /// S2: time to first token, 95th percentile, of the requests that call a model.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ttft_p95_ms: Option<f64>,
+    /// S4: every job must finish within this many seconds of its start.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub job_deadline_s: Option<f64>,
+    /// S5: the most windowed records that may be late (a share), and the most duplicate
+    /// results a crash may emit (a count, usually 0).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub late_rate: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duplicates: Option<f64>,
+    /// S9: data stored or sent outside its residency (usually 0).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub residency_violations: Option<f64>,
 }
 
 /// Completed requests a test needs before its p99 is judged (review A4).
@@ -340,6 +600,14 @@ impl PassCriteria {
             availability: over.availability.or(self.availability),
             stale_rate: over.stale_rate.or(self.stale_rate),
             lost: over.lost.or(self.lost),
+            recovered_by_s: over.recovered_by_s.or(self.recovered_by_s),
+            conflicts: over.conflicts.or(self.conflicts),
+            connected_min: over.connected_min.or(self.connected_min),
+            ttft_p95_ms: over.ttft_p95_ms.or(self.ttft_p95_ms),
+            job_deadline_s: over.job_deadline_s.or(self.job_deadline_s),
+            late_rate: over.late_rate.or(self.late_rate),
+            duplicates: over.duplicates.or(self.duplicates),
+            residency_violations: over.residency_violations.or(self.residency_violations),
         }
     }
 }
@@ -368,6 +636,19 @@ pub struct Scenario {
     /// The cache and CDN start empty instead of warm.
     #[serde(default)]
     pub cold_caches: bool,
+    /// M8: databases enforce `max_connections` (each app slot talking straight to SQL holds
+    /// one; a connection pooler holds its pool). Off by default: the behaviour before M8.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub connections: bool,
+    /// M10: when an async SQL primary dies, the writes it committed within its replication
+    /// lag (`replication_lag_ms`) are lost at failover. Off by default: the behaviour before
+    /// M10.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub replication_loss: bool,
+}
+
+fn is_false(v: &bool) -> bool {
+    !*v
 }
 
 #[cfg(test)]

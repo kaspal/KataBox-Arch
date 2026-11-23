@@ -1,0 +1,111 @@
+{
+  "schema_version": 4,
+  "id": "de-dedup-pipeline-naive",
+  "name": "Billing events exactly once (first try)",
+  "problem_id": "de-dedup-pipeline",
+  "nodes": [
+    {
+      "id": "producers",
+      "kind": "client",
+      "flavour": "web",
+      "label": "producers",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "ingest",
+      "kind": "app",
+      "flavour": "go",
+      "label": "ingest",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "events",
+      "kind": "stream",
+      "flavour": "kafka",
+      "label": "events",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {
+        "partitions": 64
+      },
+      "group_id": null
+    },
+    {
+      "id": "enricher",
+      "kind": "streamproc",
+      "flavour": "flink",
+      "label": "enricher",
+      "position": {
+        "x": 912,
+        "y": 112
+      },
+      "props": {
+        "instances": 2,
+        "concurrency": 32,
+        "checkpoint_s": 5
+      },
+      "group_id": null
+    },
+    {
+      "id": "ledger",
+      "kind": "warehouse",
+      "flavour": "clickhouse",
+      "label": "ledger",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "instances": 8
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-producers-ingest-http",
+      "from": "producers",
+      "to": "ingest",
+      "protocol": "http"
+    },
+    {
+      "id": "e-ingest-events-publish",
+      "from": "ingest",
+      "to": "events",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-events-enricher-consume",
+      "from": "events",
+      "to": "enricher",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-enricher-ledger-query",
+      "from": "enricher",
+      "to": "ledger",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

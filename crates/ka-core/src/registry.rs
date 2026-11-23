@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use crate::design::PropValue;
 use crate::wiring::{self, WiringTable};
 
-/// The 25 component kinds. Ids match the icon ids (`icons.json`).
+/// The 42 component kinds. Ids match the glyph ids (`solve/glyphs.ts`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 #[serde(rename_all = "snake_case")]
@@ -28,32 +28,49 @@ pub enum ComponentKind {
     Lb,
     Gateway,
     Ratelimit,
+    Ws,
+    Idp,
+    External,
     // Compute
     App,
     Micro,
     Worker,
     Serverless,
     Autoscale,
+    Infer,
+    Batch,
+    Media,
     // Data
     Sql,
     Nosql,
     Cache,
     Object,
     Search,
+    Coord,
+    Vector,
+    Warehouse,
+    Lakehouse,
+    Tsdb,
+    Dbproxy,
+    Graph,
     // Async
     Queue,
     Stream,
     Pubsub,
     Dlq,
     Scheduler,
+    Streamproc,
+    Mqtt,
+    Connector,
     // Ops
     Metrics,
     Logs,
     Tracing,
+    Config,
 }
 
 impl ComponentKind {
-    pub const ALL: [ComponentKind; 25] = [
+    pub const ALL: [ComponentKind; 42] = [
         ComponentKind::Client,
         ComponentKind::Dns,
         ComponentKind::Cdn,
@@ -61,24 +78,41 @@ impl ComponentKind {
         ComponentKind::Lb,
         ComponentKind::Gateway,
         ComponentKind::Ratelimit,
+        ComponentKind::Ws,
+        ComponentKind::Idp,
+        ComponentKind::External,
         ComponentKind::App,
         ComponentKind::Micro,
         ComponentKind::Worker,
         ComponentKind::Serverless,
         ComponentKind::Autoscale,
+        ComponentKind::Infer,
+        ComponentKind::Batch,
+        ComponentKind::Media,
         ComponentKind::Sql,
         ComponentKind::Nosql,
         ComponentKind::Cache,
         ComponentKind::Object,
         ComponentKind::Search,
+        ComponentKind::Coord,
+        ComponentKind::Vector,
+        ComponentKind::Warehouse,
+        ComponentKind::Lakehouse,
+        ComponentKind::Tsdb,
+        ComponentKind::Dbproxy,
+        ComponentKind::Graph,
         ComponentKind::Queue,
         ComponentKind::Stream,
         ComponentKind::Pubsub,
         ComponentKind::Dlq,
         ComponentKind::Scheduler,
+        ComponentKind::Streamproc,
+        ComponentKind::Mqtt,
+        ComponentKind::Connector,
         ComponentKind::Metrics,
         ComponentKind::Logs,
         ComponentKind::Tracing,
+        ComponentKind::Config,
     ];
 
     /// The snake_case id (the serde name, the icon id and the i18n key).
@@ -91,35 +125,59 @@ impl ComponentKind {
             ComponentKind::Lb => "lb",
             ComponentKind::Gateway => "gateway",
             ComponentKind::Ratelimit => "ratelimit",
+            ComponentKind::Ws => "ws",
+            ComponentKind::Idp => "idp",
+            ComponentKind::External => "external",
             ComponentKind::App => "app",
             ComponentKind::Micro => "micro",
             ComponentKind::Worker => "worker",
             ComponentKind::Serverless => "serverless",
             ComponentKind::Autoscale => "autoscale",
+            ComponentKind::Infer => "infer",
+            ComponentKind::Batch => "batch",
+            ComponentKind::Media => "media",
             ComponentKind::Sql => "sql",
             ComponentKind::Nosql => "nosql",
             ComponentKind::Cache => "cache",
             ComponentKind::Object => "object",
             ComponentKind::Search => "search",
+            ComponentKind::Coord => "coord",
+            ComponentKind::Vector => "vector",
+            ComponentKind::Warehouse => "warehouse",
+            ComponentKind::Lakehouse => "lakehouse",
+            ComponentKind::Tsdb => "tsdb",
+            ComponentKind::Dbproxy => "dbproxy",
+            ComponentKind::Graph => "graph",
             ComponentKind::Queue => "queue",
             ComponentKind::Stream => "stream",
             ComponentKind::Pubsub => "pubsub",
             ComponentKind::Dlq => "dlq",
             ComponentKind::Scheduler => "scheduler",
+            ComponentKind::Streamproc => "streamproc",
+            ComponentKind::Mqtt => "mqtt",
+            ComponentKind::Connector => "connector",
             ComponentKind::Metrics => "metrics",
             ComponentKind::Logs => "logs",
             ComponentKind::Tracing => "tracing",
+            ComponentKind::Config => "config",
         }
     }
 
     pub fn category(self) -> Category {
         use ComponentKind::*;
         match self {
-            Client | Dns | Cdn | Waf | Lb | Gateway | Ratelimit => Category::Edge,
-            App | Micro | Worker | Serverless | Autoscale => Category::Compute,
-            Sql | Nosql | Cache | Object | Search => Category::Data,
-            Queue | Stream | Pubsub | Dlq | Scheduler => Category::Async,
-            Metrics | Logs | Tracing => Category::Ops,
+            Client | Dns | Cdn | Waf | Lb | Gateway | Ratelimit | Ws | Idp | External => {
+                Category::Edge
+            }
+            App | Micro | Worker | Serverless | Autoscale | Infer | Batch | Media => {
+                Category::Compute
+            }
+            Sql | Nosql | Cache | Object | Search | Coord | Vector | Warehouse | Lakehouse
+            | Tsdb | Dbproxy | Graph => Category::Data,
+            Queue | Stream | Pubsub | Dlq | Scheduler | Streamproc | Mqtt | Connector => {
+                Category::Async
+            }
+            Metrics | Logs | Tracing | Config => Category::Ops,
         }
     }
 }
@@ -242,6 +300,135 @@ pub enum Flavour {
     Elk,
     Loki,
     Jaeger,
+    // ws (M8)
+    SocketIo,
+    AwsApigwWs,
+    Phoenix,
+    // idp
+    #[serde(rename = "auth0")]
+    Auth0,
+    Cognito,
+    Keycloak,
+    Okta,
+    // external
+    Stripe,
+    Twilio,
+    Sendgrid,
+    // infer
+    ClaudeApi,
+    OpenaiApi,
+    Bedrock,
+    GeminiApi,
+    Vllm,
+    Triton,
+    // batch
+    SparkEmr,
+    Dataproc,
+    Databricks,
+    // media
+    Livekit,
+    Mediasoup,
+    ElementalLive,
+    Wowza,
+    // coord
+    Etcd,
+    Zookeeper,
+    Consul,
+    // vector
+    Pgvector,
+    Pinecone,
+    Qdrant,
+    Milvus,
+    // warehouse
+    Snowflake,
+    Bigquery,
+    Redshift,
+    Clickhouse,
+    DatabricksSql,
+    // lakehouse
+    Iceberg,
+    Delta,
+    Hudi,
+    // tsdb
+    Influxdb,
+    Timescaledb,
+    Timestream,
+    Mimir,
+    // dbproxy
+    Pgbouncer,
+    RdsProxy,
+    Proxysql,
+    Vtgate,
+    // graph
+    #[serde(rename = "neo4j")]
+    Neo4j,
+    Neptune,
+    Janusgraph,
+    // streamproc
+    Flink,
+    KafkaStreams,
+    SparkStreaming,
+    // mqtt
+    Emqx,
+    AwsIotCore,
+    Mosquitto,
+    Hivemq,
+    // connector
+    KafkaConnect,
+    Debezium,
+    Fivetran,
+    Airbyte,
+    // config
+    Launchdarkly,
+    AwsAppconfig,
+    Unleash,
+    // --- M8.3: new flavours on the existing kinds ---
+    Scylladb,
+    Bigtable,
+    CosmosDb,
+    Cockroachdb,
+    AuroraPostgresql,
+    Spanner,
+    Postgis,
+    Citus,
+    Valkey,
+    Dragonfly,
+    Hazelcast,
+    AzureServiceBus,
+    AmazonMq,
+    SqsFifo,
+    Redpanda,
+    Pulsar,
+    AzureEventHubs,
+    Nats,
+    AzureWebPubsub,
+    Eventbridge,
+    Solr,
+    Meilisearch,
+    AzureBlob,
+    CloudflareR2,
+    Minio,
+    EnvoyLb,
+    Traefik,
+    GlobalAccelerator,
+    Akamai,
+    AzureApim,
+    Litellm,
+    ApolloRouter,
+    CloudflareWorkers,
+    AzureFunctions,
+    AspnetCore,
+    Rails,
+    Bullmq,
+    TemporalWorker,
+    Ffmpeg,
+    Mediaconvert,
+    Temporal,
+    Dagster,
+    #[serde(rename = "k8s_cronjob")]
+    K8sCronjob,
+    IotDevice,
+    PartnerServer,
 }
 
 /// The unit shown after a prop's value (`units.<unit>` in the UI).
@@ -258,6 +445,14 @@ pub enum Unit {
     Percent,
     Rps,
     Gb,
+    Kb,
+    Mb,
+    Gbps,
+    Tokens,
+    /// Tokens per second.
+    Tps,
+    /// Per minute (request and token limits of hosted models).
+    PerMin,
 }
 
 /// A prop's type and allowed range.
@@ -281,6 +476,9 @@ pub enum PropType {
     Choice {
         options: Vec<String>,
     },
+    /// M8: the name of one of the problem's declared providers (a Third-Party API card's
+    /// binding); any short name in the Sandbox.
+    Binding,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -313,10 +511,15 @@ pub enum CalibrationStatus {
     Cited,
     /// A conservative ballpark; its source still has to be confirmed.
     Needed,
+    /// A simulator knob no vendor publishes (a tail multiplier, backlog slots, a managed
+    /// service's "effectively unlimited" concurrency); the source cell says why.
+    Model,
+    /// A rule of thumb rather than a measured figure.
+    RuleOfThumb,
 }
 
 /// Props whose defaults are calibrated figures rather than design choices.
-pub const CALIBRATED_PROPS: [&str; 9] = [
+pub const CALIBRATED_PROPS: &[&str] = &[
     "service_ms",
     "concurrency",
     "concurrency_limit",
@@ -326,11 +529,34 @@ pub const CALIBRATED_PROPS: [&str; 9] = [
     "visibility_timeout_s",
     "session_timeout_s",
     "query_ratio",
+    // M8 kinds: product figures, not design choices.
+    "max_connections",
+    "conn_memory_kb",
+    "msgs_per_s",
+    "accept_per_s",
+    "login_ms",
+    "verify_ms",
+    "logins_per_s",
+    "ttft_ms",
+    "tokens_per_s",
+    "prefill_tps",
+    "rpm",
+    "tpm",
+    "task_overhead_ms",
+    "streams_per_instance",
+    "election_ms",
+    "scan_gbps",
+    "overhead_ms",
+    "points_per_s",
+    "series_limit",
+    "edges_per_ms",
+    "records_per_s",
 ];
 
 /// Calibration row ids whose source has been confirmed (the planning chat checked these on
-/// 2026-11-22; `docs/calibration.md` quotes each source). Every other row is `source: needed`.
-pub const CITED: [&str; 42] = [
+/// 2026-11-22 and 2026-11-23; `docs/calibration.md` quotes each source). A row in none of the
+/// lists is `source: needed`.
+pub const CITED: &[&str] = &[
     "sql.concurrency",
     "sql.concurrency@mysql",
     "sql.failover_s",
@@ -374,11 +600,293 @@ pub const CITED: [&str; 42] = [
     "pubsub.cost.million_write@redis_pubsub",
     "dlq.cost.million",
     "dlq.cost.million_write",
+    // Calibration citations part 2a (M14; list prices read 2026-11-22).
+    "waf.service_ms",
+    "waf.cost.instance",
+    "waf.cost.million",
+    "lb.cost.instance",
+    "gateway.service_ms",
+    "gateway.cost.instance",
+    "gateway.cost.million",
+    "ratelimit.service_ms",
+    "ratelimit.cost.instance",
+    "app.cost.instance",
+    "micro.cost.instance",
+    "worker.concurrency",
+    "worker.concurrency@sidekiq",
+    "worker.cost.instance",
+    "serverless.queue_per_server",
+    "sql.replication_lag_ms",
+    "nosql.service_ms",
+    "nosql.write_slots",
+    "cache.servers_per_instance",
+    "cache.servers_per_instance@memcached",
+    "search.cost.instance",
+    "queue.service_ms",
+    "stream.service_ms",
+    "scheduler.cost.instance",
+    "metrics.cost.instance",
+    "logs.cost.instance",
+    "tracing.cost.instance",
+    // Part 2b (M14): M8 kinds and flavours (list prices read 2026-11-22/23).
+    "lb.cost.instance@envoy_lb",
+    "lb.cost.instance@traefik",
+    "lb.cost.instance@global_accelerator",
+    "lb.cost.million@global_accelerator",
+    "gateway.service_ms@apollo_router",
+    "gateway.cost.instance@azure_apim",
+    "gateway.cost.instance@litellm",
+    "gateway.cost.instance@apollo_router",
+    "worker.concurrency@bullmq",
+    "worker.concurrency@temporal_worker",
+    "worker.cost.million@mediaconvert",
+    "serverless.cold_start_ms@cloudflare_workers",
+    "serverless.cost.million@cloudflare_workers",
+    "serverless.cost.million@azure_functions",
+    "sql.max_connections",
+    "sql.replication_lag_ms@aurora_postgresql",
+    "sql.cost.instance@spanner",
+    "nosql.servers_per_instance@scylladb",
+    "nosql.cost.lane@scylladb",
+    "nosql.cost.lane@bigtable",
+    "nosql.cost.million@cosmos_db",
+    "nosql.cost.million_write@cosmos_db",
+    "cache.servers_per_instance@dragonfly",
+    "object.cost.million@azure_blob",
+    "object.cost.million_write@azure_blob",
+    "object.cost.million@cloudflare_r2",
+    "object.cost.million_write@cloudflare_r2",
+    "search.service_ms@meilisearch",
+    "queue.servers_per_instance@sqs_fifo",
+    "queue.service_ms@sqs_fifo",
+    "queue.cost.million@azure_service_bus",
+    "queue.cost.million_write@azure_service_bus",
+    "queue.cost.instance@amazon_mq",
+    "queue.cost.million@sqs_fifo",
+    "queue.cost.million_write@sqs_fifo",
+    "stream.cost.lane@azure_event_hubs",
+    "stream.cost.million_write@azure_event_hubs",
+    "pubsub.service_ms@nats",
+    "pubsub.cost.million_write@azure_web_pubsub",
+    "pubsub.cost.million_write@eventbridge",
+    "scheduler.cost.instance@dagster",
+    "infer.ttft_ms@vllm",
+    "infer.tokens_per_s@gemini_api",
+    "infer.rpm",
+    "infer.tpm",
+    "infer.cost.meter.tokens_out@openai_api",
+    "infer.cost.instance@vllm",
+    "infer.cost.instance@triton",
+    "vector.cost.instance",
+    "vector.cost.million@pinecone",
+    "vector.cost.million_write@pinecone",
+    "warehouse.concurrency",
+    "warehouse.cost.instance",
+    "warehouse.cost.meter.tb_scanned@bigquery",
+    "warehouse.cost.instance@clickhouse",
+    "lakehouse.cost.gb",
+    "tsdb.series_limit",
+    "tsdb.cost.million_write@timestream",
+    "streamproc.records_per_s",
+    "streamproc.cost.instance",
+    "connector.cost.instance",
+    "connector.cost.million@fivetran",
+    "graph.edges_per_ms",
+    "coord.election_ms",
+    "coord.service_ms",
+    "coord.cost.instance",
+    "ws.max_connections",
+    "ws.max_connections@phoenix",
+    "ws.conn_memory_kb",
+    "ws.accept_per_s",
+    "ws.cost.instance",
+    "ws.cost.meter.conn_minutes@aws_apigw_ws",
+    "ws.cost.meter.messages@aws_apigw_ws",
+    "mqtt.max_connections",
+    "mqtt.conn_memory_kb",
+    "mqtt.service_ms",
+    "mqtt.cost.instance",
+    "mqtt.cost.meter.conn_minutes@aws_iot_core",
+    "mqtt.cost.meter.messages@aws_iot_core",
+    "media.streams_per_instance",
+    "media.cost.instance",
+    "media.cost.instance@elemental_live",
+    "media.cost.instance@wowza",
+    "idp.logins_per_s",
+    "idp.cost.instance@keycloak",
+    "dbproxy.service_ms",
+    "dbproxy.cost.instance",
+    "dbproxy.cost.instance@rds_proxy",
+    "external.cost.million@sendgrid",
 ];
 
-fn calibration_status(id: &str) -> CalibrationStatus {
+/// Calibration row ids that are modelling choices (`model: <why>` in `docs/calibration.md`).
+pub const MODEL: &[&str] = &[
+    // M8 kinds: tail multipliers, backlog slots, and pass-through capacities.
+    "ws.servers_per_instance",
+    "ws.p99_ratio",
+    "ws.queue_per_server",
+    "idp.p99_ratio",
+    "idp.queue_per_server",
+    "infer.p99_ratio",
+    "infer.queue_per_server",
+    "batch.p99_ratio",
+    "batch.queue_per_server",
+    "media.p99_ratio",
+    "media.queue_per_server",
+    "coord.p99_ratio",
+    "coord.queue_per_server",
+    "vector.p99_ratio",
+    "vector.queue_per_server",
+    "warehouse.p99_ratio",
+    "warehouse.queue_per_server",
+    "lakehouse.servers_per_instance",
+    "lakehouse.p99_ratio",
+    "lakehouse.queue_per_server",
+    "tsdb.p99_ratio",
+    "tsdb.queue_per_server",
+    "dbproxy.servers_per_instance",
+    "dbproxy.p99_ratio",
+    "dbproxy.queue_per_server",
+    "graph.p99_ratio",
+    "graph.queue_per_server",
+    "streamproc.p99_ratio",
+    "streamproc.queue_per_server",
+    "mqtt.servers_per_instance",
+    "mqtt.p99_ratio",
+    "mqtt.queue_per_server",
+    "connector.p99_ratio",
+    "connector.queue_per_server",
+    // Calibration citations part 2a (M14).
+    "dns.servers_per_instance",
+    "dns.service_ms",
+    "dns.p99_ratio",
+    "dns.queue_per_server",
+    "dns.query_ratio",
+    "cdn.servers_per_instance",
+    "cdn.service_ms",
+    "cdn.p99_ratio",
+    "cdn.queue_per_server",
+    "waf.servers_per_instance",
+    "waf.p99_ratio",
+    "waf.queue_per_server",
+    "lb.service_ms",
+    "lb.service_ms@aws_nlb",
+    "lb.servers_per_instance",
+    "lb.p99_ratio",
+    "lb.queue_per_server",
+    "gateway.concurrency",
+    "gateway.p99_ratio",
+    "gateway.queue_per_server",
+    "ratelimit.servers_per_instance",
+    "ratelimit.p99_ratio",
+    "ratelimit.queue_per_server",
+    "app.concurrency",
+    "app.service_ms",
+    "app.service_ms@go",
+    "app.service_ms@django",
+    "app.p99_ratio",
+    "app.queue_per_server",
+    "micro.concurrency",
+    "micro.service_ms",
+    "micro.p99_ratio",
+    "micro.queue_per_server",
+    "worker.service_ms",
+    "worker.p99_ratio",
+    "worker.queue_per_server",
+    "serverless.cold_start_ms@cloud_run",
+    "serverless.service_ms",
+    "serverless.p99_ratio",
+    "sql.service_ms",
+    "sql.p99_ratio",
+    "sql.queue_per_server",
+    "nosql.servers_per_instance",
+    "nosql.p99_ratio",
+    "nosql.queue_per_server",
+    "nosql.failover_s",
+    "cache.p99_ratio",
+    "cache.queue_per_server",
+    "object.p99_ratio",
+    "object.queue_per_server",
+    "search.service_ms",
+    "search.p99_ratio",
+    "queue.servers_per_instance",
+    "queue.p99_ratio",
+    "queue.queue_per_server",
+    "stream.servers_per_instance",
+    "stream.p99_ratio",
+    "stream.queue_per_server",
+    "pubsub.service_ms",
+    "pubsub.servers_per_instance",
+    "pubsub.p99_ratio",
+    "pubsub.queue_per_server",
+    "dlq.servers_per_instance",
+    "dlq.service_ms",
+    "dlq.p99_ratio",
+    "dlq.queue_per_server",
+    // Part 2b (M14).
+    "cdn.cost.million@akamai",
+    "lb.service_ms@global_accelerator",
+    "app.service_ms@aspnet_core",
+    "app.service_ms@rails",
+    "worker.concurrency@ffmpeg",
+    "worker.service_ms@ffmpeg",
+    "worker.service_ms@mediaconvert",
+    "serverless.service_ms@cloudflare_workers",
+    "sql.service_ms@postgis",
+    "sql.service_ms@citus",
+    "cache.servers_per_instance@hazelcast",
+    "object.cost.instance@minio",
+    "pubsub.cost.instance@nats",
+    "infer.ttft_ms@triton",
+    "infer.prefill_tps",
+    "infer.servers_per_instance",
+    "infer.service_ms",
+    "vector.service_ms",
+    "vector.servers_per_instance",
+    "vector.failover_s",
+    "warehouse.scan_gbps",
+    "warehouse.overhead_ms",
+    "warehouse.service_ms",
+    "lakehouse.service_ms",
+    "tsdb.service_ms",
+    "tsdb.servers_per_instance",
+    "tsdb.failover_s",
+    "streamproc.concurrency",
+    "streamproc.service_ms",
+    "batch.task_overhead_ms",
+    "batch.servers_per_instance",
+    "batch.service_ms",
+    "connector.concurrency",
+    "connector.service_ms",
+    "graph.service_ms",
+    "graph.failover_s",
+    "graph.servers_per_instance",
+    "coord.servers_per_instance",
+    "ws.msgs_per_s",
+    "ws.service_ms",
+    "media.streams_per_instance@elemental_live",
+    "media.streams_per_instance@wowza",
+    "media.servers_per_instance",
+    "media.service_ms",
+    "idp.login_ms",
+    "idp.verify_ms",
+    "idp.servers_per_instance",
+    "idp.service_ms",
+    "config.cost.instance",
+];
+
+/// Calibration row ids that are rules of thumb.
+pub const RULE_OF_THUMB: &[&str] = &[];
+
+/// A row's status, from the lists above.
+pub fn calibration_status(id: &str) -> CalibrationStatus {
     if CITED.contains(&id) {
         CalibrationStatus::Cited
+    } else if MODEL.contains(&id) {
+        CalibrationStatus::Model
+    } else if RULE_OF_THUMB.contains(&id) {
+        CalibrationStatus::RuleOfThumb
     } else {
         CalibrationStatus::Needed
     }
@@ -416,6 +924,11 @@ impl PropSpec {
             }
             (PropType::Bool, PropValue::Bool(_)) => true,
             (PropType::Choice { options }, PropValue::Text(s)) => options.iter().any(|o| o == s),
+            (PropType::Binding, PropValue::Text(s)) => {
+                s.len() <= 40
+                    && s.bytes()
+                        .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+            }
             _ => false,
         }
     }
@@ -428,7 +941,10 @@ impl PropSpec {
                 PropType::Int { .. } | PropType::Float { .. },
                 PropValue::Number(_)
             ) | (PropType::Bool, PropValue::Bool(_))
-                | (PropType::Choice { .. }, PropValue::Text(_))
+                | (
+                    PropType::Choice { .. } | PropType::Binding,
+                    PropValue::Text(_)
+                )
         )
     }
 }
@@ -466,6 +982,29 @@ pub struct Cost {
     /// Billing unit size: a request counts `max(1, payload_kb / unit_kb)` units; 0 counts
     /// every request as one.
     pub unit_kb: f64,
+    /// Usage meters for products billed by something other than requests (M8).
+    #[serde(default)]
+    pub meters: Meters,
+    /// Bill instance time only while the card is busy (auto-suspending warehouses).
+    #[serde(default)]
+    pub active_only: bool,
+}
+
+/// Prices per unit of usage (M8): tokens, scanned data, connection time, messages. Zero means
+/// the product doesn't bill that way.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+pub struct Meters {
+    /// Per million input (prompt) tokens.
+    pub tokens_in_m: f64,
+    /// Per million output (generated) tokens.
+    pub tokens_out_m: f64,
+    /// Per TB scanned.
+    pub tb_scanned: f64,
+    /// Per million connection-minutes.
+    pub conn_minutes_m: f64,
+    /// Per million messages sent to connections.
+    pub messages_m: f64,
 }
 
 /// The kind's behaviour where it has no prop (`docs/calibration.md`, rows `<kind>.<field>`).
@@ -503,13 +1042,36 @@ fn kind_sim(kind: ComponentKind) -> Option<SimDefaults> {
         K::Stream => d(10_000.0, 3.0, 3.0, 4.0),
         K::Pubsub => d(10_000.0, 5.0, 3.0, 4.0),
         K::Dlq => d(10_000.0, 2.0, 3.0, 4.0),
-        K::Client | K::Scheduler | K::Autoscale | K::Metrics | K::Logs | K::Tracing => None,
+        // M8 kinds (their S-features refine these; see ADR 0006).
+        K::Ws => d(10_000.0, 0.5, 3.0, 8.0),
+        K::Idp => d(256.0, 5.0, 4.0, 8.0),
+        K::Infer => d(16.0, 300.0, 3.0, 64.0),
+        K::Batch => d(4.0, 1000.0, 3.0, 64.0),
+        K::Media => d(500.0, 20.0, 3.0, 4.0),
+        K::Coord => d(64.0, 2.0, 4.0, 8.0),
+        K::Vector => d(16.0, 2.0, 4.0, 8.0),
+        K::Warehouse => d(8.0, 300.0, 3.0, 16.0),
+        K::Lakehouse => d(1_000.0, 50.0, 4.0, 4.0),
+        K::Tsdb => d(64.0, 1.0, 4.0, 8.0),
+        K::Dbproxy => d(10_000.0, 0.3, 3.0, 8.0),
+        K::Graph => d(32.0, 1.0, 5.0, 4.0),
+        K::Streamproc => d(4.0, 0.05, 3.0, 1_000.0),
+        K::Mqtt => d(10_000.0, 2.0, 3.0, 4.0),
+        K::Connector => d(4.0, 50.0, 4.0, 8.0),
+        K::Client
+        | K::Scheduler
+        | K::Autoscale
+        | K::Metrics
+        | K::Logs
+        | K::Tracing
+        | K::External
+        | K::Config => None,
     };
     if let Some(s) = &mut s {
         s.failover_s = match kind {
-            K::Sql => 30.0,
+            K::Sql | K::Graph | K::Tsdb => 30.0,
             K::Cache => 15.0,
-            K::Search => 10.0,
+            K::Search | K::Vector => 10.0,
             K::Nosql => 5.0,
             _ => 0.0,
         };
@@ -528,6 +1090,18 @@ fn flavour_cost(flavour: Flavour) -> Option<Cost> {
     let node = |m: f64| Cost {
         per_instance_month: m,
         per_million_write: Some(0.0),
+        ..Cost::default()
+    };
+    let per_call = |m: f64| Cost {
+        per_million: m,
+        ..Cost::default()
+    };
+    let tokens = |i: f64, o: f64| Cost {
+        meters: Meters {
+            tokens_in_m: i,
+            tokens_out_m: o,
+            ..Meters::default()
+        },
         ..Cost::default()
     };
     Some(match flavour {
@@ -553,6 +1127,142 @@ fn flavour_cost(flavour: Flavour) -> Option<Cost> {
         F::Cassandra => lane(250.0),
         // MongoDB Atlas M30 ($0.54/h × 730) per shard (partition), a 3-node replica set.
         F::Mongodb => lane(394.0),
+        // --- M8 kinds; every figure is `source: needed` until the citations (part 2b). ---
+        // API Gateway WebSocket: $1.00 per million messages, $0.25 per million connection-minutes.
+        F::AwsApigwWs => Cost {
+            meters: Meters {
+                messages_m: 1.0,
+                conn_minutes_m: 0.25,
+                ..Meters::default()
+            },
+            ..Cost::default()
+        },
+        F::Keycloak => node(70.0),
+        // Twilio SMS ~$0.0079 per message; SendGrid ~$0.0009 per email (teaching prices).
+        F::Twilio => per_call(7_900.0),
+        F::Sendgrid => per_call(900.0),
+        F::Stripe => per_call(0.0),
+        // Per million input / output tokens.
+        F::OpenaiApi => tokens(2.5, 10.0),
+        F::Bedrock => tokens(3.0, 15.0),
+        F::GeminiApi => tokens(1.25, 10.0),
+        // A g5.xlarge-class GPU node ($1.006/h × 730).
+        F::Vllm | F::Triton => node(734.0),
+        F::ElementalLive => node(2_190.0),
+        F::Wowza => node(250.0),
+        // Pinecone serverless: read and write units.
+        F::Pinecone => Cost {
+            per_million: 16.0,
+            per_million_write: Some(4.0),
+            ..Cost::default()
+        },
+        // BigQuery on demand: $6.25 per TB scanned, no instance.
+        F::Bigquery => Cost {
+            meters: Meters {
+                tb_scanned: 6.25,
+                ..Meters::default()
+            },
+            ..Cost::default()
+        },
+        F::Redshift => node(182.0),
+        F::Clickhouse => node(250.0),
+        F::DatabricksSql => Cost {
+            per_instance_month: 1_000.0,
+            active_only: true,
+            ..Cost::default()
+        },
+        F::Timestream => Cost {
+            per_million_write: Some(0.5),
+            per_million: 0.01,
+            ..Cost::default()
+        },
+        F::RdsProxy => node(45.0),
+        F::Neptune => node(350.0),
+        // AWS IoT Core: $1.00 per million messages, $0.08 per million connection-minutes.
+        F::AwsIotCore => Cost {
+            meters: Meters {
+                messages_m: 1.0,
+                conn_minutes_m: 0.08,
+                ..Meters::default()
+            },
+            ..Cost::default()
+        },
+        F::Fivetran => per_call(500.0),
+        // --- M8.3 flavours on existing kinds (teaching prices; `source: needed`). ---
+        // ScyllaDB self-hosted on the same i4i.xlarge node as Cassandra.
+        F::Scylladb => lane(250.0),
+        // Bigtable: $0.65 per node-hour × 730 per node (partition).
+        F::Bigtable => lane(474.0),
+        // Cosmos DB serverless request units, shaped as reads and writes.
+        F::CosmosDb => Cost {
+            per_million: 0.25,
+            per_million_write: Some(1.25),
+            ..Cost::default()
+        },
+        F::Cockroachdb => node(438.0),
+        F::AuroraPostgresql => node(300.0),
+        // Spanner: one node ($0.90/h × 730).
+        F::Spanner => node(657.0),
+        // Service Bus Standard: about $0.80 per million operations, three per message.
+        F::AzureServiceBus => Cost {
+            per_million: 0.8,
+            per_million_write: Some(2.4),
+            ..Cost::default()
+        },
+        // Amazon MQ mq.m5.large ($0.288/h × 730).
+        F::AmazonMq => node(210.0),
+        // SQS FIFO: $0.50 per million requests, three per message.
+        F::SqsFifo => Cost {
+            per_million: 0.5,
+            per_million_write: Some(1.5),
+            ..Cost::default()
+        },
+        F::Redpanda | F::Pulsar => node(153.0),
+        // Event Hubs Standard: a throughput unit per partition ($0.03/h × 730) + $0.028 per
+        // million events.
+        F::AzureEventHubs => Cost {
+            per_lane_month: 21.9,
+            per_million_write: Some(0.028),
+            ..Cost::default()
+        },
+        F::Nats => node(70.0),
+        F::AzureWebPubsub | F::Eventbridge => Cost {
+            per_million_write: Some(1.0),
+            ..Cost::default()
+        },
+        F::Meilisearch => node(150.0),
+        // Azure Blob hot: reads $0.44, writes $5.50 per million.
+        F::AzureBlob => Cost {
+            per_million: 0.44,
+            per_million_write: Some(5.5),
+            ..Cost::default()
+        },
+        // Cloudflare R2: class B $0.36, class A $4.50 per million; no egress fee.
+        F::CloudflareR2 => Cost {
+            per_million: 0.36,
+            per_million_write: Some(4.5),
+            ..Cost::default()
+        },
+        F::Minio => node(70.0),
+        F::EnvoyLb | F::Traefik => node(70.0),
+        // Global Accelerator: $0.025 per hour, plus its data-transfer premium as a price per
+        // request (about 100 KB at $0.015/GB; a placeholder).
+        F::GlobalAccelerator => Cost {
+            per_instance_month: 18.0,
+            per_million: 1.5,
+            ..Cost::default()
+        },
+        F::Akamai => per_call(1.2),
+        // API Management Standard unit.
+        F::AzureApim => node(686.0),
+        F::Litellm | F::ApolloRouter => node(70.0),
+        F::CloudflareWorkers => per_call(0.3),
+        F::AzureFunctions => per_call(0.4),
+        // MediaConvert: per minute of output, here per job.
+        F::Mediaconvert => per_call(7_500.0),
+        F::Temporal => node(200.0),
+        F::Dagster => node(100.0),
+        F::K8sCronjob => node(0.0),
         // GCS Standard: Class B $0.40, Class A $5.00 per million, as S3.
         _ => return None,
     })
@@ -571,6 +1281,18 @@ fn flavour_sim(flavour: Flavour, s: &mut SimDefaults) {
         F::Memcached => s.servers_per_instance = 4.0,
         F::Sqs => s.service_ms = 10.0,
         F::Kinesis => s.service_ms = 15.0,
+        // M8.3: ScyllaDB's shard-per-core design (vendor benchmarks: several times
+        // Cassandra's throughput per node; source needed).
+        F::Scylladb => s.servers_per_instance = 96.0,
+        // Multi-threaded caches.
+        F::Dragonfly | F::Hazelcast => s.servers_per_instance = 8.0,
+        // SQS FIFO: 300 messages a second per action without batching.
+        F::SqsFifo => {
+            s.service_ms = 20.0;
+            s.servers_per_instance = 300.0;
+        }
+        F::Redpanda => s.service_ms = 1.0,
+        F::Eventbridge => s.service_ms = 20.0,
         _ => {}
     }
 }
@@ -618,6 +1340,33 @@ fn kind_cost(kind: ComponentKind) -> Cost {
         K::Metrics => c(100.0, 0.0, 0.0),
         K::Logs => c(150.0, 0.0, 0.0),
         K::Tracing => c(80.0, 0.0, 0.0),
+        // --- M8 kinds (teaching prices; `source: needed` until the citations). ---
+        K::Ws | K::Coord | K::Streamproc | K::Mqtt | K::Connector | K::Media => c(70.0, 0.0, 0.0),
+        // Managed identity: per million logins (an MAU proxy).
+        K::Idp => c(0.0, 0.0, 5.0),
+        K::External => c(0.0, 0.0, 0.0),
+        // Hosted models: per million input and output tokens (Claude Sonnet-class list prices).
+        K::Infer => Cost {
+            meters: Meters {
+                tokens_in_m: 3.0,
+                tokens_out_m: 15.0,
+                ..Meters::default()
+            },
+            ..Cost::default()
+        },
+        // An m5.xlarge-class node ($0.192/h × 730).
+        K::Batch => c(140.0, 0.0, 0.0),
+        K::Vector | K::Tsdb | K::Graph => c(260.0, 0.0, 0.0),
+        // Snowflake X-Small: 1 credit/h at $2 × 730, billed only while running.
+        K::Warehouse => Cost {
+            per_instance_month: 1_460.0,
+            active_only: true,
+            ..Cost::default()
+        },
+        // Object storage behind the table (S3 Standard $0.023/GB-month).
+        K::Lakehouse => c(0.0, 0.023, 0.0),
+        K::Dbproxy => c(30.0, 0.0, 0.0),
+        K::Config => c(20.0, 0.0, 0.0),
     }
 }
 
@@ -689,6 +1438,9 @@ pub struct Registry {
     pub categories: Vec<Category>,
     pub kinds: Vec<KindSpec>,
     pub meta: Vec<MetaSpec>,
+    /// A zone's service-mesh policy props (v4); their defaults leave the mesh's retries,
+    /// timeouts and circuit breaking off.
+    pub mesh_props: Vec<PropSpec>,
     pub wiring: WiringTable,
     pub limits: crate::validate::Limits,
 }
@@ -827,6 +1579,29 @@ fn service_ms(default: f64) -> PropSpec {
 fn compute_props(inst: f64, conc: f64, ms: f64) -> Vec<PropSpec> {
     vec![instances(inst), concurrency(conc), service_ms(ms)]
 }
+/// S8 (M8): how a service protects itself from its dependencies and from overload. Every
+/// default is off, the behaviour before M8.
+fn resilience() -> Vec<PropSpec> {
+    vec![
+        int("call_timeout_ms", 0.0, 60_000.0, 0.0, Unit::Ms),
+        int("breaker_errors_pct", 0.0, 100.0, 0.0, Unit::Percent),
+        int("breaker_open_s", 1.0, 600.0, 30.0, Unit::S),
+        boolean("bulkhead", false),
+        shed_queue(),
+        // How a new build reaches the instances: in stages, with a wait between them.
+        int("rollout_percent", 1.0, 100.0, 100.0, Unit::Percent),
+        int("bake_s", 0.0, 3600.0, 0.0, Unit::S),
+        boolean("auto_rollback", false),
+    ]
+}
+/// S7: `manual` (the behaviour before M8: a replica takes over only when the primary dies)
+/// or `auto` (a replica cut off from its primary by a split promotes itself: split-brain).
+fn split_failover() -> PropSpec {
+    choice("split_failover", &["manual", "auto"], "manual")
+}
+fn shed_queue() -> PropSpec {
+    int("shed_queue", 0.0, 1_000_000.0, 0.0, Unit::Count)
+}
 
 /// The registry. Order is the library's order: categories, then kinds within each.
 pub fn registry() -> Registry {
@@ -836,14 +1611,35 @@ pub fn registry() -> Registry {
         // --- Clients & Edge ---
         kind(
             K::Client,
-            vec![fl(F::Web), fl(F::Mobile)],
-            vec![int("rps", 1.0, 1_000_000.0, 1000.0, Unit::Rps)],
+            vec![
+                fl(F::Web),
+                fl(F::Mobile),
+                fl(F::IotDevice),
+                fl(F::PartnerServer),
+            ],
+            vec![
+                int("rps", 1.0, 1_000_000.0, 1000.0, Unit::Rps),
+                // S8 (M8): how a client gives up and tries again. The defaults are the
+                // behaviour before M8: one try, a 5 s timeout.
+                int("timeout_ms", 100.0, 120_000.0, 5_000.0, Unit::Ms),
+                int("retries", 0.0, 10.0, 0.0, Unit::Count),
+                int("backoff_ms", 0.0, 60_000.0, 100.0, Unit::Ms),
+                choice("jitter", &["none", "full"], "none"),
+                int("retry_budget_pct", 0.0, 100.0, 0.0, Unit::Percent),
+                // S1: long-lived connections reconnect spread over this window after a drop
+                // (0: all at once, a storm), and retry a refused connection after the backoff.
+                int("reconnect_jitter_s", 0.0, 600.0, 0.0, Unit::S),
+                int("reconnect_backoff_s", 0.0, 600.0, 1.0, Unit::S),
+            ],
         ),
         kind(
             K::Dns,
             vec![fl(F::Route53), fl(F::CloudflareDns)],
             vec![
                 int("ttl_s", 0.0, 86_400.0, 300.0, Unit::S),
+                // S8: `failover` answers with the first healthy target; clients cache the
+                // answer for the TTL. `round_robin` spreads over every healthy target.
+                choice("routing", &["round_robin", "failover"], "round_robin"),
                 // Billing only: the share of requests that reach the DNS service as a query
                 // (clients and resolvers cache answers for the TTL).
                 float("query_ratio", 0.001, 1.0, 0.001, 0.01, Unit::None),
@@ -851,7 +1647,12 @@ pub fn registry() -> Registry {
         ),
         kind(
             K::Cdn,
-            vec![fl(F::Cloudfront), fl(F::CloudflareCdn), fl(F::Fastly)],
+            vec![
+                fl(F::Cloudfront),
+                fl(F::CloudflareCdn),
+                fl(F::Fastly),
+                fl(F::Akamai),
+            ],
             vec![int("ttl_s", 0.0, 604_800.0, 3600.0, Unit::S)],
         ),
         kind(
@@ -866,6 +1667,9 @@ pub fn registry() -> Registry {
                 fl(F::Haproxy),
                 fl(F::AwsAlb),
                 fl_with(F::AwsNlb, &[("service_ms", num(0.2))]),
+                fl(F::EnvoyLb),
+                fl(F::Traefik),
+                fl_with(F::GlobalAccelerator, &[("service_ms", num(0.2))]),
             ],
             vec![
                 int("instances", 1.0, 16.0, 1.0, Unit::Count),
@@ -875,12 +1679,22 @@ pub fn registry() -> Registry {
                     "round_robin",
                 ),
                 service_ms(0.5),
+                // S8: eject targets whose queue wait passes this (0 = liveness checks only),
+                // keeping at least this share in rotation.
+                int("health_timeout_ms", 0.0, 60_000.0, 0.0, Unit::Ms),
+                int("min_healthy_pct", 0.0, 100.0, 0.0, Unit::Percent),
             ],
         ),
         kind(
             K::Gateway,
-            vec![fl(F::Kong), fl(F::AwsApiGateway)],
-            compute_props(2.0, 256.0, 2.0),
+            vec![
+                fl(F::Kong),
+                fl(F::AwsApiGateway),
+                fl(F::AzureApim),
+                fl(F::Litellm),
+                fl_with(F::ApolloRouter, &[("service_ms", num(3.0))]),
+            ],
+            [compute_props(2.0, 256.0, 2.0), vec![shed_queue()]].concat(),
         ),
         kind(
             K::Ratelimit,
@@ -888,7 +1702,60 @@ pub fn registry() -> Registry {
             vec![
                 int("limit_rps", 1.0, 1_000_000.0, 1000.0, Unit::Rps),
                 int("burst", 1.0, 100_000.0, 100.0, Unit::Count),
+                // M10: when the limiter can't reach its state (a dead card), refuse every
+                // request (`closed`) or let them through unlimited (`open`).
+                choice("on_failure", &["closed", "open"], "closed"),
             ],
+        ),
+        kind(
+            K::Ws,
+            vec![
+                fl(F::SocketIo),
+                fl(F::AwsApigwWs),
+                fl_with(F::Phoenix, &[("max_connections", num(1_000_000.0))]),
+            ],
+            vec![
+                instances(2.0),
+                int(
+                    "max_connections",
+                    1000.0,
+                    2_000_000.0,
+                    100_000.0,
+                    Unit::Count,
+                ),
+                float("conn_memory_kb", 1.0, 512.0, 1.0, 20.0, Unit::Kb),
+                float("memory_gb", 0.5, 1024.0, 0.5, 8.0, Unit::Gb),
+                int("msgs_per_s", 100.0, 2_000_000.0, 50_000.0, Unit::Rps),
+                int("accept_per_s", 10.0, 100_000.0, 2_000.0, Unit::Rps),
+                service_ms(0.5),
+            ],
+        ),
+        kind(
+            K::Idp,
+            vec![fl(F::Auth0), fl(F::Cognito), fl(F::Keycloak), fl(F::Okta)],
+            vec![
+                instances(1.0),
+                float("login_ms", 1.0, 10_000.0, 1.0, 150.0, Unit::Ms),
+                float("verify_ms", 0.1, 1000.0, 0.1, 5.0, Unit::Ms),
+                int("logins_per_s", 1.0, 100_000.0, 100.0, Unit::Rps),
+                choice("verify", &["remote", "local"], "remote"),
+            ],
+        ),
+        kind(
+            K::External,
+            vec![
+                fl(F::Generic),
+                fl(F::Stripe),
+                fl(F::Twilio),
+                fl(F::Sendgrid),
+            ],
+            vec![PropSpec {
+                key: "binding".into(),
+                ty: PropType::Binding,
+                default: PropValue::Text(String::new()),
+                unit: Unit::None,
+                calibration: None,
+            }],
         ),
         // --- Compute ---
         kind(
@@ -901,25 +1768,44 @@ pub fn registry() -> Registry {
                     F::Django,
                     &[("service_ms", num(20.0)), ("concurrency", num(9.0))],
                 ),
+                fl_with(F::AspnetCore, &[("service_ms", num(6.0))]),
+                fl_with(
+                    F::Rails,
+                    &[("service_ms", num(25.0)), ("concurrency", num(5.0))],
+                ),
             ],
-            compute_props(2.0, 64.0, 10.0),
+            [compute_props(2.0, 64.0, 10.0), resilience()].concat(),
         ),
         kind(
             K::Micro,
             vec![fl(F::Generic)],
-            compute_props(2.0, 64.0, 10.0),
+            [compute_props(2.0, 64.0, 10.0), resilience()].concat(),
         ),
         kind(
             K::Worker,
             vec![
                 fl(F::Celery),
                 fl_with(F::Sidekiq, &[("concurrency", num(5.0))]),
+                fl_with(F::Bullmq, &[("concurrency", num(10.0))]),
+                fl_with(F::TemporalWorker, &[("concurrency", num(100.0))]),
+                fl_with(
+                    F::Ffmpeg,
+                    &[("service_ms", num(10_000.0)), ("concurrency", num(2.0))],
+                ),
+                fl_with(
+                    F::Mediaconvert,
+                    &[("service_ms", num(10_000.0)), ("concurrency", num(1000.0))],
+                ),
             ],
-            vec![
-                instances(2.0),
-                int("concurrency", 1.0, 1024.0, 8.0, Unit::Count),
-                service_ms(100.0),
-            ],
+            [
+                vec![
+                    instances(2.0),
+                    int("concurrency", 1.0, 1024.0, 8.0, Unit::Count),
+                    service_ms(100.0),
+                ],
+                resilience(),
+            ]
+            .concat(),
         ),
         kind(
             K::Serverless,
@@ -932,6 +1818,11 @@ pub fn registry() -> Registry {
                         ("concurrency_limit", num(8000.0)),
                     ],
                 ),
+                fl_with(
+                    F::CloudflareWorkers,
+                    &[("cold_start_ms", num(5.0)), ("service_ms", num(10.0))],
+                ),
+                fl(F::AzureFunctions),
             ],
             vec![
                 int("concurrency_limit", 1.0, 10_000.0, 1000.0, Unit::Count),
@@ -949,12 +1840,100 @@ pub fn registry() -> Registry {
                 int("scale_delay_s", 0.0, 600.0, 60.0, Unit::S),
             ],
         ),
+        kind(
+            K::Infer,
+            vec![
+                fl(F::ClaudeApi),
+                fl_with(
+                    F::OpenaiApi,
+                    &[("ttft_ms", num(500.0)), ("tokens_per_s", num(90.0))],
+                ),
+                fl(F::Bedrock),
+                fl_with(
+                    F::GeminiApi,
+                    &[("ttft_ms", num(500.0)), ("tokens_per_s", num(120.0))],
+                ),
+                fl_with(F::Vllm, &[("ttft_ms", num(200.0))]),
+                fl_with(
+                    F::Triton,
+                    &[
+                        ("model_type", PropValue::Text("classify".into())),
+                        ("ttft_ms", num(5.0)),
+                        ("batch_slots", num(64.0)),
+                    ],
+                ),
+            ],
+            vec![
+                choice("model_type", &["chat", "embed", "classify"], "chat"),
+                choice("api_mode", &["realtime", "batch"], "realtime"),
+                instances(2.0),
+                int("batch_slots", 1.0, 256.0, 16.0, Unit::Count),
+                float("ttft_ms", 1.0, 10_000.0, 1.0, 600.0, Unit::Ms),
+                float("tokens_per_s", 1.0, 5_000.0, 1.0, 80.0, Unit::Tps),
+                int("prefill_tps", 100.0, 100_000.0, 5_000.0, Unit::Tps),
+                int("rpm", 1.0, 1_000_000.0, 4_000.0, Unit::PerMin),
+                int("tpm", 1_000.0, 100_000_000.0, 400_000.0, Unit::PerMin),
+            ],
+        ),
+        kind(
+            K::Batch,
+            vec![fl(F::SparkEmr), fl(F::Dataproc), fl(F::Databricks)],
+            vec![
+                int("instances", 1.0, 256.0, 4.0, Unit::Count),
+                int("executors", 1.0, 64.0, 4.0, Unit::Count),
+                float("task_overhead_ms", 1.0, 60_000.0, 1.0, 200.0, Unit::Ms),
+                boolean("speculation", false),
+                int("salting", 1.0, 64.0, 1.0, Unit::Count),
+                int("spot_share", 0.0, 100.0, 0.0, Unit::Percent),
+                boolean("checkpoint", false),
+            ],
+        ),
+        kind(
+            K::Media,
+            vec![
+                fl(F::Livekit),
+                fl(F::Mediasoup),
+                fl_with(
+                    F::ElementalLive,
+                    &[
+                        ("mode", PropValue::Text("transcode".into())),
+                        ("streams_per_instance", num(8.0)),
+                    ],
+                ),
+                fl_with(
+                    F::Wowza,
+                    &[
+                        ("mode", PropValue::Text("transcode".into())),
+                        ("streams_per_instance", num(8.0)),
+                    ],
+                ),
+            ],
+            vec![
+                instances(2.0),
+                choice("mode", &["sfu", "transcode"], "sfu"),
+                int("streams_per_instance", 1.0, 10_000.0, 500.0, Unit::Count),
+                int("renditions", 1.0, 8.0, 4.0, Unit::Count),
+                float("segment_s", 0.5, 10.0, 0.5, 2.0, Unit::S),
+                float("bandwidth_gbps", 1.0, 100.0, 1.0, 10.0, Unit::Gbps),
+            ],
+        ),
         // --- Data ---
         kind(
             K::Sql,
             vec![
                 fl(F::Postgresql),
-                fl_with(F::Mysql, &[("concurrency", num(151.0))]),
+                fl_with(
+                    F::Mysql,
+                    &[
+                        ("concurrency", num(151.0)),
+                        ("max_connections", num(1_365.0)),
+                    ],
+                ),
+                fl_with(F::Cockroachdb, &[("service_ms", num(12.0))]),
+                fl_with(F::AuroraPostgresql, &[("replication_lag_ms", num(20.0))]),
+                fl_with(F::Spanner, &[("service_ms", num(12.0))]),
+                fl_with(F::Postgis, &[("service_ms", num(10.0))]),
+                fl_with(F::Citus, &[("service_ms", num(5.5)), ("shards", num(4.0))]),
             ],
             vec![
                 int("shards", 1.0, 64.0, 1.0, Unit::Count),
@@ -964,22 +1943,54 @@ pub fn registry() -> Registry {
                 int("failover_s", 1.0, 600.0, 30.0, Unit::S),
                 choice("read_from", &["any", "primary"], "any"),
                 int("cdc_buffer_s", 0.0, 3600.0, 300.0, Unit::S),
+                split_failover(),
+                boolean("fencing", false),
+                // S5: idempotent writes (upsert by key): a replayed result isn't a duplicate.
+                boolean("dedup", false),
+                // M9: a write that checks and sets in one statement (a conditional UPDATE, a
+                // condition expression): on a contended key a race is refused cleanly (S7).
+                boolean("conditional_writes", false),
+                // M10: a commit waits for replicas: none (async), one replica (`sync`), or a
+                // majority of the cluster (`quorum`).
+                choice("sync", &["none", "sync", "quorum"], "none"),
+                // M8: enforced when a problem turns connection limits on.
+                int("max_connections", 1.0, 100_000.0, 1_700.0, Unit::Count),
             ],
         ),
         kind(
             K::Nosql,
-            vec![fl(F::Dynamodb), fl(F::Cassandra), fl(F::Mongodb)],
+            vec![
+                fl(F::Dynamodb),
+                fl(F::Cassandra),
+                fl(F::Mongodb),
+                fl(F::Scylladb),
+                fl(F::Bigtable),
+                fl(F::CosmosDb),
+            ],
             vec![
                 int("partitions", 1.0, 1024.0, 4.0, Unit::Count),
                 int("replication_factor", 1.0, 5.0, 3.0, Unit::Count),
                 choice("consistency", &["eventual", "strong"], "eventual"),
                 service_ms(3.0),
                 int("cdc_buffer_s", 0.0, 3600.0, 300.0, Unit::S),
+                split_failover(),
+                boolean("fencing", false),
+                // S5: idempotent writes (upsert by key): a replayed result isn't a duplicate.
+                boolean("dedup", false),
+                // M9: a write that checks and sets in one statement (a conditional UPDATE, a
+                // condition expression): on a contended key a race is refused cleanly (S7).
+                boolean("conditional_writes", false),
             ],
         ),
         kind(
             K::Cache,
-            vec![fl(F::Redis), fl(F::Memcached)],
+            vec![
+                fl(F::Redis),
+                fl(F::Memcached),
+                fl(F::Valkey),
+                fl(F::Dragonfly),
+                fl(F::Hazelcast),
+            ],
             vec![
                 float("memory_gb", 0.5, 1024.0, 0.5, 2.0, Unit::Gb),
                 int("ttl_s", 0.0, 604_800.0, 300.0, Unit::S),
@@ -987,44 +1998,192 @@ pub fn registry() -> Registry {
                 boolean("persistence", false),
                 service_ms(0.01),
                 int("failover_s", 1.0, 600.0, 15.0, Unit::S),
+                // S3: `semantic` answers near-repeat questions (an embedding lookup); its hit
+                // rate comes from the traffic, never from the design.
+                choice("mode", &["exact", "semantic"], "exact"),
+                // S8d: answer from an expired copy (up to this long after its TTL) when the
+                // origin fails; and coalesce concurrent misses for one key.
+                int("serve_stale_s", 0.0, 86_400.0, 0.0, Unit::S),
+                boolean("stampede_guard", false),
+                // M9: a write that checks and sets in one statement (a conditional UPDATE, a
+                // condition expression): on a contended key a race is refused cleanly (S7).
+                boolean("conditional_writes", false),
             ],
         ),
         kind(
             K::Object,
-            vec![fl(F::S3), fl(F::Gcs)],
+            vec![
+                fl(F::S3),
+                fl(F::Gcs),
+                fl(F::AzureBlob),
+                fl(F::CloudflareR2),
+                fl(F::Minio),
+            ],
             vec![service_ms(50.0)],
         ),
         kind(
             K::Search,
-            vec![fl(F::Elasticsearch), fl(F::Opensearch)],
+            vec![
+                fl(F::Elasticsearch),
+                fl(F::Opensearch),
+                fl(F::Solr),
+                fl_with(F::Meilisearch, &[("service_ms", num(5.0))]),
+            ],
             vec![
                 int("shards", 1.0, 64.0, 2.0, Unit::Count),
                 int("replicas", 0.0, 5.0, 1.0, Unit::Count),
                 service_ms(20.0),
             ],
         ),
+        kind(
+            K::Coord,
+            vec![fl(F::Etcd), fl(F::Zookeeper), fl(F::Consul)],
+            vec![
+                int("instances", 1.0, 7.0, 3.0, Unit::Count),
+                int("election_ms", 100.0, 30_000.0, 1_000.0, Unit::Ms),
+                int("lease_s", 1.0, 600.0, 10.0, Unit::S),
+                service_ms(2.0),
+            ],
+        ),
+        kind(
+            K::Vector,
+            vec![
+                fl(F::Pgvector),
+                fl(F::Pinecone),
+                fl(F::Qdrant),
+                fl(F::Milvus),
+            ],
+            vec![
+                int("shards", 1.0, 64.0, 1.0, Unit::Count),
+                float("vectors_m", 0.01, 10_000.0, 0.01, 10.0, Unit::Count),
+                int("dims", 64.0, 4096.0, 768.0, Unit::Count),
+                service_ms(2.0),
+            ],
+        ),
+        kind(
+            K::Warehouse,
+            vec![
+                fl(F::Snowflake),
+                fl(F::Bigquery),
+                fl(F::Redshift),
+                fl(F::Clickhouse),
+                fl(F::DatabricksSql),
+            ],
+            vec![
+                instances(1.0),
+                concurrency(8.0),
+                float("scan_gbps", 0.05, 50.0, 0.05, 1.0, Unit::Gbps),
+                float("overhead_ms", 1.0, 60_000.0, 1.0, 300.0, Unit::Ms),
+                boolean("result_cache", true),
+                int("auto_suspend_s", 0.0, 3600.0, 60.0, Unit::S),
+                boolean("dedup", false),
+            ],
+        ),
+        kind(
+            K::Lakehouse,
+            vec![fl(F::Iceberg), fl(F::Delta), fl(F::Hudi)],
+            vec![
+                int("target_file_mb", 1.0, 2048.0, 128.0, Unit::Mb),
+                choice("partitioning", &["none", "day", "hour"], "none"),
+                choice("compaction", &["none", "hourly", "daily"], "daily"),
+                float("stored_tb", 0.01, 10_000.0, 0.01, 10.0, Unit::None),
+            ],
+        ),
+        kind(
+            K::Tsdb,
+            vec![
+                fl(F::Influxdb),
+                fl(F::Timescaledb),
+                fl(F::Timestream),
+                fl(F::Mimir),
+            ],
+            vec![
+                instances(1.0),
+                int("points_per_s", 1_000.0, 10_000_000.0, 500_000.0, Unit::Rps),
+                int(
+                    "series_limit",
+                    1_000.0,
+                    100_000_000.0,
+                    1_000_000.0,
+                    Unit::Count,
+                ),
+                int("retention_days", 1.0, 3650.0, 30.0, Unit::Days),
+                float("memory_gb", 0.5, 1024.0, 0.5, 16.0, Unit::Gb),
+                service_ms(1.0),
+                boolean("dedup", false),
+            ],
+        ),
+        kind(
+            K::Dbproxy,
+            vec![
+                fl(F::Pgbouncer),
+                fl(F::RdsProxy),
+                fl(F::Proxysql),
+                fl(F::Vtgate),
+            ],
+            vec![
+                instances(1.0),
+                int("pool_size", 1.0, 5000.0, 100.0, Unit::Count),
+                choice("mode", &["transaction", "session"], "transaction"),
+                int("client_limit", 1.0, 100_000.0, 10_000.0, Unit::Count),
+                service_ms(0.3),
+            ],
+        ),
+        kind(
+            K::Graph,
+            vec![fl(F::Neo4j), fl(F::Neptune), fl(F::Janusgraph)],
+            vec![
+                instances(1.0),
+                float("edges_per_ms", 1.0, 100_000.0, 1.0, 500.0, Unit::Count),
+                service_ms(1.0),
+                int("failover_s", 1.0, 600.0, 30.0, Unit::S),
+            ],
+        ),
         // --- Async ---
         kind(
             K::Queue,
-            vec![fl(F::Rabbitmq), fl(F::Sqs)],
+            vec![
+                fl(F::Rabbitmq),
+                fl(F::Sqs),
+                fl(F::AzureServiceBus),
+                fl(F::AmazonMq),
+                fl(F::SqsFifo),
+            ],
             vec![
                 int("max_depth", 1.0, 10_000_000.0, 100_000.0, Unit::Count),
                 int("visibility_timeout_s", 1.0, 43_200.0, 30.0, Unit::S),
                 int("max_retries", 0.0, 20.0, 3.0, Unit::Count),
+                // M10: dispatch live messages before bulk ones (request types marked `bulk`).
+                boolean("priority", false),
             ],
         ),
         kind(
             K::Stream,
-            vec![fl(F::Kafka), fl(F::Kinesis)],
+            vec![
+                fl(F::Kafka),
+                fl(F::Kinesis),
+                fl(F::Redpanda),
+                fl(F::Pulsar),
+                fl(F::AzureEventHubs),
+            ],
             vec![
                 int("partitions", 1.0, 1024.0, 6.0, Unit::Count),
                 int("session_timeout_s", 1.0, 1800.0, 45.0, Unit::S),
                 int("retention_h", 1.0, 8760.0, 168.0, Unit::H),
+                // M10: dispatch live records before bulk ones (request types marked `bulk`).
+                boolean("priority", false),
             ],
         ),
         kind(
             K::Pubsub,
-            vec![fl(F::GooglePubsub), fl(F::Sns), fl(F::RedisPubsub)],
+            vec![
+                fl(F::GooglePubsub),
+                fl(F::Sns),
+                fl(F::RedisPubsub),
+                fl_with(F::Nats, &[("service_ms", num(0.5))]),
+                fl(F::AzureWebPubsub),
+                fl(F::Eventbridge),
+            ],
             vec![service_ms(5.0)],
         ),
         kind(
@@ -1034,8 +2193,70 @@ pub fn registry() -> Registry {
         ),
         kind(
             K::Scheduler,
-            vec![fl(F::Cron), fl(F::Airflow)],
+            vec![
+                fl(F::Cron),
+                fl(F::Airflow),
+                fl(F::Temporal),
+                fl(F::Dagster),
+                fl(F::K8sCronjob),
+            ],
             vec![int("interval_s", 1.0, 86_400.0, 60.0, Unit::S)],
+        ),
+        kind(
+            K::Streamproc,
+            vec![fl(F::Flink), fl(F::KafkaStreams), fl(F::SparkStreaming)],
+            vec![
+                instances(2.0),
+                int("concurrency", 1.0, 256.0, 4.0, Unit::Count),
+                int("records_per_s", 100.0, 10_000_000.0, 20_000.0, Unit::Rps),
+                choice("window", &["none", "tumbling", "sliding"], "none"),
+                int("window_s", 1.0, 86_400.0, 60.0, Unit::S),
+                int("slide_s", 1.0, 3600.0, 10.0, Unit::S),
+                int("watermark_s", 0.0, 3600.0, 5.0, Unit::S),
+                int("allowed_lateness_s", 0.0, 86_400.0, 0.0, Unit::S),
+                int("checkpoint_s", 1.0, 3600.0, 60.0, Unit::S),
+                float("state_kb", 0.1, 1024.0, 0.1, 1.0, Unit::Kb),
+                float("memory_gb", 0.5, 1024.0, 0.5, 8.0, Unit::Gb),
+            ],
+        ),
+        kind(
+            K::Mqtt,
+            vec![
+                fl(F::Emqx),
+                fl(F::AwsIotCore),
+                fl(F::Mosquitto),
+                fl(F::Hivemq),
+            ],
+            vec![
+                instances(2.0),
+                int(
+                    "max_connections",
+                    1000.0,
+                    10_000_000.0,
+                    1_000_000.0,
+                    Unit::Count,
+                ),
+                float("conn_memory_kb", 1.0, 512.0, 1.0, 8.0, Unit::Kb),
+                int("msgs_per_s", 100.0, 10_000_000.0, 100_000.0, Unit::Rps),
+                choice("qos", &["at_most_once", "at_least_once"], "at_most_once"),
+                service_ms(2.0),
+            ],
+        ),
+        kind(
+            K::Connector,
+            vec![
+                fl(F::KafkaConnect),
+                fl(F::Debezium),
+                fl(F::Fivetran),
+                fl(F::Airbyte),
+            ],
+            vec![
+                instances(1.0),
+                int("concurrency", 1.0, 256.0, 4.0, Unit::Count),
+                int("poll_s", 1.0, 86_400.0, 300.0, Unit::S),
+                int("api_rps", 1.0, 100_000.0, 10.0, Unit::Rps),
+                service_ms(50.0),
+            ],
         ),
         // --- Ops ---
         kind(
@@ -1052,6 +2273,18 @@ pub fn registry() -> Registry {
             K::Tracing,
             vec![fl(F::Jaeger)],
             vec![float("sample_rate", 0.0, 100.0, 1.0, 10.0, Unit::Percent)],
+        ),
+        kind(
+            K::Config,
+            vec![fl(F::Launchdarkly), fl(F::AwsAppconfig), fl(F::Unleash)],
+            vec![
+                choice("delivery", &["stream", "poll"], "stream"),
+                int("poll_s", 1.0, 3600.0, 30.0, Unit::S),
+                boolean("staged", false),
+                int("stages", 1.0, 10.0, 3.0, Unit::Count),
+                int("bake_s", 0.0, 3600.0, 60.0, Unit::S),
+                boolean("kill_switch", false),
+            ],
         ),
     ];
     Registry {
@@ -1070,6 +2303,11 @@ pub fn registry() -> Registry {
                 kind: MetaKind::Note,
                 icon: "note".into(),
             },
+        ],
+        mesh_props: vec![
+            int("mesh_retries", 0.0, 10.0, 0.0, Unit::Count),
+            int("mesh_timeout_ms", 0.0, 60_000.0, 0.0, Unit::Ms),
+            int("mesh_breaker_errors_pct", 0.0, 100.0, 0.0, Unit::Percent),
         ],
         wiring: wiring::table(),
         limits: crate::validate::Limits::default(),
@@ -1096,7 +2334,8 @@ pub struct CalibrationRow {
 /// - behaviour without a prop: `<kind>.<field>` (`servers_per_instance`, `service_ms` when the
 ///   kind has no such prop, `p99_ratio`, `queue_per_server`, `failover_s` when set), and
 ///   `@<flavour>` where a flavour departs from its kind;
-/// - prices: `<kind>.cost.instance|lane|gb|million|million_write|unit_kb` when non-zero,
+/// - prices: `<kind>.cost.instance|lane|gb|million|million_write|unit_kb` and
+///   `<kind>.cost.meter.<meter>` when non-zero,
 ///   `@<flavour>` where a flavour departs from its kind.
 pub fn calibration_rows(registry: &Registry) -> Vec<CalibrationRow> {
     let mut rows = Vec::new();
@@ -1155,6 +2394,11 @@ pub fn calibration_rows(registry: &Registry) -> Vec<CalibrationRow> {
                 ("million", c.per_million),
                 ("million_write", c.per_million_write.unwrap_or(0.0)),
                 ("unit_kb", c.unit_kb),
+                ("meter.tokens_in", c.meters.tokens_in_m),
+                ("meter.tokens_out", c.meters.tokens_out_m),
+                ("meter.tb_scanned", c.meters.tb_scanned),
+                ("meter.conn_minutes", c.meters.conn_minutes_m),
+                ("meter.messages", c.meters.messages_m),
             ]
         };
         let kc = kind_cost(k.kind);
@@ -1181,23 +2425,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn has_25_kinds_in_5_categories_in_library_order() {
+    fn has_42_kinds_in_5_categories_in_library_order() {
         let r = registry();
-        assert_eq!(r.kinds.len(), 25);
+        assert_eq!(r.kinds.len(), 42);
         let kinds: Vec<_> = r.kinds.iter().map(|k| k.kind).collect();
         assert_eq!(kinds, ComponentKind::ALL.to_vec());
         let per_category: Vec<usize> = Category::ALL
             .iter()
             .map(|c| r.kinds.iter().filter(|k| k.category == *c).count())
             .collect();
-        assert_eq!(per_category, vec![7, 5, 5, 5, 3]);
+        assert_eq!(per_category, vec![10, 8, 12, 8, 4]);
     }
 
     #[test]
     fn ids_icons_and_tokens_are_consistent() {
         let r = registry();
         let icons: HashSet<_> = r.kinds.iter().map(|k| k.icon.as_str()).collect();
-        assert_eq!(icons.len(), 25, "every kind has its own glyph");
+        assert_eq!(icons.len(), 42, "every kind has its own glyph");
         for k in &r.kinds {
             assert_eq!(k.icon, k.kind.id());
             assert_eq!(k.color_token, format!("cat-{}", k.category.id()));

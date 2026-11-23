@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "marketplace-search-naive",
   "name": "Marketplace Search (first try)",
   "problem_id": "marketplace-search",

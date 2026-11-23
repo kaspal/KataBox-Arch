@@ -1,0 +1,68 @@
+id = "ai-gpu-job-scheduler"
+track = "ai"
+number = 19
+set = 1
+difficulty = "hard"
+title = "Schedule Jobs on a Shared GPU Cluster"
+title_es = "Planificar trabajos en un clúster de GPU compartido"
+teaches = "Let urgent jobs jump the queue on a busy GPU pool: a priority queue sends them ahead of bulk work, and headroom keeps them on time when the urgent load surges"
+teaches_es = "Dejar que los trabajos urgentes se salten la cola en un grupo de GPU ocupado: una cola con prioridad los adelanta al trabajo masivo, y el margen los mantiene a tiempo cuando la carga urgente se dispara"
+tags = ["gpu", "queues", "priority", "capacity", "headroom"]
+requires = ["queue", "worker"]
+
+# Scaled time: a real job runs for tens of minutes; here an urgent eval takes about 2 s on a
+# GPU and a bulk job about three times longer, and the 8 s limit stands for "starts within
+# minutes". The statement and editorial say so.
+
+[nfr]
+peak_rps = 6
+p95_ms = 8000
+availability = 0.999
+budget_usd = 4500
+
+[[request_types]]
+id = "urgent"
+name = "Submit an urgent eval job"
+name_es = "Enviar un trabajo de evaluación urgente"
+share = 0.5
+route = ["edge?", "compute", "broker", "worker"]
+key_space = 100000
+measure = "completion"
+
+[[request_types]]
+id = "bulk"
+name = "Submit a bulk job (sweep or scheduled fine-tune)"
+name_es = "Enviar un trabajo masivo (barrido o ajuste fino programado)"
+share = 0.5
+route = ["edge?", "compute", "broker", "worker"]
+key_space = 100000
+# Bulk jobs run three times as long on a GPU, and nobody waits on them: they are measured
+# by the submission's answer, so the p95 limit is decided by the urgent jobs.
+fanout = { mean = 3 }
+bulk = true
+
+[[tests]]
+id = "normal"
+name = "A normal working day"
+name_es = "Un día de trabajo normal"
+duration_s = 120
+
+[[tests]]
+id = "urgent-surge"
+name = "Release day: four times the urgent jobs"
+name_es = "Día de lanzamiento: el cuádruple de trabajos urgentes"
+hidden = true
+duration_s = 120
+type_multipliers = { urgent = 4 }
+
+[[tests]]
+id = "node-lost"
+name = "Release day, and a GPU node fails for 80 s"
+name_es = "Día de lanzamiento, y un nodo de GPU falla durante 80 s"
+hidden = true
+duration_s = 120
+type_multipliers = { urgent = 4 }
+chaos = [{ kill = { kind = "worker", at = 20, for = 80 } }]
+
+[pass]
+error_rate = 0.01

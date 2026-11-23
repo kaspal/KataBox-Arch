@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { CheckCircle2, CircleDashed, CircleDot, List, Package, Play, Ruler, Shuffle } from "lucide-react";
+import { CheckCircle2, CircleDashed, CircleDot, List, Package, Play, Ruler, Shuffle, Wallet } from "lucide-react";
 import type { Difficulty, ProblemSummary } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +59,51 @@ export function StatusMark({ status }: { status: string | null }) {
   );
 }
 
+/** M8 tracks, in catalogue order. */
+export const TRACKS = ["core", "ai", "de"] as const;
+export type TrackId = (typeof TRACKS)[number];
+
+/** "#7" in the core sets, "AI 7" / "DE 7" in the tracks. */
+export function problemNumber(p: Pick<ProblemSummary, "number" | "track">): string {
+  return p.track === "ai" ? `AI ${p.number}` : p.track === "de" ? `DE ${p.number}` : `#${p.number}`;
+}
+
+/** A progress ring: solved of total, with the count as text (colour only reinforces it). */
+export function ProgressRing({ solved, total, label }: { solved: number; total: number; label: string }) {
+  const r = 9;
+  const c = 2 * Math.PI * r;
+  const share = total > 0 ? solved / total : 0;
+  return (
+    <span className="inline-flex items-center gap-1.5" data-testid="progress-ring">
+      <svg aria-hidden viewBox="0 0 24 24" className="size-5 -rotate-90">
+        <circle cx="12" cy="12" r={r} fill="none" stroke="var(--border)" strokeWidth="3" />
+        <circle cx="12" cy="12" r={r} fill="none" stroke="var(--green)" strokeWidth="3" strokeDasharray={`${share * c} ${c}`} />
+      </svg>
+      <span className="text-xs tabular-nums opacity-80">
+        <span className="sr-only">{label} </span>
+        {solved}/{total}
+      </span>
+    </span>
+  );
+}
+
+/** M8.5: the "same SLO, half the cost" challenge's badge: "Half the cost" at 50%, else
+ * "−40%" and so on. */
+export function ChallengeBadge({ p }: { p: ProblemSummary }) {
+  const { t } = useTranslation();
+  const c = p.challenge;
+  if (!c) return null;
+  const label = c.ratio <= 0.5 ? t("challenge.half") : t("challenge.minus", { pct: Math.round((1 - c.ratio) * 100) });
+  return (
+    <span className={cn("inline-flex items-center gap-1 text-xs", c.solved ? "text-green" : "text-muted-foreground")} data-testid="challenge-badge">
+      <Wallet aria-hidden className="size-3.5" />
+      {label}
+      {c.solved && <span className="sr-only">{t("challenge.solved")}</span>}
+      {c.solved && <CheckCircle2 aria-hidden className="size-3" />}
+    </span>
+  );
+}
+
 function normalise(s: string) {
   return s
     .toLowerCase()
@@ -80,14 +125,18 @@ export function ProblemsPage() {
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [tag, setTag] = useState<string | null>(null);
   const [source, setSource] = useState<"all" | "builtin" | "packs">("all");
+  const [track, setTrack] = useState<TrackId>("core");
+  const [challengeOnly, setChallengeOnly] = useState(false);
 
-  const all = useMemo(() => problems.data ?? [], [problems.data]);
+  const everything = useMemo(() => problems.data ?? [], [problems.data]);
+  const all = useMemo(() => everything.filter((p) => (p.track || "core") === track), [everything, track]);
   const tags = useMemo(() => [...new Set(all.flatMap((p) => p.tags))].sort(), [all]);
   const q = normalise(query.trim());
   const shown = all.filter(
     (p) =>
       (!difficulty || p.difficulty === difficulty) &&
       (!tag || p.tags.includes(tag)) &&
+      (!challengeOnly || p.challenge !== null) &&
       (source === "all" || (source === "packs") === (p.pack !== null)) &&
       (!q || normalise(`${p.title_en} ${p.title_es} ${p.teaches_en} ${p.teaches_es} ${p.tags.join(" ")}`).includes(q)),
   );
@@ -128,6 +177,28 @@ export function ProblemsPage() {
       }
     >
       <div className="space-y-3">
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label={t("problems.tracks")}>
+          {TRACKS.map((tr) => {
+            const inTrack = everything.filter((p) => (p.track || "core") === tr);
+            if (tr !== "core" && inTrack.length === 0) return null;
+            return (
+              <Button
+                key={tr}
+                role="tab"
+                id={`track-tab-${tr}`}
+                aria-controls="track-panel"
+                aria-selected={track === tr}
+                variant={track === tr ? "default" : "outline"}
+                className="gap-2"
+                onClick={() => setTrack(tr)}
+                data-testid={`track-${tr}`}
+              >
+                {t(`problems.track.${tr}`)}
+                <ProgressRing solved={inTrack.filter((p) => p.status === "solved").length} total={inTrack.length} label={t("problems.solvedOf")} />
+              </Button>
+            );
+          })}
+        </div>
         <Input
           type="search"
           value={query}
@@ -148,6 +219,10 @@ export function ProblemsPage() {
               {d ? t(`problems.difficulty.${d}`) : t("problems.all")}
             </Button>
           ))}
+          <Button size="sm" variant={challengeOnly ? "default" : "outline"} aria-pressed={challengeOnly} className="gap-1.5" onClick={() => setChallengeOnly(!challengeOnly)} data-testid="challenge-filter">
+            <Wallet aria-hidden className="size-3.5" />
+            {t("challenge.filter")}
+          </Button>
         </div>
         {hasPacks && (
           <div className="flex flex-wrap gap-2" role="group" aria-label={t("problems.source.label")}>
@@ -176,16 +251,17 @@ export function ProblemsPage() {
         )}
       </div>
       {problems.isLoading && <Skeleton className="h-40 w-full" />}
+      <div role="tabpanel" id="track-panel" aria-labelledby={`track-tab-${track}`}>
       <ul className="divide-y rounded-xl border bg-card" data-testid="problem-list">
         {shown.map((p) => (
           <li key={p.id}>
             <Link
               to="/problems/$id"
               params={{ id: p.id }}
-              className="grid grid-cols-[3rem_1fr_auto] items-center gap-4 px-4 py-3 hover:bg-accent/50"
+              className="grid grid-cols-[3.5rem_1fr_auto] items-center gap-4 px-4 py-3 hover:bg-accent/50"
               data-testid="problem-row"
             >
-              <span className="font-mono text-sm text-muted-foreground">#{p.number}</span>
+              <span className="font-mono text-sm text-muted-foreground">{problemNumber(p)}</span>
               <span className="min-w-0">
                 <span className="block truncate font-semibold">{loc.title(p)}</span>
                 <span className="block truncate text-xs text-muted-foreground">{loc.teaches(p)}</span>
@@ -197,6 +273,7 @@ export function ProblemsPage() {
                 )}
               </span>
               <span className="flex items-center gap-4">
+                <ChallengeBadge p={p} />
                 <DifficultyBadge d={p.difficulty} />
                 {estimated.has(p.id) && (
                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title={t("problems.estimated")} data-testid="estimated-mark">
@@ -217,6 +294,7 @@ export function ProblemsPage() {
           <li className="px-4 py-8 text-center text-sm text-muted-foreground">{t("problems.none")}</li>
         )}
       </ul>
+      </div>
     </Page>
   );
 }

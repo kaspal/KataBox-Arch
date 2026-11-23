@@ -1,0 +1,172 @@
+{
+  "schema_version": 4,
+  "id": "de-feature-store-ref",
+  "name": "Feature store (reference)",
+  "problem_id": "de-feature-store",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "training",
+      "kind": "micro",
+      "flavour": "generic",
+      "label": "training",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 1
+      },
+      "group_id": null
+    },
+    {
+      "id": "kafka",
+      "kind": "stream",
+      "flavour": "kafka",
+      "label": "kafka",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {
+        "partitions": 32
+      },
+      "group_id": null
+    },
+    {
+      "id": "flink",
+      "kind": "streamproc",
+      "flavour": "flink",
+      "label": "flink",
+      "position": {
+        "x": 912,
+        "y": 112
+      },
+      "props": {
+        "instances": 4,
+        "concurrency": 8
+      },
+      "group_id": null
+    },
+    {
+      "id": "online",
+      "kind": "nosql",
+      "flavour": "scylladb",
+      "label": "online",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "partitions": 1
+      },
+      "group_id": null
+    },
+    {
+      "id": "warehouse",
+      "kind": "warehouse",
+      "flavour": "snowflake",
+      "label": "warehouse",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app-http",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-training-http",
+      "from": "lb",
+      "to": "training",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-online-query",
+      "from": "app",
+      "to": "online",
+      "protocol": "query"
+    },
+    {
+      "id": "e-app-kafka-publish",
+      "from": "app",
+      "to": "kafka",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-kafka-flink-consume",
+      "from": "kafka",
+      "to": "flink",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-flink-online-query",
+      "from": "flink",
+      "to": "online",
+      "protocol": "query"
+    },
+    {
+      "id": "e-training-warehouse-query",
+      "from": "training",
+      "to": "warehouse",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

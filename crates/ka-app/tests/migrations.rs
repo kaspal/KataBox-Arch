@@ -1,5 +1,6 @@
 //! `.kbarch` migrations, with a real file of each old version (ADR 0003): v1 (M0) and v2
-//! (M1–M3) both open as v3, where cards keep only the props the user set.
+//! (M1–M3) both open as v3, where cards keep only the props the user set; v3 (M5–M7b) opens as
+//! v4, unchanged except its version (M8: zones may carry `region_tag` and `mesh`).
 
 use std::collections::BTreeMap;
 
@@ -8,6 +9,7 @@ use ka_core::{Design, PropValue, SCHEMA_VERSION, registry};
 
 const V1: &str = include_str!("fixtures/v1.kbarch");
 const V2: &str = include_str!("fixtures/v2.kbarch");
+const V3: &str = include_str!("fixtures/v3.kbarch");
 
 fn open(text: &str) -> Design {
     parse(text.as_bytes(), &registry()).expect("the old file opens")
@@ -97,7 +99,7 @@ fn a_placeholder_only_counts_on_its_own_flavour() {
 }
 
 #[test]
-fn a_v1_file_goes_all_the_way_to_v3() {
+fn a_v1_file_goes_all_the_way_to_v4() {
     let d = open(V1);
     assert_eq!(d.schema_version, SCHEMA_VERSION);
     assert_eq!(props(&d, "client").get("rps"), Some(&num(2500.0)));
@@ -116,8 +118,8 @@ fn a_v1_file_goes_all_the_way_to_v3() {
 }
 
 #[test]
-fn migrated_files_save_as_v3_and_read_back_the_same() {
-    for text in [V1, V2] {
+fn migrated_files_save_as_v4_and_read_back_the_same() {
+    for text in [V1, V2, V3] {
         let d = open(text);
         let bytes = to_bytes(&d, &registry()).unwrap();
         let again = parse(&bytes, &registry()).unwrap();
@@ -125,7 +127,29 @@ fn migrated_files_save_as_v3_and_read_back_the_same() {
         assert!(
             String::from_utf8(bytes)
                 .unwrap()
-                .contains("\"schema_version\": 3")
+                .contains("\"schema_version\": 4")
         );
     }
+}
+
+/// v3 → v4 changes nothing but the version: the same cards, edges and zones, and no zone
+/// gains a tag or a mesh.
+#[test]
+fn a_v3_file_opens_as_v4_unchanged() {
+    let d = open(V3);
+    assert_eq!(d.schema_version, 4);
+    let raw: serde_json::Value = serde_json::from_str(V3).unwrap();
+    let mut expected: Design = serde_json::from_value({
+        let mut v = raw;
+        v["schema_version"] = serde_json::Value::from(4);
+        v
+    })
+    .unwrap();
+    expected.schema_version = 4;
+    assert_eq!(d, expected);
+    assert!(
+        d.groups
+            .iter()
+            .all(|g| g.region_tag.is_none() && g.mesh.is_none())
+    );
 }

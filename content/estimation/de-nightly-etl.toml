@@ -1,0 +1,34 @@
+# Estimation drills for Nightly Export from PostgreSQL.
+
+[[drill]]
+id = "page-read-time"
+kind = "capacity"
+prompt = "Your PostgreSQL reads one order in about {service_ms} ms, and a read takes (1 + KB ÷ 64) times as long for a bigger result. An export page is about {page_kb} KB. About how many milliseconds does one page take at the median?"
+prompt_es = "Tu PostgreSQL lee un pedido en unos {service_ms} ms, y una lectura tarda (1 + KB ÷ 64) veces más con un resultado más grande. Una página de la exportación tiene unos {page_kb} KB. ¿Cuántos milisegundos tarda una página, más o menos, en la mediana?"
+inputs = { service_ms = 5, page_kb = 576 }
+formula = "service_ms * (1 + page_kb / 64)"
+unit = "ms"
+solution = "{service_ms} × (1 + {page_kb} / 64) = {answer} ms: ten times an order. One export page keeps a database connection busy as long as ten shoppers' reads."
+solution_es = "{service_ms} × (1 + {page_kb} / 64) = {answer} ms: diez veces un pedido. Una página de la exportación mantiene ocupada una conexión de la base de datos tanto como diez lecturas de clientes."
+
+[[drill]]
+id = "export-connections"
+kind = "servers"
+prompt = "The export reads {pages_per_s} pages a second, and a page takes about {page_ms} ms on average. About how many database connections does the export keep busy?"
+prompt_es = "La exportación lee {pages_per_s} páginas por segundo, y una página tarda unos {page_ms} ms de media. ¿Cuántas conexiones de la base de datos mantiene ocupadas la exportación, más o menos?"
+inputs = { pages_per_s = 600, page_ms = 64 }
+formula = "pages_per_s * page_ms / 1000"
+unit = "count"
+solution = "{pages_per_s} × {page_ms} / 1000 ≈ {answer} busy connections (Little's law: rate × time). Out of a concurrency of 100, that leaves plenty for the app's roughly 9."
+solution_es = "{pages_per_s} × {page_ms} / 1000 ≈ {answer} conexiones ocupadas (ley de Little: ritmo × tiempo). De una concurrencia de 100, deja de sobra para las unas 9 de la app."
+
+[[drill]]
+id = "tripled-per-member"
+kind = "servers"
+prompt = "The export triples to {multiplier} × {pages_per_s} pages a second, at about {page_ms} ms each, and its reads spread over {members} databases (a primary and its replica). About how many connections does it keep busy on each?"
+prompt_es = "La exportación se triplica a {multiplier} × {pages_per_s} páginas por segundo, de unos {page_ms} ms cada una, y sus lecturas se reparten entre {members} bases de datos (una principal y su réplica). ¿Cuántas conexiones mantiene ocupadas en cada una, más o menos?"
+inputs = { multiplier = 3, pages_per_s = 600, page_ms = 64, members = 2 }
+formula = "multiplier * pages_per_s * page_ms / 1000 / members"
+unit = "count"
+solution = "{multiplier} × {pages_per_s} × {page_ms} / 1000 / {members} ≈ {answer} connections each, well under 100. On a lone primary it would be about 115: more than it has, so the app's reads wait in line behind the export."
+solution_es = "{multiplier} × {pages_per_s} × {page_ms} / 1000 / {members} ≈ {answer} conexiones en cada una, muy por debajo de 100. En una principal sola serían unas 115: más de las que tiene, así que las lecturas de la app esperan en la fila detrás de la exportación."

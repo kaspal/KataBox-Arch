@@ -1,0 +1,7 @@
+A coordination service is a small store that a group of machines trusts to give one answer. A few members, usually three or five, keep the same data by **consensus**: a write counts only once a majority of them have it. Systems use it for the few facts that must never disagree: who is the leader, who holds a lock, which nodes are alive, a little shared config.
+
+Locks here are **leases**. A worker takes a lock for a while and keeps renewing it. If the worker dies, the lease runs out and someone else can take over, with no human in the loop. The catch is that a worker can pause, lose its lease without knowing, and wake up still thinking it owns the lock. A safe design hands out a **fencing token** with each grant, and the datastore refuses writes that carry an older token.
+
+The price of agreement is availability. When the network splits the members, only the side with a majority can write; the other side refuses. When the leader is lost, writes pause for an election. The simulator models all of this: majority writes, the minority side refusing, the election pause, leases, and what a datastore does with and without fencing during a split.
+
+**How the simulator bills this.** Each member is a self-hosted node at $70 a month (teaching price; source to be confirmed). There is no fee per write or per lock, so a cluster of three members costs $210 a month and five cost $350.

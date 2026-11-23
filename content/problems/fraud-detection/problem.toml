@@ -1,0 +1,54 @@
+id = "fraud-detection"
+number = 45
+set = 3
+difficulty = "hard"
+title = "Payment Fraud Scoring"
+title_es = "Detección de fraude en pagos"
+teaches = "Score each payment against fresh features within a tight budget, and fall back to rules when the model is slow, so fraud checks never hold up checkout"
+teaches_es = "Puntuar cada pago con características frescas dentro de un presupuesto ajustado, y recurrir a reglas cuando el modelo va lento, para que la comprobación de fraude nunca retrase el pago"
+tags = ["ml-inference", "stream-processing", "timeouts", "graceful-degradation"]
+
+[nfr]
+peak_rps = 3000
+p95_ms = 60
+availability = 0.999
+budget_usd = 4000
+
+[[request_types]]
+id = "score"
+name = "Score a payment"
+name_es = "Puntuar un pago"
+share = 0.6
+route = ["edge?", "compute", "cache", "model:classify?"]
+key_space = 5000000
+tokens_in = { mean = 20, p95 = 40 }
+
+[[request_types]]
+id = "event"
+name = "Record a card event"
+name_es = "Registrar un evento de tarjeta"
+share = 0.4
+route = ["edge?", "compute", "broker", "worker", "cache:write"]
+key_space = 5000000
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "model-slow"
+name = "The model server slows down"
+name_es = "El servidor del modelo se vuelve lento"
+hidden = true
+chaos = [{ latency = { kind = "infer", at = 20, for = 30, add_ms = 80 } }]
+
+[[tests]]
+id = "black-friday"
+name = "Black Friday"
+name_es = "Black Friday"
+hidden = true
+traffic = { spike = { at = 15, x = 3, for = 30 } }
+
+[pass]
+error_rate = 0.005

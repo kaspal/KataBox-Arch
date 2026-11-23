@@ -7,6 +7,37 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
 ## [Unreleased]
 
 ### Added
+- **17 new component kinds** (25 → 42): WebSocket gateway, identity provider, third-party API, model inference,
+  batch compute, media server, coordination service, vector store, warehouse, lakehouse, time-series DB, graph DB,
+  connection pooler, stream processor, MQTT broker, connector and feature-flag config, plus 45 new product flavours
+  on existing kinds. Each has a glyph, a Guide entry with "What isn't simulated" and how it is billed.
+- **Simulator:** long-lived connections and reconnect storms; token-metered model calls (TTFT, rate limits);
+  semantic caching; batch jobs (skew, salting, speculation, spot); stream windows and late events; warehouse
+  scans (partition pruning, small files, result cache); quorum locks, split-brain and fencing; client retries,
+  timeouts, circuit breakers, bulkheads, load shedding, staged deploys, config pushes, DNS failover; data
+  residency; serve-stale and stampede guard on caches; Region tags and a service mesh on zones.
+- **Set 3: 15 more problems** (#31–45), from a Weather Proxy to Fraud Detection, with hints, editorials and
+  estimation drills.
+- **Outage replays:** 20 well-known kinds of incident (cache stampede, retry storm, split brain, bad deploy, a
+  global config push and more). Each tells what happened, plays the incident on the design as it was, then asks
+  you to fix it so it survives the incident, a normal day and an aftershock. A Replays page and an
+  incident-response learning path.
+- **AI systems track:** 20 problems (chatbots, RAG, provider failover, self-hosted serving, batch inference, GPU
+  scheduling and more), judged on latency, time to first token, rate limits, cost and failures — never on answer
+  quality. An ai-systems learning path.
+- **Data engineering track:** 20 problems (ETL, CDC, lakehouse compaction, late events, deduplication, skewed
+  joins, GDPR deletes, data residency, reprocessing and more). A data-engineering learning path.
+- **Copy share link** (Export menu): a design travels compressed in the link itself; designs too large for a link
+  are refused with advice to share the file. The web viewer that opens these links is not built yet.
+- **Simulator:** stale answers reach requests waiting on the same miss; replicated caches resync after a restart;
+  conditional writes; poison messages; rate limiters that fail open or closed; bulk/live priority on queues and
+  streams; synchronous and quorum SQL replication; writes lost in an async failover; a batch API mode for model
+  calls.
+- **Calibration:** 231 figures now cite a source or are marked as modelling choices; outage replays link to
+  public write-ups of similar incidents.
+- **Same SLO, half the cost:** after solving a problem, beat a cost target (half the reference, or the proven
+  ratio) with every test still passing; a badge and filter on Problems, a banner in the brief, and a Progress page
+  with per-track counts.
 - **Set 2: 15 more problems** (#16–30), from Image Thumbnails to an Order-Matching Exchange, each with hints, an
   editorial (with "What the simulator leaves out" where it matters) and estimation drills. Learning paths include
   them.

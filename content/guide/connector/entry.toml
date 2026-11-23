@@ -1,0 +1,196 @@
+kind = "connector"
+one_liner = "A pipe that copies data from a source to a sink, from a database's change log or by polling an API."
+one_liner_es = "Una tubería que copia datos de un origen a un destino, desde el registro de cambios de una base de datos o sondeando una API."
+
+use_when = [
+  "Another system needs the changes made in your database, without the app writing twice",
+  "Data from a SaaS tool must land in your warehouse or stream on a schedule",
+  "You want a search index or cache kept in step with the source of truth",
+]
+use_when_es = [
+  "Otro sistema necesita los cambios hechos en tu base de datos, sin que la aplicación escriba dos veces",
+  "Los datos de una herramienta SaaS deben llegar a tu warehouse o stream de forma periódica",
+  "Quieres un índice de búsqueda o una caché al día con la fuente de verdad",
+]
+skip_when = [
+  "The reader needs the change in the same request: a sync call is the only way",
+  "The data moves once, not continuously: a one-off script or export is simpler",
+  "The source has no change log and no API, so there is nothing to connect to",
+]
+skip_when_es = [
+  "Quien lee necesita el cambio en la misma petición: una llamada síncrona es la única forma",
+  "Los datos se mueven una vez, no de forma continua: un script o una exportación puntual es más simple",
+  "El origen no tiene registro de cambios ni API, así que no hay nada a lo que conectarse",
+]
+
+formula = "change capture: each committed change is read from the log and written to the sink, tasks in parallel; polling: every poll interval the connector fetches new rows within the API's requests per second; sync lag = wait for the next poll or log read + fetch + write"
+formula_es = "captura de cambios: cada cambio confirmado se lee del registro y se escribe en el destino, con tareas en paralelo; sondeo: en cada intervalo el conector trae las filas nuevas dentro de las peticiones por segundo de la API; retraso de sincronización = espera a la siguiente lectura + obtención + escritura"
+
+gains = [
+  "The app writes once and other systems follow its changes",
+  "No custom code to keep two stores in step",
+  "The source can be a SaaS tool you can't change",
+]
+gains_es = [
+  "La aplicación escribe una vez y otros sistemas siguen sus cambios",
+  "Sin código propio para mantener dos almacenes al día",
+  "El origen puede ser una herramienta SaaS que no puedes cambiar",
+]
+costs = [
+  "The sink is always a little behind the source",
+  "A polled API's rate limit caps how fast data can move",
+  "It is one more moving part that can fall behind or stop",
+]
+costs_es = [
+  "El destino siempre va un poco por detrás del origen",
+  "El límite de peticiones de una API sondeada pone tope a la velocidad de los datos",
+  "Es una pieza más que puede retrasarse o detenerse",
+]
+
+works_with = ["sql", "stream", "warehouse", "search", "external", "lakehouse"]
+practice = []
+
+interview_tip = "Say where the changes come from (a log or a poll), how far behind the sink may be, and what the sink does with a change it sees twice."
+interview_tip_es = "Di de dónde salen los cambios (un registro o un sondeo), cuánto puede ir por detrás el destino y qué hace el destino con un cambio que ve dos veces."
+
+not_simulated = [
+  "Schema mapping between source and sink",
+  "The initial snapshot of a large table before streaming starts",
+  "Connector restarts and how offsets are stored and resumed",
+]
+not_simulated_es = [
+  "La correspondencia de esquemas entre origen y destino",
+  "La instantánea inicial de una tabla grande antes de empezar a transmitir",
+  "Los reinicios del conector y cómo se guardan y retoman los offsets",
+]
+
+[[sim]]
+prop = "instances"
+note = "Worker machines that run the connector's tasks."
+note_es = "Máquinas worker que ejecutan las tareas del conector."
+
+[[sim]]
+prop = "concurrency"
+note = "Tasks per instance that copy data in parallel. More tasks move more rows at once, within the source's limits."
+note_es = "Tareas por instancia que copian datos en paralelo. Más tareas mueven más filas a la vez, dentro de los límites del origen."
+
+[[sim]]
+prop = "poll_s"
+note = "How often a polling connector asks the API for new rows. A change waits up to this long before it starts moving."
+note_es = "Cada cuánto pregunta a la API un conector por sondeo si hay filas nuevas. Un cambio espera hasta este tiempo antes de empezar a moverse."
+
+[[sim]]
+prop = "api_rps"
+note = "The source API's rate limit. The connector never calls faster, so a big backlog takes several rounds to drain."
+note_es = "El límite de peticiones de la API de origen. El conector nunca llama más rápido, así que una gran cola pendiente tarda varias rondas en vaciarse."
+
+[[sim]]
+prop = "service_ms"
+note = "Time to fetch and write one batch of changes."
+note_es = "Lo que tarda en obtener y escribir un lote de cambios."
+
+[[sim]]
+cost = "per_instance_month"
+note = "A fixed monthly price per worker for a self-hosted connector such as Kafka Connect, Debezium or Airbyte. Fivetran has no worker fee."
+note_es = "Un precio mensual fijo por worker para un conector propio como Kafka Connect, Debezium o Airbyte. Fivetran no cobra por worker."
+
+[[sim]]
+cost = "per_million"
+note = "Fivetran bills per million rows moved, a stand-in for its monthly active rows pricing."
+note_es = "Fivetran cobra por millón de filas movidas, una aproximación a su precio por filas activas al mes."
+
+[flavours_compared]
+flavours = ["kafka_connect", "debezium", "fivetran", "airbyte"]
+
+[[flavours_compared.rows]]
+label = "Who runs it"
+label_es = "Quién lo opera"
+cells = ["You, or a managed Kafka service", "You, usually on Kafka Connect", "Fivetran, fully managed", "You, or Airbyte's cloud service"]
+cells_es = ["Tú, o un servicio de Kafka gestionado", "Tú, normalmente sobre Kafka Connect", "Fivetran, totalmente gestionado", "Tú, o el servicio en la nube de Airbyte"]
+
+[[flavours_compared.rows]]
+label = "How it reads"
+label_es = "Cómo lee"
+cells = ["Depends on the connector plugin", "Reads the database's change log", "Change log or API polling, per source", "Mostly API polling, some change logs"]
+cells_es = ["Depende del plugin del conector", "Lee el registro de cambios de la base de datos", "Registro de cambios o sondeo de API, según el origen", "Sobre todo sondeo de API, algunos registros de cambios"]
+
+[[flavours_compared.rows]]
+label = "Typical sink"
+label_es = "Destino típico"
+cells = ["Kafka topics, then anything", "Kafka topics", "A data warehouse", "A data warehouse or lake"]
+cells_es = ["Topics de Kafka, y de ahí cualquier cosa", "Topics de Kafka", "Un data warehouse", "Un data warehouse o un lago"]
+
+[[pitfalls]]
+title = "Dual writes instead of a connector"
+title_es = "Escrituras dobles en lugar de un conector"
+body = "The app writes to the database and then to the search index. When the second write fails, the two disagree and nothing notices."
+body_es = "La aplicación escribe en la base de datos y luego en el índice de búsqueda. Cuando falla la segunda escritura, los dos discrepan y nadie se da cuenta."
+fix = "Write only to the database and let a change-capture connector carry each committed change to the index."
+fix_es = "Escribe solo en la base de datos y deja que un conector de captura de cambios lleve cada cambio confirmado al índice."
+
+[[pitfalls]]
+title = "A long poll interval"
+title_es = "Un intervalo de sondeo largo"
+body = "The SLO says new orders reach the warehouse within a minute, but the connector polls every five. Sync lag is often several minutes."
+body_es = "El SLO dice que los pedidos nuevos llegan al warehouse en un minuto, pero el conector sondea cada cinco. El retraso de sincronización suele ser de varios minutos."
+fix = "Poll more often if the API's rate limit allows it, or switch to change capture from the source's log."
+fix_es = "Sondea más a menudo si el límite de la API lo permite, o pasa a captura de cambios desde el registro del origen."
+
+[[pitfalls]]
+title = "Rate limit behind a backlog"
+title_es = "Límite de peticiones tras una cola pendiente"
+body = "After an outage the connector has hours of changes to fetch, but the API allows only a few calls a second. Adding tasks doesn't help; the limit belongs to the API."
+body_es = "Tras una caída, el conector tiene horas de cambios por traer, pero la API solo permite unas pocas llamadas por segundo. Añadir tareas no ayuda; el límite es de la API."
+fix = "Fetch larger pages per call, ask the provider for a higher limit, or plan for the catch-up time in the SLO."
+fix_es = "Trae páginas más grandes por llamada, pide al proveedor un límite mayor, o cuenta con el tiempo de recuperación en el SLO."
+
+[[sources]]
+flavour = "kafka_connect"
+title = "Kafka Connect documentation"
+url = "https://kafka.apache.org/documentation/#connect"
+checked = false
+
+[[sources]]
+flavour = "debezium"
+title = "Debezium documentation"
+url = "https://debezium.io/documentation/"
+checked = false
+
+[[sources]]
+flavour = "fivetran"
+title = "Fivetran documentation"
+url = "https://fivetran.com/docs"
+checked = false
+
+[[sources]]
+flavour = "airbyte"
+title = "Airbyte documentation"
+url = "https://docs.airbyte.com/"
+checked = false
+
+[[quiz]]
+q = "The app writes each product to SQL and then to the search index. Sometimes the index write fails. What is the better design?"
+q_es = "La aplicación escribe cada producto en SQL y luego en el índice de búsqueda. A veces falla la escritura en el índice. ¿Cuál es el mejor diseño?"
+options = ["Retry the index write three times inside the request", "Write to the index first, then to SQL", "Write only to SQL and let a change-capture connector update the index", "Rebuild the whole index every night"]
+options_es = ["Reintentar la escritura en el índice tres veces dentro de la petición", "Escribir primero en el índice y luego en SQL", "Escribir solo en SQL y dejar que un conector de captura de cambios actualice el índice", "Reconstruir todo el índice cada noche"]
+answer = 2
+why = "With one write, the database is the source of truth and the connector carries every committed change from its log. The index is a little behind, but it doesn't drift."
+why_es = "Con una sola escritura, la base de datos es la fuente de verdad y el conector lleva cada cambio confirmado desde su registro. El índice va un poco por detrás, pero no se desvía."
+
+[[quiz]]
+q = "A connector polls a CRM API every ten minutes. The goal is that new leads reach the warehouse within two minutes. What must change?"
+q_es = "Un conector sondea la API de un CRM cada diez minutos. El objetivo es que los contactos nuevos lleguen al warehouse en dos minutos. ¿Qué debe cambiar?"
+options = ["Add more connector instances", "Poll more often, within the API's rate limit", "Give the warehouse more concurrency"]
+options_es = ["Añadir más instancias del conector", "Sondear más a menudo, dentro del límite de la API", "Dar más concurrencia al warehouse"]
+answer = 1
+why = "A change waits up to the poll interval before it moves at all. More workers or a faster warehouse can't shorten that wait."
+why_es = "Un cambio espera hasta el intervalo de sondeo antes de moverse siquiera. Más workers o un warehouse más rápido no acortan esa espera."
+
+[[quiz]]
+q = "After a day-long outage a polling connector must catch up, and the API allows a few calls per second. What happens when you double the tasks?"
+q_es = "Tras una caída de un día, un conector por sondeo debe ponerse al día, y la API permite unas pocas llamadas por segundo. ¿Qué pasa si duplicas las tareas?"
+options = ["Catch-up time halves", "The API answers faster to more tasks", "The connector switches to change capture", "Little changes: the API's rate limit, not the tasks, caps the catch-up"]
+options_es = ["El tiempo de recuperación se reduce a la mitad", "La API responde más rápido a más tareas", "El conector pasa a captura de cambios", "Cambia poco: el límite de la API, no las tareas, pone tope a la recuperación"]
+answer = 3
+why = "The rate limit belongs to the API account. Bigger pages per call or a higher limit help; more tasks only queue behind the same limit."
+why_es = "El límite pertenece a la cuenta de la API. Ayudan páginas más grandes por llamada o un límite mayor; más tareas solo esperan tras el mismo límite."

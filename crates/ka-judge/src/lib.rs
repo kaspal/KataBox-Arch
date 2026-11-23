@@ -136,13 +136,27 @@ pub fn lint(problem: &ProblemDef, design: &Design, registry: &Registry) -> Vec<S
 
 fn verdict(r: &RunResult, limits: &PassCriteria, cost: f64, budget: f64) -> Verdict {
     let over = |v: f64, l: Option<f64>| l.is_some_and(|l| v > l);
-    if over(r.error_rate, limits.error_rate) || r.lost > limits.lost.unwrap_or(0.0) {
+    if over(r.error_rate, limits.error_rate)
+        || r.lost > limits.lost.unwrap_or(0.0)
+        || over(r.conflicts, limits.conflicts)
+        || over(r.duplicates, limits.duplicates)
+        || over(r.residency_violations, limits.residency_violations)
+    {
         return Verdict::DroppedRequests;
     }
     if over(r.latency.p95_ms, limits.p95_ms)
         || (p99_judged(r) && over(r.latency.p99_ms, limits.p99_ms))
         || limits.availability.is_some_and(|a| r.availability < a)
         || over(r.stale_rate, limits.stale_rate)
+        || !recovered(r, limits)
+        || limits.connected_min.is_some_and(|m| r.connected_min < m)
+        || over(r.late_rate, limits.late_rate)
+        || limits
+            .ttft_p95_ms
+            .is_some_and(|l| r.ttft.is_some_and(|t| t.p95_ms > l))
+        || limits
+            .job_deadline_s
+            .is_some_and(|d| r.jobs.iter().any(|j| j.completion_s.is_none_or(|c| c > d)))
     {
         return Verdict::SloBreach;
     }
@@ -150,6 +164,24 @@ fn verdict(r: &RunResult, limits: &PassCriteria, cost: f64, budget: f64) -> Verd
         return Verdict::OverBudget;
     }
     Verdict::Accepted
+}
+
+/// S8 metastable check: from `recovered_by_s` to the end of the test, every second with
+/// traffic is within the test's error limit (1% if unset) and p95 limit.
+pub fn recovered(r: &RunResult, limits: &PassCriteria) -> bool {
+    let Some(from) = limits.recovered_by_s else {
+        return true;
+    };
+    let err_limit = limits.error_rate.unwrap_or(0.01);
+    r.series
+        .iter()
+        .filter(|s| f64::from(s.t) >= from && f64::from(s.t) < r.duration_s)
+        .all(|s| {
+            let done = s.ok + s.errors;
+            let err_ok = done <= 0.0 || s.errors / done <= err_limit;
+            let p95_ok = limits.p95_ms.is_none_or(|l| s.p95_ms <= l);
+            err_ok && p95_ok
+        })
 }
 
 /// Simulated requests the run completed (sampling counted back out).

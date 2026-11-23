@@ -1,0 +1,89 @@
+{
+  "schema_version": 4,
+  "id": "ai-embed-ingest-naive",
+  "name": "Embedding ingest (first try)",
+  "problem_id": "ai-embed-ingest",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "rps": 5
+      },
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "api",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "embed",
+      "kind": "infer",
+      "flavour": "openai_api",
+      "label": "embed",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "model_type": "embed",
+        "rpm": 3000,
+        "tpm": 600000
+      },
+      "group_id": null
+    },
+    {
+      "id": "vectors",
+      "kind": "vector",
+      "flavour": "pgvector",
+      "label": "vectors",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-api-http",
+      "from": "client",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e-api-embed-http",
+      "from": "api",
+      "to": "embed",
+      "protocol": "http"
+    },
+    {
+      "id": "e-api-vectors-query",
+      "from": "api",
+      "to": "vectors",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

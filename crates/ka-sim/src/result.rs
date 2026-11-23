@@ -40,6 +40,38 @@ pub struct RunResult {
     pub retried: f64,
     pub stale_reads: f64,
     pub stale_rate: f64,
+    /// S7: writes that raced on a contended key or landed on a stale primary in a split.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub conflicts: f64,
+    /// S1: the least share of the target connections connected in any judged second (from
+    /// `ramp_s` + 10 s to the end), and connection attempts refused (capacity, accept rate).
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub connected_min: f64,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub conn_drops: f64,
+    /// S2: time to first token over every model call, and calls a provider refused (429).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ttft: Option<Percentiles>,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub rate_limited: f64,
+    /// S4: every job run (type, start, seconds to finish; None if it never finished), and
+    /// tasks started again (failures, spot interruptions).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub jobs: Vec<JobResult>,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub tasks_retried: f64,
+    /// S5: windowed records that arrived past their window's allowed lateness (not lost,
+    /// left out of the results), their share of windowed records, and results emitted twice
+    /// after a crash replayed from a checkpoint.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub late: f64,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub late_rate: f64,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub duplicates: f64,
+    /// S9: requests whose data a store, cache or broker outside their residency held.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub residency_violations: f64,
     pub cost_month: f64,
     pub per_type: Vec<TypeResult>,
     pub nodes: Vec<NodeResult>,
@@ -56,6 +88,18 @@ pub struct TypeResult {
     pub latency: Percentiles,
     pub response: Percentiles,
     pub completion: Option<Percentiles>,
+    /// S2: time to first token, for types that call a model.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ttft: Option<Percentiles>,
+}
+
+/// S4: one job run.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+pub struct JobResult {
+    pub ty: String,
+    pub start_s: f64,
+    pub completion_s: Option<f64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -86,4 +130,10 @@ pub struct SecondResult {
     pub ok: f64,
     pub errors: f64,
     pub p95_ms: f64,
+}
+
+/// Fields added in M8 are left out of the JSON when zero, so older results (and goldens)
+/// read and write the same bytes.
+pub fn is_zero(v: &f64) -> bool {
+    *v == 0.0
 }

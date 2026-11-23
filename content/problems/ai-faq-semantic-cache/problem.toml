@@ -1,0 +1,69 @@
+id = "ai-faq-semantic-cache"
+number = 3
+set = 1
+track = "ai"
+difficulty = "easy"
+title = "Help-Centre Answer Bot"
+title_es = "Bot de respuestas del centro de ayuda"
+teaches = "Put a semantic cache in front of a hosted model so repeated questions skip the model, its rate limits and its token bill"
+teaches_es = "Poner una caché semántica delante de un modelo alojado para que las preguntas repetidas se salten el modelo, sus límites de uso y su factura de tokens"
+tags = ["ai", "semantic-cache", "rate-limits", "token-cost"]
+requires = ["cache", "infer"]
+
+[nfr]
+peak_rps = 12
+p95_ms = 5000
+availability = 0.99
+budget_usd = 80000
+
+[[request_types]]
+id = "ask"
+name = "Ask the help centre a question"
+name_es = "Hacer una pregunta al centro de ayuda"
+share = 0.95
+route = ["edge?", "compute", "cache?", "model"]
+key_space = 100000
+key_skew = { zipf = 0.9 }
+value_kb = 8
+tokens_in = { mean = 500, p95 = 900 }
+tokens_out = { mean = 120, p95 = 250 }
+semantic_repeat_share = 0.6
+
+[[request_types]]
+id = "viral"
+name = "Ask about the topic everyone is talking about"
+name_es = "Preguntar por el tema del que habla todo el mundo"
+share = 0.05
+route = ["edge?", "compute", "cache?", "model"]
+key_space = 50000
+value_kb = 8
+tokens_in = { mean = 500, p95 = 900 }
+tokens_out = { mean = 120, p95 = 250 }
+semantic_repeat_share = 0.95
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "viral"
+name = "One question goes viral: three times the traffic"
+name_es = "Una pregunta se hace viral: el triple de tráfico"
+hidden = true
+duration_s = 120
+type_multipliers = { viral = 41 }
+pass = { error_rate = 0.02, availability = 0.98 }
+
+[[tests]]
+id = "restart"
+name = "The evening peak, and a cache node restarts"
+name_es = "El pico de la tarde, y un nodo de caché se reinicia"
+hidden = true
+duration_s = 180
+traffic = { flat = 1.5 }
+chaos = [{ kill = { kind = "cache", at = 20, for = 5 } }]
+pass = { error_rate = 0.03, availability = 0.97 }
+
+[pass]
+error_rate = 0.01

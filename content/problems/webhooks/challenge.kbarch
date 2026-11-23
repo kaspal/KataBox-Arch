@@ -1,0 +1,108 @@
+{
+  "schema_version": 4,
+  "id": "webhooks-challenge",
+  "name": "Webhook Delivery (reference)",
+  "problem_id": "webhooks",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Product services",
+      "position": {
+        "x": 260,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Events API",
+      "position": {
+        "x": 260,
+        "y": 170
+      },
+      "props": {
+        "instances": 1
+      },
+      "group_id": null
+    },
+    {
+      "id": "q_all",
+      "kind": "queue",
+      "flavour": "rabbitmq",
+      "label": "Deliveries",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {
+        "max_retries": 8
+      },
+      "group_id": null
+    },
+    {
+      "id": "dlq",
+      "kind": "dlq",
+      "flavour": "generic",
+      "label": "Dead letters",
+      "position": {
+        "x": 520,
+        "y": 340
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "senders",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Senders",
+      "position": {
+        "x": 260,
+        "y": 510
+      },
+      "props": {
+        "concurrency": 64,
+        "instances": 23
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "api",
+      "to": "q_all",
+      "protocol": "publish"
+    },
+    {
+      "id": "e2",
+      "from": "q_all",
+      "to": "senders",
+      "protocol": "consume"
+    },
+    {
+      "id": "e3",
+      "from": "q_all",
+      "to": "dlq",
+      "protocol": "publish"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

@@ -1,0 +1,7 @@
+A stream processor is a long-running job that reads events from a stream as they arrive and keeps computing on them: counts per minute, totals per user, alerts when a pattern shows up. It runs in parallel **slots**, but a stream partition is read by one slot only, so the number of partitions caps how far it can scale out.
+
+Most jobs group events into **windows**. A tumbling window cuts time into fixed blocks; a sliding window opens a new, overlapping one every slide. A window's result leaves only when the window closes, and the job waits a little longer, the **watermark**, for events that arrive late. So a window adds its length to every result's delay. Events that come after the watermark and the allowed lateness are counted as late; the simulator shows them instead of dropping them silently.
+
+While a window is open, the job keeps **state** for each key in it. Many keys or long windows mean a lot of state, and state beyond the job's memory slows it down. The job saves its state and its place in the stream at each **checkpoint**. After a crash it restarts from the last checkpoint and replays the events since, so a sink that just appends results receives some of them twice.
+
+**How the simulator bills this.** Each worker instance costs $70 a month, the price of an m5.large-class node (teaching price; source to be confirmed). Flink, Kafka Streams and Spark Streaming are all billed the same way. There is no fee per event; the stream it reads and the sink it writes to are billed on their own cards.

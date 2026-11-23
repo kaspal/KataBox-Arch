@@ -9,11 +9,13 @@
 //!   `samples::check_callouts` is their part of `validate --run`.
 //! - `build_content` turns validated content into rows, and `write_db` writes the file.
 
+pub mod challenge;
 pub mod decide;
 pub mod flaws;
 pub mod guide;
 pub mod kbpack;
 pub mod migrate;
+pub mod outages;
 pub mod patterns;
 pub mod practice;
 pub mod problems;

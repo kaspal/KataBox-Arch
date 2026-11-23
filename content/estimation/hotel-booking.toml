@@ -1,0 +1,34 @@
+# Estimation drills for Hotel Booking.
+
+[[drill]]
+id = "holiday-searches"
+kind = "qps"
+prompt = "A hotel booking site peaks at {peak_rps} rps, and searches are a {search_share} share of the requests. When holiday bookings open, the traffic jumps to {spike_x} times the peak. How many searches a second arrive during the spike?"
+prompt_es = "Una web de reservas de hotel tiene un pico de {peak_rps} rps, y las búsquedas son una fracción {search_share} de las peticiones. Cuando se abren las reservas de vacaciones, el tráfico salta a {spike_x} veces el pico. ¿Cuántas búsquedas por segundo llegan durante el pico?"
+inputs = { peak_rps = 5000, search_share = 0.98, spike_x = 3 }
+formula = "peak_rps * spike_x * search_share"
+unit = "rps"
+solution = "{peak_rps} × {spike_x} = 15,000 rps, and 98% of that is {answer} searches a second. Most of them are the same popular city-and-date searches, so a cache answers them and the search engine barely notices the spike."
+solution_es = "{peak_rps} × {spike_x} = 15 000 rps, y el 98 % de eso son {answer} búsquedas por segundo. La mayoría son las mismas búsquedas populares de ciudad y fechas, así que una caché las responde y el motor de búsqueda apenas nota el pico."
+
+[[drill]]
+id = "hot-shard"
+kind = "capacity"
+prompt = "A site handles {searches_per_s} searches a second. The most popular search is about {top_share_pct}% of them, and the search engine sends each search to the one shard that holds it. How many searches a second land on that shard for this one query alone, however many shards there are?"
+prompt_es = "Una web atiende {searches_per_s} búsquedas por segundo. La búsqueda más popular es cerca del {top_share_pct} % de ellas, y el motor de búsqueda envía cada búsqueda a la única partición que la contiene. ¿Cuántas búsquedas por segundo caen en esa partición solo por esta consulta, haya las particiones que haya?"
+inputs = { searches_per_s = 4900, top_share_pct = 8 }
+formula = "searches_per_s * top_share_pct / 100"
+unit = "rps"
+solution = "{searches_per_s} × 8% = {answer} searches a second, all on one shard. Adding shards spreads the other searches but cannot split this one. A cache with a TTL of 300 s sends it to the search engine about once every 5 minutes instead."
+solution_es = "{searches_per_s} × 8 % = {answer} búsquedas por segundo, todas en una partición. Añadir particiones reparte las demás búsquedas, pero no puede dividir esta. Una caché con un TTL de 300 s la envía al motor de búsqueda más o menos una vez cada 5 minutos."
+
+[[drill]]
+id = "last-room-race"
+kind = "qps"
+prompt = "A site peaks at {peak_rps} rps, and bookings are a {book_share} share of the requests. On a busy day bookings go up {book_x} times, and a {contended_share} share of them are for one of {rooms} rooms everyone wants. How many bookings a second race for each of those rooms?"
+prompt_es = "Una web tiene un pico de {peak_rps} rps, y las reservas son una fracción {book_share} de las peticiones. En un día con mucha demanda las reservas se multiplican por {book_x}, y una fracción {contended_share} de ellas son de una de {rooms} habitaciones que todo el mundo quiere. ¿Cuántas reservas por segundo compiten por cada una de esas habitaciones?"
+inputs = { peak_rps = 5000, book_share = 0.02, book_x = 8, contended_share = 0.2, rooms = 10 }
+formula = "peak_rps * book_share * book_x * contended_share / rooms"
+unit = "rps"
+solution = "{peak_rps} × 2% = 100 bookings a second, × {book_x} = 800, and 20% of those, 160 a second, are for the {rooms} wanted rooms: {answer} a second for each room. Two of them a few milliseconds apart are enough for a double booking if the app reads first and writes after. A conditional write lets exactly one win."
+solution_es = "{peak_rps} × 2 % = 100 reservas por segundo, × {book_x} = 800, y el 20 % de ellas, 160 por segundo, son de las {rooms} habitaciones buscadas: {answer} por segundo para cada habitación. Basta con dos separadas por unos milisegundos para una reserva doble si la app lee primero y escribe después. Una escritura condicional deja ganar exactamente a una."

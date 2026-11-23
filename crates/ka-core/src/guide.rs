@@ -20,7 +20,8 @@ pub enum SimValue {
     /// A `SimDefaults` field: `servers_per_instance`, `service_ms`, `p99_ratio`,
     /// `queue_per_server`, `failover_s`, `write_slots`.
     Sim(String),
-    /// A `Cost` field: `per_instance_month`, `per_gb_month`, `per_million`.
+    /// A `Cost` field (`per_instance_month`, `per_gb_month`, `per_million`…) or a usage meter
+    /// (`tokens_in_m`, `tokens_out_m`, `tb_scanned`, `conn_minutes_m`, `messages_m`).
     Cost(String),
 }
 
@@ -113,6 +114,11 @@ pub struct GuideEntry {
     pub interview_tip: String,
     pub interview_tip_es: String,
     pub sources: Vec<Source>,
+    /// What the simulator leaves out for this kind (M8; required for the kinds added in M8).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub not_simulated: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub not_simulated_es: Vec<String>,
     /// Three quick-check questions (M5.5). Never sent to the UI with the entry: the app
     /// serves them without their answers.
     #[serde(default)]

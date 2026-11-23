@@ -1,0 +1,7 @@
+A time-series database stores **points**: a timestamp, a value, and a few labels such as host or region. Every distinct combination of a metric name and its labels is one **series**. Servers, devices and apps send points every few seconds, so the database is built for a steady flood of small appends and for queries that ask for a time range, such as the last hour of CPU on every host.
+
+Two numbers size it. The first is **points per second**: ingest has a ceiling per instance, and a fleet that reports often can pass it. The second is **cardinality**, the number of distinct series. Each series needs an entry in the index, so a label with unbounded values, like a user id, can multiply the series count overnight. The simulator models both: writes beyond `points_per_s` queue and fail, and past `series_limit` writes first slow down and then are refused. A cardinality explosion is one of the chaos events. Range queries cost more the longer the span they cover.
+
+Raw points are usually kept for a limited time and then dropped or downsampled into coarser rollups. `retention_days` records that choice on the card; the simulator doesn't run retention jobs.
+
+**How the simulator bills this.** InfluxDB, TimescaleDB and Mimir run on a node at $260 a month each. Amazon Timestream has no node fee: it bills $0.50 per million points written and $0.01 per million query units (teaching prices; source to be confirmed).

@@ -1,0 +1,35 @@
+# Estimation drills for Real-Time Product Metrics.
+
+[[drill]]
+id = "mobile-burst"
+kind = "qps"
+prompt = "You get {peak_rps} events a second, and the mobile app's share of them is {mobile_share}. When phones come back online and send {multiplier} times the usual mobile events, how many mobile events a second reach the Stream?"
+prompt_es = "Recibes {peak_rps} eventos por segundo, y la parte de la app móvil es {mobile_share}. Cuando los móviles recuperan la conexión y envían {multiplier} veces los eventos móviles habituales, ¿cuántos eventos móviles por segundo llegan al Stream?"
+inputs = { peak_rps = 5000, mobile_share = 0.02, multiplier = 20 }
+formula = "peak_rps * mobile_share * multiplier"
+unit = "rps"
+solution = "{peak_rps} × {mobile_share} × {multiplier} = {answer} mobile events a second, now more than a quarter of all events. Mobile events were a rounding error on a normal day; now their long delay tail decides the late rate."
+solution_es = "{peak_rps} × {mobile_share} × {multiplier} = {answer} eventos móviles por segundo, ahora más de una cuarta parte de todos los eventos. En un día normal los eventos móviles eran casi nada; ahora la cola larga de su retraso decide la tasa de eventos tardíos."
+
+[[drill]]
+id = "launch-slots"
+kind = "servers"
+prompt = "On launch day you get {peak_rps} events a second times {x}. One Stream Processor slot handles about {per_slot} events a second, and you want the slots at most {target_util} busy. How many slots, and so how many Stream partitions at least, do you need?"
+prompt_es = "En el día de lanzamiento recibes {peak_rps} eventos por segundo por {x}. Un hueco del Procesador de streams procesa unos {per_slot} eventos por segundo, y quieres los huecos ocupados como mucho al {target_util}. ¿Cuántos huecos, y por tanto cuántas particiones del Stream como mínimo, necesitas?"
+inputs = { peak_rps = 5000, x = 3, per_slot = 800, target_util = 0.7 }
+formula = "peak_rps * x / (per_slot * target_util)"
+unit = "count"
+tolerance = 0.1
+solution = "{peak_rps} × {x} / ({per_slot} × {target_util}) ≈ {answer} slots. Round up, and give the Stream at least as many partitions: a slot without a partition does nothing. The reference uses 32 of each, about 59% busy at the launch peak."
+solution_es = "{peak_rps} × {x} / ({per_slot} × {target_util}) ≈ {answer} huecos. Redondea hacia arriba, y dale al Stream al menos tantas particiones: un hueco sin partición no hace nada. La referencia usa 32 de cada, ocupados en torno al 59 % en el pico del lanzamiento."
+
+[[drill]]
+id = "latest-arrival"
+kind = "capacity"
+prompt = "An event happens at the very start of its {window_s}-second window. The Watermark delay is {watermark_s} s and the Allowed lateness is {lateness_s} s. How many seconds after it happened may it arrive and still be counted?"
+prompt_es = "Un evento ocurre justo al principio de su ventana de {window_s} segundos. El Retraso de la marca de agua es de {watermark_s} s y el Retraso permitido es de {lateness_s} s. ¿Cuántos segundos después de ocurrir puede llegar y aún contar?"
+inputs = { window_s = 30, watermark_s = 5, lateness_s = 180 }
+formula = "window_s + watermark_s + lateness_s"
+unit = "s"
+solution = "Its window ends {window_s} s after it happened, closes {watermark_s} s later, and then takes updates for {lateness_s} s more: {answer} s. An event in the last moment of its window gets only {watermark_s} + {lateness_s} s, still past the mobile app's p99 delay of 120 s. With an Allowed lateness of 0, that event would have just {watermark_s} s."
+solution_es = "Su ventana termina {window_s} s después de que ocurra, se cierra {watermark_s} s más tarde y luego acepta actualizaciones durante {lateness_s} s más: {answer} s. Un evento en el último instante de su ventana solo tiene {watermark_s} + {lateness_s} s, que aún supera el retraso p99 de la app móvil, 120 s. Con un Retraso permitido de 0, ese evento tendría solo {watermark_s} s."

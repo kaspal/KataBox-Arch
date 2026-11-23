@@ -141,6 +141,24 @@ flavour = "gcs"
 title = "Cloud Storage documentation"
 url = "https://cloud.google.com/storage/docs"
 
+[[sources]]
+flavour = "azure_blob"
+title = "Azure Blob Storage documentation"
+url = "https://learn.microsoft.com/en-us/azure/storage/blobs/"
+checked = false
+
+[[sources]]
+flavour = "cloudflare_r2"
+title = "Cloudflare R2 documentation"
+url = "https://developers.cloudflare.com/r2/"
+checked = false
+
+[[sources]]
+flavour = "minio"
+title = "MinIO (self-hosted) documentation"
+url = "https://min.io/docs/minio/linux/index.html"
+checked = false
+
 [[quiz]]
 q = "Users upload profile photos that are shown on many pages. Where should the photo bytes and the record about each photo live?"
 q_es = "Los usuarios suben fotos de perfil que se muestran en muchas páginas. ¿Dónde deberían ir los bytes de la foto y el registro sobre cada una?"

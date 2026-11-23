@@ -8,6 +8,7 @@ teaches = "A durable queue absorbs bursts; workers scale to drain it"
 teaches_es = "Una cola duradera absorbe las ráfagas; los workers escalan para vaciarla"
 tags = ["queues", "scheduler", "autoscaling", "async"]
 
+challenge_ratio = 0.55
 [nfr]
 peak_rps = 100
 p95_ms = 10000

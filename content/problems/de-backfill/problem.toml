@@ -1,0 +1,60 @@
+id = "de-backfill"
+number = 12
+set = 1
+track = "de"
+difficulty = "medium"
+title = "Backfill Beside the Live Stream"
+title_es = "Un relleno junto al stream en vivo"
+teaches = "Run a historical backfill through the live pipeline: live records go first on the stream, and the warehouse keeps headroom for live bursts"
+teaches_es = "Pasar un relleno histórico por el pipeline en vivo: los registros en vivo van primero en el stream, y el almacén guarda margen para los picos en vivo"
+tags = ["streams", "backfill", "priority", "data-warehouse", "freshness"]
+requires = ["stream", "streamproc", "warehouse"]
+
+[nfr]
+peak_rps = 40
+p95_ms = 10000
+availability = 0.999
+budget_usd = 7500
+
+# Live batches are measured by completion (loaded in the warehouse), the backfill by
+# response (acknowledged by the stream), as content/outages/backlog-recovery does.
+[[request_types]]
+id = "event"
+name = "Load a batch of live events"
+name_es = "Cargar un lote de eventos en vivo"
+share = 0.6
+route = ["edge?", "compute", "broker", "worker", "datastore:write:warehouse"]
+key_space = 1000000
+measure = "completion"
+
+[[request_types]]
+id = "backfill"
+name = "Load a batch of historical events (backfill)"
+name_es = "Cargar un lote de eventos históricos (relleno)"
+share = 0.4
+route = ["edge?", "compute", "broker", "worker", "datastore:write:warehouse"]
+key_space = 1000000
+bulk = true
+
+[[tests]]
+id = "normal"
+name = "A normal peak hour, with the backfill at its pace"
+name_es = "Una hora punta normal, con el relleno a su ritmo"
+
+[[tests]]
+id = "full-speed"
+name = "The backfill runs at 5 times its pace, at the peak"
+name_es = "El relleno corre a 5 veces su ritmo, en el pico"
+hidden = true
+type_multipliers = { backfill = 5 }
+
+[[tests]]
+id = "burst"
+name = "A live burst: 2.5 times the live events"
+name_es = "Un pico en vivo: 2,5 veces los eventos en vivo"
+hidden = true
+type_multipliers = { event = 2.5 }
+
+[pass]
+error_rate = 0.001
+lost = 0

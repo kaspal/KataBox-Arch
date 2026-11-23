@@ -21,6 +21,8 @@ import {
   type EstimateCheck,
   type EstimateStatus,
   type FlawSummary,
+  type OutageStory,
+  type OutageSummary,
   type PathView,
   type QuizItem,
   type QuizResult,
@@ -44,6 +46,7 @@ import {
   type RunInfo,
   type RunResult,
   type SandboxPreset,
+  Judgement,
   KataboxLink,
   PackInfo,
   PackPreview,
@@ -136,6 +139,8 @@ export const api = {
   /** Judge on every test and record the submission (`localDay`: the user's YYYY-MM-DD). */
   submitDesign: (id: string, design: Design, localDay: string): Promise<SubmitResult> =>
     call(commands.submitDesign(id, design, localDay)),
+  /** M8.5: a "same SLO, half the cost" try; opens once the problem is solved. */
+  submitChallenge: (id: string, design: Design): Promise<Judgement> => call(commands.submitChallenge(id, design)),
   submissions: (id: string): Promise<SubmissionSummary[]> => call(commands.submissions(id)),
   progress: (today: string): Promise<Progress> => call(commands.progress(today)),
   /** The Component Guide index: one-liners and read marks, in registry order. */
@@ -155,6 +160,10 @@ export const api = {
   estimateStatuses: (): Promise<EstimateStatus[]> => call(commands.estimateStatuses()),
   /** The Find-the-flaw drills (each opens as the problem `flaw--<id>`). */
   listFlaws: (): Promise<FlawSummary[]> => call(commands.listFlaws()),
+  /** The outage replays (M10), each marked fixed or not. */
+  listOutages: (): Promise<OutageSummary[]> => call(commands.listOutages()),
+  /** A replay's story, lesson and walkthrough. */
+  outageStory: (id: string): Promise<OutageStory> => call(commands.outageStory(id)),
   /** The learning paths, each item with its progress. */
   learningPaths: (): Promise<PathView[]> => call(commands.learningPaths()),
   /** A page's quiz (`guide:<kind>` / `pattern:<id>`), without answers. */
@@ -167,6 +176,8 @@ export const api = {
   kataboxLinks: (target: string): Promise<KataboxLink[]> => call(commands.kataboxLinks(target)),
   // Mermaid export (M6.6): names are kind, protocol and group names in the user's language.
   mermaidText: (design: Design, names: Record<string, string>): Promise<string> => commands.mermaidText(design, names),
+  /** M13: the design as canonical .kbarch JSON for a share link (checked like Save). */
+  sharePayload: (design: Design): Promise<string> => call(commands.sharePayload(design)),
   saveMermaid: (design: Design, names: Record<string, string>, suggestedName: string): Promise<string | null> =>
     call(commands.saveMermaid(design, names, suggestedName)),
   // Export (M7.3, M7b.2/3): the bytes the UI rendered go as a raw body, the format and name in

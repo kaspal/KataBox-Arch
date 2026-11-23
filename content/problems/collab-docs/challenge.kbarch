@@ -1,0 +1,147 @@
+{
+  "schema_version": 4,
+  "id": "collab-docs-challenge",
+  "name": "Collaborative Docs (reference)",
+  "problem_id": "collab-docs",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Editors",
+      "position": {
+        "x": 260,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_nlb",
+      "label": "Load balancer",
+      "position": {
+        "x": 260,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "sync_a",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Sync A",
+      "position": {
+        "x": 130,
+        "y": 340
+      },
+      "props": {
+        "instances": 3
+      },
+      "group_id": null
+    },
+    {
+      "id": "sync_b",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Sync B",
+      "position": {
+        "x": 390,
+        "y": 340
+      },
+      "props": {
+        "instances": 3
+      },
+      "group_id": null
+    },
+    {
+      "id": "bus",
+      "kind": "pubsub",
+      "flavour": "redis_pubsub",
+      "label": "Edit bus",
+      "position": {
+        "x": 260,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Snapshots",
+      "position": {
+        "x": 650,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "ws"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "sync_a",
+      "protocol": "ws"
+    },
+    {
+      "id": "e2",
+      "from": "lb",
+      "to": "sync_b",
+      "protocol": "ws"
+    },
+    {
+      "id": "e3",
+      "from": "sync_a",
+      "to": "bus",
+      "protocol": "publish"
+    },
+    {
+      "id": "e4",
+      "from": "sync_b",
+      "to": "bus",
+      "protocol": "publish"
+    },
+    {
+      "id": "e5",
+      "from": "bus",
+      "to": "sync_a",
+      "protocol": "consume"
+    },
+    {
+      "id": "e6",
+      "from": "bus",
+      "to": "sync_b",
+      "protocol": "consume"
+    },
+    {
+      "id": "e7",
+      "from": "sync_a",
+      "to": "db",
+      "protocol": "query"
+    },
+    {
+      "id": "e8",
+      "from": "sync_b",
+      "to": "db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

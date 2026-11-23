@@ -247,6 +247,237 @@ new.
 - **Still simplifications:** DNS TTL, WAF and gateway blocking, the serverless cold-start rule, sagas and circuit
   breakers.
 
+### M8 additions (opt-in; goldens a–d unchanged)
+Every M8 feature is switched on by a prop, a request-type field or a scenario field whose default is the behaviour
+before M8, and its events are scheduled only when a run uses it. Tests: `tests/m8.rs`, one golden each.
+
+- **Client retries and timeouts (S8, golden l).** Client cards gain `timeout_ms` (default 5,000: the old fixed
+  client timeout), `retries` (0), `backoff_ms` (100), `jitter` (`none` | `full`) and `retry_budget_pct` (0 = no
+  budget).
+  - A synchronous request that fails (an error, a drop, a 429, a timeout) is tried again after
+    `backoff_ms × 2^try`, times a uniform draw with full jitter (its own `retry` stream).
+  - The new try is a fresh request with the same type, key and start time: the user-visible latency spans every try,
+    and only the last try's failure counts as an error. Each try counts in `retried` and loads every card it reaches,
+    which is how retries amplify an outage.
+  - A budget allows retries only while they stay under that share of first tries over the last 10 seconds.
+  - The request count (`requests`) counts users' requests, not tries.
+- **Service calls, call timeouts, fallbacks, breakers, bulkheads, shedding (S8, golden l2).**
+  - Route step `service` (or `service:<kind>`): the caller calls a compute card (Http/gRPC edge) that answers
+    without calling onward, a leaf dependency. `service?` is an optional dependency with a fallback: when the call
+    fails, times out or is refused by a breaker or bulkhead, the step is skipped and the request goes on. Every
+    other failed call still fails the request.
+  - App, microservice and worker cards gain `call_timeout_ms` (0 = wait), `breaker_errors_pct` (0 = no breaker),
+    `breaker_open_s` (30), `bulkhead` (false) and `shed_queue` (0 = never; the gateway has it too).
+  - A call timeout stops the caller waiting; the work it asked for runs on unwanted (it still loads the callee).
+    Each call is numbered, so an answer that arrives after its caller gave up is ignored.
+  - The breaker is per caller and dependency: once at least 20 calls (scaled by sampling) in the last 10 s have
+    failed at the given share, it opens for `breaker_open_s`, failing calls at once; then it closes and counts
+    afresh (no half-open probes: a still-failing dependency trips it again within a few calls).
+  - A bulkhead splits the caller's slots evenly over its distinct dependencies; a call whose pool is full fails at
+    once.
+  - Shedding: a request that would wait behind `shed_queue` others (per lane, scaled by sampling) is dropped at
+    once, an error, instead of queuing toward a timeout.
+- **Deploys, config pushes, the control plane, DNS, health-check ejection, recovery (S8, golden l3).**
+  - Chaos `deploy { id|kind…, at, error_rate, add_ms, for }`: the selected services run a bad build on a share of
+    their instances (a request served there fails with `error_rate` and takes `add_ms` longer; one `s8` stream
+    draws). The share grows by the card's `rollout_percent` every `bake_s` (`bake_s` 0: all at once); with
+    `auto_rollback`, each stage is noticed one health interval (2 s) after it starts and rolled back. `for` is the
+    hand rollback.
+  - Chaos `config_push { at, error_rate, add_ms, for }`: every service turns faulty at once. A Config card with
+    `staged` sends it one Region per stage (zone order; services outside Regions last), every `bake_s` (at least
+    one health interval), halting at the first stage, which is noticed after 2 s; with `kill_switch` the change is
+    rolled back 1 s after it is noticed (with or without staging).
+  - Chaos `control_plane { at, for }`: no autoscaling decision applies and killed cards don't come back until it
+    ends; running instances keep serving.
+  - Chaos `dns_outage { at, for }`: at a DNS card, a request fails with probability min(1, elapsed / `ttl_s`):
+    answers cached within the TTL still work (uniform cache ages). `cache_flush` is another name for `flush`.
+  - DNS `routing = failover`: answers point at the first target in design order while it is healthy, else the
+    next live one; after a switch, a share 1 − elapsed / TTL of clients still uses its cached (dead) answer.
+    `round_robin` (the default) keeps the old spread over every healthy target.
+  - Load balancers: `health_timeout_ms` ejects a target whose estimated queue wait (queue ÷ servers × service
+    time) passes it on two checks in a row, and takes it back after two checks under it; `min_healthy_pct` keeps
+    that share of targets in rotation. With every target ejected the LB answers 503. Health checks run whenever a
+    design uses this, even without chaos.
+  - `pass.recovered_by_s = T` (the metastable check): from second T to the end of the test, every second with
+    traffic must be within the test's error limit (1% if unset) and p95 limit.
+- **Quorum, fencing and races (S7, goldens k and k2).**
+  - Route step `lock`: a call to a Coordination Service (`coord`, Query edge) or to a cache used as a lock. A lock
+    from `coord` needs a quorum: the caller's side of any split must reach members holding more than half of the
+    cluster's instances (each `coord` card counts its `instances`; Replicate edges join cards into one cluster).
+    Without it the call is refused. A cache lock has no quorum. A lock is a grant, not a data write.
+  - SQL and NoSQL gain `split_failover` (`manual`: as before M8, a replica takes over only when the primary dies;
+    `auto`: once health checks see a split, plus the primary's `failover_s`, a member on the far side promotes
+    itself for writers on that side) and `fencing`. A write landing on such a self-promoted primary is a
+    `conflict`, unless the data card has `fencing` and the request holds a lock from a quorum `coord`: then the
+    stale primary refuses it (an error).
+  - Request type `contended = { keys, share }`: `share` of the requests check, then write, one of `keys` hot keys.
+    The check is the request's first call; a write whose check came before another write's commit on the same
+    key raced: a `conflict`, unless the write step is `datastore:write:atomic` (a conditional write: the loser is
+    refused cleanly, an answer) or the request holds a lock.
+  - `pass.conflicts` (usually 0) fails a test as Dropped Requests. Conflicts are counted exactly, so `ka-pack`
+    refuses a test that limits them on a sampled run. New result fields are left out of the JSON when zero.
+- **Connections (S1, golden e).**
+  - A request type with `kind = "connection"` (and `share = 0`) stands for clients holding `connected`
+    long-lived connections (times the traffic multiplier), reached over `ramp_s` (0: connected from the start, as
+    far as capacity allows). It lands on the WebSocket gateways and IoT brokers its clients reach through edge
+    hops; it isn't a Poisson source and isn't sampled.
+  - A fluid model steps every 100 ms (exact counts, no per-connection events): a holder holds up to
+    `instances × min(max_connections, memory_gb / conn_memory_kb)`, and accepts `accept_per_s × instances` new
+    connections per second (spread over the live holders by their room). Refused attempts are `conn_drops` (and
+    errors of the type) and retry after the client's `reconnect_backoff_s`, spread over its `reconnect_jitter_s`.
+    When a holder dies its connections reconnect spread over `reconnect_jitter_s` (0: all in the same 100 ms, a
+    reconnect storm).
+  - Each connection receives `push_rps` messages per second (times the traffic multiplier, so a spike is a burst of
+    updates); a holder sends `msgs_per_s × instances`, and the excess waits in a backlog. Delivery latency
+    (backlog wait + 1 ms) is the type's measured latency.
+  - `connected_min` is the least connected share of the target in any second from `ramp_s` + 10 s to the end;
+    `pass.connected_min` fails a test as SLO Breach.
+- **Token requests (S2, goldens f and f2).**
+  - Route step `model` (or `model:chat|embed|classify`, matched against the card's `model_type`): a leaf call to
+    a Model Inference card on an HTTP/gRPC edge. Request types may carry `tokens_in` and `tokens_out` (mean and
+    p95, drawn once per request as a lognormal from the `tokens` stream). `embed` produces no output tokens and
+    `classify` one.
+  - Service time = `ttft_ms` + prompt ÷ `prefill_tps` (time to first token) + output ÷ decode speed. Hosted
+    flavours (Claude, OpenAI, Bedrock, Gemini APIs) have no slot limit; self-hosted ones (vLLM, Triton) have
+    `instances × batch_slots` slots and decode at `tokens_per_s × (1 − 0.5 × busy ÷ slots)`, measured when the
+    request starts (continuous batching: more requests, each slower, more in total; the 0.5 is a modelling
+    choice).
+  - Hosted limits: per-minute request (`rpm`) and token (`tpm`) buckets holding one minute's allowance, refilled
+    continuously (scaled by sampling). A call past them is refused with a 429 after 50 ms (`rate_limited`), a
+    failed call that client retries may try again.
+  - TTFT (request start to first token) is recorded per type and overall; `pass.ttft_p95_ms` fails a test as SLO
+    Breach.
+  - Usage meters bill tokens (`tokens_in_m`, `tokens_out_m` per million), halved with `api_mode = batch`; the
+    batch API also skips the per-minute limits. Its delivery window isn't simulated as time; instead (M11) only work declared able to wait hours may use it: a request type marked `batch_ok`; batch-mode calls for any other type fail. Connection-minutes and pushed
+    messages (S1) bill through the same meters.
+- **Semantic cache (S3, golden g).** A cache with `mode = semantic` on a `cache?` step answers a request with
+  probability `semantic_repeat_share` × fill × capacity: the request type declares how many requests are
+  near-repeats; fill = 1 − e^(−seen ÷ distinct), with `seen` the lookups since the cache was last emptied and
+  `distinct` the type's `key_space`; capacity = min(1, entries that fit (`memory_gb ÷ value_kb`) ÷ distinct). A
+  warm cache starts full; a flush or restart empties it. Each lookup adds 15 ms (an embedding and an ANN search; a
+  modelling choice). The design can't raise the hit rate above what the traffic declares.
+- **Jobs (S4, golden h).**
+  - A request type with `kind = "job"` (share 0) and `job = { work_units, tasks, skew, starts }` runs one job at
+    each start time. Its route is the calls each task makes, as its Batch card's caller (like a scheduler route).
+    Runs with jobs are never sampled.
+  - Task sizes are Zipf weights (`skew`; 0 = equal) shuffled by the `jobs` stream and scaled to `work_units`
+    executor-seconds. A Batch card with `salting = k` splits its largest 1% of tasks k ways. Each launch draws
+    noise (lognormal, median 1, p99 1.5) and adds `task_overhead_ms`.
+  - A task is a request that arrives at the card and holds an executor (`instances × executors`, FIFO, no queue
+    limit) for its time, then makes its calls; the job finishes with its last task.
+  - `speculation`: once 95% of the tasks are done, a task running longer than 1.5 × the median finished task gets a
+    copy; the first copy to finish wins. It redraws noise; it can't shrink a task that is big because of skew.
+  - Chaos `spot { kind|id, at, share, for }`: `share` of the card's executors go away until `for` ends, and that
+    share of its running tasks start again (counted in `tasks_retried`): from scratch, or from their last 10%
+    checkpoint with `checkpoint`. A task whose call fails starts again too.
+  - `jobs` reports each run's start and completion time; `pass.job_deadline_s` fails a test (SLO Breach) when a
+    job finishes late or not at all. Job tests run at most an hour of simulated time (plan ★10 asked for a day;
+    workloads are scaled and the brief says so).
+- **Windows, lateness and checkpoints (S5, golden i).**
+  - A Stream Processor's slot handles `records_per_s` records a second (sliding windows cost window ÷ slide times
+    that). It consumes a stream like any consumer, so its parallelism is capped by the stream's partitions.
+  - With `window = tumbling|sliding`, each record's event time (its start minus a draw from the type's
+    `event_delay`, lognormal, `s5` stream) picks its window, and its result goes to the sinks when the window
+    closes: window end (or the next slide) + `watermark_s`. Meanwhile it holds no slot and no partition. Every
+    record of a window reaches the sinks together: a burst, as in a real window flush.
+  - A record arriving after its window closed is an update within `allowed_lateness_s`, and `late` beyond it:
+    counted (`late_rate` of windowed records), left out, not lost. `pass.late_rate` fails a test as SLO Breach.
+  - Window state (keys in a window × `state_kb`) beyond `memory_gb × instances` makes processing 4× slower (a
+    modelling choice for spilling to disk).
+  - Checkpoints every `checkpoint_s`: when the processor is killed, the records it processed since the last
+    checkpoint are processed again on restart, and their results reach the sinks twice (`duplicates`), unless every
+    data sink it writes has `dedup` (idempotent upserts). `pass.duplicates` fails a test as Dropped Requests.
+    Exactly-once transactions aren't simulated; the simulator counts the duplicates instead.
+- **Scans (S6, golden j).**
+  - A request type may declare `scan = { gb, range_share, span_days, repeat_share, small_file_mb }`: a query over
+    `gb` of table data whose time filter needs `range_share` of it. Its warehouse call (or a lake table read)
+    takes overhead (`overhead_ms`) + scanned GB ÷ `scan_gbps` + 20 ms per file over 8 parallel readers (opening an
+    object-store file; a modelling choice).
+  - A warehouse reading a Lakehouse Table in place (Query edge) scans `gb` pruned by the table's partitioning
+    (`day`: what the range needs, at least a day; `hour`: just the range; `none`: everything), in files of
+    `target_file_mb`, or of the ingest's `small_file_mb` without compaction. Native storage reads 1 GB files.
+  - With `result_cache`, `repeat_share` of the queries are answered in a tenth of the overhead, scanning nothing.
+  - A batch task reading a table splits the job's scan over its tasks.
+  - Billing: `tb_scanned` per TB scanned (BigQuery); `active_only` instances (Snowflake, Databricks SQL) bill the
+    seconds they were busy, each extended by `auto_suspend_s`; a lake table bills `stored_tb` per GB-month.
+- **Data residency (S9, golden m).** A Region may carry a `region_tag` (`.kbarch` v4). A request type with
+  `residency = "<tag>"` counts a `residency_violation` each time a data store or cache serves or writes it, or a
+  broker accepts it, outside a Region with that tag. A card in no tagged Region counts as outside: tag your Regions.
+  Routing doesn't prevent it; the design must. `pass.residency_violations` (usually 0) fails a test as Dropped
+  Requests.
+- **Kind behaviours (golden n, n2).**
+  - **Identity Provider.** Route steps `auth` (a token check, `verify_ms`) and `auth:login` (`login_ms`, limited by
+    `logins_per_s`; past it a login is refused). With `verify = local` (JWKS) the app checks tokens itself: no call,
+    so token checks survive the provider's outage; logins don't.
+  - **Connection Pooler.** A call may reach a SQL card through a pooler (caller → pooler → SQL, Query edges), paying
+    0.7 ms more. With the problem's `connections = true`, SQL enforces `max_connections`: every slot of every service
+    wired straight to it holds one (instances now × slots per instance, so an app scale-out raises it), and a pooler
+    holds its `pool_size`. Past the limit a share of direct calls (excess ÷ demand) is refused. Queueing for a
+    pooled connection isn't modelled. Off by default.
+  - **Third-Party API cards.** `binding` names a provider the problem declares; calls from a caller wired to a card
+    bound to it count on the card (its flavour's price per call). Cards bound to one provider share its limits
+    (they belong to the account). Without a card the provider stays implicit, as before.
+  - **Service mesh** (a Region or AZ's `mesh`, `.kbarch` v4). A hop or call between two meshed cards pays the
+    sidecars (Istio 2 ms, Linkerd 1 ms; modelling choices), a meshed service's work takes 10% / 5% more CPU, the
+    zone's `mesh_timeout_ms` and `mesh_breaker_errors_pct` are its cards' defaults for `call_timeout_ms` and the
+    circuit breaker, and a failed call is retried `mesh_retries` times.
+  - **Graph Database.** A request type's `traversal = { hops, fanout }` visits fanout + fanout² + … relationships;
+    time = `service_ms` + visited ÷ `edges_per_ms`.
+  - **Vector Database.** Lanes are `shards`. Search time = `service_ms` × (1 + log2(vectors per shard ÷ 1M)) ×
+    √(`top_k` ÷ 10) × (1 + 0.15 ln shards): bigger shards and deeper searches cost more, and the slowest shard
+    sets the answer (modelling choices).
+  - **Time-Series Database.** Writes run at `points_per_s` per instance. A request type's `series` (cardinality,
+    times the `cardinality { x, at, for }` chaos) over `series_limit` per instance makes writes 4× slower, and past
+    twice the limit they are refused. Reads cost 2 ms per hour of `span_h`.
+  - **Media Server.** A connection holder (S1) whose capacity is `streams_per_instance`; a push's latency starts
+    from glass-to-glass: three segments plus 1 s for a live encoder (`mode = transcode`), 0.2 s for an SFU.
+- **New flavours (M8.3).** Flavours on existing kinds take their own prices and, where the product behaves
+  differently, their own figures (all `source: needed` until the citations): ScyllaDB serves three times
+  Cassandra's requests per node; CockroachDB and Spanner writes take longer (consensus) and, when their cluster
+  spans Regions, pay a cross-region round trip (70 ms); Aurora replicates in about 20 ms; SQS FIFO is capped at
+  300 messages a second per action; Dragonfly and Hazelcast are multi-threaded; Redpanda publishes faster than
+  Kafka; Cloudflare Workers start cold in 5 ms. The others share their kind's behaviour.
+- **Cache primitives for incidents (S8d).**
+  - A cache in front of a provider (`cache?` then `external:<name>`, with no data store after it in the segment)
+    is filled by the provider's answer. Before M8 such a cache was never filled; routes with a store after the
+    provider keep filling at the store, as before.
+  - `serve_stale_s` (stale-if-error): on a cache-aside miss whose key has an expired copy filled within the TTL
+    plus this window, a failed origin call (error, timeout, 429) answers from that copy, counted as a stale read.
+    The request still waits for the failure, so it goes with a short call timeout.
+  - `stampede_guard` (request coalescing): while a miss for a key is in flight, later misses for the same key wait
+    for its answer and are served from the fill; if it fails and the leader is answered from an expired copy
+    (`serve_stale_s`), they are answered from it too; if it fails outright, they go to the origin themselves.
+  - A cache in a replicated cache cluster (cache cards joined by Replicate) that comes back after a kill resyncs
+    a live member's copy (a Redis replica's full sync) instead of coming back empty; keys expire as they would
+    have. With no live member it still comes back empty (M9 Set 3 #31).
+- **Connection types and the traffic curve (M9).** For a `kind = "connection"` type, a test's traffic curve
+  scales the pushes each connection receives (a goal is a burst of messages), not the number of connected clients;
+  clients joining over time is `ramp_s`. Before M9 the curve scaled both (no shipped content relied on it).
+- **Streams keep failed records (M9).** A stream's consumer that fails a record retries it (backing off) without a
+  retry limit: the record stays in the log, and retention (hours) outlasts any test. Before M9 a stream gave up
+  after a queue's default 3 retries and counted the record lost. Queues keep `max_retries`. (Set 3 #40.)
+- **Optional provider and model calls fall back (M9).** `external:x?` and `model?` steps fall back like `service?`:
+  when the call fails, times out or meets an open breaker, the step is skipped and the request goes on (an auction
+  closes without late bids; a fraud check falls back to rules). The skipped answer is not scored. (Set 3 #41, #44,
+  #45.)
+- **Replay primitives (M10).** All opt-in:
+  - `poison_share` (request type): that share of messages fails at every consumer attempt (after costing its
+    service time), so it is retried, dead-lettered or lost like any failing message (replay 11).
+  - Rate Limiter `on_failure = closed|open` (default `closed`, the behaviour before M10): a killed limiter card
+    stands for a limiter whose state store is unreachable; `open` lets requests past it, unlimited (replay 14).
+  - `bulk` (request type) and Queue/Stream `priority`: on a priority broker, a non-bulk message is queued ahead of
+    every bulk one (replay 20, and the data engineering backfill problems).
+  - SQL `sync = none|sync|quorum` (default `none`): a commit on a cluster primary waits a round trip to its
+    nearest live, reachable replica (`sync`) or to enough replicas for a majority (`quorum`); when they are down or
+    cut off, the commit stalls (30 s, in practice until the caller gives up), holding its connection (replay 16).
+  - Scenario/problem flag `replication_loss` (default off): when an async primary dies, the commits it made within
+    its `replication_lag_ms` are counted as lost at failover (replay 18).
+- **`conditional_writes` (M9).** SQL, NoSQL and Cache cards have a `conditional_writes` prop: the application
+  writes with a check-and-set in one statement (`UPDATE … WHERE used = false`, a DynamoDB condition expression, a
+  Redis `SET NX`). A write to such a card on a contended key behaves like a `datastore:write:atomic` step: a race
+  is refused cleanly instead of counting as a conflict. It is how a design (not only a route) makes the write
+  atomic (Set 3 #33, #34).
+
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE
   operations.
@@ -264,5 +495,5 @@ new.
 - **Calibration:** the model's figures live in the registry and `docs/calibration.md` (ADR 0005). Known
   simplifications (documented for problem authors):
   - a cache's capacity is per request type;
-  - TTL expiry is per key with no stampede coalescing;
+  - TTL expiry is per key; misses are coalesced only on a cache with `stampede_guard` (S8d);
   - the return path mirrors the forward hops.

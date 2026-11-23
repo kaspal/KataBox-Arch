@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "ad-clicks-naive",
   "name": "Ad Click Aggregator (first try)",
   "problem_id": "ad-clicks",

@@ -1,0 +1,187 @@
+kind = "lakehouse"
+one_liner = "An open table format over files in object storage, so many engines can query one copy of the data."
+one_liner_es = "Un formato de tabla abierto sobre archivos en almacenamiento de objetos, para que muchos motores consulten una sola copia de los datos."
+
+use_when = [
+  "Large volumes of events land continuously and must stay cheap to keep",
+  "Several engines, such as a warehouse and batch jobs, read the same data",
+  "Queries mostly filter by time, so partitions can skip most of the data",
+]
+use_when_es = [
+  "Llegan grandes volúmenes de eventos de forma continua y deben ser baratos de guardar",
+  "Varios motores, como un almacén y trabajos por lotes, leen los mismos datos",
+  "Las consultas filtran sobre todo por tiempo, así que las particiones pueden saltarse la mayoría de los datos",
+]
+skip_when = [
+  "The data is small enough for one SQL database or one warehouse's own tables",
+  "The workload is single-row reads and updates for an app",
+  "Nobody will look after compaction and the file layout",
+]
+skip_when_es = [
+  "Los datos caben en una base SQL o en las tablas propias de un almacén",
+  "La carga son lecturas y actualizaciones de filas sueltas para una aplicación",
+  "Nadie va a cuidar la compactación y la disposición de los archivos",
+]
+
+formula = "a reader scans the files of the partitions its filter keeps (all of them with partitioning = none); scanned bytes set the read time in the warehouse or batch job, and every file adds open and list overhead; streaming ingest writes small files, and compaction rewrites them towards target_file_mb on its schedule"
+formula_es = "un lector recorre los archivos de las particiones que conserva su filtro (todas con partitioning = none); los bytes recorridos fijan el tiempo de lectura en el almacén o el trabajo por lotes, y cada archivo añade sobrecarga de apertura y listado; la ingesta en streaming escribe archivos pequeños, y la compactación los reescribe hacia target_file_mb según su calendario"
+
+gains = [
+  "Storage at object-storage prices, far below a database's",
+  "One copy of the data serves a warehouse, batch jobs and streaming",
+  "Time partitions let most queries read a small slice",
+]
+gains_es = [
+  "Almacenamiento a precio de almacenamiento de objetos, muy por debajo del de una base de datos",
+  "Una sola copia de los datos sirve a un almacén, a trabajos por lotes y al streaming",
+  "Las particiones por tiempo permiten que la mayoría de consultas lean una porción pequeña",
+]
+costs = [
+  "Readers pay for a bad layout: no partitions or many small files make every query slower",
+  "Compaction is extra work that someone must schedule",
+  "It is not a database: no fast single-row lookups",
+]
+costs_es = [
+  "Los lectores pagan una mala disposición: sin particiones o con muchos archivos pequeños, cada consulta es más lenta",
+  "La compactación es trabajo extra que alguien debe programar",
+  "No es una base de datos: no hay búsquedas rápidas de una fila",
+]
+
+works_with = ["warehouse", "batch", "object", "streamproc", "connector"]
+practice = ["logs-pipeline", "ad-clicks"]
+
+interview_tip = "Pick the partition column from the most common filter, say how compaction keeps files near the target size, and name which engines read the table."
+interview_tip_es = "Elige la columna de partición según el filtro más común, explica cómo la compactación mantiene los archivos cerca del tamaño objetivo y nombra qué motores leen la tabla."
+
+not_simulated = [
+  "Schema evolution",
+  "Time travel and snapshot expiry",
+  "Commit conflicts between concurrent writers",
+  "The growth of metadata files as commits pile up",
+]
+not_simulated_es = [
+  "La evolución del esquema",
+  "El viaje en el tiempo y la caducidad de instantáneas",
+  "Los conflictos de confirmación entre escritores concurrentes",
+  "El crecimiento de los archivos de metadatos al acumularse confirmaciones",
+]
+
+[[sim]]
+prop = "partitioning"
+note = "How the table is split by time. A query that filters by time reads only the partitions it needs; without partitions it reads everything."
+note_es = "Cómo se divide la tabla por tiempo. Una consulta que filtra por tiempo lee solo las particiones que necesita; sin particiones lo lee todo."
+
+[[sim]]
+prop = "compaction"
+note = "How often small files are merged. Without it, streaming ingest leaves many small files and each one adds read overhead."
+note_es = "Cada cuánto se fusionan los archivos pequeños. Sin ella, la ingesta en streaming deja muchos archivos pequeños y cada uno añade sobrecarga de lectura."
+
+[[sim]]
+prop = "target_file_mb"
+note = "The file size compaction aims for. Larger files mean fewer files to open per gigabyte read."
+note_es = "El tamaño de archivo que busca la compactación. Archivos más grandes significan menos archivos que abrir por gigabyte leído."
+
+[[sim]]
+prop = "stored_tb"
+note = "Terabytes in the table. It sets the storage bill and how much a full scan reads."
+note_es = "Terabytes en la tabla. Fija la factura de almacenamiento y cuánto lee un recorrido completo."
+
+[[sim]]
+sim = "service_ms"
+note = "Base time for the storage behind the table to answer one read request, as for object storage."
+note_es = "Tiempo base para que el almacenamiento bajo la tabla responda a una petición de lectura, como en el almacenamiento de objetos."
+
+[[sim]]
+cost = "per_gb_month"
+note = "The table is billed only for its stored data, at object-storage prices. Readers pay for their own compute."
+note_es = "La tabla se cobra solo por los datos guardados, a precio de almacenamiento de objetos. Los lectores pagan su propio cómputo."
+
+[flavours_compared]
+flavours = ["iceberg", "delta", "hudi"]
+
+[[flavours_compared.rows]]
+label = "Born at"
+label_es = "Origen"
+cells = ["Netflix, now Apache", "Databricks, now Linux Foundation", "Uber, now Apache"]
+cells_es = ["Netflix, ahora Apache", "Databricks, ahora Linux Foundation", "Uber, ahora Apache"]
+
+[[flavours_compared.rows]]
+label = "Known for"
+label_es = "Conocido por"
+cells = ["Hidden partitioning and wide engine support", "Tight Spark and Databricks integration", "Fast upserts and incremental pulls"]
+cells_es = ["Particionado oculto y amplio soporte de motores", "Integración estrecha con Spark y Databricks", "Inserciones rápidas y lecturas incrementales"]
+
+[[flavours_compared.rows]]
+label = "Small-file fix"
+label_es = "Remedio a archivos pequeños"
+cells = ["Rewrite data files action", "OPTIMIZE command", "Built-in clustering and compaction services"]
+cells_es = ["Acción de reescritura de archivos de datos", "Comando OPTIMIZE", "Servicios integrados de clustering y compactación"]
+
+[[pitfalls]]
+title = "No partitions on a time-filtered table"
+title_es = "Sin particiones en una tabla filtrada por tiempo"
+body = "Every query asks for the last hour or day, but the table has no partitions. Each one scans the whole table, so reads get slower and pricier as data piles up."
+body_es = "Cada consulta pide la última hora o el último día, pero la tabla no tiene particiones. Cada una recorre la tabla entera, así que las lecturas se vuelven más lentas y caras a medida que se acumulan datos."
+fix = "Partition by day, or by hour for very large streams, matching the filter readers use."
+fix_es = "Particiona por día, o por hora en streams muy grandes, según el filtro que usan los lectores."
+
+[[pitfalls]]
+title = "Streaming ingest without compaction"
+title_es = "Ingesta en streaming sin compactación"
+body = "A stream writes a small file every few seconds. After a week there are hundreds of thousands, and queries spend their time opening files instead of reading data."
+body_es = "Un stream escribe un archivo pequeño cada pocos segundos. Al cabo de una semana hay cientos de miles, y las consultas pasan el tiempo abriendo archivos en lugar de leer datos."
+fix = "Turn on hourly or daily compaction so files are merged towards the target size."
+fix_es = "Activa la compactación horaria o diaria para que los archivos se fusionen hacia el tamaño objetivo."
+
+[[pitfalls]]
+title = "Partitions that are too fine"
+title_es = "Particiones demasiado finas"
+body = "Partitioning by hour on a modest stream leaves each partition with a few tiny files. Pruning works, but the file overhead comes back."
+body_es = "Particionar por hora un stream modesto deja cada partición con unos pocos archivos diminutos. La poda funciona, pero la sobrecarga por archivo vuelve."
+fix = "Use day partitions unless each hour holds enough data to fill files of the target size."
+fix_es = "Usa particiones por día salvo que cada hora tenga datos suficientes para llenar archivos del tamaño objetivo."
+
+[[sources]]
+flavour = "iceberg"
+title = "Apache Iceberg documentation"
+url = "https://iceberg.apache.org/docs/latest/"
+checked = false
+
+[[sources]]
+flavour = "delta"
+title = "Delta Lake documentation"
+url = "https://docs.delta.io/latest/index.html"
+checked = false
+
+[[sources]]
+flavour = "hudi"
+title = "Apache Hudi documentation"
+url = "https://hudi.apache.org/docs/overview"
+checked = false
+
+[[quiz]]
+q = "Dashboards always filter on the last day, and the lake table has partitioning set to none. Which change cuts their scan the most?"
+q_es = "Los paneles siempre filtran por el último día, y la tabla del lago tiene partitioning en none. ¿Qué cambio reduce más su recorrido?"
+options = ["Raise target_file_mb", "Partition the table by day", "Turn on hourly compaction"]
+options_es = ["Subir target_file_mb", "Particionar la tabla por día", "Activar la compactación horaria"]
+answer = 1
+why = "Partitioning by day lets the reader skip every other day's files. Bigger files and compaction reduce the per-file overhead but still read the whole table."
+why_es = "Particionar por día permite al lector saltarse los archivos de los demás días. Archivos más grandes y la compactación reducen la sobrecarga por archivo, pero se sigue leyendo toda la tabla."
+
+[[quiz]]
+q = "A stream writes into the table every few seconds and queries keep slowing down, though the data size grows slowly. What is the likely cause?"
+q_es = "Un stream escribe en la tabla cada pocos segundos y las consultas se vuelven cada vez más lentas, aunque el volumen de datos crece despacio. ¿Cuál es la causa probable?"
+options = ["The object store is throttling the table", "The partitions are too coarse", "The warehouse ran out of concurrency slots", "Many small files, because compaction is off"]
+options_es = ["El almacén de objetos limita la tabla", "Las particiones son demasiado gruesas", "El almacén de datos se quedó sin huecos de concurrencia", "Muchos archivos pequeños, porque la compactación está apagada"]
+answer = 3
+why = "Each small write is a new file, and every file adds open and list overhead to each read. Compaction merges them towards the target size."
+why_es = "Cada escritura pequeña es un archivo nuevo, y cada archivo añade sobrecarga de apertura y listado a cada lectura. La compactación los fusiona hacia el tamaño objetivo."
+
+[[quiz]]
+q = "What does the lakehouse table itself cost in the simulator?"
+q_es = "¿Cuánto cuesta en el simulador la propia tabla del lakehouse?"
+options = ["Its stored data at object-storage prices; the engines that read it bill their own compute", "A fixed fee per table plus each query", "Nothing: storage is included in the warehouse price"]
+options_es = ["Sus datos guardados a precio de almacenamiento de objetos; los motores que la leen cobran su propio cómputo", "Una tarifa fija por tabla más cada consulta", "Nada: el almacenamiento va incluido en el precio del almacén"]
+answer = 0
+why = "A table format is files plus metadata in object storage. The warehouse or batch job that reads it is a separate card with its own price."
+why_es = "Un formato de tabla son archivos más metadatos en almacenamiento de objetos. El almacén o el trabajo por lotes que la lee es otra tarjeta con su propio precio."

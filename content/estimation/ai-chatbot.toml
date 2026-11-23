@@ -1,0 +1,34 @@
+# Estimation drills for Support Chatbot.
+
+[[drill]]
+id = "peak-tokens-per-minute"
+kind = "capacity"
+prompt = "Your chatbot gets {peak_rps} messages a second at peak. Each message sends {tokens_in} tokens to the model and gets {tokens_out} back. How many tokens a minute does it use?"
+prompt_es = "Tu chatbot recibe {peak_rps} mensajes por segundo en el pico. Cada mensaje envía {tokens_in} tokens al modelo y recibe {tokens_out}. ¿Cuántos tokens por minuto usa?"
+inputs = { peak_rps = 5, tokens_in = 800, tokens_out = 300 }
+formula = "peak_rps * 60 * (tokens_in + tokens_out)"
+unit = "count"
+solution = "{peak_rps} × 60 s × ({tokens_in} + {tokens_out}) = {answer} tokens a minute. Providers count input and output tokens against the same per-minute limit, so both halves matter. One key at 400,000 tokens a minute covers this, with about 18% to spare."
+solution_es = "{peak_rps} × 60 s × ({tokens_in} + {tokens_out}) = {answer} tokens por minuto. Los proveedores cuentan los tokens de entrada y de salida contra el mismo límite por minuto, así que cuentan las dos mitades. Una clave de 400 000 tokens por minuto lo cubre, con un 18 % de margen más o menos."
+
+[[drill]]
+id = "launch-keys"
+kind = "servers"
+prompt = "On launch day your chatbot gets {multiplier} times its peak of {peak_rps} messages a second, at {tokens} tokens per message. Each API key allows {tpm} tokens a minute. How many keys' worth of limit does the launch need (before rounding up)?"
+prompt_es = "El día del lanzamiento tu chatbot recibe {multiplier} veces su pico de {peak_rps} mensajes por segundo, con {tokens} tokens por mensaje. Cada clave de API permite {tpm} tokens por minuto. ¿Cuántas claves de límite necesita el lanzamiento (antes de redondear hacia arriba)?"
+inputs = { multiplier = 4, peak_rps = 5, tokens = 1100, tpm = 1000000 }
+formula = "multiplier * peak_rps * 60 * tokens / tpm"
+unit = "count"
+solution = "{multiplier} × {peak_rps} × 60 × {tokens} = 1,320,000 tokens a minute, / {tpm} = {answer} keys: round up to 2. Two keys at the higher tier leave a third of the limit free, and either key alone covers a normal day if the other provider fails."
+solution_es = "{multiplier} × {peak_rps} × 60 × {tokens} = 1 320 000 tokens por minuto, / {tpm} = {answer} claves: redondea a 2. Dos claves en el nivel más alto dejan libre un tercio del límite, y cualquiera de las dos cubre sola un día normal si el otro proveedor falla."
+
+[[drill]]
+id = "allowance-runs-dry"
+kind = "capacity"
+prompt = "A key allows {tpm} tokens a minute and starts the launch with a full minute's allowance stored. The launch sends {launch_tpm} tokens a minute to it. How many seconds until the allowance runs out and calls start getting 429s?"
+prompt_es = "Una clave permite {tpm} tokens por minuto y empieza el lanzamiento con lo de un minuto entero guardado. El lanzamiento le envía {launch_tpm} tokens por minuto. ¿Cuántos segundos pasan hasta que se acaba lo guardado y las llamadas empiezan a recibir 429?"
+inputs = { tpm = 400000, launch_tpm = 1320000 }
+formula = "tpm * 60 / (launch_tpm - tpm)"
+unit = "s"
+solution = "The store drains at {launch_tpm} − {tpm} = 920,000 tokens a minute more than it refills, so {tpm} tokens last {tpm} × 60 / 920,000 ≈ {answer} seconds. A burst shorter than that passes unnoticed; a launch that lasts minutes does not."
+solution_es = "Lo guardado se vacía a {launch_tpm} − {tpm} = 920 000 tokens por minuto más de lo que se recarga, así que {tpm} tokens duran {tpm} × 60 / 920 000 ≈ {answer} segundos. Una ráfaga más corta pasa sin notarse; un lanzamiento que dura minutos, no."

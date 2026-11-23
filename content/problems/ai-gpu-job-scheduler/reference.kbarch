@@ -1,0 +1,180 @@
+{
+  "schema_version": 4,
+  "id": "ai-gpu-job-scheduler-ref",
+  "name": "GPU job scheduler (reference)",
+  "problem_id": "ai-gpu-job-scheduler",
+  "nodes": [
+    {
+      "id": "users",
+      "kind": "client",
+      "flavour": "web",
+      "label": "users",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "api",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "jobs",
+      "kind": "queue",
+      "flavour": "rabbitmq",
+      "label": "jobs",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {
+        "priority": true,
+        "visibility_timeout_s": 60
+      },
+      "group_id": null
+    },
+    {
+      "id": "gpu1",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "gpu1",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 8,
+        "concurrency": 1,
+        "service_ms": 2000
+      },
+      "group_id": null
+    },
+    {
+      "id": "gpu2",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "gpu2",
+      "position": {
+        "x": 608,
+        "y": 224
+      },
+      "props": {
+        "instances": 8,
+        "concurrency": 1,
+        "service_ms": 2000
+      },
+      "group_id": null
+    },
+    {
+      "id": "gpu3",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "gpu3",
+      "position": {
+        "x": 608,
+        "y": 336
+      },
+      "props": {
+        "instances": 8,
+        "concurrency": 1,
+        "service_ms": 2000
+      },
+      "group_id": null
+    },
+    {
+      "id": "gpu4",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "gpu4",
+      "position": {
+        "x": 608,
+        "y": 448
+      },
+      "props": {
+        "instances": 8,
+        "concurrency": 1,
+        "service_ms": 2000
+      },
+      "group_id": null
+    },
+    {
+      "id": "gpu5",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "gpu5",
+      "position": {
+        "x": 608,
+        "y": 560
+      },
+      "props": {
+        "instances": 8,
+        "concurrency": 1,
+        "service_ms": 2000
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-users-api-http",
+      "from": "users",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e-api-jobs-publish",
+      "from": "api",
+      "to": "jobs",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-jobs-gpu1-consume",
+      "from": "jobs",
+      "to": "gpu1",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-jobs-gpu2-consume",
+      "from": "jobs",
+      "to": "gpu2",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-jobs-gpu3-consume",
+      "from": "jobs",
+      "to": "gpu3",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-jobs-gpu4-consume",
+      "from": "jobs",
+      "to": "gpu4",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-jobs-gpu5-consume",
+      "from": "jobs",
+      "to": "gpu5",
+      "protocol": "consume"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

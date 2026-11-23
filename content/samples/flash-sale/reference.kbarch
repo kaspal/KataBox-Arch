@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "sample-flash-sale-reference",
   "name": "flash-sale: reference",
   "problem_id": "flash-sale",

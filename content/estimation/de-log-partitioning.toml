@@ -1,0 +1,34 @@
+# Estimation drills for Log Search Over a Year.
+
+[[drill]]
+id = "one-day-scan"
+kind = "storage"
+prompt = "Your log table holds {days} days in {year_gb} GB, spread evenly. Partitioned by day, how many GB does a search of the last 24 hours read?"
+prompt_es = "Tu tabla de logs guarda {days} días en {year_gb} GB, repartidos por igual. Particionada por día, ¿cuántos GB lee una búsqueda de las últimas 24 horas?"
+inputs = { year_gb = 36.5, days = 365 }
+formula = "year_gb / days"
+unit = "GB"
+solution = "{year_gb} GB / {days} days = {answer} GB. Without partitions the warehouse reads all {year_gb} GB to find it: 365 times as much data, time and money for the same answer."
+solution_es = "{year_gb} GB / {days} días = {answer} GB. Sin particiones, el almacén lee los {year_gb} GB para encontrarlo: 365 veces más datos, tiempo y dinero para la misma respuesta."
+
+[[drill]]
+id = "unpartitioned-month"
+kind = "storage"
+prompt = "Engineers run {qps} searches a second, all month ({month_s} seconds). With the table unpartitioned, each search reads the whole {year_gb} GB. How many TB does the warehouse scan in a month?"
+prompt_es = "Los ingenieros lanzan {qps} búsquedas por segundo, todo el mes ({month_s} segundos). Con la tabla sin particionar, cada búsqueda lee los {year_gb} GB enteros. ¿Cuántos TB escanea el almacén en un mes?"
+inputs = { qps = 2, month_s = 2628000, year_gb = 36.5 }
+formula = "qps * month_s * year_gb / 1024"
+unit = "TB"
+solution = "{qps} × {month_s} s × {year_gb} GB / 1024 ≈ {answer} TB. At $6.25 per TB that is over $1.1 million a month. Partitioned by day, each search reads 0.1 GB, and the same month is about 513 TB, about $3,200."
+solution_es = "{qps} × {month_s} s × {year_gb} GB / 1024 ≈ {answer} TB. A 6,25 $ por TB, más de 1,1 millones de dólares al mes. Particionada por día, cada búsqueda lee 0,1 GB, y el mismo mes son unos 513 TB, unos 3200 $."
+
+[[drill]]
+id = "slots-in-use"
+kind = "capacity"
+prompt = "Unpartitioned, every search takes about {query_s} seconds in the warehouse, and {qps} searches arrive every second. How many queries are running at once?"
+prompt_es = "Sin particionar, cada búsqueda tarda unos {query_s} segundos en el almacén, y llegan {qps} búsquedas por segundo. ¿Cuántas consultas se están ejecutando a la vez?"
+inputs = { qps = 2, query_s = 37.5 }
+formula = "qps * query_s"
+unit = "count"
+solution = "{qps} a second × {query_s} s = {answer} queries at once (Little's law). With 32 slots, the rest queue until the 60 s timeout. Partitioned, a search takes about 0.42 s, and two a second need about one slot."
+solution_es = "{qps} por segundo × {query_s} s = {answer} consultas a la vez (ley de Little). Con 32 huecos, el resto hace cola hasta el tiempo límite de 60 s. Particionada, una búsqueda tarda unos 0,42 s, y dos por segundo necesitan más o menos un hueco."

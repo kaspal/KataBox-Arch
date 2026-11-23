@@ -1,0 +1,173 @@
+{
+  "schema_version": 4,
+  "id": "marketplace-search-challenge",
+  "name": "Marketplace Search (reference)",
+  "problem_id": "marketplace-search",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Shoppers",
+      "position": {
+        "x": 390,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "Load balancer",
+      "position": {
+        "x": 390,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Search API",
+      "position": {
+        "x": 390,
+        "y": 340
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "cache",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "Query cache",
+      "position": {
+        "x": 130,
+        "y": 510
+      },
+      "props": {
+        "memory_gb": 0.5,
+        "ttl_s": 30
+      },
+      "group_id": null
+    },
+    {
+      "id": "search",
+      "kind": "search",
+      "flavour": "elasticsearch",
+      "label": "Listings index",
+      "position": {
+        "x": 390,
+        "y": 612
+      },
+      "props": {
+        "shards": 4
+      },
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "Listings DB",
+      "position": {
+        "x": 650,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "cdc",
+      "kind": "stream",
+      "flavour": "kafka",
+      "label": "Listing changes",
+      "position": {
+        "x": 910,
+        "y": 646
+      },
+      "props": {
+        "partitions": 24
+      },
+      "group_id": null
+    },
+    {
+      "id": "indexer",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Indexers",
+      "position": {
+        "x": 650,
+        "y": 782
+      },
+      "props": {
+        "instances": 1,
+        "service_ms": 10
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "api",
+      "to": "cache",
+      "protocol": "query"
+    },
+    {
+      "id": "e3",
+      "from": "api",
+      "to": "search",
+      "protocol": "query"
+    },
+    {
+      "id": "e4",
+      "from": "api",
+      "to": "db",
+      "protocol": "query"
+    },
+    {
+      "id": "e5",
+      "from": "db",
+      "to": "cdc",
+      "protocol": "publish"
+    },
+    {
+      "id": "e6",
+      "from": "cdc",
+      "to": "indexer",
+      "protocol": "consume"
+    },
+    {
+      "id": "e7",
+      "from": "indexer",
+      "to": "search",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

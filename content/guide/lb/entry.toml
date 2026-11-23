@@ -152,6 +152,24 @@ flavour = "aws_nlb"
 title = "Network Load Balancer documentation"
 url = "https://docs.aws.amazon.com/elasticloadbalancing/latest/network/"
 
+[[sources]]
+flavour = "envoy_lb"
+title = "Envoy documentation"
+url = "https://www.envoyproxy.io/docs/envoy/latest/"
+checked = false
+
+[[sources]]
+flavour = "traefik"
+title = "Traefik documentation"
+url = "https://doc.traefik.io/traefik/"
+checked = false
+
+[[sources]]
+flavour = "global_accelerator"
+title = "AWS Global Accelerator documentation"
+url = "https://docs.aws.amazon.com/global-accelerator/"
+checked = false
+
 [[quiz]]
 q = "One of the servers behind a load balancer dies. What happens to requests before the health checks notice?"
 q_es = "Uno de los servidores detrás de un balanceador muere. ¿Qué pasa con las peticiones antes de que lo detecten las comprobaciones de salud?"

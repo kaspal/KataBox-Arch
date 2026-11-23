@@ -1,0 +1,34 @@
+# Estimation drills for Post Moderation.
+
+[[drill]]
+id = "posts-in-flight"
+kind = "capacity"
+prompt = "Your app publishes {peak_rps} posts a second at peak, and the classifier needs about {model_ms} ms to check one. How many posts is the classifier working on at once?"
+prompt_es = "Tu app publica {peak_rps} publicaciones por segundo en el pico, y el clasificador necesita unos {model_ms} ms para comprobar una. ¿Con cuántas publicaciones trabaja el clasificador a la vez?"
+inputs = { peak_rps = 1500, model_ms = 13 }
+formula = "peak_rps * model_ms / 1000"
+unit = "count"
+solution = "In flight = rate × time = {peak_rps} × 0.013 s ≈ {answer} posts at once. One Triton GPU instance has 64 Batch slots, so on a normal day it is about a third busy, and it looks like more than enough."
+solution_es = "En curso = ritmo × tiempo = {peak_rps} × 0,013 s ≈ {answer} publicaciones a la vez. Una instancia de GPU de Triton tiene 64 Huecos de lote, así que en un día normal está ocupada en torno a un tercio, y parece más que suficiente."
+
+[[drill]]
+id = "gpus-for-the-spike"
+kind = "servers"
+prompt = "A viral post brings {spike_x} times the normal {peak_rps} posts a second. Each check takes about {model_ms} ms, and each GPU instance works on up to {batch_slots} posts at once. How many GPU instances does the spike fill?"
+prompt_es = "Una publicación viral trae {spike_x} veces las {peak_rps} publicaciones por segundo normales. Cada comprobación tarda unos {model_ms} ms, y cada instancia de GPU trabaja con hasta {batch_slots} publicaciones a la vez. ¿Cuántas instancias de GPU llena el pico?"
+inputs = { peak_rps = 1500, spike_x = 5, model_ms = 13, batch_slots = 64 }
+formula = "peak_rps * spike_x * model_ms / 1000 / batch_slots"
+unit = "count"
+solution = "In flight = {peak_rps} × {spike_x} × 0.013 s ≈ 98 posts, over {batch_slots} slots each: about {answer} instances. One instance is not enough: the extra posts queue and are dropped. Two instances leave some headroom; two per model server let either server carry the spike alone."
+solution_es = "En curso = {peak_rps} × {spike_x} × 0,013 s ≈ 98 publicaciones, entre {batch_slots} huecos cada una: unas {answer} instancias. Una instancia no basta: las publicaciones de más se encolan y se descartan. Dos instancias dejan algo de margen; dos por servidor de modelo permiten que cualquiera de los dos lleve el pico solo."
+
+[[drill]]
+id = "posts-lost-before-failover"
+kind = "capacity"
+prompt = "Your App Servers spread {peak_rps} posts a second evenly over {servers} model servers. One of them dies, and the health checks need about {detect_s} seconds to notice. How many posts fail in that time?"
+prompt_es = "Tus App Servers reparten {peak_rps} publicaciones por segundo a partes iguales entre {servers} servidores de modelo. Uno de ellos cae, y las comprobaciones de salud tardan unos {detect_s} segundos en notarlo. ¿Cuántas publicaciones fallan en ese tiempo?"
+inputs = { peak_rps = 1500, servers = 2, detect_s = 2 }
+formula = "peak_rps / servers * detect_s"
+unit = "count"
+solution = "Until the dead server is noticed, its share keeps going to it: {peak_rps} / {servers} × {detect_s} s = {answer} posts fail. In a one-minute run of 90,000 posts that is under 2%, a short blip. With a single model server, every post fails from the moment it dies."
+solution_es = "Hasta que se nota el servidor caído, su parte sigue yendo a él: {peak_rps} / {servers} × {detect_s} s = {answer} publicaciones fallan. En una ejecución de un minuto con 90 000 publicaciones es menos del 2 %, un tropiezo breve. Con un solo servidor de modelo, falla cada publicación desde el momento en que cae."

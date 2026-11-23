@@ -331,3 +331,163 @@ term_es = "CQRS"
 definition = "Command query responsibility segregation: writes go to one model and reads come from a separate model built for them. The read side lags a little behind."
 definition_es = "Separación de responsabilidades entre comandos y consultas: las escrituras van a un modelo y las lecturas salen de otro modelo pensado para ellas. El lado de lectura va un poco por detrás."
 see = "stream"
+
+[[term]]
+id = "time-to-first-token"
+term = "Time to first token"
+term_es = "Tiempo hasta el primer token"
+definition = "How long a language model takes to send back the first token of its answer (TTFT). It covers the wait in the queue and reading the prompt, so a chat feels slow when it is high even if the rest streams quickly."
+definition_es = "Lo que tarda un modelo de lenguaje en devolver el primer token de su respuesta (TTFT). Incluye la espera en la cola y la lectura del prompt, así que un chat se siente lento si es alto aunque el resto llegue rápido."
+see = "infer"
+
+[[term]]
+id = "tokens"
+term = "Tokens"
+term_es = "Tokens"
+definition = "The pieces of text a language model reads and writes, often a short word or part of one. Prompts, answers, prices and rate limits are all measured in tokens."
+definition_es = "Los trozos de texto que un modelo de lenguaje lee y escribe, a menudo una palabra corta o parte de una. Los prompts, las respuestas, los precios y los límites de uso se miden en tokens."
+see = "infer"
+
+[[term]]
+id = "tokens-per-minute"
+term = "Tokens per minute"
+term_es = "Tokens por minuto"
+definition = "A hosted model's account limits: tokens per minute (TPM) and requests per minute (RPM). Past either one, the provider rejects calls with a rate-limit error until the minute rolls over."
+definition_es = "Los límites de una cuenta de un modelo alojado: tokens por minuto (TPM) y peticiones por minuto (RPM). Al pasar cualquiera de los dos, el proveedor rechaza llamadas con un error de límite de uso hasta que cambia el minuto."
+see = "infer"
+
+[[term]]
+id = "continuous-batching"
+term = "Continuous batching"
+term_es = "Batching continuo"
+definition = "A way to serve a model in which new requests join the batch already running on the GPU instead of waiting for it to finish. Each request gets a slice of every step, so one GPU serves many streams at once."
+definition_es = "Una forma de servir un modelo en la que las peticiones nuevas se suman al lote que ya corre en la GPU en lugar de esperar a que termine. Cada petición recibe una parte de cada paso, así que una GPU atiende muchos flujos a la vez."
+see = "infer"
+
+[[term]]
+id = "embedding"
+term = "Embedding"
+term_es = "Embedding"
+definition = "A list of numbers that a model produces for a text, an image or a product, placed so that similar things end up close together. Searching by meaning compares embeddings instead of words."
+definition_es = "Una lista de números que un modelo produce para un texto, una imagen o un producto, colocada de forma que las cosas parecidas quedan cerca. Buscar por significado compara embeddings en lugar de palabras."
+see = "vector"
+
+[[term]]
+id = "hnsw"
+term = "HNSW"
+term_es = "HNSW"
+definition = "A graph index for approximate nearest neighbour (ANN) search: the query walks the graph towards the closest vectors instead of comparing itself with every one. It is fast, but now and then it misses a true nearest neighbour."
+definition_es = "Un índice en forma de grafo para la búsqueda aproximada de vecinos más cercanos (ANN): la consulta recorre el grafo hacia los vectores más próximos en lugar de compararse con todos. Es rápido, pero de vez en cuando se le escapa el verdadero vecino más cercano."
+see = "vector"
+
+[[term]]
+id = "retrieval-for-ai-answers"
+term = "Retrieval for AI answers"
+term_es = "Recuperación para respuestas de IA"
+definition = "Finding the documents that match a question, usually with a vector search, and adding them to the model's prompt so it answers from them. It is often called RAG, retrieval-augmented generation."
+definition_es = "Encontrar los documentos que encajan con una pregunta, normalmente con una búsqueda vectorial, y añadirlos al prompt del modelo para que responda a partir de ellos. Se suele llamar RAG, generación aumentada por recuperación."
+see = "vector"
+
+[[term]]
+id = "watermark"
+term = "Watermark"
+term_es = "Marca de agua"
+definition = "A stream processor's estimate of how far event time has got: once the watermark passes the end of a window, the window closes and its result is sent. Waiting longer catches more late events but delays every result."
+definition_es = "La estimación que hace un procesador de streams de hasta dónde ha llegado el tiempo de los eventos: cuando la marca de agua pasa el final de una ventana, la ventana se cierra y se envía su resultado. Esperar más recoge más eventos tardíos, pero retrasa todos los resultados."
+see = "streamproc"
+
+[[term]]
+id = "late-event"
+term = "Late event"
+term_es = "Evento tardío"
+definition = "An event that reaches the stream processor after the watermark has already closed its window, for example from a phone that was offline. It is dropped or sent to a side output, so the window's count comes out short."
+definition_es = "Un evento que llega al procesador de streams después de que la marca de agua haya cerrado su ventana, por ejemplo desde un móvil que estuvo sin conexión. Se descarta o se envía a una salida aparte, así que el recuento de la ventana se queda corto."
+see = "streamproc"
+
+[[term]]
+id = "checkpoint"
+term = "Checkpoint"
+term_es = "Checkpoint"
+definition = "A saved copy of a job's progress and state, written every so often. After a crash the job restarts from the last checkpoint instead of from the beginning, and redoes only the work since then."
+definition_es = "Una copia guardada del progreso y el estado de un trabajo, escrita cada cierto tiempo. Tras un fallo el trabajo se reanuda desde el último checkpoint en lugar de desde el principio, y solo rehace el trabajo posterior."
+see = "streamproc"
+
+[[term]]
+id = "exactly-once"
+term = "Exactly-once"
+term_es = "Exactamente una vez"
+definition = "A promise that each event affects the result exactly one time, even after a crash and a retry. The simulator does not simulate it: instead it counts the duplicates that at-least-once delivery lets through."
+definition_es = "Una garantía de que cada evento afecta al resultado exactamente una vez, incluso tras un fallo y un reintento. El simulador no la simula: en su lugar cuenta los duplicados que deja pasar la entrega al menos una vez."
+see = "streamproc"
+
+[[term]]
+id = "quorum"
+term = "Quorum"
+term_es = "Quórum"
+definition = "A majority of the replicas in a group, such as two of three. A write that a quorum has stored survives the loss of any minority, and any two quorums share at least one replica."
+definition_es = "Una mayoría de las réplicas de un grupo, como dos de tres. Una escritura que un quórum ha guardado sobrevive a la pérdida de cualquier minoría, y dos quórums cualesquiera comparten al menos una réplica."
+see = "coord"
+
+[[term]]
+id = "fencing-token"
+term = "Fencing token"
+term_es = "Token de cercado"
+definition = "A number that goes up with every lock grant; the datastore checks it on each write and rejects any older than one it has already seen. It stops split-brain, two holders that both believe they own the lock, from corrupting data."
+definition_es = "Un número que aumenta con cada concesión de un bloqueo; el almacén lo comprueba en cada escritura y rechaza cualquiera más antiguo que uno ya visto. Evita que un cerebro dividido (split-brain), dos titulares que creen tener el bloqueo, corrompa los datos."
+see = "coord"
+
+[[term]]
+id = "retry-storm"
+term = "Retry storm"
+term_es = "Tormenta de reintentos"
+definition = "A burst of traffic made of clients retrying failed requests, which adds load to a system that is already struggling. It can keep the system down after the original cause has gone, which is called a metastable failure."
+definition_es = "Un pico de tráfico formado por clientes que reintentan peticiones fallidas, lo que añade carga a un sistema que ya va justo. Puede mantener el sistema caído después de que la causa original haya desaparecido, lo que se llama un fallo metaestable."
+see = "queue"
+
+[[term]]
+id = "staged-rollout"
+term = "Staged rollout"
+term_es = "Despliegue escalonado"
+definition = "Sending a change to one group of servers at a time and waiting a while before the next. It limits the blast radius: the share of users a bad change can hurt before someone stops it."
+definition_es = "Enviar un cambio a un grupo de servidores cada vez y esperar un rato antes del siguiente. Limita el radio de impacto: la parte de los usuarios a la que un cambio malo puede afectar antes de que alguien lo detenga."
+see = "config"
+
+[[term]]
+id = "isolation"
+term = "Isolation"
+term_es = "Aislamiento"
+definition = "Giving a part of the system its own queue, pool or servers, so that when it slows down or fails it fills its own compartment instead of dragging the rest down. The pattern is also called a bulkhead."
+definition_es = "Dar a una parte del sistema su propia cola, su propio pool o sus propios servidores, para que cuando se ralentice o falle llene su propio compartimento en lugar de arrastrar al resto. El patrón también se llama mamparo (bulkhead)."
+see = "queue"
+
+[[term]]
+id = "partition-pruning"
+term = "Partition pruning"
+term_es = "Poda de particiones"
+definition = "Skipping the partitions of a table that a query's filter rules out, such as every day but the one asked for. It is often the biggest saving in a warehouse, because the cost of a query follows the bytes it scans."
+definition_es = "Saltarse las particiones de una tabla que el filtro de una consulta descarta, como todos los días menos el pedido. Suele ser el mayor ahorro en un almacén de datos, porque el coste de una consulta sigue a los bytes que recorre."
+see = "warehouse"
+
+[[term]]
+id = "compaction"
+term = "Compaction"
+term_es = "Compactación"
+definition = "A background job that rewrites many small files or old log entries into fewer, larger ones. It keeps reads fast and storage tidy, at the cost of extra work while it runs."
+definition_es = "Un trabajo en segundo plano que reescribe muchos archivos pequeños o entradas antiguas del log en menos archivos, más grandes. Mantiene rápidas las lecturas y ordenado el almacenamiento, a cambio de trabajo extra mientras se ejecuta."
+see = "lakehouse"
+
+[[term]]
+id = "small-files"
+term = "Small files"
+term_es = "Archivos pequeños"
+definition = "The problem of a table split into many tiny files, usually by frequent streaming writes. Every file adds a fixed cost to open and list, so queries slow down until compaction merges them."
+definition_es = "El problema de una tabla repartida en muchos archivos diminutos, normalmente por escrituras de streaming frecuentes. Cada archivo añade un coste fijo de apertura y listado, así que las consultas se ralentizan hasta que la compactación los une."
+see = "lakehouse"
+
+[[term]]
+id = "cardinality"
+term = "Cardinality"
+term_es = "Cardinalidad"
+definition = "The number of distinct series in a time-series database: every different combination of a metric name and its labels counts as one. A label such as a user id can multiply it into millions and run the database out of memory."
+definition_es = "El número de series distintas en una base de datos de series temporales: cada combinación diferente de un nombre de métrica y sus etiquetas cuenta como una. Una etiqueta como el id de usuario puede multiplicarla hasta millones y dejar a la base sin memoria."
+see = "tsdb"

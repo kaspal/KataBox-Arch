@@ -1,0 +1,60 @@
+id = "de-clickstream-to-lake"
+track = "de"
+number = 2
+set = 1
+difficulty = "easy"
+title = "Clickstream into a Lakehouse"
+title_es = "Clickstream hacia un lakehouse"
+teaches = "Stream click events into a lake table, compact its small files so every scan stays short, and let the stream hold the events while the processor is down"
+teaches_es = "Llevar los clics por un stream a una tabla del lago, compactar sus archivos pequeños para que cada escaneo sea corto, y dejar que el stream guarde los eventos mientras el procesador está caído"
+tags = ["streams", "lakehouse", "warehouse", "small-files", "compaction", "partitioning"]
+
+[nfr]
+peak_rps = 200
+p95_ms = 4000
+availability = 0.999
+budget_usd = 12000
+
+[[request_types]]
+id = "clicks"
+name = "Send a batch of click events"
+name_es = "Enviar un lote de eventos de clic"
+share = 0.9
+route = ["edge?", "compute", "broker", "worker:streamproc", "datastore:write:lakehouse"]
+key_space = 1_000_000
+payload_kb = 8
+measure = "completion"
+
+[[request_types]]
+id = "dashboard"
+name = "Refresh a dashboard chart"
+name_es = "Refrescar un gráfico del panel"
+share = 0.1
+route = ["edge?", "compute", "datastore:warehouse"]
+key_space = 20_000
+scan = { gb = 730, range_share = 0.00274, span_days = 365, small_file_mb = 2 }
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "launch"
+name = "A launch day brings 5× the traffic"
+name_es = "Un día de lanzamiento trae 5× el tráfico"
+hidden = true
+traffic = { spike = { at = 20, x = 5, for = 20 } }
+
+[[tests]]
+id = "processor-down"
+name = "The stream processor is down for 20 s"
+name_es = "El procesador de streams cae durante 20 s"
+hidden = true
+duration_s = 90
+chaos = [{ kill = { kind = "streamproc", at = 20, for = 20 } }]
+pass = { p95_ms = 30000 }
+
+[pass]
+error_rate = 0.01
+lost = 0

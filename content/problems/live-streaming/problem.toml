@@ -1,0 +1,66 @@
+id = "live-streaming"
+number = 43
+set = 3
+difficulty = "hard"
+title = "Live Streaming with Chat"
+title_es = "Directos con chat"
+teaches = "Serve live video segments from a CDN so viewers never reach the origin, and give the chat gateways message headroom for the moment a raid multiplies the chat"
+teaches_es = "Servir los segmentos del directo desde una CDN para que los espectadores nunca lleguen al origen, y dar a las pasarelas del chat margen de mensajes para cuando una raid multiplica el chat"
+tags = ["cdn", "websockets", "fan-out", "live-video"]
+
+[nfr]
+peak_rps = 5000
+p95_ms = 300
+availability = 0.999
+budget_usd = 15000
+
+[[request_types]]
+id = "segment"
+name = "Fetch the next video segment"
+name_es = "Descargar el siguiente segmento de vídeo"
+share = 0.95
+route = ["edge?", "datastore:object"]
+key_space = 3000
+key_skew = { zipf = 1.2 }
+cacheable = true
+
+[[request_types]]
+id = "send"
+name = "Send a chat message"
+name_es = "Enviar un mensaje al chat"
+share = 0.05
+route = ["edge?", "compute", "datastore:write"]
+key_space = 1000000
+
+[[request_types]]
+id = "chat"
+name = "Viewers in the chat"
+name_es = "Espectadores en el chat"
+share = 0.0
+kind = "connection"
+route = ["edge"]
+connected = 200000
+push_rps = 0.5
+
+[[tests]]
+id = "normal"
+name = "A normal evening"
+name_es = "Una tarde normal"
+
+[[tests]]
+id = "raid"
+name = "A raid floods one channel"
+name_es = "Una raid inunda un canal"
+hidden = true
+traffic = { spike = { at = 20, x = 4, for = 20 } }
+
+[[tests]]
+id = "origin-slow"
+name = "The origin storage slows down"
+name_es = "El almacenamiento de origen se vuelve lento"
+hidden = true
+chaos = [{ latency = { kind = "object", at = 20, for = 30, add_ms = 400 } }]
+
+[pass]
+error_rate = 0.01
+connected_min = 0.95

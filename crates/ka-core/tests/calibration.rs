@@ -1,7 +1,13 @@
 //! `docs/calibration.md` lists every calibrated figure the registry holds, with the same
 //! value (ADR 0005). A row's status (`cited` or `source: needed`) matches `CITED`.
 
-use ka_core::{CalibrationStatus, calibration_rows, registry};
+use ka_core::{
+    CITED, CalibrationStatus, MODEL, RULE_OF_THUMB, calibration_rows, calibration_status, registry,
+};
+
+fn is_listed(id: &str) -> bool {
+    MODEL.contains(&id) || RULE_OF_THUMB.contains(&id)
+}
 
 const DOC: &str = include_str!("../../../docs/calibration.md");
 
@@ -69,14 +75,36 @@ fn statuses_match_the_sources() {
     for (id, _, source) in doc_rows() {
         let needed = source.starts_with("source: needed");
         assert!(needed || !source.is_empty(), "{id} has no source");
-        let status = r
+        // Every row's status follows the lists in the registry; the source cell says the same.
+        let status = calibration_status(&id);
+        assert_eq!(
+            status == CalibrationStatus::Needed,
+            needed || !(CITED.contains(&id.as_str()) || is_listed(&id)),
+            "{id}: status vs source"
+        );
+        match status {
+            CalibrationStatus::Model => {
+                assert!(
+                    source.starts_with("model:"),
+                    "{id}: a modelling choice reads `model: <why>`"
+                )
+            }
+            CalibrationStatus::RuleOfThumb => assert!(
+                source.starts_with("rule of thumb"),
+                "{id}: a rule of thumb says so"
+            ),
+            _ => {}
+        }
+        // A prop's inspector tag carries the same status.
+        let tag = r
             .kinds
             .iter()
             .flat_map(|k| &k.props)
             .filter_map(|p| p.calibration.as_ref())
             .find(|c| c.id == id)
             .map(|c| c.status);
-        if let Some(s) = status {
+        if let Some(s) = tag {
+            assert_eq!(s, status, "{id}: inspector tag vs lists");
             assert_eq!(
                 s == CalibrationStatus::Needed,
                 needed,

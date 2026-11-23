@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "webhooks-reference",
   "name": "Webhook Delivery (reference)",
   "problem_id": "webhooks",
@@ -64,8 +64,8 @@
         "y": 510
       },
       "props": {
-        "instances": 28,
-        "concurrency": 64
+        "concurrency": 64,
+        "instances": 28
       },
       "group_id": null
     }

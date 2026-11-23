@@ -1,0 +1,108 @@
+{
+  "schema_version": 4,
+  "id": "ai-summarize-batch-ref",
+  "name": "Summarise a backlog (reference)",
+  "problem_id": "ai-summarize-batch",
+  "nodes": [
+    {
+      "id": "scheduler",
+      "kind": "scheduler",
+      "flavour": "airflow",
+      "label": "scheduler",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "queue",
+      "kind": "queue",
+      "flavour": "sqs",
+      "label": "queue",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {
+        "max_retries": 10
+      },
+      "group_id": null
+    },
+    {
+      "id": "dlq",
+      "kind": "dlq",
+      "flavour": "generic",
+      "label": "dlq",
+      "position": {
+        "x": 912,
+        "y": 112
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "workers",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "workers",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 2,
+        "concurrency": 64
+      },
+      "group_id": null
+    },
+    {
+      "id": "model",
+      "kind": "infer",
+      "flavour": "claude_api",
+      "label": "model",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "api_mode": "batch"
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-scheduler-queue-publish",
+      "from": "scheduler",
+      "to": "queue",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-queue-workers-consume",
+      "from": "queue",
+      "to": "workers",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-queue-dlq-publish",
+      "from": "queue",
+      "to": "dlq",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-workers-model-http",
+      "from": "workers",
+      "to": "model",
+      "protocol": "http"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

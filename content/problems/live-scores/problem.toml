@@ -1,0 +1,59 @@
+id = "live-scores"
+number = 37
+set = 3
+difficulty = "medium"
+title = "Live Sports Scores"
+title_es = "Resultados deportivos en directo"
+teaches = "Hold millions of open connections with headroom to spare, and spread reconnects with jitter so losing a gateway isn't a storm"
+teaches_es = "Mantener millones de conexiones abiertas con margen de sobra, y repartir las reconexiones con jitter para que perder una pasarela no sea una tormenta"
+tags = ["websockets", "connections", "fan-out", "reconnect-storms"]
+
+[nfr]
+peak_rps = 2000
+p95_ms = 1000
+availability = 0.999
+budget_usd = 2000
+
+[[request_types]]
+id = "fans"
+name = "Fans following a match"
+name_es = "Aficionados siguiendo un partido"
+share = 0.0
+kind = "connection"
+route = ["edge"]
+connected = 5000000
+push_rps = 0.02
+
+[[request_types]]
+id = "page"
+name = "Open a match page"
+name_es = "Abrir la página de un partido"
+share = 1.0
+route = ["edge?", "compute", "cache?", "datastore"]
+key_space = 2000
+key_skew = { zipf = 1.0 }
+
+[[tests]]
+id = "normal"
+name = "A busy match day"
+name_es = "Una jornada con mucho partido"
+
+[[tests]]
+id = "late-goal"
+name = "A goal in the last minute"
+name_es = "Un gol en el último minuto"
+hidden = true
+traffic = { spike = { at = 20, x = 10, for = 10 } }
+
+[[tests]]
+id = "gateway-lost"
+name = "A gateway dies at half-time"
+name_es = "Cae una pasarela en el descanso"
+hidden = true
+duration_s = 120
+chaos = [{ kill = { kind = "ws", at = 20 } }]
+pass = { connected_min = 0.7 }
+
+[pass]
+error_rate = 0.01
+connected_min = 0.95

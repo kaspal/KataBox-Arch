@@ -1,0 +1,230 @@
+kind = "streamproc"
+one_liner = "A job that reads a stream without stopping and turns events into running results, such as counts per minute."
+one_liner_es = "Un trabajo que lee un stream sin parar y convierte los eventos en resultados continuos, como recuentos por minuto."
+
+use_when = [
+  "Results must stay fresh within seconds, not after a nightly batch",
+  "You aggregate events over time windows, such as clicks per ad per minute",
+  "Each event needs state about earlier events with the same key",
+]
+use_when_es = [
+  "Los resultados deben estar al día en segundos, no tras un lote nocturno",
+  "Agregas eventos en ventanas de tiempo, como clics por anuncio por minuto",
+  "Cada evento necesita estado sobre eventos anteriores con la misma clave",
+]
+skip_when = [
+  "A result an hour late is fine: a batch job is simpler and cheaper",
+  "Each event is handled on its own, with no windows or state: a plain consumer is enough",
+  "The volume is small enough for one database query on a schedule",
+]
+skip_when_es = [
+  "Un resultado con una hora de retraso sirve: un trabajo por lotes es más simple y barato",
+  "Cada evento se trata por separado, sin ventanas ni estado: basta un consumidor simple",
+  "El volumen es tan pequeño que basta una consulta a la base de datos programada",
+]
+
+formula = "throughput = min(slots, partitions) × records per s per slot; completion = processing + window length + watermark (results leave when the window closes); events later than allowed lateness are counted late; state = open keys × state per key, slower past memory; a crash replays from the last checkpoint"
+formula_es = "rendimiento = mín(huecos, particiones) × registros por s por hueco; finalización = procesamiento + longitud de ventana + marca de agua (los resultados salen al cerrar la ventana); los eventos más tardíos que el retraso permitido cuentan como tardíos; estado = claves abiertas × estado por clave, más lento si supera la memoria; una caída reprocesa desde el último checkpoint"
+
+gains = [
+  "Fresh aggregates within seconds of the events",
+  "State lives next to the computation, so no database round trip per event",
+  "A crash loses no progress older than the last checkpoint",
+]
+gains_es = [
+  "Agregados frescos a los pocos segundos de los eventos",
+  "El estado vive junto al cálculo, así que no hay viaje a la base de datos por evento",
+  "Una caída no pierde progreso anterior al último checkpoint",
+]
+costs = [
+  "A window delays every result by its length plus the watermark",
+  "Replay after a crash sends duplicates to a sink without dedup",
+  "Parallelism can't exceed the stream's partitions",
+  "Windows, watermarks and state are hard to reason about and test",
+]
+costs_es = [
+  "Una ventana retrasa cada resultado su longitud más la marca de agua",
+  "El reprocesado tras una caída envía duplicados a un destino sin deduplicación",
+  "El paralelismo no puede superar las particiones del stream",
+  "Ventanas, marcas de agua y estado son difíciles de razonar y probar",
+]
+
+works_with = ["stream", "nosql", "warehouse", "tsdb", "cache", "mqtt"]
+practice = []
+
+interview_tip = "Name the window, the watermark and what happens to a late event, then say how a restart avoids double counting at the sink."
+interview_tip_es = "Nombra la ventana, la marca de agua y qué pasa con un evento tardío, y luego di cómo un reinicio evita contar dos veces en el destino."
+
+not_simulated = [
+  "End-to-end exactly-once transactions: the simulator counts the duplicates a replay sends instead, so you see what a sink without dedup receives",
+  "Joins between streams or with tables",
+  "Backpressure details between operators",
+  "Savepoints and upgrading a running job",
+]
+not_simulated_es = [
+  "Transacciones exactly-once de extremo a extremo: el simulador cuenta en su lugar los duplicados que envía un reprocesado, así ves lo que recibe un destino sin deduplicación",
+  "Joins entre streams o con tablas",
+  "Los detalles de la contrapresión entre operadores",
+  "Los savepoints y la actualización de un trabajo en marcha",
+]
+
+[[sim]]
+prop = "instances"
+note = "Worker machines running the job. Together they provide the slots."
+note_es = "Máquinas worker que ejecutan el trabajo. Entre todas aportan los huecos."
+
+[[sim]]
+prop = "concurrency"
+note = "Parallel slots per instance. Slots beyond the stream's partitions sit idle."
+note_es = "Huecos paralelos por instancia. Los huecos por encima de las particiones del stream quedan ociosos."
+
+[[sim]]
+prop = "records_per_s"
+note = "Events one slot processes per second. Below the arrival rate, a backlog builds and results fall behind."
+note_es = "Eventos que procesa un hueco por segundo. Por debajo del ritmo de llegada, se acumula trabajo pendiente y los resultados se retrasan."
+
+[[sim]]
+prop = "window"
+note = "None handles each event at once. Tumbling cuts time into fixed blocks; sliding opens a new overlapping window every slide."
+note_es = "Ninguna trata cada evento al momento. Fija corta el tiempo en bloques fijos; deslizante abre una ventana solapada nueva en cada deslizamiento."
+
+[[sim]]
+prop = "window_s"
+note = "The length of a window. Its result leaves only when the window closes, so this adds to completion time."
+note_es = "La longitud de una ventana. Su resultado solo sale al cerrarse la ventana, así que esto se suma al tiempo de finalización."
+
+[[sim]]
+prop = "slide_s"
+note = "How often a sliding window starts. Each event belongs to several windows, so state grows."
+note_es = "Cada cuánto empieza una ventana deslizante. Cada evento pertenece a varias ventanas, así que el estado crece."
+
+[[sim]]
+prop = "watermark_s"
+note = "How long the job waits for stragglers before it closes a window. Longer is more complete but later."
+note_es = "Cuánto espera el trabajo a los rezagados antes de cerrar una ventana. Más largo es más completo pero más tarde."
+
+[[sim]]
+prop = "allowed_lateness_s"
+note = "Extra time after the watermark in which a late event still updates its window. Later events are counted as late, not silently lost."
+note_es = "Tiempo extra tras la marca de agua en que un evento tardío aún actualiza su ventana. Los eventos más tardíos cuentan como tardíos, no se pierden en silencio."
+
+[[sim]]
+prop = "checkpoint_s"
+note = "How often the job saves its state and position. After a crash it replays every event since the last checkpoint."
+note_es = "Cada cuánto guarda el trabajo su estado y su posición. Tras una caída reprocesa todos los eventos desde el último checkpoint."
+
+[[sim]]
+prop = "state_kb"
+note = "State held per key while its window is open. Open keys times this is the state the job holds."
+note_es = "Estado que se guarda por clave mientras su ventana está abierta. Las claves abiertas por este valor es el estado que guarda el trabajo."
+
+[[sim]]
+prop = "memory_gb"
+note = "Memory per instance for state. State beyond it spills and slows processing."
+note_es = "Memoria por instancia para el estado. El estado que la supera se desborda y frena el procesamiento."
+
+[[sim]]
+sim = "service_ms"
+note = "The fixed time to handle one event outside any window."
+note_es = "El tiempo fijo para tratar un evento fuera de cualquier ventana."
+
+[[sim]]
+cost = "per_instance_month"
+note = "A fixed monthly price per worker machine, whatever the flavour."
+note_es = "Un precio mensual fijo por máquina worker, sea cual sea la variante."
+
+[flavours_compared]
+flavours = ["flink", "kafka_streams", "spark_streaming"]
+
+[[flavours_compared.rows]]
+label = "How it runs"
+label_es = "Cómo se ejecuta"
+cells = ["A cluster with a job manager and task managers", "A library inside your own app instances", "A Spark cluster with a driver and executors"]
+cells_es = ["Un clúster con un job manager y task managers", "Una librería dentro de tus propias instancias de aplicación", "Un clúster de Spark con un driver y executors"]
+
+[[flavours_compared.rows]]
+label = "Processing model"
+label_es = "Modelo de procesamiento"
+cells = ["Event by event", "Event by event", "Small micro-batches by default"]
+cells_es = ["Evento a evento", "Evento a evento", "Pequeños microlotes por defecto"]
+
+[[flavours_compared.rows]]
+label = "Sources"
+label_es = "Fuentes"
+cells = ["Kafka, Kinesis and many others", "Kafka only", "Kafka, Kinesis, files and others"]
+cells_es = ["Kafka, Kinesis y muchas otras", "Solo Kafka", "Kafka, Kinesis, ficheros y otras"]
+
+[[flavours_compared.rows]]
+label = "Where state lives"
+label_es = "Dónde vive el estado"
+cells = ["Local state backends, checkpointed to object storage", "Local stores, backed up to Kafka topics", "A state store, checkpointed to object storage"]
+cells_es = ["Backends de estado locales, con checkpoints en almacenamiento de objetos", "Almacenes locales, respaldados en topics de Kafka", "Un almacén de estado, con checkpoints en almacenamiento de objetos"]
+
+[[pitfalls]]
+title = "More slots than partitions"
+title_es = "Más huecos que particiones"
+body = "The job falls behind, so instances are added. Nothing improves: each partition is read by one slot, and the extra slots have nothing to do."
+body_es = "El trabajo se retrasa y se añaden instancias. No mejora nada: cada partición la lee un hueco, y los huecos extra no tienen nada que hacer."
+fix = "Raise the stream's partitions first, then the slots to match."
+fix_es = "Sube primero las particiones del stream, y luego los huecos para igualarlas."
+
+[[pitfalls]]
+title = "Duplicates after a crash"
+title_es = "Duplicados tras una caída"
+body = "A worker dies between checkpoints. The job restarts from the last checkpoint and sends the same results again, and a sink that just appends counts them twice."
+body_es = "Un worker cae entre dos checkpoints. El trabajo se reinicia desde el último checkpoint y vuelve a enviar los mismos resultados, y un destino que solo añade los cuenta dos veces."
+fix = "Write to the sink with an idempotent key (upsert by window and key), and checkpoint more often to shorten the replay."
+fix_es = "Escribe en el destino con una clave idempotente (upsert por ventana y clave), y haz checkpoints más a menudo para acortar el reprocesado."
+
+[[pitfalls]]
+title = "A watermark too short"
+title_es = "Una marca de agua demasiado corta"
+body = "Mobile clients send events late. The window closes before they arrive, and many events are counted as late and left out of the totals."
+body_es = "Los clientes móviles envían eventos con retraso. La ventana se cierra antes de que lleguen, y muchos eventos cuentan como tardíos y quedan fuera de los totales."
+fix = "Lengthen the watermark or the allowed lateness to cover the usual delay, and accept results a little later."
+fix_es = "Alarga la marca de agua o el retraso permitido para cubrir el retraso habitual, y acepta resultados un poco más tarde."
+
+[[sources]]
+flavour = "flink"
+title = "Apache Flink documentation"
+url = "https://nightlies.apache.org/flink/flink-docs-stable/"
+checked = false
+
+[[sources]]
+flavour = "kafka_streams"
+title = "Kafka Streams documentation"
+url = "https://kafka.apache.org/documentation/streams/"
+checked = false
+
+[[sources]]
+flavour = "spark_streaming"
+title = "Spark Structured Streaming programming guide"
+url = "https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html"
+checked = false
+
+[[quiz]]
+q = "A stream has eight partitions and the processor has four instances with four slots each. It still falls behind. What helps?"
+q_es = "Un stream tiene ocho particiones y el procesador tiene cuatro instancias con cuatro huecos cada una. Sigue retrasándose. ¿Qué ayuda?"
+options = ["Add more instances", "Raise the partitions of the stream so the idle slots get work", "Shorten the checkpoint interval", "Switch the window from tumbling to sliding"]
+options_es = ["Añadir más instancias", "Subir las particiones del stream para que los huecos ociosos tengan trabajo", "Acortar el intervalo de checkpoint", "Cambiar la ventana de fija a deslizante"]
+answer = 1
+why = "Parallelism is capped by the partitions: only eight of the sixteen slots are reading. More instances add more idle slots."
+why_es = "El paralelismo tiene el tope de las particiones: solo ocho de los dieciséis huecos están leyendo. Más instancias añaden más huecos ociosos."
+
+[[quiz]]
+q = "A job counts clicks per minute and writes each total by appending a row. A worker crashes between checkpoints. What does the sink see?"
+q_es = "Un trabajo cuenta clics por minuto y escribe cada total añadiendo una fila. Un worker cae entre dos checkpoints. ¿Qué ve el destino?"
+options = ["Nothing unusual: the processor guarantees each result once", "Some minutes are missing for good", "The job stops until someone restarts it by hand", "Some totals written twice, because the job replays events since the last checkpoint"]
+options_es = ["Nada raro: el procesador garantiza cada resultado una vez", "Faltan algunos minutos para siempre", "El trabajo se detiene hasta que alguien lo reinicia a mano", "Algunos totales escritos dos veces, porque el trabajo reprocesa los eventos desde el último checkpoint"]
+answer = 3
+why = "Recovery replays from the checkpoint, so results after it are sent again. An append-only sink keeps both; an upsert by window and key does not."
+why_es = "La recuperación reprocesa desde el checkpoint, así que los resultados posteriores se envían otra vez. Un destino que solo añade guarda los dos; un upsert por ventana y clave no."
+
+[[quiz]]
+q = "A dashboard must show ad clicks within a few seconds. The design uses a one-hour tumbling window. What is the problem?"
+q_es = "Un panel debe mostrar los clics en anuncios en pocos segundos. El diseño usa una ventana fija de una hora. ¿Cuál es el problema?"
+options = ["Each result leaves only when its hour closes, so the dashboard is up to an hour behind", "Tumbling windows lose the events at the edges", "One-hour windows need more partitions"]
+options_es = ["Cada resultado solo sale cuando cierra su hora, así que el panel va hasta una hora por detrás", "Las ventanas fijas pierden los eventos de los bordes", "Las ventanas de una hora necesitan más particiones"]
+answer = 0
+why = "A window adds its length plus the watermark to completion. Use short windows, or a sliding window with a small slide, to meet a freshness goal of seconds."
+why_es = "Una ventana suma su longitud más la marca de agua a la finalización. Usa ventanas cortas, o una ventana deslizante con un deslizamiento pequeño, para cumplir un objetivo de frescura de segundos."

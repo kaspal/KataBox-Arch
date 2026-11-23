@@ -48,6 +48,23 @@ pub fn check_problem(p: &ProblemDir, registry: &Registry) -> (Vec<Issue>, Judgem
             format!("must be Accepted on every test: {}", summary(&reference)),
         ));
     }
+    // S7 (M8): conflicts are counted exactly, so a test that limits them must run unsampled.
+    for t in &p.def.tests {
+        if p.def.pass_for(t).conflicts.is_none() {
+            continue;
+        }
+        if let Ok(r) = ka_judge::run_test(&p.def, t, &p.reference, registry)
+            && r.sample_factor < 1.0
+        {
+            issues.push(issue(
+                format!("{}/problem.toml", p.dir),
+                format!(
+                    "test {}: a conflicts limit needs an unsampled run (sample {:.3}); raise sample_cap",
+                    t.id, r.sample_factor
+                ),
+            ));
+        }
+    }
     // A p99 limit needs enough completions to be measured (review A4).
     for t in &p.def.tests {
         if p.def.pass_for(t).p99_ms.is_none() {
@@ -63,6 +80,36 @@ pub fn check_problem(p: &ProblemDir, registry: &Registry) -> (Vec<Issue>, Judgem
                     t.id,
                     ka_core::scenario::P99_MIN_SAMPLES,
                     ka_judge::simulated_completions(&r)
+                ),
+            ));
+        }
+    }
+    // M8.5: the challenge proof passes every test within the challenge's budget.
+    if let Some(design) = &p.challenge {
+        let ratio = p
+            .challenge_ratio()
+            .unwrap_or(crate::problems::CHALLENGE_DEFAULT);
+        let file = format!("{}/challenge.kbarch", p.dir);
+        if !(0.05..=crate::problems::CHALLENGE_MAX).contains(&ratio) {
+            issues.push(issue(
+                format!("{}/problem.toml", p.dir),
+                format!(
+                    "challenge_ratio {ratio} must be between 0.05 and {}",
+                    crate::problems::CHALLENGE_MAX
+                ),
+            ));
+        }
+        let mut def = p.def.clone();
+        def.nfr.budget_usd = (reference.cost_month * ratio * 100.0).round() / 100.0;
+        let j = judge(&def, design, registry, reference.cost_month);
+        if j.verdict != Verdict::Accepted {
+            issues.push(issue(
+                file,
+                format!(
+                    "must be Accepted on every test within ${:.0} ({:.0}% of the reference): {}",
+                    def.nfr.budget_usd,
+                    ratio * 100.0,
+                    summary(&j)
                 ),
             ));
         }

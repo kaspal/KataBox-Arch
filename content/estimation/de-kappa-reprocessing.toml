@@ -1,0 +1,35 @@
+# Estimation drills for Kappa Reprocessing.
+
+[[drill]]
+id = "events-per-card"
+kind = "capacity"
+prompt = "Each event holds a Flink slot for about {slot_ms} ms (processing plus the write). A Stream Processor card has {instances} instances with {slots} slots each. About how many events a second can the card process?"
+prompt_es = "Cada evento ocupa un hueco de Flink unos {slot_ms} ms (el proceso más la escritura). Una tarjeta de Procesador de streams tiene {instances} instancias con {slots} huecos cada una. ¿Cuántos eventos por segundo puede procesar más o menos la tarjeta?"
+inputs = { slot_ms = 15, instances = 2, slots = 4 }
+formula = "instances * slots * 1000 / slot_ms"
+unit = "rps"
+solution = "{instances} × {slots} = 8 slots, each doing 1000 / {slot_ms} ≈ 67 events a second: about {answer} for the card. The live events alone are 300 a second, so one such card can carry them if the other is lost. Live plus the replay (600) is more than one card can do."
+solution_es = "{instances} × {slots} = 8 huecos, cada uno haciendo 1000 / {slot_ms} ≈ 67 eventos por segundo: unos {answer} para la tarjeta. Los eventos en vivo solos son 300 por segundo, así que una tarjeta así puede llevarlos si se pierde la otra. En vivo más el reproceso (600) es más de lo que puede una tarjeta."
+
+[[drill]]
+id = "shared-pile-growth"
+kind = "qps"
+prompt = "The replay runs on the live consumer group. At the evening peak {live} live events arrive a second, the sped-up replay sends {replay} a second, and the group processes about {capacity} a second. How fast does the pile in the Stream grow?"
+prompt_es = "El reproceso va por el grupo de consumidores en vivo. En el pico de la tarde llegan {live} eventos en vivo por segundo, el reproceso acelerado envía {replay} por segundo, y el grupo procesa unos {capacity} por segundo. ¿A qué ritmo crece el montón en el Stream?"
+inputs = { live = 750, replay = 1800, capacity = 1080 }
+formula = "live + replay - capacity"
+unit = "rps"
+solution = "{live} + {replay} - {capacity} = {answer} events a second. On a first-in, first-out Stream every new live event joins the back of that pile, so within seconds the dashboards are minutes behind. On its own consumer group the same pile would hold only replayed events, and the live group would be about 70% busy."
+solution_es = "{live} + {replay} - {capacity} = {answer} eventos por segundo. En un Stream FIFO cada evento en vivo nuevo se pone al final de ese montón, así que en segundos los paneles van minutos por detrás. En su propio grupo de consumidores el mismo montón tendría solo eventos reprocesados, y el grupo en vivo estaría ocupado en torno al 70 %."
+
+[[drill]]
+id = "replay-instances"
+kind = "servers"
+prompt = "The replay must reprocess {days} days of events, which arrived at {avg_rps} a second on average, within {deadline_h} hours. One Flink instance processes about {per_instance} events a second. How many instances does the replay's own Stream Processor need?"
+prompt_es = "El reproceso tiene que volver a procesar {days} días de eventos, que llegaron a {avg_rps} por segundo de media, en {deadline_h} horas. Una instancia de Flink procesa unos {per_instance} eventos por segundo. ¿Cuántas instancias necesita el Procesador de streams propio del reproceso?"
+inputs = { days = 30, avg_rps = 150, deadline_h = 48, per_instance = 270 }
+formula = "days * 86400 * avg_rps / (deadline_h * 3600) / per_instance"
+unit = "count"
+tolerance = 0.15
+solution = "{days} days × 86,400 s × {avg_rps} ≈ 389 million events, over {deadline_h} × 3,600 s, is about 2,250 events a second, or about {answer} instances: 9 in practice. On its own consumer group the replay can be sized for its deadline, and the live group doesn't change. On the live group, every one of those events would sit in the same queue as the live ones."
+solution_es = "{days} días × 86 400 s × {avg_rps} ≈ 389 millones de eventos, en {deadline_h} × 3600 s, son unos 2250 eventos por segundo, o unas {answer} instancias: 9 en la práctica. En su propio grupo de consumidores el reproceso se puede dimensionar para su plazo, y el grupo en vivo no cambia. En el grupo en vivo, cada uno de esos eventos estaría en la misma cola que los en vivo."

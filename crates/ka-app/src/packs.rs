@@ -330,6 +330,7 @@ impl App {
             None => BTreeSet::new(),
         };
         builtin.insert("flaw".into());
+        builtin.insert("outage".into());
         let (archive, dir) = (archive.to_path_buf(), staging.clone());
         let version = self.info.version.clone();
         let registry = self.registry.clone();
@@ -513,7 +514,7 @@ impl App {
     /// The name of the pack a problem came from (`<pack>--<id>`), installed or removed.
     pub(crate) async fn pack_name_of(&self, problem_id: &str) -> Result<Option<String>> {
         match problem_id.split_once("--") {
-            Some((pack, _)) if pack != "flaw" => {
+            Some((pack, _)) if pack != "flaw" && pack != "outage" => {
                 Ok(self.user.pack(pack).await.map_err(store)?.map(|p| p.name))
             }
             _ => Ok(None),
@@ -603,6 +604,8 @@ error_rate = 0.001
                 reference: String::new(),
                 ref_cost: 1.0,
                 ref_p95_ms: 1.0,
+                track: "core".into(),
+                challenge_ratio: None,
             };
             let db = staging.join("content.db");
             tokio::runtime::Builder::new_current_thread()

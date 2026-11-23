@@ -370,13 +370,13 @@ pub fn sample_row(s: &SampleDir, registry: &Registry) -> Result<ka_store::Sample
 pub fn simulate_step(
     design: &Design,
     run: &StepRun,
-    problem: Option<&ProblemDir>,
+    problem: Option<&ka_core::problem::ProblemDef>,
     registry: &Registry,
 ) -> Result<RunResult, String> {
     if let Some(t) = &run.test {
         let p = problem.ok_or("no problem")?;
-        let test = p.def.tests.iter().find(|x| &x.id == t).ok_or("no test")?;
-        return ka_judge::run_test(&p.def, test, design, registry).map_err(|e| format!("{e:?}"));
+        let test = p.tests.iter().find(|x| &x.id == t).ok_or("no test")?;
+        return ka_judge::run_test(p, test, design, registry).map_err(|e| format!("{e:?}"));
     }
     let preset = run.preset.as_deref().and_then(preset).ok_or("no preset")?;
     let scenario = sandbox_scenario(design, registry, preset).map_err(|e| format!("{e:?}"))?;
@@ -401,7 +401,7 @@ pub fn metric(r: &RunResult, m: CalloutMetric) -> f64 {
 }
 
 /// How far a stated number may be from the simulator's: 15%, or a small absolute floor.
-fn close(m: CalloutMetric, stated: f64, simulated: f64) -> bool {
+pub(crate) fn close(m: CalloutMetric, stated: f64, simulated: f64) -> bool {
     let floor = match m {
         CalloutMetric::P95Ms => 2.0,
         CalloutMetric::ErrorRate => 0.01,
@@ -426,7 +426,8 @@ pub fn check_callouts(
             .def
             .problem
             .as_ref()
-            .and_then(|p| problems.iter().find(|x| &x.def.id == p));
+            .and_then(|p| problems.iter().find(|x| &x.def.id == p))
+            .map(|p| &p.def);
         for (i, step) in s.def.steps.iter().enumerate() {
             let (Some(c), Some(run)) = (&step.callout, &step.run) else {
                 continue;

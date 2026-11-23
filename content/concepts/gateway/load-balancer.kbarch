@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "concept-gateway-load-balancer",
   "name": "URL Shortener behind a load balancer",
   "problem_id": "url-shortener",

@@ -12,7 +12,7 @@ import {
 } from "@tanstack/react-router";
 import { Shell } from "@/app/Shell";
 import { Home } from "@/pages/Home";
-import { Progress } from "@/pages/Placeholders";
+import { Progress } from "@/pages/ProgressPage";
 import { ProblemsPage } from "@/pages/Problems";
 import { Settings } from "@/pages/Settings";
 
@@ -75,6 +75,16 @@ const routeTree = rootRoute.addChildren([
     getParentRoute: () => rootRoute,
     path: "/flaws",
     component: lazyRouteComponent(() => import("@/practice/FlawsPage"), "FlawsPage"),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/replays",
+    component: lazyRouteComponent(() => import("@/practice/ReplaysPage"), "ReplaysPage"),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/replays/$id",
+    component: lazyRouteComponent(() => import("@/practice/ReplaysPage"), "ReplayPage"),
   }),
   createRoute({
     getParentRoute: () => rootRoute,

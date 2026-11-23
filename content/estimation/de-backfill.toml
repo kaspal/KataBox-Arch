@@ -1,0 +1,34 @@
+# Estimation drills for Backfill Beside the Live Stream.
+
+[[drill]]
+id = "loads-per-instance"
+kind = "capacity"
+prompt = "Loading one batch holds a warehouse slot for about {load_ms} ms, and a warehouse instance has {slots} slots. At best, how many batches a second can one instance load?"
+prompt_es = "Cargar un lote ocupa un hueco del almacén unos {load_ms} ms, y una instancia del almacén tiene {slots} huecos. Como mucho, ¿cuántos lotes por segundo puede cargar una instancia?"
+inputs = { load_ms = 300, slots = 8 }
+formula = "slots / (load_ms / 1000)"
+unit = "rps"
+solution = "Each slot does 1000 / {load_ms} ≈ 3.3 loads a second, and {slots} slots do about {answer}. The slow loads in the tail bring it nearer 24. Every batch, live or backfill, needs one of these loads, so this is the number to size the pipeline by."
+solution_es = "Cada hueco hace 1000 / {load_ms} ≈ 3,3 cargas por segundo, y {slots} huecos hacen unas {answer}. Las cargas lentas de la cola lo dejan más cerca de 24. Cada lote, en vivo o del relleno, necesita una de estas cargas, así que es el número con el que dimensionar el pipeline."
+
+[[drill]]
+id = "pile-growth"
+kind = "qps"
+prompt = "Live batches arrive at {live} a second and the backfill, sped up, at {backfill} a second. The warehouse has {instances} instances that load about {per_instance} batches a second each. How fast does the pile in the Stream grow?"
+prompt_es = "Los lotes en vivo llegan a {live} por segundo y el relleno, acelerado, a {backfill} por segundo. El almacén tiene {instances} instancias que cargan unos {per_instance} lotes por segundo cada una. ¿A qué ritmo crece el montón en el Stream?"
+inputs = { live = 24, backfill = 80, instances = 2, per_instance = 24 }
+formula = "live + backfill - instances * per_instance"
+unit = "rps"
+solution = "{live} + {backfill} arrive and {instances} × {per_instance} are loaded: the pile grows by {answer} batches a second. On a first-in, first-out Stream every new live batch joins the back of it, so after 30 s a live batch waits behind more than 1,500 others. With priority, the live batches skip the pile and only the backfill waits."
+solution_es = "Llegan {live} + {backfill} y se cargan {instances} × {per_instance}: el montón crece {answer} lotes por segundo. En un Stream FIFO cada lote en vivo nuevo se pone al final, así que a los 30 s un lote en vivo espera detrás de más de 1500. Con prioridad, los lotes en vivo se saltan el montón y solo espera el relleno."
+
+[[drill]]
+id = "instances-for-burst"
+kind = "servers"
+prompt = "In a live burst, {live} live batches arrive a second. Each warehouse instance loads about {per_instance} a second, and you want it at most {target_pct}% busy. How many instances does the live traffic need on its own?"
+prompt_es = "En un pico en vivo llegan {live} lotes en vivo por segundo. Cada instancia del almacén carga unos {per_instance} por segundo, y la quieres ocupada como mucho al {target_pct} %. ¿Cuántas instancias necesita el tráfico en vivo por sí solo?"
+inputs = { live = 60, per_instance = 24, target_pct = 85 }
+formula = "live / (per_instance * target_pct / 100)"
+unit = "count"
+solution = "{live} / ({per_instance} × {target_pct} %) ≈ {answer}, so 3 instances. Priority can put the live batches first, but it can't make the warehouse load more: when the live batches alone are more than it can load, they queue behind each other. The backfill gets whatever room is left."
+solution_es = "{live} / ({per_instance} × {target_pct} %) ≈ {answer}, así que 3 instancias. La prioridad puede poner primero los lotes en vivo, pero no hace que el almacén cargue más: cuando los lotes en vivo por sí solos superan lo que puede cargar, se encolan unos detrás de otros. El relleno se queda con el hueco que sobre."

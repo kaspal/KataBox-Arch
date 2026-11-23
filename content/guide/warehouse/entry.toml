@@ -1,0 +1,211 @@
+kind = "warehouse"
+one_liner = "A columnar engine that answers analytics queries by scanning large tables fast."
+one_liner_es = "Un motor columnar que responde consultas analíticas recorriendo tablas grandes muy rápido."
+
+use_when = [
+  "Analysts or dashboards run aggregates over months of events",
+  "Reports join and group large tables that would hurt the production database",
+  "Queries read a few columns of many rows",
+]
+use_when_es = [
+  "Analistas o paneles calculan agregados sobre meses de eventos",
+  "Los informes unen y agrupan tablas grandes que dañarían la base de producción",
+  "Las consultas leen pocas columnas de muchas filas",
+]
+skip_when = [
+  "A user-facing request needs an answer in a few milliseconds",
+  "The workload is many small reads and writes of single rows",
+  "The same few numbers are read constantly: precompute them into a cache or a table",
+]
+skip_when_es = [
+  "Una petición de usuario necesita respuesta en pocos milisegundos",
+  "La carga son muchas lecturas y escrituras pequeñas de filas sueltas",
+  "Se leen constantemente los mismos pocos números: precalcúlalos en una caché o una tabla",
+]
+
+formula = "query time = overhead_ms + scanned GB ÷ scan_gbps + a cost per file opened; an upstream lake table's partitioning and file layout set the scanned GB and file count; each cluster runs up to concurrency queries and queues the rest; with result_cache a repeated query returns almost at once"
+formula_es = "tiempo de consulta = overhead_ms + GB recorridos ÷ scan_gbps + un coste por archivo abierto; el particionado y la disposición de archivos de una tabla del lago aguas arriba fijan los GB recorridos y el número de archivos; cada clúster ejecuta hasta concurrency consultas y encola el resto; con result_cache una consulta repetida vuelve casi al instante"
+
+gains = [
+  "Scans billions of rows in seconds by reading only the columns a query needs",
+  "Keeps heavy analytics off the production database",
+  "Repeated dashboard queries can come from the result cache",
+]
+gains_es = [
+  "Recorre miles de millones de filas en segundos leyendo solo las columnas que pide la consulta",
+  "Mantiene la analítica pesada fuera de la base de producción",
+  "Las consultas repetidas de los paneles pueden salir de la caché de resultados",
+]
+costs = [
+  "Even a small query pays a fixed overhead, far above an OLTP read",
+  "A query that scans everything is slow and, on per-TB billing, expensive",
+  "Too many queries at once wait for a free slot",
+]
+costs_es = [
+  "Incluso una consulta pequeña paga una sobrecarga fija, muy por encima de una lectura OLTP",
+  "Una consulta que lo recorre todo es lenta y, con facturación por TB, cara",
+  "Demasiadas consultas a la vez esperan un hueco libre",
+]
+
+works_with = ["lakehouse", "object", "batch", "connector", "stream"]
+practice = ["ad-clicks", "logs-pipeline"]
+
+interview_tip = "Estimate the bytes each query scans, then say how partitioning, fewer columns and the result cache cut them; keep user-facing reads on a precomputed store."
+interview_tip_es = "Estima los bytes que recorre cada consulta y explica cómo el particionado, menos columnas y la caché de resultados los reducen; deja las lecturas de cara al usuario en un almacén precalculado."
+
+not_simulated = [
+  "Joins and query plans: a query is modelled as a scan of a number of bytes and files",
+  "Clustering keys and sort orders inside the warehouse's own tables",
+  "Materialized views",
+  "The cost and time of loading data into the warehouse",
+  "The price of the warehouse's own storage",
+]
+not_simulated_es = [
+  "Las uniones y los planes de consulta: una consulta se modela como el recorrido de cierta cantidad de bytes y archivos",
+  "Las claves de agrupación y órdenes de clasificación dentro de las tablas propias del almacén",
+  "Las vistas materializadas",
+  "El coste y el tiempo de cargar datos en el almacén",
+  "El precio del almacenamiento propio del almacén",
+]
+
+[[sim]]
+prop = "instances"
+note = "Clusters that share the query load. Each one adds concurrency slots."
+note_es = "Clústeres que se reparten la carga de consultas. Cada uno añade huecos de concurrencia."
+
+[[sim]]
+prop = "concurrency"
+note = "Queries one cluster runs at once. More wait in a queue until a slot frees up."
+note_es = "Consultas que un clúster ejecuta a la vez. Las demás esperan en cola hasta que se libera un hueco."
+
+[[sim]]
+prop = "scan_gbps"
+note = "How fast one query reads data. Scanned bytes divided by this rate is most of a big query's time."
+note_es = "Lo rápido que una consulta lee datos. Los bytes recorridos divididos por esta velocidad son la mayor parte del tiempo de una consulta grande."
+
+[[sim]]
+prop = "overhead_ms"
+note = "Fixed time every query pays for planning and start-up, however little it reads."
+note_es = "Tiempo fijo que paga cada consulta por planificación y arranque, aunque lea muy poco."
+
+[[sim]]
+prop = "result_cache"
+note = "When on, a query that repeats an earlier one with unchanged data is answered almost at once."
+note_es = "Si está activa, una consulta que repite otra anterior con los datos sin cambios se responde casi al instante."
+
+[[sim]]
+sim = "queue_per_server"
+note = "How many queries may wait per slot before new ones are refused."
+note_es = "Cuántas consultas pueden esperar por hueco antes de rechazar las nuevas."
+
+[[sim]]
+cost = "per_instance_month"
+note = "A monthly price per cluster or node. Snowflake and Databricks SQL bill it only while the cluster runs."
+note_es = "Un precio mensual por clúster o nodo. Snowflake y Databricks SQL lo cobran solo mientras el clúster funciona."
+
+[[sim]]
+cost = "tb_scanned"
+note = "BigQuery has no cluster fee: it bills each terabyte a query scans."
+note_es = "BigQuery no cobra por clúster: cobra cada terabyte que recorre una consulta."
+
+[flavours_compared]
+flavours = ["snowflake", "bigquery", "redshift", "clickhouse", "databricks_sql"]
+
+[[flavours_compared.rows]]
+label = "Pricing model"
+label_es = "Modelo de precio"
+cells = ["Per credit while a warehouse runs", "Per TB scanned (on demand)", "Per node", "Per node, self-hosted or cloud", "Per DBU while a warehouse runs"]
+cells_es = ["Por crédito mientras un almacén funciona", "Por TB recorrido (bajo demanda)", "Por nodo", "Por nodo, propio o en la nube", "Por DBU mientras un almacén funciona"]
+
+[[flavours_compared.rows]]
+label = "Idle cost"
+label_es = "Coste en reposo"
+cells = ["None once auto-suspended", "None", "The nodes keep billing", "The nodes keep billing", "None once auto-stopped"]
+cells_es = ["Ninguno una vez suspendido", "Ninguno", "Los nodos siguen cobrando", "Los nodos siguen cobrando", "Ninguno una vez detenido"]
+
+[[flavours_compared.rows]]
+label = "Strength"
+label_es = "Punto fuerte"
+cells = ["Separate compute clusters per team", "No capacity to plan", "Tight fit with AWS", "Very fast aggregates on event data", "Queries tables in the lakehouse directly"]
+cells_es = ["Clústeres de cómputo separados por equipo", "Sin capacidad que planificar", "Integración estrecha con AWS", "Agregados muy rápidos sobre datos de eventos", "Consulta directamente las tablas del lakehouse"]
+
+[[pitfalls]]
+title = "A dashboard that scans everything"
+title_es = "Un panel que lo recorre todo"
+body = "Every refresh scans the whole events table, though it only shows the last day. It is slow, it holds slots that other queries need, and on BigQuery each refresh is billed per terabyte."
+body_es = "Cada actualización recorre toda la tabla de eventos, aunque solo muestra el último día. Es lento, ocupa huecos que necesitan otras consultas y en BigQuery cada actualización se cobra por terabyte."
+fix = "Partition the table by time and filter on it, and turn on the result cache for repeated queries."
+fix_es = "Particiona la tabla por tiempo y filtra por ella, y activa la caché de resultados para las consultas repetidas."
+
+[[pitfalls]]
+title = "Serving users from the warehouse"
+title_es = "Atender usuarios desde el almacén"
+body = "An app endpoint queries the warehouse on each request. The fixed overhead alone breaks a latency target, and a traffic spike fills the concurrency slots."
+body_es = "Un endpoint de la aplicación consulta el almacén en cada petición. La sobrecarga fija ya rompe el objetivo de latencia, y un pico de tráfico llena los huecos de concurrencia."
+fix = "Precompute the numbers on a schedule and serve them from a cache or a SQL table."
+fix_es = "Precalcula los números de forma programada y sírvelos desde una caché o una tabla SQL."
+
+[[pitfalls]]
+title = "Thousands of tiny files"
+title_es = "Miles de archivos diminutos"
+body = "The warehouse reads a lake table that streaming ingest filled with small files. Each file adds open and list overhead, so the query spends more time on files than on data."
+body_es = "El almacén lee una tabla del lago que la ingesta en streaming llenó de archivos pequeños. Cada archivo añade sobrecarga de apertura y listado, así que la consulta pasa más tiempo con archivos que con datos."
+fix = "Turn on compaction on the lakehouse table so files stay near the target size."
+fix_es = "Activa la compactación en la tabla del lakehouse para que los archivos se mantengan cerca del tamaño objetivo."
+
+[[sources]]
+flavour = "snowflake"
+title = "Snowflake documentation"
+url = "https://docs.snowflake.com/"
+checked = false
+
+[[sources]]
+flavour = "bigquery"
+title = "BigQuery pricing"
+url = "https://cloud.google.com/bigquery/pricing"
+checked = false
+
+[[sources]]
+flavour = "redshift"
+title = "Amazon Redshift pricing"
+url = "https://aws.amazon.com/redshift/pricing/"
+checked = false
+
+[[sources]]
+flavour = "clickhouse"
+title = "ClickHouse documentation"
+url = "https://clickhouse.com/docs"
+checked = false
+
+[[sources]]
+flavour = "databricks_sql"
+title = "Databricks SQL documentation"
+url = "https://docs.databricks.com/en/sql/index.html"
+checked = false
+
+[[quiz]]
+q = "A dashboard query reads the last day of events, but the events table isn't partitioned. What does the warehouse do?"
+q_es = "Una consulta de un panel lee el último día de eventos, pero la tabla de eventos no está particionada. ¿Qué hace el almacén?"
+options = ["It scans the whole table, so the query is slow and costs as much as reading everything", "It reads only the last day, because the filter is on time", "It refuses the query until the table is partitioned"]
+options_es = ["Recorre toda la tabla, así que la consulta es lenta y cuesta como leerlo todo", "Lee solo el último día, porque el filtro es por tiempo", "Rechaza la consulta hasta que la tabla se particione"]
+answer = 0
+why = "Without partitions the engine can't skip data by time, so it scans every file. Partitioning by day lets it prune to one day."
+why_es = "Sin particiones el motor no puede saltarse datos por tiempo, así que recorre todos los archivos. Particionar por día le permite quedarse con un solo día."
+
+[[quiz]]
+q = "At the start of the workday, fifty analysts open dashboards at once and queries start waiting. Which change addresses the wait directly?"
+q_es = "Al empezar la jornada, cincuenta analistas abren paneles a la vez y las consultas empiezan a esperar. ¿Qué cambio ataca la espera directamente?"
+options = ["Raise overhead_ms", "Turn off the result cache", "Store the data in fewer, larger files", "Add a cluster or raise concurrency, and keep the result cache on"]
+options_es = ["Subir overhead_ms", "Apagar la caché de resultados", "Guardar los datos en menos archivos más grandes", "Añadir un clúster o subir la concurrencia, y mantener la caché de resultados"]
+answer = 3
+why = "The queries wait for slots. More clusters or slots run more at once, and repeated dashboard queries served from the result cache don't need a slot for long."
+why_es = "Las consultas esperan huecos. Más clústeres o huecos ejecutan más a la vez, y las consultas repetidas de los paneles servidas desde la caché de resultados apenas ocupan un hueco."
+
+[[quiz]]
+q = "A product page needs a customer's lifetime total in under fifty milliseconds. Where should it read it from?"
+q_es = "Una página de producto necesita el total histórico de un cliente en menos de cincuenta milisegundos. ¿De dónde debería leerlo?"
+options = ["The warehouse, with the result cache on", "A precomputed value in a cache or SQL table, refreshed from the warehouse", "The warehouse, with more clusters"]
+options_es = ["Del almacén, con la caché de resultados activa", "De un valor precalculado en una caché o tabla SQL, actualizado desde el almacén", "Del almacén, con más clústeres"]
+answer = 1
+why = "Every warehouse query pays a fixed overhead, and each customer's query is different, so the cache rarely hits. Precompute in batch and serve from a fast store."
+why_es = "Cada consulta al almacén paga una sobrecarga fija, y la de cada cliente es distinta, así que la caché casi nunca acierta. Precalcula por lotes y sirve desde un almacén rápido."

@@ -1,0 +1,34 @@
+# Estimation drills for Web Answer Engine.
+
+[[drill]]
+id = "storm-rpm"
+kind = "qps"
+prompt = "Your answer engine gets {qps} questions a second, and with no cache every question makes one call to the chat model. A story breaks and the traffic triples. How many requests a minute reach the model? (The account allows 16,000.)"
+prompt_es = "Tu motor de respuestas recibe {qps} preguntas por segundo y, sin caché, cada pregunta hace una llamada al modelo de chat. Estalla una noticia y el tráfico se triplica. ¿Cuántas peticiones por minuto llegan al modelo? (La cuenta permite 16 000.)"
+inputs = { qps = 200 }
+formula = "qps * 3 * 60"
+unit = "count"
+solution = "{qps} × 3 = 600 questions a second, × 60 = {answer} requests a minute, 2.25 times the limit of 16,000. The bucket holds one minute's allowance, so it runs out after 16,000 ÷ (36,000 − 16,000) of a minute, about 48 s; after that more than half of the calls get a 429."
+solution_es = "{qps} × 3 = 600 preguntas por segundo, × 60 = {answer} peticiones por minuto, 2,25 veces el límite de 16 000. El cubo guarda la asignación de un minuto, así que se agota tras 16 000 ÷ (36 000 − 16 000) de minuto, unos 48 s; después, más de la mitad de las llamadas recibe un 429."
+
+[[drill]]
+id = "cache-must-answer"
+kind = "capacity"
+prompt = "In the long peak, {qps} questions a second arrive and the model allows {rpm} requests a minute. You want to stay under {target_pct}% of that limit. How many questions a second must the cache answer, at least?"
+prompt_es = "En el pico largo llegan {qps} preguntas por segundo y el modelo permite {rpm} peticiones por minuto. Quieres quedarte por debajo del {target_pct} % de ese límite. ¿Cuántas preguntas por segundo debe responder la caché, como mínimo?"
+inputs = { qps = 400, rpm = 16000, target_pct = 90 }
+formula = "qps - rpm * target_pct / 100 / 60"
+unit = "rps"
+solution = "{target_pct}% of {rpm} is 14,400 requests a minute, 240 a second. Of {qps} arriving, at most 240 may reach the model, so the cache must answer at least {answer} a second, 40%. An exact cache with a 10-minute TTL answers about 44% at this rate; a semantic cache can never answer more than the quarter of questions that are near-repeats."
+solution_es = "El {target_pct} % de {rpm} son 14 400 peticiones por minuto, 240 por segundo. De las {qps} que llegan, como mucho 240 pueden llegar al modelo, así que la caché debe responder al menos {answer} por segundo, el 40 %. Una caché exacta con un TTL de 10 minutos responde alrededor del 44 % a este ritmo; una caché semántica nunca puede responder más que la cuarta parte de preguntas que son casi repetidas."
+
+[[drill]]
+id = "cache-window-memory"
+kind = "storage"
+prompt = "An answer may be cached for {ttl_s} s. In the storm, {qps} questions a second arrive, and an answer with its sources is {answer_kb} KB. At most how many MB can the answers cached inside one TTL window take, if every question were different?"
+prompt_es = "Una respuesta puede guardarse en caché {ttl_s} s. En la tormenta llegan {qps} preguntas por segundo, y una respuesta con sus fuentes ocupa {answer_kb} KB. Como mucho, ¿cuántos MB pueden ocupar las respuestas guardadas dentro de una ventana de TTL, si todas las preguntas fueran distintas?"
+inputs = { ttl_s = 600, qps = 600, answer_kb = 4 }
+formula = "ttl_s * qps * answer_kb / 1000"
+unit = "MB"
+solution = "{ttl_s} s × {qps} questions = 360,000 answers, × {answer_kb} KB = {answer} MB. The Redis default of 2 GB holds them, so memory is not what limits the hit rate: the 10-minute freshness rule is."
+solution_es = "{ttl_s} s × {qps} preguntas = 360 000 respuestas, × {answer_kb} KB = {answer} MB. Los 2 GB por defecto de Redis las guardan, así que la memoria no es lo que limita la tasa de acierto: lo es la regla de frescura de 10 minutos."

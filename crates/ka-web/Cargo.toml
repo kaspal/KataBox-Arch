@@ -1,0 +1,23 @@
+[package]
+name = "ka-web"
+description = "KataBox Arch web viewer: the simulator compiled to WebAssembly (read-only viewer, share links)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ka-core.workspace = true
+ka-sim.workspace = true
+serde_json.workspace = true
+# M8.0 (approved in the M8–M14 plan review, ★1): released 2026-10-30, MIT OR Apache-2.0. The
+# maintainer installs the matching `wasm-bindgen-cli 0.2.130`.
+wasm-bindgen = "=0.2.130"
+
+[lints]
+workspace = true

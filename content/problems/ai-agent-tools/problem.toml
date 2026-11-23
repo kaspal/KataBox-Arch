@@ -1,0 +1,83 @@
+id = "ai-agent-tools"
+track = "ai"
+number = 13
+set = 1
+difficulty = "medium"
+title = "Support Agent with Tools"
+title_es = "Agente de soporte con herramientas"
+teaches = "Give every call an agent makes a time limit, let it carry on without the tools it can do without, and leave the workers room, so one slow tool can't hold every task"
+teaches_es = "Poner un tiempo límite a cada llamada que hace un agente, dejar que siga sin las herramientas de las que puede prescindir y dar margen a los workers, para que una herramienta lenta no retenga todas las tareas"
+tags = ["llm", "agents", "timeouts", "fallback", "queues"]
+requires = ["infer"]
+
+# Scaled time: returns week runs its mix for 2 minutes, and the tracking slowdown lasts 60 s
+# (the statement and editorial say so). Model calls are about 2.2 s at the median and 4.3 s
+# for a long one, so the reference's 10 s Call timeout cuts only the slow tool.
+[nfr]
+peak_rps = 2
+p95_ms = 25000
+availability = 0.99
+budget_usd = 150000
+
+[[externals]]
+name = "orders"
+median_ms = 80
+p99_ms = 400
+
+[[externals]]
+name = "tracking"
+median_ms = 300
+p99_ms = 1500
+
+[[externals]]
+name = "payments"
+median_ms = 200
+p99_ms = 800
+
+[[request_types]]
+id = "question"
+name = "Answer an order question"
+name_es = "Responder una pregunta sobre un pedido"
+share = 0.8
+route = ["edge?", "compute", "broker", "worker", "model:chat", "external:orders", "external:tracking?", "model:chat"]
+measure = "completion"
+key_space = 1000000
+tokens_in = { mean = 1500, p95 = 3000 }
+tokens_out = { mean = 100, p95 = 250 }
+
+[[request_types]]
+id = "refund"
+name = "Handle a refund"
+name_es = "Tramitar un reembolso"
+share = 0.2
+route = ["edge?", "compute", "broker", "worker", "model:chat", "external:orders", "model:chat", "external:tracking?", "model:chat", "external:payments", "model:chat"]
+measure = "completion"
+key_space = 1000000
+tokens_in = { mean = 1500, p95 = 3000 }
+tokens_out = { mean = 100, p95 = 250 }
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+duration_s = 120
+
+[[tests]]
+id = "slow-tool"
+name = "The carrier's tracking API slows to 40 s a call"
+name_es = "La API de seguimiento del transportista tarda 40 s por llamada"
+hidden = true
+duration_s = 120
+chaos = [{ external = { name = "tracking", at = 20, for = 60, add_ms = 40000 } }]
+
+[[tests]]
+id = "refunds"
+name = "Returns week: five times the refunds"
+name_es = "Semana de devoluciones: cinco veces los reembolsos"
+hidden = true
+duration_s = 120
+type_multipliers = { refund = 5 }
+
+[pass]
+error_rate = 0.01
+lost = 0

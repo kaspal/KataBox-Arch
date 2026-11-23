@@ -1,0 +1,67 @@
+id = "de-lakehouse-compaction"
+track = "de"
+number = 9
+set = 1
+difficulty = "medium"
+title = "Interactive Queries on a Streaming Lake Table"
+title_es = "Consultas interactivas sobre una tabla de lago en streaming"
+teaches = "Keep analysts' interactive queries fast on a table that streaming ingest fills with small files: compact it, because a bigger warehouse can't make one query open fewer files"
+teaches_es = "Mantener rápidas las consultas interactivas de los analistas sobre una tabla que la ingesta en streaming llena de archivos pequeños: compactarla, porque un warehouse más grande no hace que una consulta abra menos archivos"
+tags = ["lakehouse", "warehouse", "small-files", "compaction", "streams"]
+
+[nfr]
+peak_rps = 10
+p95_ms = 8000
+availability = 0.999
+budget_usd = 8000
+
+[[request_types]]
+id = "events"
+name = "Send a batch of product events"
+name_es = "Enviar un lote de eventos de producto"
+share = 0.16
+route = ["edge?", "compute", "broker", "worker:streamproc", "datastore:write:lakehouse"]
+key_space = 1_000_000
+payload_kb = 128
+measure = "completion"
+
+[[request_types]]
+id = "explore"
+name = "Run an interactive query over today"
+name_es = "Lanzar una consulta interactiva sobre el día de hoy"
+share = 0.835
+route = ["edge?", "compute", "datastore:warehouse"]
+key_space = 50_000
+scan = { gb = 60, range_share = 0.0333, span_days = 30, repeat_share = 0.2, small_file_mb = 4 }
+
+[[request_types]]
+id = "explore-sale"
+name = "Run an interactive query over a sale day"
+name_es = "Lanzar una consulta interactiva sobre un día de rebajas"
+share = 0.005
+route = ["edge?", "compute", "datastore:warehouse"]
+key_space = 50_000
+scan = { gb = 78, range_share = 0.2564, span_days = 30, repeat_share = 0.2, small_file_mb = 4 }
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "sale-day"
+name = "A sale day: ten times the events, and analysts look at today"
+name_es = "Un día de rebajas: diez veces los eventos, y los analistas miran el día de hoy"
+hidden = true
+type_multipliers = { events = 10, explore = 0, explore-sale = 167 }
+
+[[tests]]
+id = "month-end"
+name = "Month-end review: four times the queries"
+name_es = "Revisión de fin de mes: cuatro veces las consultas"
+hidden = true
+type_multipliers = { explore = 4 }
+
+[pass]
+error_rate = 0.01
+lost = 0

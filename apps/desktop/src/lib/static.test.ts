@@ -63,6 +63,7 @@ describe("i18n resources", () => {
       pdf_unsupported: true,
       pdf_failed: true,
       pdf_timeout: true,
+      challenge_locked: true,
     } satisfies Record<AppErrorCode, true>;
     expect(Object.keys(codes).filter((c) => !has(en, `errors.${c}`))).toEqual([]);
   });

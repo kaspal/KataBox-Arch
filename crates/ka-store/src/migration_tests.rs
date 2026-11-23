@@ -63,6 +63,11 @@ fn seeds(version: i64) -> Vec<String> {
                  ('old', 'Old pack', 'Bo', '0.9.0', 'MIT', 'cd34', 1700000018000, 1700000019000)"
                 .into(),
         ],
+        7 => vec![
+            "INSERT INTO challenge_results VALUES ('url-shortener', 612.5, 1700000020000, 3),
+                 ('pastebin', NULL, NULL, 1)"
+                .into(),
+        ],
         _ => vec![],
     }
 }

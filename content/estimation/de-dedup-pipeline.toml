@@ -1,0 +1,34 @@
+# Estimation drills for Billing Events, Exactly Once.
+
+[[drill]]
+id = "writes-in-flight"
+kind = "servers"
+prompt = "In a retry storm your pipeline gets {events_per_s} billing events a second. Each warehouse write takes {write_ms} ms, and a warehouse node takes {per_node} writes at a time. How many nodes keep up with the storm, before any backlog?"
+prompt_es = "En una tormenta de reintentos tu pipeline recibe {events_per_s} eventos de facturación por segundo. Cada escritura en el almacén tarda {write_ms} ms, y un nodo del almacén acepta {per_node} escrituras a la vez. ¿Cuántos nodos aguantan la tormenta, antes de cualquier atasco?"
+inputs = { events_per_s = 120, write_ms = 300, per_node = 8 }
+formula = "events_per_s * write_ms / 1000 / per_node"
+unit = "count"
+solution = "{events_per_s} × {write_ms} ms = 36 writes in flight, / {per_node} per node = {answer} nodes. That only keeps up; a crash in the storm leaves a backlog to drain, so give it about twice that, and as many processor slots and stream partitions as write places."
+solution_es = "{events_per_s} × {write_ms} ms = 36 escrituras en curso, / {per_node} por nodo = {answer} nodos. Eso solo da abasto; una caída en la tormenta deja un atasco que vaciar, así que dale el doble más o menos, y tantos huecos del procesador y particiones del stream como puestos de escritura."
+
+[[drill]]
+id = "double-billed"
+kind = "capacity"
+prompt = "Your stream processor handles {events_per_s} billing events a second and checkpoints every {checkpoint_s} seconds, and the ledger has no dedup. It crashes just before a checkpoint. At most, how many billing events are written to the ledger twice?"
+prompt_es = "Tu procesador de streams procesa {events_per_s} eventos de facturación por segundo y hace un checkpoint cada {checkpoint_s} segundos, y el libro no tiene dedup. Se cae justo antes de un checkpoint. Como mucho, ¿cuántos eventos se escriben dos veces en el libro?"
+inputs = { events_per_s = 40, checkpoint_s = 5 }
+formula = "events_per_s * checkpoint_s"
+unit = "count"
+solution = "Everything since the last checkpoint is written again: {events_per_s} × {checkpoint_s} s = {answer} rows billed twice. At 1 s it is still 40. The interval sets how many, never whether; only an idempotent sink brings it to zero."
+solution_es = "Todo lo posterior al último checkpoint se escribe otra vez: {events_per_s} × {checkpoint_s} s = {answer} filas cobradas dos veces. Con 1 s siguen siendo 40. El intervalo decide cuántas, nunca si ocurre; solo un destino idempotente lo deja en cero."
+
+[[drill]]
+id = "storm-backlog"
+kind = "capacity"
+prompt = "The stream processor is down for {down_s} seconds in the middle of a storm of {storm_per_s} events a second. When it restarts, the pipeline can write {capacity_per_s} events a second while the storm continues. How many seconds does it take to catch up?"
+prompt_es = "El procesador de streams está caído {down_s} segundos en medio de una tormenta de {storm_per_s} eventos por segundo. Cuando se reinicia, el pipeline puede escribir {capacity_per_s} eventos por segundo mientras sigue la tormenta. ¿Cuántos segundos tarda en ponerse al día?"
+inputs = { down_s = 10, storm_per_s = 120, capacity_per_s = 210 }
+formula = "down_s * storm_per_s / (capacity_per_s - storm_per_s)"
+unit = "s"
+solution = "The outage leaves {down_s} × {storm_per_s} = 1,200 events waiting in the stream. The pipeline gains {capacity_per_s} − {storm_per_s} = 90 a second on them, so it catches up in about {answer} s. With 120 a second of capacity it would never catch up until the storm ends."
+solution_es = "La caída deja {down_s} × {storm_per_s} = 1200 eventos esperando en el stream. El pipeline les gana {capacity_per_s} − {storm_per_s} = 90 por segundo, así que se pone al día en unos {answer} s. Con 120 por segundo de capacidad no se pondría al día hasta que acabe la tormenta."

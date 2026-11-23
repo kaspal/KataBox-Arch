@@ -1,0 +1,53 @@
+id = "ai-provider-failover"
+track = "ai"
+number = 8
+set = 1
+difficulty = "medium"
+title = "Chat Provider Failover"
+title_es = "Failover entre proveedores de chat"
+teaches = "Add a second model provider behind a call timeout, a circuit breaker and a retry, so a provider that goes down or hangs costs a few seconds instead of a minute of errors"
+teaches_es = "Añadir un segundo proveedor de modelos detrás de un tiempo límite de llamada, un cortocircuito y un reintento, para que un proveedor que cae o se cuelga cueste unos segundos y no un minuto de errores"
+tags = ["llm", "failover", "circuit-breaker", "timeouts", "rate-limits"]
+requires = ["infer"]
+
+[nfr]
+peak_rps = 20
+p95_ms = 6000
+availability = 0.99
+budget_usd = 250000
+
+[[request_types]]
+id = "chat"
+name = "Send a chat message"
+name_es = "Enviar un mensaje de chat"
+share = 1.0
+route = ["edge?", "compute", "model:chat"]
+tokens_in = { mean = 600, p95 = 1500 }
+tokens_out = { mean = 60, p95 = 150 }
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "down"
+name = "A model provider is down for 60 s"
+name_es = "Un proveedor de modelos cae durante 60 s"
+hidden = true
+duration_s = 100
+chaos = [{ kill = { kind = "infer", at = 20, for = 60 } }]
+
+[[tests]]
+id = "hang"
+name = "A model provider hangs for 60 s"
+name_es = "Un proveedor de modelos se cuelga durante 60 s"
+hidden = true
+duration_s = 100
+chaos = [{ latency = { kind = "infer", at = 20, for = 60, add_ms = 60000 } }]
+# While the provider hangs, some messages wait for a call timeout before they move on.
+pass = { ttft_p95_ms = 8000 }
+
+[pass]
+error_rate = 0.01
+ttft_p95_ms = 1500

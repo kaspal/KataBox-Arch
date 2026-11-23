@@ -1,0 +1,52 @@
+id = "de-sessionization"
+number = 11
+set = 1
+track = "de"
+difficulty = "medium"
+title = "Clickstream Sessionization"
+title_es = "Sesionización de clics"
+teaches = "Size a stream processor's keyed state against its memory, and checkpoint often enough that a crash replays seconds of results, not minutes"
+teaches_es = "Dimensionar el estado por clave de un procesador de streams frente a su memoria, y hacer checkpoints tan a menudo que una caída repita segundos de resultados, no minutos"
+tags = ["streams", "stream-processing", "state", "checkpoints"]
+
+[nfr]
+peak_rps = 400
+p95_ms = 10000
+availability = 0.999
+budget_usd = 2500
+
+[[request_types]]
+id = "click"
+name = "Record a click"
+name_es = "Registrar un clic"
+share = 1.0
+route = ["edge?", "compute", "broker", "worker:streamproc", "datastore:write"]
+key_space = 1_000_000
+key_skew = { zipf = 0.8 }
+measure = "completion"
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "crash"
+name = "The stream processor crashes"
+name_es = "El procesador de streams se cae"
+hidden = true
+duration_s = 120
+chaos = [{ kill = { kind = "streamproc", at = 50, for = 10 } }]
+
+[[tests]]
+id = "four-x"
+name = "Four times as many users"
+name_es = "Cuatro veces más usuarios"
+hidden = true
+traffic = { flat = 4 }
+
+[pass]
+error_rate = 0.001
+lost = 0
+# A crash may replay at most 15 s of clicks at peak (400 × 15) into the sessions table.
+duplicates = 6000

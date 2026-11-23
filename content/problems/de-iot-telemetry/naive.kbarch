@@ -1,0 +1,85 @@
+{
+  "schema_version": 4,
+  "id": "de-iot-telemetry-naive",
+  "name": "Fleet telemetry (first try)",
+  "problem_id": "de-iot-telemetry",
+  "nodes": [
+    {
+      "id": "devices",
+      "kind": "client",
+      "flavour": "web",
+      "label": "devices",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "broker",
+      "kind": "mqtt",
+      "flavour": "emqx",
+      "label": "broker",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "ingest",
+      "kind": "app",
+      "flavour": "go",
+      "label": "ingest",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "tsdb",
+      "kind": "tsdb",
+      "flavour": "influxdb",
+      "label": "tsdb",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "points_per_s": 4000
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-devices-broker-publish",
+      "from": "devices",
+      "to": "broker",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-devices-ingest-http",
+      "from": "devices",
+      "to": "ingest",
+      "protocol": "http"
+    },
+    {
+      "id": "e-ingest-tsdb-query",
+      "from": "ingest",
+      "to": "tsdb",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

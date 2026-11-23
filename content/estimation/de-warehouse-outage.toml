@@ -1,0 +1,36 @@
+# Estimation drills for The Warehouse Goes Down.
+
+[[drill]]
+id = "outage-backlog"
+kind = "capacity"
+prompt = "At the evening peak, {rate} batches of events arrive a second, and the data warehouse is down for {outage_s} seconds. How many batches pile up in the Stream by the time it is back?"
+prompt_es = "En el pico de la tarde llegan {rate} lotes de eventos por segundo, y el almacén de datos cae durante {outage_s} segundos. ¿Cuántos lotes se acumulan en el Stream cuando vuelve?"
+inputs = { rate = 45, outage_s = 60 }
+formula = "rate * outage_s"
+unit = "count"
+solution = "{rate} × {outage_s} s = {answer} batches. Written straight from the App Server, every one of them is refused. Published to a Stream, they wait there and are loaded once the warehouse is back."
+solution_es = "{rate} × {outage_s} s = {answer} lotes. Si el App Server los escribe directamente, se rechazan todos. Si se publican en un Stream, esperan ahí y se cargan cuando vuelve el almacén."
+
+[[drill]]
+id = "drain-time"
+kind = "capacity"
+prompt = "{backlog} batches wait in the Stream when the warehouse comes back. Snowflake has {instances} instances, each running {slots} loads at once, and a load takes about {load_s} s. New batches keep arriving at {rate} a second. How many seconds until the backlog is gone?"
+prompt_es = "Cuando vuelve el almacén, esperan {backlog} lotes en el Stream. Snowflake tiene {instances} instancias, cada una con {slots} cargas a la vez, y una carga tarda unos {load_s} s. Siguen llegando lotes nuevos a {rate} por segundo. ¿Cuántos segundos tarda en desaparecer el atasco?"
+inputs = { backlog = 2700, instances = 3, slots = 8, load_s = 0.3, rate = 45 }
+formula = "backlog / (instances * slots / load_s - rate)"
+unit = "s"
+tolerance = 0.1
+solution = "Catch-up rate: {instances} × {slots} ÷ {load_s} s = 80 loads a second. Only what goes beyond the live {rate} drains the backlog: 80 − {rate} = 35 a second, so {backlog} ÷ 35 ≈ {answer} s. That is past the 50 s the catch-up limit allows, even though 80 a second is almost twice the live rate."
+solution_es = "Ritmo de recuperación: {instances} × {slots} ÷ {load_s} s = 80 cargas por segundo. Solo lo que pasa de los {rate} en vivo vacía el atasco: 80 − {rate} = 35 por segundo, así que {backlog} ÷ 35 ≈ {answer} s. Eso supera los 50 s que permite el límite de recuperación, aunque 80 por segundo sea casi el doble del ritmo en vivo."
+
+[[drill]]
+id = "catch-up-instances"
+kind = "servers"
+prompt = "The backlog of {backlog} batches must be gone within {window_s} s while {rate} new batches arrive a second. A Snowflake instance runs {slots} loads at once, each taking about {load_s} s. How many instances do you need (round up)?"
+prompt_es = "El atasco de {backlog} lotes tiene que desaparecer en {window_s} s mientras llegan {rate} lotes nuevos por segundo. Una instancia de Snowflake ejecuta {slots} cargas a la vez, y cada una tarda unos {load_s} s. ¿Cuántas instancias necesitas (redondea hacia arriba)?"
+inputs = { backlog = 2700, window_s = 50, rate = 45, slots = 8, load_s = 0.3 }
+formula = "(rate + backlog / window_s) * load_s / slots"
+unit = "count"
+tolerance = 0.1
+solution = "The warehouse must load the live {rate} a second plus {backlog} ÷ {window_s} s = 54 a second of backlog: 99 a second. One instance loads {slots} ÷ {load_s} s ≈ 27 a second, so 99 ÷ 27 ≈ {answer}: 4 instances. The retries' wait of up to 32 s also eats into the window, so leave the partitions and the connector's slots above the warehouse's 32."
+solution_es = "El almacén tiene que cargar los {rate} por segundo en vivo más {backlog} ÷ {window_s} s = 54 por segundo del atasco: 99 por segundo. Una instancia carga {slots} ÷ {load_s} s ≈ 27 por segundo, así que 99 ÷ 27 ≈ {answer}: 4 instancias. La espera de hasta 32 s de los reintentos también se come parte de la ventana, así que deja las particiones y los huecos del conector por encima de los 32 del almacén."
