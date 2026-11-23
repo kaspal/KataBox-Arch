@@ -106,6 +106,8 @@ pub struct CType {
     pub plan: TypePlan,
     /// S1 connection types: where the connections land.
     pub conn: Option<ConnPlan>,
+    /// S4 job types: the batch cards that can run the tasks (node order).
+    pub job: Option<Vec<u32>>,
 }
 
 /// S1: a connection type's holders (WebSocket gateways, IoT brokers its clients reach
@@ -222,9 +224,16 @@ pub fn compile(
         return Err(SimError::BadScenario("duration_s must be positive".into()));
     }
     let share_sum: f64 = scenario.request_types.iter().map(|t| t.share).sum();
-    if scenario.request_types.is_empty() || share_sum.is_nan() || share_sum <= 0.0 {
+    // S1, S4: connection and job types have no share of the request rate.
+    let only_models = scenario
+        .request_types
+        .iter()
+        .all(|t| t.kind != TypeKind::Request);
+    if scenario.request_types.is_empty() || share_sum.is_nan() || (share_sum <= 0.0 && !only_models)
+    {
         return Err(SimError::BadScenario("no request types".into()));
     }
+    let share_sum = share_sum.max(1e-12);
 
     // --- Nodes, zones, edges -----------------------------------------------------------
     let index: BTreeMap<&str, u32> = design
@@ -413,9 +422,30 @@ pub fn compile(
             types.push(connection_type(&nodes, def)?);
             continue;
         }
-        let route = parse_route(&def.route, def.source == Source::Scheduler)
+        let is_job = def.kind == TypeKind::Job;
+        if is_job && def.job.is_none() {
+            return Err(SimError::BadScenario(format!(
+                "job type `{}` has no `job`",
+                def.id
+            )));
+        }
+        let route = parse_route(&def.route, def.source == Source::Scheduler || is_job)
             .map_err(|e| SimError::BadScenario(format!("route of `{}`: {e}", def.id)))?;
         let plan = plan_type(&nodes, &clusters, &cluster_of, &externals, def, &route)?;
+        let job = if is_job {
+            let runners: Vec<u32> = (0..n_nodes as u32)
+                .filter(|&i| kind(i) == ComponentKind::Batch && plan.calls[0][i as usize].is_some())
+                .collect();
+            if runners.is_empty() {
+                return Err(SimError::NoPath {
+                    request_type: def.id.clone(),
+                    reason: "no batch card can run its tasks".into(),
+                });
+            }
+            Some(runners)
+        } else {
+            None
+        };
         let skew = scenario
             .key_skew_override
             .or(def.key_skew)
@@ -430,6 +460,7 @@ pub fn compile(
             skew,
             plan,
             conn: None,
+            job,
         });
     }
 
@@ -452,8 +483,8 @@ pub fn compile(
         .map(|i| client_rps[i])
         .sum();
     for (ti, t) in types.iter_mut().enumerate() {
-        if t.conn.is_some() {
-            // S1: connections aren't arrivals; the connection model drives them.
+        if t.conn.is_some() || t.job.is_some() {
+            // S1, S4: connections and jobs aren't arrivals; their own models drive them.
             t.rate = 0.0;
             continue;
         }
@@ -514,6 +545,10 @@ pub fn compile(
         if per_lane >= 2.0 && n.spec.role != Role::None && n.spec.role != Role::Source {
             sample = sample.max((MIN_EFFECTIVE_SERVERS / per_lane).min(1.0));
         }
+    }
+    // S4: tasks are counted one by one, so a run with jobs is never sampled.
+    if types.iter().any(|t| t.job.is_some()) {
+        sample = 1.0;
     }
     for n in &mut nodes {
         let per_lane = n.spec.servers / f64::from(n.spec.lanes);
@@ -638,6 +673,7 @@ fn connection_type(nodes: &[CNode], def: &RequestType) -> Result<CType, SimError
             holders: holders.into_iter().collect(),
             client,
         }),
+        job: None,
     })
 }
 

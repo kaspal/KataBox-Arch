@@ -900,7 +900,13 @@ export type ChaosEvent =
  * S8: the cloud control plane is down: no scaling decisions apply and no replacement
  * instances start, while running instances keep serving.
  */
-{ control_plane: { at: number; for?: number | null } }
+{ control_plane: { at: number; for?: number | null } } | 
+/**
+ * S4: the cloud takes back spot capacity: `share` of the selected batch cards'
+ * executors stop, and the tasks they ran start again (from their last checkpoint with
+ * `checkpoint`), until `for` seconds later.
+ */
+{ spot: { target: Selector; at: number; share: number; for?: number | null } }
 /**
  * How close an answer was.
  */
@@ -1183,6 +1189,10 @@ export type IssueCode =
  * a zone that isn't a Region or AZ, or with an unknown or out-of-range prop (v4).
  */
 "bad_zone_setting"
+/**
+ * S4: one job run.
+ */
+export type JobResult = { ty: string; start_s: number; completion_s: number | null }
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
 export type Judgement = { problem_id: string; 
 /**
@@ -1412,7 +1422,11 @@ connected_min?: number | null;
 /**
  * S2: time to first token, 95th percentile, of the requests that call a model.
  */
-ttft_p95_ms?: number | null }
+ttft_p95_ms?: number | null; 
+/**
+ * S4: every job must finish within this many seconds of its start.
+ */
+job_deadline_s?: number | null }
 /**
  * One step of a path as the UI shows it.
  */
@@ -1656,7 +1670,12 @@ connected_min: number; conn_drops: number;
 /**
  * S2: time to first token over every model call, and calls a provider refused (429).
  */
-ttft?: Percentiles | null; rate_limited: number; cost_month: number; per_type: TypeResult[]; nodes: NodeResult[]; 
+ttft?: Percentiles | null; rate_limited: number; 
+/**
+ * S4: every job run (type, start, seconds to finish; None if it never finished), and
+ * tasks started again (failures, spot interruptions).
+ */
+jobs: JobResult[]; tasks_retried: number; cost_month: number; per_type: TypeResult[]; nodes: NodeResult[]; 
 /**
  * One entry per simulated second.
  */

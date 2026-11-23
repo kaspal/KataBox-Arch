@@ -151,6 +151,9 @@ fn verdict(r: &RunResult, limits: &PassCriteria, cost: f64, budget: f64) -> Verd
         || limits
             .ttft_p95_ms
             .is_some_and(|l| r.ttft.is_some_and(|t| t.p95_ms > l))
+        || limits
+            .job_deadline_s
+            .is_some_and(|d| r.jobs.iter().any(|j| j.completion_s.is_none_or(|c| c > d)))
     {
         return Verdict::SloBreach;
     }

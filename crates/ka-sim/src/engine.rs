@@ -86,6 +86,10 @@ enum Ev {
     },
     /// S1: the connection model's 100 ms step (only when a type is a connection type).
     ConnTick,
+    /// S4: job run `job` starts: its tasks go to its batch cards.
+    JobStart {
+        job: u16,
+    },
     Second(u32),
     /// Chaos event `i` starts / ends (only scheduled when the scenario has chaos).
     Chaos(u16),
@@ -187,6 +191,33 @@ struct Req {
     /// S2: the request's prompt and answer tokens (drawn at its first model call; -1: not yet).
     tin: f64,
     tout: f64,
+    /// S4: a job task (job run `job`, task `task`): its executor time, when it started
+    /// running, and whether a spot interruption already freed its executor.
+    job: u16,
+    task: u32,
+    task_us: u64,
+    started: u64,
+    released: bool,
+    /// S4: the batch card a task copy was sent to.
+    runner: u32,
+}
+
+/// S4: no job.
+const NO_JOB: u16 = u16::MAX;
+
+/// S4: one job run: its tasks' sizes (seconds), which are done, the copies running per task,
+/// finished task times, and when the last task finished.
+#[derive(Debug, Clone)]
+struct JobRt {
+    ty: u16,
+    start: u64,
+    sizes: Vec<f64>,
+    done: Vec<bool>,
+    left: u32,
+    running: BTreeMap<u32, Vec<u32>>,
+    finished: Vec<f64>,
+    completed_at: Option<u64>,
+    rr: usize,
 }
 
 /// S8: dependency keys of external providers (beside card indices).
@@ -406,6 +437,12 @@ pub struct Engine {
     /// S2: model calls a provider refused with 429 (rate limits), and the token draws.
     rate_limited: f64,
     rng_tokens: Rng,
+    /// S4: job runs, task draws, tasks started again, and executors spot chaos took
+    /// (chaos, card, executors).
+    jobs: Vec<JobRt>,
+    rng_jobs: Rng,
+    tasks_retried: f64,
+    spot_taken: Vec<(u16, u32, u32)>,
 }
 
 /// S1: one connection type's state: connections per holder, push backlog per holder,
@@ -567,6 +604,28 @@ impl Engine {
             conn_drops: 0.0,
             rate_limited: 0.0,
             rng_tokens: Rng::stream(seed, "tokens"),
+            jobs: c
+                .types
+                .iter()
+                .enumerate()
+                .filter_map(|(i, t)| t.def.job.as_ref().map(|j| (i, j)))
+                .flat_map(|(i, j)| {
+                    j.starts.iter().map(move |&at| JobRt {
+                        ty: i as u16,
+                        start: (at.max(0.0) * 1e6) as u64,
+                        sizes: Vec::new(),
+                        done: Vec::new(),
+                        left: 0,
+                        running: BTreeMap::new(),
+                        finished: Vec::new(),
+                        completed_at: None,
+                        rr: 0,
+                    })
+                })
+                .collect(),
+            rng_jobs: Rng::stream(seed, "jobs"),
+            tasks_retried: 0.0,
+            spot_taken: Vec::new(),
             caches: c
                 .nodes
                 .iter()
@@ -632,6 +691,11 @@ impl Engine {
                 .collect();
         for (t, i) in chaos {
             e.push(t, Ev::Chaos(i));
+        }
+        for j in 0..e.jobs.len() {
+            if e.jobs[j].start < e.c.duration_us {
+                e.push(e.jobs[j].start, Ev::JobStart { job: j as u16 });
+            }
         }
         if e.conns.iter().any(Option::is_some) {
             let mut t = 0;
@@ -874,6 +938,7 @@ impl Engine {
             Ev::Stage { chaos, node, stage } => self.rollout_stage(chaos, node, stage),
             Ev::Noticed { chaos, node } => self.rollout_noticed(chaos, node),
             Ev::ConnTick => self.conn_tick(),
+            Ev::JobStart { job } => self.job_start(job),
             Ev::Rollback { chaos } => {
                 for n in self.chaos_targets[chaos as usize].clone() {
                     self.nodes[n as usize].faulty = 0.0;
@@ -983,6 +1048,12 @@ impl Engine {
             shadow: false,
             tin: -1.0,
             tout: 0.0,
+            job: NO_JOB,
+            task: 0,
+            task_us: 0,
+            started: u64::MAX,
+            released: false,
+            runner: NONE,
         };
         if let Some(i) = self.free.pop() {
             self.reqs[i as usize] = req;
@@ -1324,6 +1395,10 @@ impl Engine {
     }
 
     fn service_us(&mut self, r: u32, node: u32) -> u64 {
+        let q = &self.reqs[r as usize];
+        if q.job != NO_JOB && q.phase == Phase::Entry {
+            return q.task_us.max(1);
+        }
         if self.c.nodes[node as usize].kind == ComponentKind::Infer {
             return self.model_us(r, node);
         }
@@ -1473,6 +1548,9 @@ impl Engine {
     }
 
     fn start_service(&mut self, r: u32, node: u32, lane: u16) {
+        if self.reqs[r as usize].job != NO_JOB && self.reqs[r as usize].phase == Phase::Entry {
+            self.reqs[r as usize].started = self.now;
+        }
         let mut us = self.service_us(r, node);
         let faulty = self.nodes[node as usize].faulty;
         if faulty > 0.0 && self.rng_s8.uniform() < faulty {
@@ -1541,7 +1619,10 @@ impl Engine {
         let holds = self.c.nodes[node as usize].spec.holds
             && matches!(phase, Phase::Entry | Phase::Consumer);
         if self.reqs[r as usize].dead {
-            self.release(node, lane);
+            // A spot interruption already freed this executor (S4).
+            if !std::mem::take(&mut self.reqs[r as usize].released) {
+                self.release(node, lane);
+            }
             self.maybe_free(r);
             return;
         }
@@ -2513,6 +2594,9 @@ impl Engine {
     }
 
     fn complete_async(&mut self, r: u32) {
+        if self.reqs[r as usize].job != NO_JOB {
+            self.job_task_done(r);
+        }
         self.message_done(r);
         let q = &self.reqs[r as usize];
         let (ty, g) = (q.ty as usize, q.group);
@@ -2565,6 +2649,10 @@ impl Engine {
     fn fail(&mut self, r: u32) {
         let w = self.c.weight;
         self.end_call(r, false);
+        if self.reqs[r as usize].job != NO_JOB && !self.reqs[r as usize].dead {
+            self.job_task_failed(r);
+            return;
+        }
         if !self.reqs[r as usize].resp_sent && self.retry_sync(r) {
             return;
         }
@@ -2971,6 +3059,12 @@ impl Engine {
             conn_drops: self.conn_drops,
             ttft: (ttft.total() > 0.0).then(|| pct(&ttft)),
             rate_limited: self.rate_limited,
+            jobs: self
+                .jobs
+                .iter()
+                .map(|j| ka_sim_job_result(&c.types[j.ty as usize].def.id, j))
+                .collect(),
+            tasks_retried: self.tasks_retried,
             cost_month: round2(cost_total),
             per_type,
             nodes,
@@ -3183,6 +3277,21 @@ impl Engine {
                 self.control_plane += 1;
                 for_s = *f;
             }
+            C::Spot {
+                target,
+                share,
+                for_s: f,
+                ..
+            } => {
+                targets = self
+                    .resolve(target)
+                    .into_iter()
+                    .filter(|&n| self.c.nodes[n as usize].kind == ComponentKind::Batch)
+                    .collect();
+                let t = targets.clone();
+                self.spot_start(i, &t, *share);
+                for_s = *f;
+            }
         }
         self.chaos_targets[i as usize] = targets;
         if let Some(f) = for_s {
@@ -3215,6 +3324,7 @@ impl Engine {
                 self.rollout_done.insert((i, NONE));
             }
             C::DnsOutage { .. } => self.dns_out_since = None,
+            C::Spot { .. } => self.spot_end(i),
             C::ControlPlane { .. } => {
                 self.control_plane = self.control_plane.saturating_sub(1);
                 if self.control_plane == 0 {
@@ -3437,6 +3547,227 @@ impl Engine {
                 }
             }
             self.conns[ti] = Some(rt);
+        }
+    }
+
+    /// S4: a job run starts. Task sizes follow a Zipf skew (shuffled by the `jobs` stream)
+    /// and sum to the job's work; a batch card with `salting` splits the largest 1% of
+    /// tasks that many ways.
+    fn job_start(&mut self, j: u16) {
+        let ty = self.jobs[j as usize].ty as usize;
+        let spec = self.c.types[ty].def.job.clone().expect("a job type");
+        let runner = self.c.types[ty].job.as_ref().expect("job runners")[0];
+        let salting = self.c.nodes[runner as usize].spec.salting;
+        let n = spec.tasks.max(1) as usize;
+        let mut weights: Vec<f64> = (0..n)
+            .map(|i| detmath::powf((i + 1) as f64, -spec.skew.max(0.0)))
+            .collect();
+        for i in (1..n).rev() {
+            let k = self.rng_jobs.below(i as u64 + 1) as usize;
+            weights.swap(i, k);
+        }
+        let total: f64 = weights.iter().sum();
+        let mut sizes: Vec<f64> = weights
+            .iter()
+            .map(|w| w / total * spec.work_units)
+            .collect();
+        if salting > 1 {
+            let mut order: Vec<usize> = (0..n).collect();
+            order.sort_by(|&a, &b| sizes[b].total_cmp(&sizes[a]).then(a.cmp(&b)));
+            let big = n.div_ceil(100);
+            let mut extra = Vec::new();
+            for &i in &order[..big] {
+                let part = sizes[i] / f64::from(salting);
+                sizes[i] = part;
+                extra.extend(std::iter::repeat_n(part, salting as usize - 1));
+            }
+            sizes.extend(extra);
+        }
+        let job = &mut self.jobs[j as usize];
+        job.left = sizes.len() as u32;
+        job.done = vec![false; sizes.len()];
+        job.sizes = sizes;
+        for t in 0..self.jobs[j as usize].sizes.len() as u32 {
+            let work = self.jobs[j as usize].sizes[t as usize];
+            self.launch_task(j, t, work);
+        }
+    }
+
+    /// S4: one copy of task `t` with `work` executor-seconds goes to the next batch card;
+    /// its time gets per-task noise (lognormal, median 1, p99 1.5) and the launch overhead.
+    fn launch_task(&mut self, j: u16, t: u32, work: f64) {
+        let ty = self.jobs[j as usize].ty;
+        let runners = self.c.types[ty as usize].job.clone().expect("job runners");
+        let rr = self.jobs[j as usize].rr;
+        self.jobs[j as usize].rr = rr.wrapping_add(1);
+        let node = runners[rr % runners.len()];
+        let noise = self.rng_jobs.lognormal(1.0, 1.5);
+        let overhead = self.c.nodes[node as usize].spec.task_overhead_ms / 1000.0;
+        let r = self.alloc(ty, u64::from(t) + 1);
+        {
+            let q = &mut self.reqs[r as usize];
+            q.job = j;
+            q.task = t;
+            q.task_us = ((work * noise + overhead) * 1e6) as u64;
+            q.resp_sent = true;
+            q.phase = Phase::Entry;
+            q.runner = node;
+        }
+        let w = self.c.weight;
+        self.types[ty as usize].requests += w;
+        self.jobs[j as usize].running.entry(t).or_default().push(r);
+        self.push_req(self.now, Ev::Arrive { r, node }, r);
+    }
+
+    /// S4: a task copy finished. The first copy of a task wins; the others stop. Near the
+    /// end (95% done) a batch card with `speculation` copies tasks running longer than
+    /// 1.5 × the median task: that helps a slow executor, not a task that is just big.
+    fn job_task_done(&mut self, r: u32) {
+        let (j, t, started) = {
+            let q = &self.reqs[r as usize];
+            (q.job, q.task, q.started)
+        };
+        let now = self.now;
+        let job = &mut self.jobs[j as usize];
+        if job.done[t as usize] {
+            return;
+        }
+        job.done[t as usize] = true;
+        job.left -= 1;
+        job.finished.push(now.saturating_sub(started) as f64);
+        for other in job.running.remove(&t).unwrap_or_default() {
+            if other != r {
+                self.reqs[other as usize].dead = true;
+            }
+        }
+        let job = &self.jobs[j as usize];
+        if job.left == 0 {
+            self.jobs[j as usize].completed_at = Some(now);
+            return;
+        }
+        let ty = job.ty as usize;
+        let runner = self.c.types[ty].job.as_ref().expect("job runners")[0];
+        let total = job.done.len() as f64;
+        if !self.c.nodes[runner as usize].spec.speculation
+            || (total - f64::from(job.left)) / total < 0.95
+        {
+            return;
+        }
+        let mut times = job.finished.clone();
+        times.sort_by(f64::total_cmp);
+        let median = times[times.len() / 2];
+        let slow: Vec<u32> = job
+            .running
+            .iter()
+            .filter(|(_, copies)| copies.len() == 1)
+            .filter(|(_, copies)| {
+                let q = &self.reqs[copies[0] as usize];
+                q.started != u64::MAX && now.saturating_sub(q.started) as f64 > 1.5 * median
+            })
+            .map(|(&t, _)| t)
+            .collect();
+        for t in slow {
+            let work = self.jobs[j as usize].sizes[t as usize];
+            self.launch_task(j, t, work);
+        }
+    }
+
+    /// S4: a task copy failed (a call failed): it starts again unless another copy runs.
+    fn job_task_failed(&mut self, r: u32) {
+        let (j, t) = (self.reqs[r as usize].job, self.reqs[r as usize].task);
+        {
+            let q = &mut self.reqs[r as usize];
+            q.dead = true;
+        }
+        self.release_caller(r);
+        self.finish(r);
+        let job = &mut self.jobs[j as usize];
+        if let Some(copies) = job.running.get_mut(&t) {
+            copies.retain(|&x| x != r);
+        }
+        if job.done[t as usize] || job.running.get(&t).is_some_and(|c| !c.is_empty()) {
+            return;
+        }
+        self.tasks_retried += 1.0;
+        let work = self.jobs[j as usize].sizes[t as usize];
+        self.launch_task(j, t, work);
+    }
+
+    /// S4 spot chaos: `share` of each selected batch card's executors go away; that share of
+    /// the tasks running on it stop and start again, from their last checkpoint (each 10%
+    /// of the task) when the card has `checkpoint`.
+    fn spot_start(&mut self, chaos: u16, nodes: &[u32], share: f64) {
+        let share = share.clamp(0.0, 1.0);
+        for &node in nodes {
+            let servers = self.nodes[node as usize].lane_servers;
+            let take = (f64::from(servers) * share).round() as u32;
+            self.nodes[node as usize].lane_servers = servers - take.min(servers);
+            self.spot_taken.push((chaos, node, take.min(servers)));
+            let checkpoint = self.c.nodes[node as usize].spec.checkpoint;
+            // The tasks in service on this card, in job then task order.
+            let mut running: Vec<(u16, u32, u32)> = Vec::new();
+            for (j, job) in self.jobs.iter().enumerate() {
+                for (&t, copies) in &job.running {
+                    for &r in copies {
+                        let q = &self.reqs[r as usize];
+                        if !q.dead
+                            && q.phase == Phase::Entry
+                            && q.started != u64::MAX
+                            && q.runner == node
+                        {
+                            running.push((j as u16, t, r));
+                        }
+                    }
+                }
+            }
+            let kill = (running.len() as f64 * share).round() as usize;
+            for &(j, t, r) in running.iter().take(kill) {
+                let q = &self.reqs[r as usize];
+                let progress = (self.now.saturating_sub(q.started) as f64
+                    / q.task_us.max(1) as f64)
+                    .clamp(0.0, 1.0);
+                let size = self.jobs[j as usize].sizes[t as usize];
+                let left = if checkpoint {
+                    size * (1.0 - (progress * 10.0).floor() / 10.0)
+                } else {
+                    size
+                };
+                let q = &mut self.reqs[r as usize];
+                q.dead = true;
+                q.released = true;
+                self.set_busy(node, 0, -1);
+                if let Some(copies) = self.jobs[j as usize].running.get_mut(&t) {
+                    copies.retain(|&x| x != r);
+                }
+                self.tasks_retried += 1.0;
+                self.launch_task(j, t, left);
+            }
+        }
+    }
+
+    fn spot_end(&mut self, chaos: u16) {
+        let taken: Vec<(u16, u32, u32)> = self
+            .spot_taken
+            .iter()
+            .copied()
+            .filter(|x| x.0 == chaos)
+            .collect();
+        self.spot_taken.retain(|x| x.0 != chaos);
+        for (_, node, k) in taken {
+            self.nodes[node as usize].lane_servers += k;
+            // The executors are back: start waiting tasks.
+            while self.nodes[node as usize].lanes[0].busy < self.nodes[node as usize].lane_servers {
+                let Some(next) = self.nodes[node as usize].lanes[0].queue.pop_front() else {
+                    break;
+                };
+                self.reqs[next as usize].pending -= 1;
+                if self.reqs[next as usize].dead {
+                    self.maybe_free(next);
+                    continue;
+                }
+                self.set_busy(node, 0, 1);
+                self.start_service(next, node, 0);
+            }
         }
     }
 
@@ -3856,4 +4187,13 @@ pub fn mix(mut z: u64) -> u64 {
     z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
     z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
     z ^ (z >> 31)
+}
+
+/// S4: a job run as reported.
+fn ka_sim_job_result(ty: &str, j: &JobRt) -> crate::result::JobResult {
+    crate::result::JobResult {
+        ty: ty.to_owned(),
+        start_s: j.start as f64 / 1e6,
+        completion_s: j.completed_at.map(|t| (t - j.start) as f64 / 1e6),
+    }
 }

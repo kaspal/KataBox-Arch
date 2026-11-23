@@ -356,6 +356,23 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
   `distinct` the type's `key_space`; capacity = min(1, entries that fit (`memory_gb ÷ value_kb`) ÷ distinct). A
   warm cache starts full; a flush or restart empties it. Each lookup adds 15 ms (an embedding and an ANN search; a
   modelling choice). The design can't raise the hit rate above what the traffic declares.
+- **Jobs (S4, golden h).**
+  - A request type with `kind = "job"` (share 0) and `job = { work_units, tasks, skew, starts }` runs one job at
+    each start time. Its route is the calls each task makes, as its Batch card's caller (like a scheduler route).
+    Runs with jobs are never sampled.
+  - Task sizes are Zipf weights (`skew`; 0 = equal) shuffled by the `jobs` stream and scaled to `work_units`
+    executor-seconds. A Batch card with `salting = k` splits its largest 1% of tasks k ways. Each launch draws
+    noise (lognormal, median 1, p99 1.5) and adds `task_overhead_ms`.
+  - A task is a request that arrives at the card and holds an executor (`instances × executors`, FIFO, no queue
+    limit) for its time, then makes its calls; the job finishes with its last task.
+  - `speculation`: once 95% of the tasks are done, a task running longer than 1.5 × the median finished task gets a
+    copy; the first copy to finish wins. It redraws noise; it can't shrink a task that is big because of skew.
+  - Chaos `spot { kind|id, at, share, for }`: `share` of the card's executors go away until `for` ends, and that
+    share of its running tasks start again (counted in `tasks_retried`): from scratch, or from their last 10%
+    checkpoint with `checkpoint`. A task whose call fails starts again too.
+  - `jobs` reports each run's start and completion time; `pass.job_deadline_s` fails a test (SLO Breach) when a
+    job finishes late or not at all. Job tests run at most an hour of simulated time (plan ★10 asked for a day;
+    workloads are scaled and the brief says so).
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE

@@ -77,6 +77,28 @@ pub struct RequestType {
     /// semantic cache can answer). The traffic declares it; a design can't raise it.
     #[serde(default, skip_serializing_if = "is_zero")]
     pub semantic_repeat_share: f64,
+    /// S4: a job type's work (kind = "job").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub job: Option<JobSpec>,
+}
+
+/// S4: a batch job: `work_units` executor-seconds split into `tasks`, sized by a Zipf skew
+/// (0 = equal tasks), started at each of `starts` (seconds). Each task makes the type's route
+/// calls once, as its batch card's caller.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(deny_unknown_fields)]
+pub struct JobSpec {
+    pub work_units: f64,
+    pub tasks: u32,
+    #[serde(default)]
+    pub skew: f64,
+    #[serde(default = "default_starts")]
+    pub starts: Vec<f64>,
+}
+
+fn default_starts() -> Vec<f64> {
+    vec![0.0]
 }
 
 /// S2: a token count's mean and 95th percentile.
@@ -102,6 +124,8 @@ pub enum TypeKind {
     Request,
     /// S1: long-lived connections to a WebSocket gateway or IoT broker.
     Connection,
+    /// S4: batch jobs (see `job`).
+    Job,
 }
 
 impl TypeKind {
@@ -396,6 +420,17 @@ pub enum ChaosEvent {
         #[serde(default, rename = "for")]
         for_s: Option<f64>,
     },
+    /// S4: the cloud takes back spot capacity: `share` of the selected batch cards'
+    /// executors stop, and the tasks they ran start again (from their last checkpoint with
+    /// `checkpoint`), until `for` seconds later.
+    Spot {
+        #[serde(flatten)]
+        target: Selector,
+        at: f64,
+        share: f64,
+        #[serde(default, rename = "for")]
+        for_s: Option<f64>,
+    },
 }
 
 impl ChaosEvent {
@@ -411,7 +446,8 @@ impl ChaosEvent {
             | ChaosEvent::Deploy { at, .. }
             | ChaosEvent::ConfigPush { at, .. }
             | ChaosEvent::DnsOutage { at, .. }
-            | ChaosEvent::ControlPlane { at, .. } => *at,
+            | ChaosEvent::ControlPlane { at, .. }
+            | ChaosEvent::Spot { at, .. } => *at,
         }
     }
 }
@@ -451,6 +487,9 @@ pub struct PassCriteria {
     /// S2: time to first token, 95th percentile, of the requests that call a model.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ttft_p95_ms: Option<f64>,
+    /// S4: every job must finish within this many seconds of its start.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub job_deadline_s: Option<f64>,
 }
 
 /// Completed requests a test needs before its p99 is judged (review A4).
@@ -470,6 +509,7 @@ impl PassCriteria {
             conflicts: over.conflicts.or(self.conflicts),
             connected_min: over.connected_min.or(self.connected_min),
             ttft_p95_ms: over.ttft_p95_ms.or(self.ttft_p95_ms),
+            job_deadline_s: over.job_deadline_s.or(self.job_deadline_s),
         }
     }
 }

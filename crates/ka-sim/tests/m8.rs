@@ -1171,3 +1171,118 @@ fn golden_g_semantic_cache() {
     let (d, s) = faq("semantic", 0.6);
     golden("g", &run(&d, &s, 42));
 }
+
+// --- S4: jobs ------------------------------------------------------------------------------
+
+/// A batch card (`nodes` × 4 executors) runs one job of `work` executor-seconds in `tasks`
+/// tasks with the given skew; the job starts at 0.
+fn job(
+    batch: &[(&str, f64)],
+    bools: &[(&str, bool)],
+    work: f64,
+    tasks: u32,
+    skew: f64,
+    duration: f64,
+) -> (Design, Scenario) {
+    let mut b = node("spark", K::Batch, Flavour::SparkEmr, batch);
+    for (k, v) in bools {
+        set(&mut b, k, PropValue::Bool(*v));
+    }
+    let d = design(vec![b], vec![]);
+    let mut t = rtype("etl", 0.0, &[]);
+    t.kind = ka_core::scenario::TypeKind::Job;
+    t.job = Some(ka_core::scenario::JobSpec {
+        work_units: work,
+        tasks,
+        skew,
+        starts: vec![0.0],
+    });
+    (d, scenario(0.0, duration, vec![t]))
+}
+
+fn job_time(r: &RunResult) -> f64 {
+    r.jobs[0].completion_s.expect("the job finished")
+}
+
+#[test]
+fn s4_equal_tasks_spread_over_executors() {
+    let (d, s) = job(&[("instances", 4.0)], &[], 1600.0, 400, 0.0, 600.0);
+    let t = job_time(&run(&d, &s, 81));
+    // 1,600 executor-seconds over 16 executors ≈ 100 s, plus noise and overhead.
+    assert!((100.0..160.0).contains(&t), "{t}");
+}
+
+/// Key skew makes one task huge: the job waits for that straggler. Salting splits it;
+/// speculation doesn't help (a copy of a huge task is just as huge).
+#[test]
+fn s4_salting_fixes_skew_and_speculation_does_not() {
+    let skewed = |bools: &[(&str, bool)], salt: f64| {
+        job(
+            &[("instances", 4.0), ("salting", salt)],
+            bools,
+            1600.0,
+            400,
+            1.3,
+            900.0,
+        )
+    };
+    let (d, s) = skewed(&[], 1.0);
+    let plain = job_time(&run(&d, &s, 82));
+    let (d, s) = skewed(&[("speculation", true)], 1.0);
+    let spec = job_time(&run(&d, &s, 82));
+    let (d, s) = skewed(&[], 16.0);
+    let salted = job_time(&run(&d, &s, 82));
+    assert!(plain > 250.0, "the biggest task dominates: {plain}");
+    // Speculation only redraws a straggler's noise; the skew stays, so salting wins clearly.
+    assert!(
+        salted < spec * 0.6,
+        "salting splits the big task: {salted} vs speculation {spec}"
+    );
+    assert!(
+        salted < plain * 0.6,
+        "salting splits it: {salted} vs {plain}"
+    );
+}
+
+/// Spot interruptions restart the running tasks; checkpoints keep most of their progress.
+#[test]
+fn s4_spot_interruptions_cost_less_with_checkpoints() {
+    let make = |checkpoint: bool| {
+        let (d, mut s) = job(
+            &[("instances", 4.0)],
+            &[("checkpoint", checkpoint)],
+            1600.0,
+            40,
+            0.0,
+            900.0,
+        );
+        s.chaos = vec![chaos(
+            serde_json::json!({ "spot": { "kind": "batch", "at": 30, "share": 0.5, "for": 60 } }),
+        )];
+        (d, s)
+    };
+    let (d, s) = make(false);
+    let lost = run(&d, &s, 83);
+    let (d, s) = make(true);
+    let kept = run(&d, &s, 83);
+    assert!(lost.tasks_retried > 0.0);
+    assert!(
+        job_time(&kept) < job_time(&lost),
+        "{} vs {}",
+        job_time(&kept),
+        job_time(&lost)
+    );
+}
+
+#[test]
+fn golden_h_jobs() {
+    let (d, s) = job(
+        &[("instances", 4.0), ("salting", 8.0)],
+        &[("speculation", true)],
+        1600.0,
+        400,
+        1.2,
+        600.0,
+    );
+    golden("h", &run(&d, &s, 42));
+}

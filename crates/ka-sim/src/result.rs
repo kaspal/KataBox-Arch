@@ -54,6 +54,12 @@ pub struct RunResult {
     pub ttft: Option<Percentiles>,
     #[serde(default, skip_serializing_if = "is_zero")]
     pub rate_limited: f64,
+    /// S4: every job run (type, start, seconds to finish; None if it never finished), and
+    /// tasks started again (failures, spot interruptions).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub jobs: Vec<JobResult>,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub tasks_retried: f64,
     pub cost_month: f64,
     pub per_type: Vec<TypeResult>,
     pub nodes: Vec<NodeResult>,
@@ -73,6 +79,15 @@ pub struct TypeResult {
     /// S2: time to first token, for types that call a model.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ttft: Option<Percentiles>,
+}
+
+/// S4: one job run.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+pub struct JobResult {
+    pub ty: String,
+    pub start_s: f64,
+    pub completion_s: Option<f64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

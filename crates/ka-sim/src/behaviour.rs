@@ -131,6 +131,12 @@ pub struct NodeSpec {
     pub batch_api: bool,
     /// S3: a semantic cache (`mode = semantic`).
     pub semantic: bool,
+    /// S4 batch cards: launching a task, re-running slow ones near the end, splitting the
+    /// largest tasks, and resuming interrupted tasks from a checkpoint.
+    pub task_overhead_ms: f64,
+    pub speculation: bool,
+    pub salting: u32,
+    pub checkpoint: bool,
 }
 
 /// The value of `key` for `node`: the card's prop, else its flavour override, else the
@@ -183,6 +189,8 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         // S2: a provider has no slot limit (its per-minute limits bind); GPUs have batch slots.
         K::Infer if is_hosted(node) => 10_000.0,
         K::Infer => instances * n("batch_slots").unwrap_or(16.0),
+        // S4: executors run one task each.
+        K::Batch => instances * n("executors").unwrap_or(4.0),
         _ => instances * n("concurrency").unwrap_or(d.servers_per_instance),
     }
     .max(1.0);
@@ -216,7 +224,12 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         lanes,
         service_ms: n("service_ms").unwrap_or(d.service_ms),
         p99_ratio: d.p99_ratio,
-        queue_cap: (servers * d.queue_per_server).max(16.0),
+        // S4: a batch card's tasks wait for an executor however many there are.
+        queue_cap: if node.kind == K::Batch {
+            f64::MAX / 4.0
+        } else {
+            (servers * d.queue_per_server).max(16.0)
+        },
         holds: role.is_caller(),
         cold_start_ms: n("cold_start_ms").unwrap_or(0.0),
         memory_gb: n("memory_gb").unwrap_or(0.0),
@@ -303,5 +316,15 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         batch_api: text(registry, node, "api_mode").as_deref() == Some("batch"),
         semantic: text(registry, node, "mode").as_deref() == Some("semantic")
             && node.kind == K::Cache,
+        task_overhead_ms: n("task_overhead_ms").unwrap_or(0.0).max(0.0),
+        speculation: matches!(
+            prop(registry, node, "speculation"),
+            Some(PropValue::Bool(true))
+        ),
+        salting: n("salting").unwrap_or(1.0).max(1.0) as u32,
+        checkpoint: matches!(
+            prop(registry, node, "checkpoint"),
+            Some(PropValue::Bool(true))
+        ),
     }
 }
