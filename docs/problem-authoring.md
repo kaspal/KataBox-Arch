@@ -31,7 +31,9 @@ A request type has:
   - roles: `edge`, `compute`, `worker`, `cache`, `datastore`, `broker` and `external:<name>`;
   - `?` makes a step optional, and `cache?` is cache-aside;
   - `:write` goes to a cluster's primary;
-  - `a|b` accepts either;
+  - `a|b` accepts either (but not `compute|datastore:object`: a compute card would answer a file request with no
+    storage; `ka-pack validate` refuses it outside three grandfathered Set 2 problems. Use
+    `["edge?", "datastore:object"]`);
   - `broker?` followed by its consumer: an optional hand-off. A caller with no broker edge makes the following calls
     itself (inline, so the answer waits for them); use it when the lesson is `queue it or do it now`;
   - `cdc` (right after a `datastore:write` to SQL or NoSQL): the database publishes the committed change to the

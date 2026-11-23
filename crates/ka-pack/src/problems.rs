@@ -219,6 +219,10 @@ fn load_one(dir: &Path, rel: &str, registry: &Registry) -> Result<ProblemDir, Ve
 }
 
 /// Structural checks (no judging): ids, EN/ES parity, routes, designs, templates.
+/// H7: Set 2 problems that keep a `compute|datastore:object` step (their naive designs
+/// serve files from the App Servers; changing the route would invalidate them).
+const OBJECT_OR_COMPUTE_OK: &[&str] = &["flash-sale", "static-site-cdn", "video-streaming"];
+
 pub fn validate_problems(problems: &[ProblemDir], registry: &Registry) -> Vec<Issue> {
     let mut issues = Vec::new();
     let mut numbers = BTreeSet::new();
@@ -291,6 +295,24 @@ pub fn validate_problems(problems: &[ProblemDir], registry: &Registry) -> Vec<Is
         for t in &d.request_types {
             if !type_ids.insert(t.id.as_str()) {
                 bad("problem.toml", format!("request type {:?} twice", t.id));
+            }
+            // H7: a step that a compute card or an object store may answer lets a design
+            // answer a file request with no storage at all (the challenge search found it).
+            // Use `["edge?", "datastore:object"]`; three Set 2 problems keep the old form,
+            // whose naive designs serve files from the App Servers' own disks.
+            if !OBJECT_OR_COMPUTE_OK.contains(&d.id.as_str())
+                && t.route.iter().any(|step| {
+                    let alts: Vec<&str> = step.trim_end_matches('?').split('|').collect();
+                    alts.contains(&"compute") && alts.contains(&"datastore:object")
+                })
+            {
+                bad(
+                    "problem.toml",
+                    format!(
+                        "request type {:?}: `compute|datastore:object` lets a design answer a file                          request with no storage; use [\"edge?\", \"datastore:object\"]",
+                        t.id
+                    ),
+                );
             }
             // M8: connection and job types take no share of the request rate.
             if t.kind == ka_core::scenario::TypeKind::Request {

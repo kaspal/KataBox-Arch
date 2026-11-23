@@ -34,3 +34,27 @@ fn every_kind_has_a_valid_entry() {
     assert_eq!(validate_guide(&guide, &problems, &r), vec![]);
     assert_eq!(guide.len(), r.kinds.len());
 }
+
+/// H7: a new problem may not let a compute card answer a file request in place of storage.
+#[test]
+fn object_routes_answered_by_compute_alone_are_refused() {
+    let r = registry();
+    let problems = load_problems(&root().join("content"), &r).unwrap();
+    assert!(
+        ka_pack::validate_problems(&problems, &r).is_empty(),
+        "the shipped problems (three grandfathered) pass"
+    );
+    let mut p = problems
+        .iter()
+        .find(|p| p.def.id == "weather-proxy")
+        .unwrap()
+        .clone();
+    p.def.request_types[0].route = vec!["edge?".into(), "compute|datastore:object".into()];
+    let issues = ka_pack::validate_problems(&[p], &r);
+    assert!(
+        issues
+            .iter()
+            .any(|i| i.to_string().contains("compute|datastore:object")),
+        "{issues:?}"
+    );
+}
