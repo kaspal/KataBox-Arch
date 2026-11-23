@@ -97,6 +97,10 @@ export const api = {
   openDesignDialog: (): Promise<OpenedDesign | null> => call(commands.openDesignDialog()),
   openRecent: (path: string): Promise<OpenedDesign> => call(commands.openRecent(path)),
   importComposeDialog: (): Promise<ComposeImport | null> => call(commands.importComposeDialog()),
+  // Printable Guide (M7b.3): Rust's Save dialog keeps the path behind a one-shot token; the
+  // print page then asks Rust to print itself to it. null when cancelled.
+  pickPdfPath: (suggestedName: string): Promise<number | null> => call(commands.pickPdfPath(suggestedName)),
+  printPdf: (token: number): Promise<string> => call(commands.printPdf(token)),
   saveDesign: (path: string, design: Design): Promise<string> => call(commands.saveDesign(path, design)),
   saveDesignAs: (design: Design, suggestedName: string): Promise<string | null> =>
     call(commands.saveDesignAs(design, suggestedName)),

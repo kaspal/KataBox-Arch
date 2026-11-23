@@ -1935,6 +1935,9 @@ dependencies = [
  "tauri-plugin-dialog",
  "tauri-plugin-updater",
  "tauri-specta",
+ "tokio",
+ "webview2-com",
+ "windows",
 ]
 
 [[package]]

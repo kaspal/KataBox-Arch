@@ -15,6 +15,8 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
   uninstall in Settings keeps your history. `ka-pack pack` builds packs.
 - **Export:** copy or save a design as a Mermaid diagram; save it as an SVG or PNG image; save a run as a WebM video
   (up to 60 s, in real time), including a failed test's replay from Results.
+- **Printable Guide:** print the whole Guide (then the glossary), an entry, a pattern (with its template's picture)
+  or a learning path, as a PDF (Windows) or as a self-contained print-ready HTML page.
 - **docker-compose import:** a `docker-compose.yml` becomes a new design, with services mapped by image,
   `depends_on`/`links` as connections the wiring rules allow, and a summary of what was guessed, clamped or left out.
   Oversized and alias-bomb files are refused.

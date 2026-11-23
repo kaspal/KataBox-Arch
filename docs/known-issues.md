@@ -8,6 +8,8 @@ it matters.
 - **AI review, Explain my design and the mock interview** arrive in M4. The buttons say so; the AI will never change
   a score.
 - **GIF export** is planned; WebM video, images (SVG, PNG) and Mermaid work.
+- **PDF printing** works on Windows only for now. On Linux, use **Save print-ready HTML** and print it from a browser.
+- **The print layout** leaves out the concept cards, the simulator tables and the quizzes (they need the app).
 - **WebM records in real time** (a 30-second clip takes about 30 seconds) and stops if the window is hidden. Web
   views without `MediaRecorder` (WebKitGTK on Linux) can't record it; the menu says so.
 - **Exported images name their fonts but don't embed them;** another computer shows them in its own fallback fonts.

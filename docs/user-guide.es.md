@@ -231,6 +231,8 @@ Cada entrada termina con una **Comprobación rápida** de tres preguntas. Una pr
 
 También llegas a la Guía desde el lienzo: **Abrir en la guía** en el panel Acerca de de la Biblioteca y **Saber más** en el inspector.
 
+**Imprimir** (en la Guía, en cada entrada y patrón, y en cada ruta de aprendizaje) guarda una copia en papel: **Guardar como PDF…** (Windows) o **Guardar página lista para imprimir…** (en todas partes; ábrela en un navegador para imprimirla). La Guía entera se imprime con una entrada por página y luego el glosario; un patrón incluye la imagen de su plantilla; una ruta lista lo que cubre, con sus entradas de la Guía y sus patrones. Si no se puede crear un PDF, la app ofrece el HTML en su lugar.
+
 ### Patrones
 
 Los **Patrones** son formas probadas para problemas habituales: Contrapresión, Cache-aside, Circuit breaker, CQRS, Fan-out, Outbox transaccional, Limitación de tasa, Réplicas de lectura, Saga y Sharding. Cada uno explica **El problema** y **Cómo funciona**, muestra **La plantilla** y termina con una comprobación rápida. **Insertar en el Sandbox** añade las tarjetas de la plantilla al diseño que estás editando, en el centro de la vista; un solo deshacer las quita.

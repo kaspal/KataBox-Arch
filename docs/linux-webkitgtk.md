@@ -23,6 +23,12 @@ Tauri adds the runtime dependencies to the `.deb` (`libwebkit2gtk-4.1-0`, `libgt
 - **PNG export:** draws an SVG `data:` image on a canvas; check WebKitGTK decodes it (the CSP allows `data:` images).
 - **Animated exports:** WebM needs `MediaRecorder` and `canvas.captureStream`, which WebKitGTK may lack; the menu item
   is then disabled with a note ("This system's web view can't record video"). GIF, when it lands, won't need either.
+- **PDF printing (not wired yet):** `print_pdf` returns `pdf_unsupported` on Linux, and the UI offers the print-ready
+  HTML. To wire it: in `src-tauri/src/pdf.rs` (`cfg(target_os = "linux")`), call `window.with_webview`, take
+  `webview.inner()` (a `webkit2gtk::WebView`), build a `webkit2gtk::PrintOperation` for it, give it a
+  `gtk::PrintSettings` with `set_printer("Print to File")`, `OUTPUT_URI` set to the picked path as a `file://` URI and
+  `output-file-format` `pdf`, then `print()` and answer on the `finished`/`failed` signals with the same 60 s timeout.
+  This needs the Linux target to compile and a Linux host to test, so it waits for the Linux phase.
 - **Data folder:** `~/.local/share/dev.katabox.arch` (`-dev` for debug builds).
 - **Reduced motion:** GNOME's "Reduce animation" setting should reach `prefers-reduced-motion`.
 

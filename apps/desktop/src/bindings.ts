@@ -500,6 +500,30 @@ async importComposeDialog() : Promise<Result<ComposeImport | null, AppError>> {
 }
 },
 /**
+ * Show the Save dialog for a PDF; the path stays in Rust under a one-shot token (expires
+ * after two minutes). `None` when cancelled.
+ */
+async pickPdfPath(suggestedName: string) : Promise<Result<number | null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("pick_pdf_path", { suggestedName }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Print the page the main webview shows (the `/print` page, once it says it's ready) to
+ * the path behind `token`. Returns the path written.
+ */
+async printPdf(token: number) : Promise<Result<string, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("print_pdf", { token }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * A design as Mermaid text (for Copy). `names`: kind, protocol and group names in the
  * user's language.
  */
@@ -679,7 +703,23 @@ export type AppErrorCode =
 /**
  * An export is already being prepared.
  */
-"export_busy"
+"export_busy" | 
+/**
+ * A PDF request's token is unknown, used or expired (M7b.3).
+ */
+"pdf_token" | 
+/**
+ * This system's web view can't print to PDF (an old WebView2, or Linux for now).
+ */
+"pdf_unsupported" | 
+/**
+ * Printing to PDF failed (the message has the system's error).
+ */
+"pdf_failed" | 
+/**
+ * Printing to PDF took too long.
+ */
+"pdf_timeout"
 export type AppInfo = { version: string; dev_data: boolean }
 export type Bottleneck = { node: string; kind: ComponentKind; from_s: number; utilisation: number; reason: BottleneckReason }
 /**

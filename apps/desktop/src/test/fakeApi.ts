@@ -26,6 +26,9 @@ export type FakeOptions = {
   openPick?: string | null;
   /** What the docker-compose import returns (null = cancelled). */
   composeImport?: ComposeImport | null;
+  /** What the PDF Save dialog returns (a token; null = cancelled), and what printing does. */
+  pdfToken?: number | null;
+  pdfError?: AppError;
   /** What the Save As dialog picks (null = cancelled). */
   savePick?: string | null;
   devData?: boolean;
@@ -102,6 +105,11 @@ export function createFakeApi(opts: FakeOptions = {}) {
     }),
     openDesignDialog: vi.fn(async () => (opts.openPick ? opened(opts.openPick) : null)),
     importComposeDialog: vi.fn(async () => opts.composeImport ?? null),
+    pickPdfPath: vi.fn(async () => (opts.pdfToken === undefined ? 7 : opts.pdfToken)),
+    printPdf: vi.fn(async () => {
+      if (opts.pdfError) throw opts.pdfError;
+      return "C:/out/guide.pdf";
+    }),
     runFrames: vi.fn(async (req: FramesRequest) =>
       fakeFrames(req.source.type === "submission" ? FAKE_REFERENCE : req.source.design, Math.round(req.seconds * req.fps), req.from_s),
     ),

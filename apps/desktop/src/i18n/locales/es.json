@@ -70,7 +70,11 @@
     "compose_unsupported": "Este archivo docker-compose usa YAML que la importación no lee, como anclas o alias en las claves.",
     "compose_invalid": "Este no es un archivo docker-compose que la importación pueda leer: el YAML no es válido o no tiene servicios.",
     "export_hidden_refused": "Una prueba oculta solo se puede exportar desde sus Resultados, dentro de la parte que muestra la repetición.",
-    "export_busy": "Ya se está preparando una animación. Espera a que termine."
+    "export_busy": "Ya se está preparando una animación. Espera a que termine.",
+    "pdf_token": "Esa petición de impresión ha caducado. Inténtalo de nuevo.",
+    "pdf_unsupported": "La vista web de este sistema no puede imprimir a PDF.",
+    "pdf_failed": "No se pudo imprimir a PDF.",
+    "pdf_timeout": "La impresión a PDF tardó demasiado."
   },
   "files": {
     "unsaved": {
@@ -901,5 +905,20 @@
     "cancelled": "Grabación cancelada.",
     "hidden": "La grabación se detuvo porque la ventana quedó oculta.",
     "hud": "{{label}} · {{t}} s · p95 {{p95}} ms · {{rps}} pet/s · errores {{errors}}"
+  },
+  "print": {
+    "menu": "Imprimir",
+    "savePdf": "Guardar como PDF…",
+    "saveHtml": "Guardar página lista para imprimir…",
+    "preparingPdf": "Preparando el PDF…",
+    "preparingHtml": "Preparando la página…",
+    "pdfSaved": "PDF guardado.",
+    "htmlSaved": "Página lista para imprimir guardada.",
+    "failed": "No se pudo preparar la página para imprimirla.",
+    "pdfFailedTitle": "No se pudo crear el PDF",
+    "pdfFailedBody": "Puedes guardar una página HTML lista para imprimir y pasarla a PDF desde un navegador.",
+    "formula": "Regla práctica",
+    "pathItems": "Lo que cubre la ruta",
+    "wholeGuide": "Imprimir la Guía"
   }
 }

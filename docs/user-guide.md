@@ -230,6 +230,8 @@ Each entry ends with a **Quick check** of three questions. A missed question com
 
 You can reach the Guide from the canvas too: **Open in Guide** in the Library's About panel, and **Learn more** in the inspector.
 
+**Print** (on the Guide, on each entry and pattern, and on each learning path) saves a paper copy: **Save as PDF…** (Windows) or **Save print-ready HTML…** (everywhere; open it in a browser to print it). The whole Guide prints one entry per page, then the glossary; a pattern includes its template's picture; a path lists what it covers, with its Guide entries and patterns. If a PDF can't be made, the app offers the HTML instead.
+
 ### Patterns
 
 **Patterns** are proven shapes for common problems: Backpressure, Cache-aside, Circuit breaker, CQRS, Fan-out, Transactional outbox, Rate limiting, Read replicas, Saga and Sharding. Each explains **The problem** and **How it works**, shows **The template**, and ends with a quick check. **Insert into the Sandbox** adds the template's cards to the design you are editing, in the middle of the view; one undo removes them.

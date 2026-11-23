@@ -19,7 +19,7 @@ pub mod sandbox;
 pub mod settings;
 pub mod window;
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
@@ -159,7 +159,14 @@ pub struct App {
     next_run: std::sync::atomic::AtomicU32,
     /// An export's frames are being computed (one at a time).
     exporting: std::sync::atomic::AtomicBool,
+    /// PDF paths picked in the Save dialog, by one-shot token (M7b.3): the UI holds the
+    /// token, never the path.
+    pdf_paths: Mutex<HashMap<u32, (PathBuf, std::time::Instant)>>,
+    next_pdf: std::sync::atomic::AtomicU32,
 }
+
+/// How long a picked PDF path waits for its print (M7b.3).
+pub const PDF_TOKEN_TTL: std::time::Duration = std::time::Duration::from_secs(120);
 
 fn path_string(path: &Path) -> String {
     path.to_string_lossy().into_owned()
@@ -187,6 +194,8 @@ impl App {
             live: Mutex::new(None),
             next_run: std::sync::atomic::AtomicU32::new(1),
             exporting: std::sync::atomic::AtomicBool::new(false),
+            pdf_paths: Mutex::new(HashMap::new()),
+            next_pdf: std::sync::atomic::AtomicU32::new(1),
         })
     }
 
@@ -370,6 +379,42 @@ impl App {
             .map(|s| s.to_string_lossy().into_owned())
             .unwrap_or_else(|| "docker-compose".into());
         compose::import(text, &name, &self.registry)
+    }
+
+    /// Remember a PDF path the user picked in the Save dialog; the UI gets a one-shot token.
+    pub fn remember_pdf_path(&self, path: PathBuf) -> u32 {
+        let path = if path
+            .extension()
+            .is_some_and(|e| e.eq_ignore_ascii_case("pdf"))
+        {
+            path
+        } else {
+            path.with_extension("pdf")
+        };
+        let token = self
+            .next_pdf
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let mut paths = self.pdf_paths.lock().unwrap_or_else(|e| e.into_inner());
+        let now = std::time::Instant::now();
+        paths.retain(|_, (_, at)| now.duration_since(*at) < PDF_TOKEN_TTL);
+        paths.insert(token, (path, now));
+        token
+    }
+
+    /// The path behind a PDF token, once: unknown, used or expired tokens are refused.
+    pub fn take_pdf_path(&self, token: u32) -> Result<PathBuf> {
+        self.take_pdf_path_at(token, std::time::Instant::now())
+    }
+
+    fn take_pdf_path_at(&self, token: u32, now: std::time::Instant) -> Result<PathBuf> {
+        let mut paths = self.pdf_paths.lock().unwrap_or_else(|e| e.into_inner());
+        match paths.remove(&token) {
+            Some((path, at)) if now.duration_since(at) < PDF_TOKEN_TTL => Ok(path),
+            _ => Err(AppError::new(
+                AppErrorCode::PdfToken,
+                "that PDF request has expired or was already used",
+            )),
+        }
     }
 
     /// Export a design as a Mermaid diagram to a path the user picked in the Save dialog
@@ -569,6 +614,37 @@ mod tests {
             .write_export(dir.join("run"), ExportFormat::Webm, &[26, 69])
             .unwrap();
         assert!(webm.ends_with("run.webm"), "{webm}");
+        app.close().await;
+    }
+
+    #[tokio::test]
+    async fn pdf_tokens_are_one_shot_and_expire() {
+        let dir = temp_dir("pdf-tokens");
+        let app = App::open(AppPaths {
+            user_db: dir.join("user.db"),
+            dev_data: false,
+            content_db: None,
+            packs_dir: None,
+        })
+        .await
+        .unwrap();
+        let a = app.remember_pdf_path(dir.join("guide"));
+        let b = app.remember_pdf_path(dir.join("cache.PDF"));
+        assert_ne!(a, b);
+        assert!(app.take_pdf_path(a).unwrap().ends_with("guide.pdf"));
+        assert_eq!(
+            app.take_pdf_path(a).unwrap_err().code,
+            AppErrorCode::PdfToken
+        );
+        let later = std::time::Instant::now() + PDF_TOKEN_TTL;
+        assert_eq!(
+            app.take_pdf_path_at(b, later).unwrap_err().code,
+            AppErrorCode::PdfToken
+        );
+        assert_eq!(
+            app.take_pdf_path(999).unwrap_err().code,
+            AppErrorCode::PdfToken
+        );
         app.close().await;
     }
 

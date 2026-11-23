@@ -59,6 +59,10 @@ describe("i18n resources", () => {
       compose_invalid: true,
       export_hidden_refused: true,
       export_busy: true,
+      pdf_token: true,
+      pdf_unsupported: true,
+      pdf_failed: true,
+      pdf_timeout: true,
     } satisfies Record<AppErrorCode, true>;
     expect(Object.keys(codes).filter((c) => !has(en, `errors.${c}`))).toEqual([]);
   });

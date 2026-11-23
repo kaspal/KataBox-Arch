@@ -10,6 +10,10 @@
 //!   the canvas would silently do nothing. Dropping a `.kbarch` file onto the window to
 //!   open it would need this revisited (backlog).
 
+// The one place the app calls COM (WebView2's PrintToPdf, M7b.3 / review A8): `unsafe` is
+// allowed in this module only, each block with its SAFETY note. Flagged for sign-off.
+#[allow(unsafe_code)]
+mod pdf;
 mod window_state;
 
 use std::path::PathBuf;
@@ -690,6 +694,47 @@ async fn progress(state: State<'_, AppState>, today: String) -> Res<Progress> {
 
 // --- Window ---------------------------------------------------------------------------
 
+// --- Printable Guide (M7b.3) ---------------------------------------------------------------
+
+/// Show the Save dialog for a PDF; the path stays in Rust under a one-shot token (expires
+/// after two minutes). `None` when cancelled.
+#[tauri::command]
+#[specta::specta]
+async fn pick_pdf_path(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    suggested_name: String,
+) -> Res<Option<u32>> {
+    let svc = state.app()?;
+    use tauri_plugin_dialog::DialogExt;
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .add_filter("PDF", &["pdf"])
+            .set_file_name(suggested_name)
+            .blocking_save_file()
+    })
+    .await
+    .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    let Some(path) = picked else {
+        return Ok(None);
+    };
+    let path = path
+        .into_path()
+        .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    Ok(Some(svc.remember_pdf_path(path)))
+}
+
+/// Print the page the main webview shows (the `/print` page, once it says it's ready) to
+/// the path behind `token`. Returns the path written.
+#[tauri::command]
+#[specta::specta]
+async fn print_pdf(window: WebviewWindow, state: State<'_, AppState>, token: u32) -> Res<String> {
+    let path = state.app()?.take_pdf_path(token)?;
+    pdf::print(&window, path.clone()).await?;
+    Ok(path.to_string_lossy().into_owned())
+}
+
 /// The window title (the webview has no `setTitle` permission).
 #[tauri::command]
 #[specta::specta]
@@ -786,6 +831,8 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         confirm_close,
         katabox_links,
         import_compose_dialog,
+        pick_pdf_path,
+        print_pdf,
         mermaid_text,
         save_mermaid,
         preview_pack,

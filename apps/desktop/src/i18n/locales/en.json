@@ -70,7 +70,11 @@
     "compose_unsupported": "This docker-compose file uses YAML the import doesn't read, such as anchors or aliases as keys.",
     "compose_invalid": "This isn't a docker-compose file the import can read: the YAML is invalid or it has no services.",
     "export_hidden_refused": "A hidden test can only be exported from its Results, within the part Replay shows.",
-    "export_busy": "An animation is already being prepared. Wait for it to finish."
+    "export_busy": "An animation is already being prepared. Wait for it to finish.",
+    "pdf_token": "That print request has expired. Try again.",
+    "pdf_unsupported": "This system's web view can't print to PDF.",
+    "pdf_failed": "Printing to PDF failed.",
+    "pdf_timeout": "Printing to PDF took too long."
   },
   "files": {
     "unsaved": {
@@ -901,5 +905,20 @@
     "cancelled": "Recording cancelled.",
     "hidden": "Recording stopped because the window was hidden.",
     "hud": "{{label}} · {{t}} s · p95 {{p95}} ms · {{rps}} req/s · errors {{errors}}"
+  },
+  "print": {
+    "menu": "Print",
+    "savePdf": "Save as PDF…",
+    "saveHtml": "Save print-ready HTML…",
+    "preparingPdf": "Preparing PDF…",
+    "preparingHtml": "Preparing the page…",
+    "pdfSaved": "PDF saved.",
+    "htmlSaved": "Print-ready page saved.",
+    "failed": "The page couldn't be prepared for printing.",
+    "pdfFailedTitle": "The PDF couldn't be made",
+    "pdfFailedBody": "You can save a print-ready HTML page instead, and print it to PDF from a browser.",
+    "formula": "Rule of thumb",
+    "pathItems": "What the path covers",
+    "wholeGuide": "Print the Guide"
   }
 }

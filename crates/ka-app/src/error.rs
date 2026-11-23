@@ -57,6 +57,14 @@ pub enum AppErrorCode {
     ExportHiddenRefused,
     /// An export is already being prepared.
     ExportBusy,
+    /// A PDF request's token is unknown, used or expired (M7b.3).
+    PdfToken,
+    /// This system's web view can't print to PDF (an old WebView2, or Linux for now).
+    PdfUnsupported,
+    /// Printing to PDF failed (the message has the system's error).
+    PdfFailed,
+    /// Printing to PDF took too long.
+    PdfTimeout,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, thiserror::Error)]
