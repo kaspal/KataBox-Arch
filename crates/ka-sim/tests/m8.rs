@@ -2269,3 +2269,95 @@ fn a_kind_selector_follows_file_order_not_names() {
     assert!(served(&named_a, "zeta") < served(&named_a, "alpha"));
     assert!(served(&named_b, "alpha") < served(&named_b, "zeta"));
 }
+
+// --- H4: quorum locks through the caller's side, re-election, stale leases, fencing ----------
+
+/// The split-brain fixture with the lock in a three-member etcd cluster, one member per AZ
+/// (az-a, az-b, az-c), joined by Replicate. The first member, the leader, is in `leader_az`.
+fn split_brain_3az(fencing: bool, leader_az: &str, election_ms: f64) -> (Design, Scenario) {
+    let (mut d, s) = split_brain(None, fencing);
+    let mut azs = vec![leader_az.to_owned()];
+    for z in ["az-a", "az-b", "az-c"] {
+        if z != leader_az {
+            azs.push(z.to_owned());
+        }
+    }
+    for (i, z) in azs.iter().enumerate() {
+        let id = format!("etcd-{i}");
+        d.nodes.push(in_group(
+            node(
+                &id,
+                K::Coord,
+                Flavour::Etcd,
+                &[("instances", 1.0), ("election_ms", election_ms)],
+            ),
+            z,
+        ));
+        d.edges.push(edge("app-a", &id, Protocol::Query));
+        d.edges.push(edge("app-b", &id, Protocol::Query));
+        if i > 0 {
+            d.edges.push(edge("etcd-0", &id, Protocol::Replicate));
+        }
+    }
+    d.groups.push(az("az-c"));
+    let mut s = s;
+    s.request_types[0].route = vec!["compute".into(), "lock".into(), "datastore:write".into()];
+    (d, s)
+}
+
+#[test]
+fn h4_the_majority_side_re_elects_and_keeps_writing() {
+    // The leader sits in az-b, which is cut off: az-a and az-c elect a new one and az-a's
+    // writes go on after `election_ms`; a longer election costs more failed writes.
+    let (d, s) = split_brain_3az(true, "az-b", 500.0);
+    let fast = run(&d, &s, 42);
+    let (d, s) = split_brain_3az(true, "az-b", 5_000.0);
+    let slow = run(&d, &s, 42);
+    assert_eq!(fast.conflicts, 0.0);
+    assert_eq!(slow.conflicts, 0.0);
+    assert!(
+        slow.errors > fast.errors,
+        "a slower election fails more writes"
+    );
+    // az-a (half the writes) keeps writing: well under the half of the split's writes.
+    let split_writes = 300.0 * 20.0;
+    assert!(fast.errors < 0.75 * split_writes, "errors {}", fast.errors);
+}
+
+#[test]
+fn h4_a_stale_lease_writes_into_the_split_unless_fencing_stops_it() {
+    // az-b is cut off from a majority, but its apps hold leases from before the split: for
+    // up to `lease_s` they act on them. Their writes reach az-b's self-promoted primary.
+    let (d, s) = split_brain_3az(false, "az-a", 1_000.0);
+    let unfenced = run(&d, &s, 42);
+    assert!(
+        unfenced.conflicts > 0.0,
+        "stale holders write into the split"
+    );
+    let (d, s) = split_brain_3az(true, "az-a", 1_000.0);
+    let fenced = run(&d, &s, 42);
+    assert_eq!(fenced.conflicts, 0.0, "fencing refuses the stale tokens");
+    assert!(fenced.errors > 0.0);
+}
+
+#[test]
+fn h4_a_cache_aside_cache_is_not_a_lock() {
+    // With a cache read in the route, a plain `lock` step can only be served by a
+    // coordination service: a design whose only candidate is the cache has no path.
+    let (d, mut s) = split_brain(Some(K::Cache), true);
+    s.request_types[0].route = vec![
+        "compute".into(),
+        "cache?".into(),
+        "lock".into(),
+        "datastore:write".into(),
+    ];
+    assert!(simulate(&d, &registry(), &s, 42, &SimOptions::default()).is_err());
+    // `lock:cache` says it on purpose.
+    s.request_types[0].route = vec![
+        "compute".into(),
+        "cache?".into(),
+        "lock:cache".into(),
+        "datastore:write".into(),
+    ];
+    assert!(simulate(&d, &registry(), &s, 42, &SimOptions::default()).is_ok());
+}

@@ -199,6 +199,8 @@ struct Req {
     call_atomic: bool,
     locked: bool,
     lock_quorum: bool,
+    /// H4: the lock held is a lease granted before this side lost its quorum.
+    lock_stale: bool,
     shadow: bool,
     /// S2: the request's prompt and answer tokens (drawn at its first model call; -1: not yet).
     tin: f64,
@@ -417,6 +419,8 @@ pub struct Engine {
     /// 0 = next hop | 1 = broker | 2 = call), so how requests of one type spread doesn't depend on
     /// how other types interleave through the same caller.
     rr_at: BTreeMap<(u32, u16, u16, u16, u8), usize>,
+    /// H4: per caller, when the lock lease it was last granted by a quorum expires.
+    leases: BTreeMap<u32, u64>,
     reqs: Vec<Req>,
     free: Vec<u32>,
     groups: Vec<Group>,
@@ -710,6 +714,7 @@ impl Engine {
             cluster_primary: c.clusters.iter().map(|cl| cl.members[0]).collect(),
             cluster_rr: vec![0; c.clusters.len()],
             rr_at: BTreeMap::new(),
+            leases: BTreeMap::new(),
             reqs: Vec::new(),
             free: Vec::new(),
             groups: Vec::new(),
@@ -1129,6 +1134,7 @@ impl Engine {
             call_atomic: false,
             locked: false,
             lock_quorum: false,
+            lock_stale: false,
             shadow: false,
             tin: -1.0,
             tout: 0.0,
@@ -2115,15 +2121,32 @@ impl Engine {
                 self.reqs[r as usize].step += 1;
                 continue;
             }
-            if lock
-                && self.c.nodes[node as usize].kind == ComponentKind::Coord
-                && !self.quorum(node, caller)
-            {
-                // S7: this side of a split can't reach a majority of the members.
-                self.reqs[r as usize].call_key = NONE;
-                self.call_failed(r);
-                return;
-            }
+            let node = if lock && self.c.nodes[node as usize].kind == ComponentKind::Coord {
+                // S7/H4: a lock comes from the coordination cluster as a whole, through a
+                // member on the caller's side, and only while that side holds a quorum and
+                // has a leader (re-elected after `election_ms` if the leader is across a
+                // split). Without one, a caller still inside a lease it was granted acts on
+                // it: a stale holder, which fencing exists to stop.
+                match self.lock_member(node, caller) {
+                    Some(m) => m,
+                    None => {
+                        let lease = self.leases.get(&caller).copied().unwrap_or(0);
+                        if self.now < lease {
+                            let q = &mut self.reqs[r as usize];
+                            q.locked = true;
+                            q.lock_quorum = true;
+                            q.lock_stale = true;
+                            q.step += 1;
+                            continue;
+                        }
+                        self.reqs[r as usize].call_key = NONE;
+                        self.call_failed(r);
+                        return;
+                    }
+                }
+            } else {
+                node
+            };
             if !self.begin_call(r, caller, node) {
                 return;
             }
@@ -2322,6 +2345,38 @@ impl Engine {
         reach * 2.0 > total
     }
 
+    /// H4: the coordination member that grants `caller` a lock now: one on the caller's side
+    /// of any split, if that side reaches a majority of the members and has a leader. The
+    /// leader is the first member in the file; when it is across a split, the majority side
+    /// elects a new one `election_ms` after the split began.
+    fn lock_member(&self, node: u32, caller: u32) -> Option<u32> {
+        let members: Vec<u32> = match self.c.cluster_of[node as usize] {
+            Some(cl) => self.c.clusters[cl as usize].members.clone(),
+            None => vec![node],
+        };
+        if !self.quorum(node, caller) {
+            return None;
+        }
+        let member = members
+            .iter()
+            .copied()
+            .find(|&m| !self.nodes[m as usize].down && !self.cut(caller, m))?;
+        let leader = members[0];
+        if self.cut(caller, leader) {
+            let since = self
+                .splits
+                .iter()
+                .filter(|s| self.in_zone(caller, &s.zone) != self.in_zone(leader, &s.zone))
+                .map(|s| s.since)
+                .min()
+                .unwrap_or(0);
+            if self.now < since + self.c.nodes[leader as usize].spec.election_us {
+                return None;
+            }
+        }
+        Some(member)
+    }
+
     /// S7 split-brain: with `split_failover = auto`, a caller cut off from the primary by a
     /// split (once health checks know, plus the primary's `failover_s`) writes to the
     /// member on its own side that promoted itself.
@@ -2349,26 +2404,42 @@ impl Engine {
             .find(|&m| m != primary && !self.nodes[m as usize].down && !self.cut(caller, m))
     }
 
-    /// S7: a write commits. On a self-promoted primary it is refused with a fencing token
-    /// from a quorum lock, else it is a conflict; on a contended key, a write whose check
-    /// came before another write's commit raced, unless it was atomic or held a lock.
-    /// Returns false if the write was refused (the call failed).
+    /// S7/H4: a write commits. Split brain: a write by a stale lock holder (its side lost
+    /// the quorum) to a cluster split across it is refused when the store checks fencing
+    /// tokens, else it is a conflict; a write to a self-promoted primary is legitimate when
+    /// it holds a current quorum lock (that side elected the new primary), else it is a
+    /// conflict. On a contended key, a write whose check came before another write's commit
+    /// raced, unless it was atomic or held a lock. Returns false if the write was refused.
     fn s7_write_ok(&mut self, r: u32, node: u32, key: u64) -> bool {
         let w = self.c.weight;
         let q = &self.reqs[r as usize];
-        let (shadow, quorum, contended, read_at, atomic, locked) = (
+        let (shadow, quorum, contended, read_at, atomic, locked, stale, caller) = (
             q.shadow,
             q.lock_quorum,
             q.contended,
             q.read_at,
             q.call_atomic,
             q.locked,
+            q.lock_stale,
+            q.caller,
         );
-        if shadow {
-            if self.c.nodes[node as usize].spec.fencing && quorum {
-                self.call_failed(r);
-                return false;
+        let spec = &self.c.nodes[node as usize].spec;
+        if stale {
+            let split_cluster = spec.split_failover
+                && self.c.cluster_of[node as usize].is_some_and(|cl| {
+                    self.c.clusters[cl as usize]
+                        .members
+                        .iter()
+                        .any(|&m| self.cut(caller, m))
+                });
+            if split_cluster {
+                if spec.fencing {
+                    self.call_failed(r);
+                    return false;
+                }
+                self.conflicts += w;
             }
+        } else if shadow && !quorum {
             self.conflicts += w;
         }
         if contended {
@@ -2480,6 +2551,11 @@ impl Engine {
         let role = if q.call_lock {
             // S7: a lock grant, not a write of data.
             let quorum = self.c.nodes[node as usize].kind == ComponentKind::Coord;
+            if quorum {
+                let until = self.now + self.c.nodes[node as usize].spec.lease_us;
+                let caller = self.reqs[r as usize].caller;
+                self.leases.insert(caller, until);
+            }
             let q = &mut self.reqs[r as usize];
             q.locked = true;
             q.lock_quorum |= quorum;

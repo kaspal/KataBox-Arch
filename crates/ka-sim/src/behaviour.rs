@@ -109,6 +109,11 @@ pub struct NodeSpec {
     /// (`split_failover = auto`); writes need a current fencing token (`fencing`).
     pub split_failover: bool,
     pub fencing: bool,
+    /// S7 coordination services (H4): a new leader after losing one takes `election_ms`; a
+    /// granted lock lease lasts `lease_s` (its holder keeps acting on it that long, even cut
+    /// off).
+    pub election_us: u64,
+    pub lease_us: u64,
     /// S1 holders (WebSocket gateways, IoT brokers): connections one instance can hold, new
     /// connections it accepts per second, and server pushes it sends per second.
     pub conn_capacity: f64,
@@ -360,6 +365,8 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         min_healthy: n("min_healthy_pct").unwrap_or(0.0).clamp(0.0, 100.0) / 100.0,
         split_failover: text(registry, node, "split_failover").as_deref() == Some("auto"),
         fencing: matches!(prop(registry, node, "fencing"), Some(PropValue::Bool(true))),
+        election_us: (n("election_ms").unwrap_or(1_000.0).max(0.0) * 1000.0) as u64,
+        lease_us: (n("lease_s").unwrap_or(10.0).max(0.0) * 1e6) as u64,
         conn_capacity: {
             let max = match node.kind {
                 // M8: a media server holds streams (viewers of an SFU, channels of an encoder).

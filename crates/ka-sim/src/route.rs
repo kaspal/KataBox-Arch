@@ -15,7 +15,9 @@
 //!                         consumer after it becomes the caller
 //! "external:email"        a provider outside the design
 //! "lock"                  take a lock (lease) before writing: from a Coordination Service
-//!                         (quorum, S7) or a cache used as a lock (no quorum)
+//!                         (quorum, S7) or a cache used as a lock (no quorum). A route with a
+//!                         cache step never takes its lock from a cache (H4): a cache-aside
+//!                         cache isn't a lock. `lock:coord` / `lock:cache` name the kind.
 //! "datastore:write:atomic" a conditional write (SQL constraint, compare-and-set): a race
 //!                         on a contended key is refused cleanly instead of a conflict
 //! "auth" "auth:login"     a token check / a login at an identity provider (M8)
@@ -233,7 +235,10 @@ pub fn parse_step(s: &str) -> Result<Step, RouteError> {
             lock: false,
         });
     }
-    if body == "lock" {
+    if let Some(kind) = body
+        .strip_prefix("lock:")
+        .or((body == "lock").then_some(""))
+    {
         let alt = |role: Role, kinds: Vec<ComponentKind>| Alt {
             role,
             write: true,
@@ -245,11 +250,16 @@ pub fn parse_step(s: &str) -> Result<Step, RouteError> {
             model_type: None,
             login: false,
         };
+        let coord = alt(Role::Datastore, vec![ComponentKind::Coord]);
+        let cache = alt(Role::Cache, Vec::new());
+        let alts = match kind {
+            "" => vec![coord, cache],
+            "coord" => vec![coord],
+            "cache" => vec![cache],
+            other => return Err(RouteError(format!("unknown lock kind `{other}`"))),
+        };
         return Ok(Step {
-            alts: vec![
-                alt(Role::Datastore, vec![ComponentKind::Coord]),
-                alt(Role::Cache, Vec::new()),
-            ],
+            alts,
             optional,
             cdc: false,
             lock: true,
@@ -317,10 +327,18 @@ pub fn parse_step(s: &str) -> Result<Step, RouteError> {
 /// Parse a route by the caller rule. `scheduler`: the route starts at a scheduler card,
 /// which is the first caller (no hops, no entry step).
 pub fn parse_route(steps: &[String], scheduler: bool) -> Result<Route, RouteError> {
-    let parsed: Vec<Step> = steps
+    let mut parsed: Vec<Step> = steps
         .iter()
         .map(|s| parse_step(s))
         .collect::<Result<_, _>>()?;
+    // H4: a plain `lock` in a route that also uses a cache takes its lock from a
+    // coordination service only.
+    let uses_cache = parsed.iter().any(|st| !st.lock && st.has_role(Role::Cache));
+    for (st, raw) in parsed.iter_mut().zip(steps) {
+        if st.lock && uses_cache && raw.trim_end_matches('?') == "lock" {
+            st.alts.retain(|a| a.role != Role::Cache);
+        }
+    }
     let mut i = 0;
     let (mut hops_allowed, mut hops_required, mut ws) = (false, false, false);
     let mut entry = None;
@@ -533,6 +551,23 @@ mod tests {
     fn lock_and_atomic_steps() {
         let l = parse_step("lock").unwrap();
         assert!(l.lock && l.accepts(ComponentKind::Coord) && l.accepts(ComponentKind::Cache));
+        let c = parse_step("lock:coord").unwrap();
+        assert!(c.lock && c.accepts(ComponentKind::Coord) && !c.accepts(ComponentKind::Cache));
+        let k = parse_step("lock:cache").unwrap();
+        assert!(k.lock && !k.accepts(ComponentKind::Coord) && k.accepts(ComponentKind::Cache));
+        assert!(parse_step("lock:disk").is_err());
+        // A route that reads through a cache can't use that cache as its lock.
+        let steps = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        let r = parse_route(
+            &steps(&["compute", "cache?", "lock", "datastore:write"]),
+            false,
+        )
+        .unwrap();
+        let lock = r.segments[0].calls.iter().find(|s| s.lock).unwrap();
+        assert!(!lock.accepts(ComponentKind::Cache) && lock.accepts(ComponentKind::Coord));
+        let r = parse_route(&steps(&["compute", "lock", "datastore:write"]), false).unwrap();
+        let lock = r.segments[0].calls.iter().find(|s| s.lock).unwrap();
+        assert!(lock.accepts(ComponentKind::Cache));
         assert!(!l.accepts(ComponentKind::Sql));
         assert!(parse_step("datastore:write:atomic").unwrap().alts[0].atomic);
         assert!(

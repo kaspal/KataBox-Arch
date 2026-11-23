@@ -486,6 +486,18 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
   target (`tests/m8.rs` `round_robin_spreads_each_step_on_its_own`). Goldens b and k2 were regenerated for this on
   purpose; shipped verdicts held (one naive failure type changed, AI 12 slow-stage: DroppedRequests → SloBreach,
   until AI 12's designs were reordered so its slowed model is again the language model).
+- **Hardening H4 (quorum locks).** A `lock` step served by a coordination service talks to its cluster as a whole:
+  the lock is granted through a member on the caller's side of any split, only while that side reaches a majority
+  of the members, and, when the leader (the first member in the file) is across the split, only `election_ms` after
+  the split began (the majority re-elects and keeps writing). A caller granted a lock keeps a lease for `lease_s`;
+  cut off from the majority within it, it acts on the lease (a stale holder). A stale holder's write into a data
+  cluster split across it is a conflict, or is refused when the store has `fencing`; a write to a self-promoted
+  primary is legitimate with a current quorum lock and a conflict otherwise (a cache lock has no quorum). Routes:
+  `lock:coord` and `lock:cache` name the lock's kind; a plain `lock` in a route that also uses a cache takes it
+  from a coordination service only, so a cache-aside cache no longer counts as a lock. Golden k2 was regenerated
+  (the stale holders now reach the promoted replica and are refused there); replay 10's last step was rewritten
+  (the majority side now keeps writing: 6.4% errors instead of 8.2%). Set 3 #36 keeps `conditional_writes`, the
+  answer it teaches.
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE
