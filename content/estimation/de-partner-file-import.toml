@@ -1,0 +1,34 @@
+# Estimation drills for Partner File Import.
+
+[[drill]]
+id = "giant-file-workers"
+kind = "servers"
+prompt = "Normal files arrive at {files} a second and giant files at {giant} a second. A normal file holds a Worker slot for about {slot_s} s, and a giant file is {units} times the work. Each Worker instance has {concurrency} slots. How many instances are fully busy?"
+prompt_es = "Llegan {files} ficheros normales por segundo y {giant} ficheros gigantes por segundo. Un fichero normal ocupa un hueco de Worker unos {slot_s} s, y uno gigante es {units} veces el trabajo. Cada instancia de Worker tiene {concurrency} huecos. ¿Cuántas instancias están ocupadas del todo?"
+inputs = { files = 39, giant = 20, slot_s = 0.2, units = 25, concurrency = 8 }
+formula = "(files + giant * units) * slot_s / concurrency"
+unit = "count"
+solution = "({files} + {giant} × {units}) × {slot_s} s = about 108 busy slots, and 108 / {concurrency} ≈ {answer} instances with no room to spare. The reference runs 16 instances, 87% busy, so a slow tail does not turn into a backlog. A normal day needs fewer than 2 instances: size for the giant files, not the average."
+solution_es = "({files} + {giant} × {units}) × {slot_s} s = unos 108 huecos ocupados, y 108 / {concurrency} ≈ {answer} instancias sin ningún margen. La referencia usa 16 instancias, ocupadas un 87 %, para que una cola lenta no se convierta en atasco. Un día normal necesita menos de 2 instancias: dimensiona para los ficheros gigantes, no para la media."
+
+[[drill]]
+id = "default-retry-window"
+kind = "capacity"
+prompt = "The queue retries a failed message after {w1} s, then {w2} s, then {w3} s, and then gives up. How many seconds does a file keep trying before it is lost?"
+prompt_es = "La cola reintenta un mensaje fallido tras {w1} s, luego {w2} s, luego {w3} s, y después se rinde. ¿Cuántos segundos sigue intentándolo un fichero antes de perderse?"
+inputs = { w1 = 1, w2 = 2, w3 = 4 }
+formula = "w1 + w2 + w3"
+unit = "s"
+solution = "{w1} + {w2} + {w3} = {answer} seconds. A PostgreSQL failover takes about 30 seconds, so every file that fails at its start runs out of retries long before a replica takes writes. With 8 retries the waits add up to 127 seconds."
+solution_es = "{w1} + {w2} + {w3} = {answer} segundos. Un failover de PostgreSQL tarda unos 30 segundos, así que cada fichero que falla al principio se queda sin reintentos mucho antes de que una réplica acepte escrituras. Con 8 reintentos, las esperas suman 127 segundos."
+
+[[drill]]
+id = "files-during-failover"
+kind = "capacity"
+prompt = "Files arrive at {files_per_s} a second, and a database failover leaves no primary for {failover_s} seconds. How many files fail their first write and have to wait for a retry?"
+prompt_es = "Llegan {files_per_s} ficheros por segundo, y un failover de la base de datos deja {failover_s} segundos sin primaria. ¿Cuántos ficheros fallan su primera escritura y tienen que esperar a un reintento?"
+inputs = { files_per_s = 40, failover_s = 32 }
+formula = "files_per_s * failover_s"
+unit = "count"
+solution = "{files_per_s} × {failover_s} s = {answer} files, plus every file already waiting on a retry. Each one must still be in the queue when the replica takes writes. That is why the retries have to outlast the failover, and why a Dead-Letter Queue that fills up in those seconds means {answer} files someone has to replay."
+solution_es = "{files_per_s} × {failover_s} s = {answer} ficheros, más los que ya esperaban un reintento. Cada uno tiene que seguir en la cola cuando la réplica acepte escrituras. Por eso los reintentos tienen que durar más que el failover, y por eso una Cola de mensajes fallidos que se llena en esos segundos son {answer} ficheros que alguien tiene que reprocesar."

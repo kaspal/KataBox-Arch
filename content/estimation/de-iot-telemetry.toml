@@ -1,0 +1,34 @@
+# Estimation drills for IoT Fleet Telemetry.
+
+[[drill]]
+id = "points-per-second"
+kind = "qps"
+prompt = "{meters} smart meters each send one reading every {interval_s} seconds, and each reading is one write to the time-series database. How many writes a second does the database take?"
+prompt_es = "{meters} contadores inteligentes envían cada uno una lectura cada {interval_s} segundos, y cada lectura es una escritura en la base de series temporales. ¿Cuántas escrituras por segundo recibe la base de datos?"
+inputs = { meters = 25000, interval_s = 10 }
+formula = "meters / interval_s"
+unit = "rps"
+solution = "{meters} / {interval_s} s = {answer} writes a second. One node of 4,000 points a second carries that at about 62% busy, which is fine on a normal day and leaves no room for a burst."
+solution_es = "{meters} / {interval_s} s = {answer} escrituras por segundo. Un nodo de 4000 puntos por segundo lo aguanta a un 62 % de ocupación, lo que vale para un día normal pero no deja margen para una ráfaga."
+
+[[drill]]
+id = "burst-refusals"
+kind = "qps"
+prompt = "After a network outage the fleet uploads its buffered readings: {normal_rps} writes a second become {x} times as many for a while. A single database node writes {node_pps} points a second and has no stream in front of it. Once its queue is full, about how many writes a second does it refuse?"
+prompt_es = "Tras un corte de red la flota sube las lecturas que guardó: las {normal_rps} escrituras por segundo se multiplican por {x} durante un rato. Un solo nodo de base de datos escribe {node_pps} puntos por segundo y no tiene un stream delante. Cuando su cola se llena, ¿cuántas escrituras por segundo rechaza más o menos?"
+inputs = { normal_rps = 2500, x = 4, node_pps = 4000 }
+formula = "normal_rps * x - node_pps"
+unit = "rps"
+solution = "{normal_rps} × {x} - {node_pps} = {answer} writes a second refused, well over half of what arrives. A stream in front would keep them, and workers would deliver them at a pace the database can take."
+solution_es = "{normal_rps} × {x} - {node_pps} = {answer} escrituras por segundo rechazadas, mucho más de la mitad de lo que llega. Un stream delante las guardaría, y los workers las entregarían al ritmo que la base de datos aguanta."
+
+[[drill]]
+id = "series-budget"
+kind = "servers"
+prompt = "{meters} meters write {per_meter} series each. A firmware bug can multiply the series by {x}, and one database node indexes {limit} series. How many nodes keep each node at or under its limit during the explosion (round up)?"
+prompt_es = "{meters} contadores escriben {per_meter} series cada uno. Un fallo de firmware puede multiplicar las series por {x}, y un nodo de base de datos indexa {limit} series. ¿Cuántos nodos dejan a cada uno en su límite o por debajo durante la explosión (redondea hacia arriba)?"
+inputs = { meters = 25000, per_meter = 10, x = 10, limit = 1000000 }
+formula = "meters * per_meter * x / limit"
+unit = "count"
+solution = "{meters} × {per_meter} × {x} = 2,500,000 series, over {limit} per node: {answer}, so 3 nodes, about 833,000 series each. With 2 nodes each holds 1,250,000 and writes four times slower; with 1 node it is past twice the limit and refuses every write."
+solution_es = "{meters} × {per_meter} × {x} = 2 500 000 series, entre {limit} por nodo: {answer}, así que 3 nodos, unas 833 000 series cada uno. Con 2 nodos cada uno lleva 1 250 000 y escribe cuatro veces más despacio; con 1 nodo supera el doble del límite y rechaza todas las escrituras."

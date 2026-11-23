@@ -1,0 +1,34 @@
+# Estimation drills for Clickstream Sessionization.
+
+[[drill]]
+id = "session-state"
+kind = "storage"
+prompt = "Your site gets {clicks_per_s} clicks a second, and a session stays open for a window of {window_s} seconds. Treat each click in the window as one open session, each holding {state_kb} KB of state. About how many GB of state does the stream processor keep?"
+prompt_es = "Tu web recibe {clicks_per_s} clics por segundo, y una sesión sigue abierta durante una ventana de {window_s} segundos. Cuenta cada clic de la ventana como una sesión abierta, con {state_kb} KB de estado cada una. ¿Cuántos GB de estado guarda más o menos el procesador de streams?"
+inputs = { clicks_per_s = 400, window_s = 60, state_kb = 128 }
+formula = "clicks_per_s * window_s * state_kb / 1024 / 1024"
+unit = "GB"
+solution = "{clicks_per_s} × {window_s} = 24,000 open sessions, × {state_kb} KB ≈ {answer} GB. Two instances of 1 GB can't hold it, so the state spills to disk and every record slows down. Size Memory × Instances for this, with room for the users to grow."
+solution_es = "{clicks_per_s} × {window_s} = 24 000 sesiones abiertas, × {state_kb} KB ≈ {answer} GB. En dos instancias de 1 GB no cabe, así que el estado se vuelca a disco y cada registro va más lento. Dimensiona Memoria × Instancias para esto, con margen para que crezcan los usuarios."
+
+[[drill]]
+id = "checkpoint-replay"
+kind = "capacity"
+prompt = "Your stream processor handles {clicks_per_s} clicks a second and takes a checkpoint every {checkpoint_s} seconds. It crashes just before a checkpoint. At most, how many results does it write a second time when it restarts?"
+prompt_es = "Tu procesador de streams procesa {clicks_per_s} clics por segundo y hace un checkpoint cada {checkpoint_s} segundos. Se cae justo antes de un checkpoint. Como mucho, ¿cuántos resultados vuelve a escribir al reiniciarse?"
+inputs = { clicks_per_s = 400, checkpoint_s = 600 }
+formula = "clicks_per_s * checkpoint_s"
+unit = "count"
+solution = "Everything since the last checkpoint is processed again: {clicks_per_s} × {checkpoint_s} s = {answer} results written twice. With a 10 s checkpoint it would be at most 4,000, and with idempotent writes in the sink the repeats change nothing."
+solution_es = "Todo lo posterior al último checkpoint se procesa otra vez: {clicks_per_s} × {checkpoint_s} s = {answer} resultados escritos dos veces. Con un checkpoint de 10 s serían como mucho 4000, y con escrituras idempotentes en el destino las repeticiones no cambian nada."
+
+[[drill]]
+id = "spilling-slots"
+kind = "servers"
+prompt = "At {clicks_per_s} clicks a second, a sliding window of {window_s} s with a slide of {slide_s} s makes each click cost window ÷ slide simple records. A slot handles {records_per_s} records a second, and state that spills to disk makes each record {spill} times slower. How many slots does the processor need while it spills?"
+prompt_es = "A {clicks_per_s} clics por segundo, una ventana deslizante de {window_s} s con un desplazamiento de {slide_s} s hace que cada clic cueste ventana ÷ desplazamiento registros simples. Un hueco procesa {records_per_s} registros por segundo, y el estado que se vuelca a disco hace cada registro {spill} veces más lento. ¿Cuántos huecos necesita el procesador mientras vuelca a disco?"
+inputs = { clicks_per_s = 1600, window_s = 60, slide_s = 1, records_per_s = 20000, spill = 4 }
+formula = "clicks_per_s * (window_s / slide_s) * spill / records_per_s"
+unit = "count"
+solution = "{clicks_per_s} × {window_s} / {slide_s} = 96,000 records a second, × {spill} for the spill = 384,000, / {records_per_s} ≈ {answer} slots. Without the spill it is under 5. Two instances of 4 slots can't keep up, and the backlog grows; the memory is the cheaper fix."
+solution_es = "{clicks_per_s} × {window_s} / {slide_s} = 96 000 registros por segundo, × {spill} por el volcado = 384 000, / {records_per_s} ≈ {answer} huecos. Sin el volcado son menos de 5. Dos instancias de 4 huecos no dan abasto, y el atasco crece; la memoria es el arreglo más barato."

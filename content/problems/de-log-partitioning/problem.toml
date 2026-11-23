@@ -1,0 +1,59 @@
+id = "de-log-partitioning"
+number = 6
+set = 1
+track = "de"
+difficulty = "easy"
+title = "Log Search Over a Year"
+title_es = "Buscar en un año de logs"
+teaches = "Partition a table by the column queries filter on, so a search for the last day reads one day and not the whole year"
+teaches_es = "Particionar una tabla por la columna que filtran las consultas, para que buscar el último día lea un día y no el año entero"
+tags = ["data-warehouse", "lakehouse", "partitioning", "cost"]
+requires = ["warehouse", "lakehouse"]
+
+[nfr]
+peak_rps = 2
+p95_ms = 2000
+availability = 0.999
+budget_usd = 35000
+
+[[request_types]]
+id = "search"
+name = "Search the last 24 hours of logs"
+name_es = "Buscar en los logs de las últimas 24 horas"
+share = 0.99
+route = ["compute", "datastore:warehouse"]
+scan = { gb = 36.5, range_share = 0.00274, span_days = 365 }
+
+[[request_types]]
+id = "year"
+name = "Query the whole year of logs"
+name_es = "Consultar el año entero de logs"
+share = 0.01
+route = ["compute", "datastore:warehouse"]
+scan = { gb = 36.5, range_share = 1.0, span_days = 365 }
+
+[[tests]]
+id = "normal"
+name = "A normal working day"
+name_es = "Un día de trabajo normal"
+duration_s = 300
+
+[[tests]]
+id = "audit"
+name = "An audit runs fifteen times the usual year-long queries"
+name_es = "Una auditoría lanza quince veces las consultas del año entero de siempre"
+hidden = true
+duration_s = 180
+type_multipliers = { year = 15 }
+pass = { p95_ms = 45000 }
+
+[[tests]]
+id = "storm"
+name = "An incident: everyone searches the last day at once"
+name_es = "Un incidente: todo el mundo busca en el último día a la vez"
+hidden = true
+duration_s = 120
+traffic = { spike = { at = 30, x = 10, for = 30 } }
+
+[pass]
+error_rate = 0.01

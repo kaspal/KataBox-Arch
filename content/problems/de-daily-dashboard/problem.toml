@@ -1,0 +1,52 @@
+id = "de-daily-dashboard"
+number = 3
+set = 1
+track = "de"
+difficulty = "easy"
+title = "The 9 a.m. Dashboard"
+title_es = "El panel de las 9 de la mañana"
+teaches = "Keep a morning rush of identical dashboard queries off the warehouse's slots with its result cache and a cache in front"
+teaches_es = "Mantener una avalancha matinal de consultas iguales de un panel lejos de los huecos del almacén con su caché de resultados y una caché delante"
+tags = ["data-warehouse", "caching", "dashboards", "capacity"]
+requires = ["warehouse"]
+
+[nfr]
+peak_rps = 20
+p95_ms = 2000
+availability = 0.999
+budget_usd = 2000
+
+[[request_types]]
+id = "tile"
+name = "Load a dashboard tile"
+name_es = "Cargar un recuadro del panel"
+share = 1.0
+route = ["edge?", "compute", "cache?", "datastore:warehouse"]
+key_space = 400
+key_skew = { zipf = 1.0 }
+scan = { gb = 0.5, repeat_share = 0.6 }
+
+[[tests]]
+id = "normal"
+name = "A normal hour"
+name_es = "Una hora normal"
+
+[[tests]]
+id = "rush"
+name = "9 a.m.: empty caches, then ten times the traffic for 40 s"
+name_es = "Las 9 de la mañana: cachés vacías y luego diez veces el tráfico durante 40 s"
+hidden = true
+duration_s = 90
+traffic = { spike = { at = 5, x = 10, for = 40 } }
+cold_caches = true
+
+[[tests]]
+id = "slow-warehouse"
+name = "The warehouse slows down: queries take 3 s longer for 40 s"
+name_es = "El almacén de datos se ralentiza: las consultas tardan 3 s más durante 40 s"
+hidden = true
+duration_s = 90
+chaos = [{ latency = { kind = "warehouse", at = 20, for = 40, add_ms = 3000 } }]
+
+[pass]
+error_rate = 0.01

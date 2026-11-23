@@ -1,0 +1,34 @@
+# Estimation drills for The 9 a.m. Dashboard.
+
+[[drill]]
+id = "rush-scans"
+kind = "qps"
+prompt = "On a normal hour {rps} dashboard tiles load each second. At 9 a.m. the traffic is {rush_x} times that, and the warehouse's result cache answers {repeat_pct}% of the queries. With no cache in front, how many queries a second does the warehouse actually have to scan?"
+prompt_es = "En una hora normal se cargan {rps} recuadros del panel por segundo. A las 9 de la mañana el tráfico es {rush_x} veces mayor, y la caché de resultados del almacén responde el {repeat_pct} % de las consultas. Sin caché delante, ¿cuántas consultas por segundo tiene que recorrer de verdad el almacén?"
+inputs = { rps = 20, rush_x = 10, repeat_pct = 60 }
+formula = "rps * rush_x * (100 - repeat_pct) / 100"
+unit = "rps"
+solution = "{rps} × {rush_x} = 200 loads a second, and the {repeat_pct}% the result cache answers leave {answer} queries a second that scan. Each one holds a slot for about 0.8 s."
+solution_es = "{rps} × {rush_x} = 200 cargas por segundo, y el {repeat_pct} % que responde la caché de resultados deja {answer} consultas por segundo que recorren datos. Cada una ocupa un hueco unos 0,8 s."
+
+[[drill]]
+id = "rush-clusters"
+kind = "servers"
+prompt = "The warehouse has to scan {scans} queries a second, each takes {query_s} s, and one cluster runs {slots} queries at once. How many clusters keep up?"
+prompt_es = "El almacén tiene que recorrer {scans} consultas por segundo, cada una tarda {query_s} s, y un clúster ejecuta {slots} consultas a la vez. ¿Cuántos clústeres hacen falta para no quedarse atrás?"
+inputs = { scans = 80, query_s = 0.8, slots = 8 }
+formula = "scans * query_s / slots"
+unit = "count"
+solution = "{scans} × {query_s} s = 64 busy slots at any moment, and 64 / {slots} = {answer} clusters, with no headroom. At $1,460 a month each while they run, that is the expensive answer to 400 tiles asked over and over."
+solution_es = "{scans} × {query_s} s = 64 huecos ocupados en todo momento, y 64 / {slots} = {answer} clústeres, sin margen. A 1460 $ al mes cada uno mientras funcionan, es la respuesta cara a 400 recuadros pedidos una y otra vez."
+
+[[drill]]
+id = "warm-cache-misses"
+kind = "qps"
+prompt = "A cache in front of the warehouse holds the dashboard's {tiles} tiles, and each entry expires after a TTL of {ttl_s} seconds. When the cache is warm, about how many queries a second reach the warehouse, whatever the traffic?"
+prompt_es = "Una caché delante del almacén guarda los {tiles} recuadros del panel, y cada entrada caduca tras un TTL de {ttl_s} segundos. Con la caché caliente, ¿cuántas consultas por segundo llegan más o menos al almacén, sea cual sea el tráfico?"
+inputs = { tiles = 400, ttl_s = 600 }
+formula = "tiles / ttl_s"
+unit = "rps"
+solution = "Each tile expires about once per TTL, and the next load refreshes it: {tiles} / {ttl_s} s ≈ {answer} queries a second, at 20 loads a second or at 200. The rush stops being the warehouse's problem; only a cold cache can still send it a burst."
+solution_es = "Cada recuadro caduca más o menos una vez por TTL, y la siguiente carga lo refresca: {tiles} / {ttl_s} s ≈ {answer} consultas por segundo, sean 20 cargas por segundo o 200. La avalancha deja de ser problema del almacén; solo una caché fría puede mandarle todavía una ráfaga."

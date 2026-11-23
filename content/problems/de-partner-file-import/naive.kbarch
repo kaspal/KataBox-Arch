@@ -1,0 +1,135 @@
+{
+  "schema_version": 4,
+  "id": "de-partner-file-import-naive",
+  "name": "Partner file import (first try)",
+  "problem_id": "de-partner-file-import",
+  "nodes": [
+    {
+      "id": "partners",
+      "kind": "client",
+      "flavour": "partner_server",
+      "label": "partners",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "rps": 50
+      },
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "api",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "files",
+      "kind": "object",
+      "flavour": "s3",
+      "label": "files",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "imports",
+      "kind": "queue",
+      "flavour": "sqs",
+      "label": "imports",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "loaders",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "loaders",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 3
+      },
+      "group_id": null
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "db",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-partners-api-http",
+      "from": "partners",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e-api-files-query",
+      "from": "api",
+      "to": "files",
+      "protocol": "query"
+    },
+    {
+      "id": "e-api-imports-publish",
+      "from": "api",
+      "to": "imports",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-api-db-query",
+      "from": "api",
+      "to": "db",
+      "protocol": "query"
+    },
+    {
+      "id": "e-imports-loaders-consume",
+      "from": "imports",
+      "to": "loaders",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-loaders-files-query",
+      "from": "loaders",
+      "to": "files",
+      "protocol": "query"
+    },
+    {
+      "id": "e-loaders-db-query",
+      "from": "loaders",
+      "to": "db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}
