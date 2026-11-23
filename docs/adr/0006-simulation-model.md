@@ -453,6 +453,13 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
 - **Connection types and the traffic curve (M9).** For a `kind = "connection"` type, a test's traffic curve
   scales the pushes each connection receives (a goal is a burst of messages), not the number of connected clients;
   clients joining over time is `ramp_s`. Before M9 the curve scaled both (no shipped content relied on it).
+- **Streams keep failed records (M9).** A stream's consumer that fails a record retries it (backing off) without a
+  retry limit: the record stays in the log, and retention (hours) outlasts any test. Before M9 a stream gave up
+  after a queue's default 3 retries and counted the record lost. Queues keep `max_retries`. (Set 3 #40.)
+- **Optional provider and model calls fall back (M9).** `external:x?` and `model?` steps fall back like `service?`:
+  when the call fails, times out or meets an open breaker, the step is skipped and the request goes on (an auction
+  closes without late bids; a fraud check falls back to rules). The skipped answer is not scored. (Set 3 #41, #44,
+  #45.)
 - **`conditional_writes` (M9).** SQL, NoSQL and Cache cards have a `conditional_writes` prop: the application
   writes with a check-and-set in one statement (`UPDATE … WHERE used = false`, a DynamoDB condition expression, a
   Redis `SET NX`). A write to such a card on a contended key behaves like a `datastore:write:atomic` step: a race

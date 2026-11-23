@@ -1,0 +1,34 @@
+# Estimation drills for Audit Log.
+
+[[drill]]
+id = "event-rate"
+kind = "qps"
+prompt = "An audit log takes {peak_rps} requests a second at peak, and {event_pct}% of them record a new event. How many events a second must the search index take?"
+prompt_es = "Un registro de auditoría recibe {peak_rps} peticiones por segundo en el pico, y el {event_pct} % de ellas registra un evento nuevo. ¿Cuántos eventos por segundo tiene que aceptar el índice de búsqueda?"
+inputs = { peak_rps = 2000, event_pct = 97 }
+formula = "peak_rps * event_pct / 100"
+unit = "rps"
+solution = "{peak_rps} × 0.97 = {answer} events a second, each one a write to the index. Searches are only 60 a second, so the index's work is almost all indexing."
+solution_es = "{peak_rps} × 0,97 = {answer} eventos por segundo, cada uno una escritura en el índice. Las búsquedas son solo 60 por segundo, así que el trabajo del índice es casi todo indexar."
+
+[[drill]]
+id = "burst-events"
+kind = "capacity"
+prompt = "Normally {events_per_s} audit events arrive a second. A batch job triples that for {burst_s} seconds. How many events arrive during the burst?"
+prompt_es = "Normalmente llegan {events_per_s} eventos de auditoría por segundo. Un proceso por lotes triplica esa cifra durante {burst_s} segundos. ¿Cuántos eventos llegan durante la ráfaga?"
+inputs = { events_per_s = 1940, burst_s = 20 }
+formula = "events_per_s * 3 * burst_s"
+unit = "count"
+solution = "{events_per_s} × 3 = 5,820 events a second, × {burst_s} s = {answer} events. If each request waits for its own index write, the index has to take them as fast as they come. With a stream in between, whatever the index can't take yet waits in the stream."
+solution_es = "{events_per_s} × 3 = 5820 eventos por segundo, × {burst_s} s = {answer} eventos. Si cada petición espera a su propia escritura en el índice, el índice tiene que aceptarlos al ritmo al que llegan. Con un stream en medio, lo que el índice todavía no puede aceptar espera en el stream."
+
+[[drill]]
+id = "outage-backlog"
+kind = "capacity"
+prompt = "The search cluster is down for {outage_s} seconds while {events_per_s} audit events arrive a second. How many events must be held somewhere until it is back?"
+prompt_es = "El clúster de búsqueda cae durante {outage_s} segundos mientras llegan {events_per_s} eventos de auditoría por segundo. ¿Cuántos eventos hay que guardar en algún sitio hasta que vuelva?"
+inputs = { events_per_s = 1940, outage_s = 30 }
+formula = "events_per_s * outage_s"
+unit = "count"
+solution = "{events_per_s} × {outage_s} s = {answer} events. Written inline, every one of them is refused. Published to a stream, they stay there, and the indexers write them once the cluster is back: a delay, not a loss."
+solution_es = "{events_per_s} × {outage_s} s = {answer} eventos. Si se escriben en línea, se rechazan todos. Si se publican en un stream, se quedan ahí, y los indexadores los escriben cuando vuelve el clúster: un retraso, no una pérdida."

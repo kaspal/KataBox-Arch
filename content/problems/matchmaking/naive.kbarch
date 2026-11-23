@@ -1,0 +1,140 @@
+{
+  "schema_version": 4,
+  "id": "matchmaking-naive",
+  "name": "Matchmaking (first try)",
+  "problem_id": "matchmaking",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb-us",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb-us",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": "us"
+    },
+    {
+      "id": "app-us",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app-us",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": "us"
+    },
+    {
+      "id": "queue-us",
+      "kind": "queue",
+      "flavour": "rabbitmq",
+      "label": "queue-us",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {},
+      "group_id": "us"
+    },
+    {
+      "id": "match-us",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "match-us",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 4,
+        "concurrency": 64,
+        "service_ms": 200
+      },
+      "group_id": "us"
+    },
+    {
+      "id": "db-us",
+      "kind": "nosql",
+      "flavour": "dynamodb",
+      "label": "db-us",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": "us"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-us-http",
+      "from": "client",
+      "to": "lb-us",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-us-app-us-http",
+      "from": "lb-us",
+      "to": "app-us",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-us-queue-us-publish",
+      "from": "app-us",
+      "to": "queue-us",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-queue-us-match-us-consume",
+      "from": "queue-us",
+      "to": "match-us",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-match-us-db-us-query",
+      "from": "match-us",
+      "to": "db-us",
+      "protocol": "query"
+    }
+  ],
+  "groups": [
+    {
+      "id": "us",
+      "kind": "region",
+      "label": "us-east",
+      "position": {
+        "x": 280,
+        "y": -40
+      },
+      "size": {
+        "w": 1168,
+        "h": 240
+      },
+      "parent_id": null
+    }
+  ],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

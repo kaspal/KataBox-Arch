@@ -290,7 +290,12 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         },
         ttl_s: n("ttl_s").unwrap_or(0.0),
         max_depth: n("max_depth").unwrap_or(100_000.0),
-        max_retries: n("max_retries").unwrap_or(3.0) as u32,
+        // M9: a stream keeps a failed record in its log; the consumer retries it (backing
+        // off) for as long as retention allows, which outlasts any test (retention is hours).
+        max_retries: match node.kind {
+            K::Stream => u32::MAX,
+            _ => n("max_retries").unwrap_or(3.0) as u32,
+        },
         visibility_timeout_s: n("visibility_timeout_s").unwrap_or(30.0),
         session_timeout_s: n("session_timeout_s").unwrap_or(45.0),
         partitions: n("partitions").unwrap_or(f64::INFINITY),

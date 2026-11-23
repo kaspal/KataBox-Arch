@@ -1,0 +1,53 @@
+id = "rtb"
+number = 41
+set = 3
+difficulty = "hard"
+title = "Real-Time Ad Auction"
+title_es = "Subasta de anuncios en tiempo real"
+teaches = "Close every auction on a deadline: a call timeout drops late bids instead of letting the slowest bidder set your latency"
+teaches_es = "Cerrar cada subasta a tiempo: un timeout de llamada descarta las pujas tardías en vez de dejar que el pujador más lento marque tu latencia"
+tags = ["timeouts", "tail-latency", "external-providers", "deadlines"]
+
+challenge_ratio = 0.7
+[nfr]
+peak_rps = 20000
+p95_ms = 100
+availability = 0.999
+budget_usd = 1300
+
+[[externals]]
+name = "bidders"
+median_ms = 30
+p99_ms = 90
+
+[[request_types]]
+id = "auction"
+name = "Run an ad auction"
+name_es = "Hacer una subasta de anuncios"
+share = 1.0
+route = ["edge?", "compute", "cache", "external:bidders?"]
+key_space = 5000000
+key_skew = { zipf = 0.7 }
+
+[[tests]]
+id = "normal"
+name = "A normal hour"
+name_es = "Una hora normal"
+
+[[tests]]
+id = "slow-bidder"
+name = "A big bidder slows down"
+name_es = "Un pujador grande se vuelve lento"
+hidden = true
+chaos = [{ external = { name = "bidders", at = 20, for = 30, add_ms = 80 } }]
+
+[[tests]]
+id = "prime-time"
+name = "Prime time"
+name_es = "Horario de máxima audiencia"
+hidden = true
+traffic = { spike = { at = 15, x = 2, for = 30 } }
+
+[pass]
+error_rate = 0.001
+p99_ms = 150

@@ -72,6 +72,8 @@ items = [
   "pattern:backpressure",
   "problem:news-feed",
   "problem:password-reset",
+  "problem:matchmaking",
+  "problem:audit-log",
 ]
 
 [[path]]
@@ -104,6 +106,8 @@ items = [
   "problem:leaderboard",
   "problem:ride-sharing",
   "problem:hotel-booking",
+  "problem:shopping-cart",
+  "problem:web-search",
 ]
 
 [[path]]
@@ -135,6 +139,9 @@ items = [
   "problem:flash-sale",
   "problem:weather-proxy",
   "problem:geo-ip",
+  "problem:rtb",
+  "problem:maps-eta",
+  "problem:fraud-detection",
 ]
 
 [[path]]
@@ -162,4 +169,5 @@ items = [
   "problem:exchange",
   "guide:ws",
   "problem:live-scores",
+  "problem:live-streaming",
 ]

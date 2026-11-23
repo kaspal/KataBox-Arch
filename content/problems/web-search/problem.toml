@@ -1,0 +1,56 @@
+id = "web-search"
+number = 42
+set = 3
+difficulty = "hard"
+title = "Web Search"
+title_es = "Buscador web"
+teaches = "Replicate the search index so losing a node isn't losing results, and cache the head of the query distribution so a trending query never reaches the index"
+teaches_es = "Replicar el índice de búsqueda para que perder un nodo no sea perder resultados, y cachear la cabeza de la distribución de consultas para que una consulta de moda nunca llegue al índice"
+tags = ["search", "replication", "caching", "hot-keys"]
+
+[nfr]
+peak_rps = 8000
+p95_ms = 200
+availability = 0.999
+budget_usd = 3200
+
+[[request_types]]
+id = "query"
+name = "Search the web"
+name_es = "Buscar en la web"
+share = 0.95
+route = ["edge?", "compute", "cache?", "datastore:search"]
+key_space = 1000000
+key_skew = { zipf = 1.0 }
+
+[[request_types]]
+id = "index"
+name = "Index a crawled page"
+name_es = "Indexar una página rastreada"
+share = 0.05
+route = ["edge?", "compute", "datastore:write:search"]
+key_space = 10000000
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "node-lost"
+name = "A search node dies"
+name_es = "Cae un nodo de búsqueda"
+hidden = true
+chaos = [{ kill = { kind = "search", role = "primary", at = 20 } }]
+pass = { error_rate = 0.03, availability = 0.97 }
+
+[[tests]]
+id = "trending"
+name = "Everyone searches the same thing"
+name_es = "Todo el mundo busca lo mismo"
+hidden = true
+traffic = { spike = { at = 15, x = 3, for = 30 } }
+key_skew_override = { zipf = 1.5 }
+
+[pass]
+error_rate = 0.001

@@ -1,0 +1,90 @@
+{
+  "schema_version": 4,
+  "id": "rtb-challenge",
+  "name": "Ad auction (reference)",
+  "problem_id": "rtb",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "partner_server",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "call_timeout_ms": 70,
+        "concurrency": 256,
+        "instances": 7
+      },
+      "group_id": null
+    },
+    {
+      "id": "profiles",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "profiles",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "memory_gb": 4,
+        "ttl_s": 0
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app-http",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-profiles-query",
+      "from": "app",
+      "to": "profiles",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

@@ -1,0 +1,57 @@
+id = "audit-log"
+number = 40
+set = 3
+difficulty = "medium"
+title = "Audit Log"
+title_es = "Registro de auditoría"
+teaches = "Acknowledge an audit event once it is safely in a stream, and index it from there, so a storage outage delays events instead of losing them"
+teaches_es = "Confirmar un evento de auditoría en cuanto está a salvo en un stream, e indexarlo desde ahí, para que una caída del almacenamiento retrase los eventos en vez de perderlos"
+tags = ["streams", "durability", "search", "buffering"]
+
+challenge_ratio = 0.8
+[nfr]
+peak_rps = 2000
+p95_ms = 100
+availability = 0.999
+budget_usd = 2200
+
+[[request_types]]
+id = "append"
+name = "Record an audit event"
+name_es = "Registrar un evento de auditoría"
+share = 0.97
+route = ["edge?", "compute", "broker?", "worker", "datastore:write:search"]
+key_space = 10000000
+
+[[request_types]]
+id = "search"
+name = "Search the audit trail"
+name_es = "Buscar en el registro"
+share = 0.03
+route = ["edge?", "compute", "datastore:search"]
+key_space = 100000
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "burst"
+name = "A batch job logs everything at once"
+name_es = "Un proceso por lotes lo registra todo de golpe"
+hidden = true
+traffic = { spike = { at = 15, x = 3, for = 20 } }
+
+[[tests]]
+id = "search-down"
+name = "The search cluster is down for 30 s"
+name_es = "El clúster de búsqueda cae durante 30 s"
+hidden = true
+duration_s = 120
+chaos = [{ kill = { kind = "search", at = 20, for = 30 } }]
+pass = { error_rate = 0.05, availability = 0.95 }
+
+[pass]
+error_rate = 0.01
+lost = 0

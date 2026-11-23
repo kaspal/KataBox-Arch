@@ -1,0 +1,34 @@
+# Estimation drills for Web Search.
+
+[[drill]]
+id = "searches-per-second"
+kind = "qps"
+prompt = "A search engine peaks at {peak_rps} rps, and {search_pct}% of the requests are searches. On a day when everyone searches the same thing, the traffic triples. How many searches a second reach your App Servers then?"
+prompt_es = "Un buscador tiene un pico de {peak_rps} rps, y el {search_pct} % de las peticiones son búsquedas. Un día en que todo el mundo busca lo mismo, el tráfico se triplica. ¿Cuántas búsquedas por segundo llegan entonces a tus App Servers?"
+inputs = { peak_rps = 8000, search_pct = 95 }
+formula = "peak_rps * search_pct / 100 * 3"
+unit = "rps"
+solution = "{peak_rps} × 0.95 = 7,600 searches a second on a normal day, × 3 = {answer} searches a second. Most of them are the same few queries, so a cache in front of the index can answer them without growing the index."
+solution_es = "{peak_rps} × 0,95 = 7600 búsquedas por segundo en un día normal, × 3 = {answer} búsquedas por segundo. La mayoría son las mismas pocas consultas, así que una caché delante del índice puede responderlas sin agrandar el índice."
+
+[[drill]]
+id = "hot-query-rate"
+kind = "qps"
+prompt = "A search engine answers {searches_per_s} searches a second. The most popular query is about {top_pct}% of them, and the index sends each query to the one shard that holds it. How many searches a second does that shard get from that query alone?"
+prompt_es = "Un buscador responde {searches_per_s} búsquedas por segundo. La consulta más popular es cerca del {top_pct} % de ellas, y el índice envía cada consulta a la única partición que la contiene. ¿Cuántas búsquedas por segundo recibe esa partición solo por esa consulta?"
+inputs = { searches_per_s = 7600, top_pct = 7 }
+formula = "searches_per_s * top_pct / 100"
+unit = "rps"
+solution = "{searches_per_s} × 0.07 = {answer} searches a second, all on one shard. Adding shards doesn't change that number: they spread different queries, never one. A cache with a TTL of a few minutes answers that query from memory instead."
+solution_es = "{searches_per_s} × 0,07 = {answer} búsquedas por segundo, todas en una partición. Añadir particiones no cambia ese número: reparten consultas distintas, nunca una. Una caché con un TTL de unos minutos responde esa consulta desde memoria."
+
+[[drill]]
+id = "node-loss-error-budget"
+kind = "capacity"
+prompt = "A {duration_s}-second test runs at {peak_rps} rps and allows {error_pct}% errors. A search node dies at 20 seconds. How many requests may fail in the whole run?"
+prompt_es = "Una prueba de {duration_s} segundos va a {peak_rps} rps y admite un {error_pct} % de errores. Un nodo de búsqueda cae en el segundo 20. ¿Cuántas peticiones pueden fallar en toda la ejecución?"
+inputs = { peak_rps = 8000, duration_s = 60, error_pct = 3 }
+formula = "peak_rps * duration_s * error_pct / 100"
+unit = "count"
+solution = "{peak_rps} × {duration_s} s = 480,000 requests, × 0.03 = {answer}. With no replica, every request that needs the index fails for the last 40 seconds, far more than that. With a replica, only the index writes until it is promoted and the searches in flight fail."
+solution_es = "{peak_rps} × {duration_s} s = 480 000 peticiones, × 0,03 = {answer}. Sin réplica, cada petición que necesita el índice falla durante los últimos 40 segundos, mucho más que eso. Con réplica, solo fallan las escrituras del índice hasta que se promociona y las búsquedas en curso."

@@ -257,6 +257,8 @@ fn a_consumer_s_calls_take_their_own_servers() {
 #[test]
 fn failing_async_work_is_retried_then_dead_lettered_or_lost() {
     let (mut d, mut s) = golden_c();
+    // A queue gives up after `max_retries` (a stream keeps the record: see below).
+    d.nodes[2] = node_with("stream", K::Queue, Flavour::Sqs, &[]);
     s.externals.push(External {
         name: "email".into(),
         median_ms: 5.0,
@@ -279,6 +281,23 @@ fn failing_async_work_is_retried_then_dead_lettered_or_lost() {
         dl.dead_lettered > 0.0 && dl.lost == 0.0,
         "with a DLQ they are dead-lettered"
     );
+}
+
+#[test]
+fn a_stream_keeps_retrying_a_failed_record_instead_of_losing_it() {
+    let (d, mut s) = golden_c();
+    s.externals.push(External {
+        name: "email".into(),
+        median_ms: 5.0,
+        p99_ms: 20.0,
+        rate_limit: Some(50.0),
+    });
+    s.request_types[0].route = ["compute", "broker", "worker", "external:email"]
+        .map(String::from)
+        .to_vec();
+    let r = run(&d, &s, 1);
+    assert_eq!(r.lost, 0.0, "the log keeps it; the consumer retries");
+    assert!(r.retried > 0.0);
 }
 
 #[test]

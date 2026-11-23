@@ -1,0 +1,103 @@
+{
+  "schema_version": 4,
+  "id": "audit-log-naive",
+  "name": "Audit log (first try)",
+  "problem_id": "audit-log",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 4
+      },
+      "group_id": null
+    },
+    {
+      "id": "indexer",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "indexer",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 6,
+        "concurrency": 32,
+        "service_ms": 5
+      },
+      "group_id": null
+    },
+    {
+      "id": "search",
+      "kind": "search",
+      "flavour": "opensearch",
+      "label": "search",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "shards": 6
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app-http",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-search-query",
+      "from": "app",
+      "to": "search",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

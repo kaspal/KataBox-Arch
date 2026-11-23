@@ -2200,7 +2200,15 @@ impl Engine {
         if !q.dead {
             let (ty, seg, step) = (q.ty as usize, q.seg as usize, q.step as usize);
             let def = self.c.types[ty].route.segments[seg].calls.get(step);
-            if def.is_some_and(|d| d.optional && d.alts.iter().all(|a| a.service)) {
+            // M9: an optional provider or model call (`external:x?`, `model?`) falls back the
+            // same way: an auction closes without late bids; a fraud check falls back to
+            // rules when the model is too slow.
+            if def.is_some_and(|d| {
+                d.optional
+                    && d.alts.iter().all(|a| {
+                        a.service || a.external.is_some() || a.role == crate::route::Role::Model
+                    })
+            }) {
                 self.reqs[r as usize].step += 1;
                 self.run_calls(r);
                 return;

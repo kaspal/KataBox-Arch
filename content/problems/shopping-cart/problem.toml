@@ -1,0 +1,65 @@
+id = "shopping-cart"
+number = 38
+set = 3
+difficulty = "medium"
+title = "Shopping Cart"
+title_es = "Carrito de la compra"
+teaches = "Put a connection pooler between an autoscaled app tier and the database, so scaling out on sale day doesn't run the database out of connections"
+teaches_es = "Poner un pooler de conexiones entre una capa de aplicación autoescalada y la base de datos, para que escalar el día de rebajas no deje a la base de datos sin conexiones"
+tags = ["connection-pooling", "autoscaling", "databases", "caching"]
+connections = true
+
+[nfr]
+peak_rps = 6000
+p95_ms = 150
+availability = 0.999
+budget_usd = 2200
+
+[[request_types]]
+id = "view"
+name = "View the cart"
+name_es = "Ver el carrito"
+share = 0.6
+route = ["edge?", "compute", "cache?", "datastore"]
+key_space = 2000000
+
+[[request_types]]
+id = "update"
+name = "Add or remove an item"
+name_es = "Añadir o quitar un artículo"
+share = 0.3
+route = ["edge?", "compute", "datastore:write", "cache:write?"]
+key_space = 2000000
+
+[[request_types]]
+id = "checkout"
+name = "Check out"
+name_es = "Pagar"
+share = 0.1
+route = ["edge?", "compute", "datastore:write"]
+key_space = 2000000
+
+[[tests]]
+id = "normal"
+name = "A normal afternoon"
+name_es = "Una tarde normal"
+
+[[tests]]
+id = "sale"
+name = "The sale starts"
+name_es = "Empiezan las rebajas"
+hidden = true
+duration_s = 180
+traffic = { ramp = { from = 1, to = 5 } }
+
+[[tests]]
+id = "noon-spike"
+name = "A flash deal at noon"
+name_es = "Una oferta relámpago a mediodía"
+hidden = true
+duration_s = 120
+traffic = { steps = [[0, 1], [20, 2.5]] }
+
+[pass]
+error_rate = 0.01
+lost = 0

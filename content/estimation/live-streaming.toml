@@ -1,0 +1,34 @@
+# Estimation drills for Live Streaming with Chat.
+
+[[drill]]
+id = "origin-fetches"
+kind = "qps"
+prompt = "Viewers fetch 4,750 video segments a second, over {segments} live segments. A CDN keeps each segment for a TTL of {ttl_s} seconds, so it asks the origin for a given segment at most once per TTL. At most how many fetches a second reach the origin?"
+prompt_es = "Los espectadores descargan 4750 segmentos de vídeo por segundo, sobre {segments} segmentos en directo. Una CDN guarda cada segmento durante un TTL de {ttl_s} segundos, así que pide un segmento dado al origen como mucho una vez por TTL. ¿Como mucho cuántas descargas por segundo llegan al origen?"
+inputs = { segments = 3000, ttl_s = 4 }
+formula = "segments / ttl_s"
+unit = "rps"
+solution = "Each of the {segments} segments is fetched from the origin at most once every {ttl_s} s: {segments} ÷ {ttl_s} = {answer} fetches a second at most, against 4,750 without a CDN. In practice it is fewer, because the quiet channels' segments are not asked for every TTL. That is why a slow origin barely shows behind the CDN."
+solution_es = "Cada uno de los {segments} segmentos se pide al origen como mucho una vez cada {ttl_s} s: {segments} ÷ {ttl_s} = {answer} descargas por segundo como mucho, frente a 4750 sin CDN. En la práctica son menos, porque los segmentos de los canales pequeños no se piden en cada TTL. Por eso un origen lento apenas se nota detrás de la CDN."
+
+[[drill]]
+id = "raid-messages"
+kind = "qps"
+prompt = "{viewers} viewers are in the chat, and each receives {msgs_per_viewer} messages a second. A raid multiplies the chat by {raid_x}. How many messages a second must the gateways deliver during the raid?"
+prompt_es = "Hay {viewers} espectadores en el chat, y cada uno recibe {msgs_per_viewer} mensajes por segundo. Una raid multiplica el chat por {raid_x}. ¿Cuántos mensajes por segundo tienen que entregar los gateways durante la raid?"
+inputs = { viewers = 200000, msgs_per_viewer = 0.5, raid_x = 4 }
+formula = "viewers * msgs_per_viewer * raid_x"
+unit = "rps"
+solution = "{viewers} × {msgs_per_viewer} = 100,000 messages a second on a normal evening, × {raid_x} = {answer} during the raid. Size the gateways for this, not for the normal evening: 2 Socket.IO cards of 2 instances at 200,000 messages a second each push 800,000."
+solution_es = "{viewers} × {msgs_per_viewer} = 100 000 mensajes por segundo en una tarde normal, × {raid_x} = {answer} durante la raid. Dimensiona los gateways para esto, no para la tarde normal: 2 tarjetas Socket.IO de 2 instancias, a 200 000 mensajes por segundo cada una, envían 800 000."
+
+[[drill]]
+id = "raid-backlog"
+kind = "capacity"
+prompt = "During a raid the chat needs {raid_msgs} messages a second delivered, but the gateways can push only {capacity} a second. The raid lasts {raid_s} seconds. How many messages are waiting by the end of the raid?"
+prompt_es = "Durante una raid hay que entregar {raid_msgs} mensajes de chat por segundo, pero los gateways solo pueden enviar {capacity} por segundo. La raid dura {raid_s} segundos. ¿Cuántos mensajes esperan al final de la raid?"
+inputs = { raid_msgs = 400000, capacity = 200000, raid_s = 20 }
+formula = "(raid_msgs - capacity) * raid_s"
+unit = "count"
+solution = "{raid_msgs} arrive and {capacity} go out, so {capacity} a second are left over. × {raid_s} s = {answer} messages waiting. After the raid the normal 100,000 a second leave only 100,000 a second to drain them, so the chat stays late for everyone long after the raid ends."
+solution_es = "Llegan {raid_msgs} y salen {capacity}, así que sobran {capacity} por segundo. × {raid_s} s = {answer} mensajes esperando. Después de la raid, los 100 000 por segundo normales solo dejan 100 000 por segundo para vaciarlos, así que el chat sigue llegando tarde a todos mucho después de que acabe la raid."

@@ -1,0 +1,34 @@
+# Estimation drills for Shopping Cart.
+
+[[drill]]
+id = "sale-writes"
+kind = "qps"
+prompt = "A cart service peaks at {peak_rps} rps on a normal day, and {write_share} of the requests write to the database (cart changes and checkouts). When the sale starts the traffic grows to {sale_multiplier} times the peak. How many writes a second reach the database then?"
+prompt_es = "Un servicio de carrito tiene un pico de {peak_rps} rps en un día normal, y {write_share} de las peticiones escriben en la base de datos (cambios en el carrito y pagos). Cuando empiezan las rebajas, el tráfico crece hasta {sale_multiplier} veces el pico. ¿Cuántas escrituras por segundo llegan entonces a la base?"
+inputs = { peak_rps = 6000, write_share = 0.4, sale_multiplier = 5 }
+formula = "peak_rps * sale_multiplier * write_share"
+unit = "rps"
+solution = "{peak_rps} rps × {sale_multiplier} = 30,000 rps during the sale, and 40% of them write: {answer} writes a second. A cache can take the views, but every write still needs PostgreSQL's primary, and a database connection while it runs."
+solution_es = "{peak_rps} rps × {sale_multiplier} = 30 000 rps durante las rebajas, y el 40 % escribe: {answer} escrituras por segundo. Una caché puede quedarse con las vistas, pero cada escritura sigue necesitando el primario de PostgreSQL, y una conexión a la base mientras dura."
+
+[[drill]]
+id = "connections-at-max"
+kind = "capacity"
+prompt = "An autoscaling group may grow to {max_instances} app instances, each with a pool of {concurrency} threads, and every thread holds its own connection to PostgreSQL. How many database connections can the group open at its maximum?"
+prompt_es = "Un grupo de autoescalado puede crecer hasta {max_instances} instancias de la aplicación, cada una con un pool de {concurrency} hilos, y cada hilo ocupa su propia conexión a PostgreSQL. ¿Cuántas conexiones a la base puede abrir el grupo en su máximo?"
+inputs = { max_instances = 24, concurrency = 200 }
+formula = "max_instances * concurrency"
+unit = "count"
+solution = "Connections = instances × concurrency: {max_instances} × {concurrency} = {answer}, almost three times PostgreSQL's 1,700. Through a PgBouncer pool of 800 the database sees 800 connections however far the group grows."
+solution_es = "Conexiones = instancias × concurrencia: {max_instances} × {concurrency} = {answer}, casi tres veces las 1700 de PostgreSQL. A través de un pool PgBouncer de 800, la base ve 800 conexiones por mucho que crezca el grupo."
+
+[[drill]]
+id = "instances-before-limit"
+kind = "servers"
+prompt = "PostgreSQL accepts at most {max_connections} connections, and each app instance opens {concurrency} of them directly. How many instances can run before the database starts refusing connections? (A fraction means the next whole instance is already over.)"
+prompt_es = "PostgreSQL acepta como mucho {max_connections} conexiones, y cada instancia de la aplicación abre {concurrency} directamente. ¿Cuántas instancias pueden funcionar antes de que la base empiece a rechazar conexiones? (Una fracción significa que la siguiente instancia entera ya se pasa.)"
+inputs = { max_connections = 1700, concurrency = 200 }
+formula = "max_connections / concurrency"
+unit = "count"
+solution = "{max_connections} / {concurrency} = {answer}, so 8 instances fit (1,600 connections) and a 9th makes 1,800. Without a pooler, the sale breaks as soon as the group passes 8 instances, long before its maximum of 24."
+solution_es = "{max_connections} / {concurrency} = {answer}, así que caben 8 instancias (1600 conexiones) y una 9.ª suma 1800. Sin pooler, las rebajas se rompen en cuanto el grupo pasa de 8 instancias, mucho antes de su máximo de 24."

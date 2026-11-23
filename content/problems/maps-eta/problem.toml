@@ -1,0 +1,62 @@
+id = "maps-eta"
+number = 44
+set = 3
+difficulty = "hard"
+title = "Maps and Arrival Times"
+title_es = "Mapas y horas de llegada"
+teaches = "Serve map tiles from a CDN, and treat the live traffic feed as optional: a short timeout and a circuit breaker turn its outage into slightly worse ETAs instead of failed routes"
+teaches_es = "Servir los mosaicos del mapa desde una CDN y tratar el feed de tráfico en vivo como opcional: un timeout corto y un circuit breaker convierten su caída en horas de llegada algo peores en vez de rutas fallidas"
+tags = ["cdn", "graphs", "circuit-breakers", "graceful-degradation"]
+
+[nfr]
+peak_rps = 4000
+p95_ms = 250
+availability = 0.999
+budget_usd = 9000
+
+[[externals]]
+name = "traffic"
+median_ms = 40
+p99_ms = 200
+
+[[request_types]]
+id = "tile"
+name = "Load a map tile"
+name_es = "Cargar un mosaico del mapa"
+share = 0.7
+route = ["edge?", "datastore:object"]
+key_space = 2000000
+key_skew = { zipf = 1.1 }
+cacheable = true
+
+[[request_types]]
+id = "route"
+name = "Plan a route with an arrival time"
+name_es = "Planificar una ruta con hora de llegada"
+share = 0.3
+route = ["edge?", "compute", "datastore:graph", "external:traffic?"]
+key_space = 1000000
+traversal = { hops = 6, fanout = 3 }
+
+[[tests]]
+id = "normal"
+name = "A normal afternoon"
+name_es = "Una tarde normal"
+
+[[tests]]
+id = "rush-hour"
+name = "Rush hour"
+name_es = "Hora punta"
+hidden = true
+traffic = { spike = { at = 15, x = 2.5, for = 30 } }
+
+[[tests]]
+id = "feed-down"
+name = "The traffic feed goes down"
+name_es = "Cae el feed de tráfico"
+hidden = true
+duration_s = 90
+chaos = [{ external = { name = "traffic", at = 20, for = 40, down = true } }]
+
+[pass]
+error_rate = 0.005
