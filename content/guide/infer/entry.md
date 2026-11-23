@@ -1,0 +1,7 @@
+A model inference service runs a machine-learning model for you. You send a prompt, measured in **tokens**, and get back generated tokens, an embedding vector or a label. You can call a hosted API, such as Claude, OpenAI, Gemini or Bedrock, or run an open model on your own GPUs with vLLM or Triton.
+
+Its timing has two parts. First the model reads the prompt and produces the **first token**: a fixed delay plus time that grows with the prompt length. Then it writes the answer one token at a time, so a long answer takes longer than a short one. On your own GPUs, the server decodes several requests together (continuous batching): each request gets a little slower, but the node finishes many more per second. Hosted APIs instead limit **requests and tokens per minute** and answer with a rate-limit error past them. Work that can wait can go through **batch mode**, which returns results by a deadline at half the price.
+
+The simulator models time, limits and price. It does **not** judge the answers: relevance, accuracy and hallucinations are invisible to it, so a design that passes can still give wrong answers. Plan for that separately.
+
+**How the simulator bills this.** Hosted models bill per million tokens: Claude and Bedrock $3 in and $15 out, OpenAI $2.50 in and $10 out, Gemini $1.25 in and $10 out; batch mode halves those prices. vLLM and Triton run on one g5.xlarge-class GPU node per instance at $734 a month ($1.006 an hour for 730 hours), with no fee per token. These are teaching prices; source to be confirmed.

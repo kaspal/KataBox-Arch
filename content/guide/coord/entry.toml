@@ -1,0 +1,195 @@
+kind = "coord"
+one_liner = "A small, strongly consistent store that a cluster uses to agree on leaders, locks and config."
+one_liner_es = "Un almacén pequeño y fuertemente consistente que un clúster usa para ponerse de acuerdo en líderes, bloqueos y configuración."
+
+use_when = [
+  "Only one worker at a time may do a job, such as a scheduler leader",
+  "Several services must agree on who owns a resource",
+  "You need a lock that survives the holder crashing, through a lease",
+  "A small piece of shared config or membership must never disagree between nodes",
+]
+use_when_es = [
+  "Solo un worker a la vez puede hacer un trabajo, como el líder de un planificador",
+  "Varios servicios deben ponerse de acuerdo en quién es dueño de un recurso",
+  "Necesitas un bloqueo que sobreviva a la caída de quien lo tiene, mediante una concesión",
+  "Un pequeño dato compartido de configuración o pertenencia nunca debe diferir entre nodos",
+]
+skip_when = [
+  "You need to store lots of data or serve high read traffic",
+  "The database already offers the guarantee, such as a unique key or a conditional write",
+  "Occasional duplicate work is harmless and idempotent",
+]
+skip_when_es = [
+  "Necesitas guardar muchos datos o servir mucho tráfico de lectura",
+  "La base de datos ya ofrece la garantía, como una clave única o una escritura condicional",
+  "Algún trabajo duplicado de vez en cuando es inofensivo e idempotente",
+]
+
+formula = "a write or lock grant needs a majority of members (floor(n/2)+1) and costs service time; the side of a split without a majority refuses; losing the leader pauses writes for election_ms; a lock is a lease that expires after lease_s unless renewed"
+formula_es = "una escritura o concesión de bloqueo necesita a la mayoría de los miembros (floor(n/2)+1) y cuesta el tiempo de servicio; el lado de una partición sin mayoría la rechaza; perder al líder pausa las escrituras durante election_ms; un bloqueo es una concesión que caduca tras lease_s si no se renueva"
+
+gains = [
+  "One agreed answer about who is leader or who holds a lock",
+  "Survives losing a minority of members without losing data",
+  "Leases free a lock when its holder dies, with no human help",
+]
+gains_es = [
+  "Una única respuesta acordada sobre quién es líder o quién tiene un bloqueo",
+  "Sobrevive a la pérdida de una minoría de miembros sin perder datos",
+  "Las concesiones liberan un bloqueo cuando muere quien lo tiene, sin ayuda humana",
+]
+costs = [
+  "Every write waits for a majority, so it is slower than a single node",
+  "The minority side of a network split cannot write at all",
+  "A lock alone doesn't stop a paused, stale holder from writing: you need fencing tokens",
+]
+costs_es = [
+  "Cada escritura espera a una mayoría, así que es más lenta que un solo nodo",
+  "El lado minoritario de una partición de red no puede escribir en absoluto",
+  "Un bloqueo por sí solo no impide que un titular pausado y obsoleto escriba: necesitas tokens de cercado",
+]
+
+works_with = ["scheduler", "worker", "app", "sql", "micro"]
+practice = ["job-scheduler"]
+
+interview_tip = "Use an odd number of members, say what happens on the minority side of a split, and pair every lock with a fencing token checked by the datastore."
+interview_tip_es = "Usa un número impar de miembros, explica qué pasa en el lado minoritario de una partición y acompaña cada bloqueo con un token de cercado que compruebe el almacén de datos."
+
+not_simulated = [
+  "Watch notifications: clients learn about changes only through the requests you draw",
+  "Limits on value and database size",
+  "Snapshots, log compaction and member replacement",
+  "Clock skew between members and clients, which real leases depend on",
+]
+not_simulated_es = [
+  "Las notificaciones de cambios (watch): los clientes solo se enteran por las peticiones que dibujas",
+  "Los límites de tamaño de los valores y de la base de datos",
+  "Las instantáneas, la compactación del registro y el reemplazo de miembros",
+  "El desfase de reloj entre miembros y clientes, del que dependen las concesiones reales",
+]
+
+[[sim]]
+prop = "instances"
+note = "Members of the ensemble. A write needs a majority of them, so an odd count tolerates the most failures for its size."
+note_es = "Miembros del conjunto. Una escritura necesita a la mayoría, así que un número impar tolera más fallos para su tamaño."
+
+[[sim]]
+prop = "election_ms"
+note = "How long writes and lock grants pause after the leader is lost, while the members elect a new one."
+note_es = "Cuánto se pausan las escrituras y las concesiones de bloqueo tras perder al líder, mientras los miembros eligen otro."
+
+[[sim]]
+prop = "lease_s"
+note = "How long a lock lasts without renewal. If the holder dies, the lock frees itself after this long."
+note_es = "Cuánto dura un bloqueo sin renovarse. Si muere quien lo tiene, el bloqueo se libera solo pasado este tiempo."
+
+[[sim]]
+prop = "service_ms"
+note = "Time to commit one write or grant one lock, including the round to a majority."
+note_es = "Tiempo para confirmar una escritura o conceder un bloqueo, incluida la ronda hasta una mayoría."
+
+[[sim]]
+sim = "servers_per_instance"
+note = "Requests one member handles at once before the rest wait."
+note_es = "Peticiones que un miembro atiende a la vez antes de que el resto espere."
+
+[[sim]]
+cost = "per_instance_month"
+note = "A fixed monthly price per member. Three members cost three times one."
+note_es = "Un precio mensual fijo por miembro. Tres miembros cuestan el triple que uno."
+
+[flavours_compared]
+flavours = ["etcd", "zookeeper", "consul"]
+
+[[flavours_compared.rows]]
+label = "Consensus"
+label_es = "Consenso"
+cells = ["Raft", "ZAB", "Raft"]
+cells_es = ["Raft", "ZAB", "Raft"]
+
+[[flavours_compared.rows]]
+label = "Typical home"
+label_es = "Uso típico"
+cells = ["Kubernetes state", "Kafka, Hadoop and older JVM stacks", "Service discovery and health checks"]
+cells_es = ["El estado de Kubernetes", "Kafka, Hadoop y stacks JVM más antiguos", "Descubrimiento de servicios y comprobaciones de salud"]
+
+[[flavours_compared.rows]]
+label = "Locks"
+label_es = "Bloqueos"
+cells = ["Leases with a revision you can use as a fencing token", "Ephemeral sequential nodes", "Sessions and the lock API"]
+cells_es = ["Concesiones con una revisión que sirve de token de cercado", "Nodos efímeros secuenciales", "Sesiones y la API de bloqueos"]
+
+[[flavours_compared.rows]]
+label = "API"
+label_es = "API"
+cells = ["gRPC key-value", "Its own client protocol", "HTTP and DNS"]
+cells_es = ["Clave-valor por gRPC", "Su propio protocolo de cliente", "HTTP y DNS"]
+
+[[pitfalls]]
+title = "An even number of members"
+title_es = "Un número par de miembros"
+body = "Four members need three for a majority, so they survive one failure, the same as three members. A split down the middle leaves neither side able to write."
+body_es = "Cuatro miembros necesitan tres para la mayoría, así que sobreviven a un fallo, igual que tres. Una partición por la mitad deja a ningún lado capaz de escribir."
+fix = "Run three or five members, spread over availability zones so one zone can't hold a majority alone."
+fix_es = "Usa tres o cinco miembros, repartidos entre zonas de disponibilidad para que una sola zona no tenga la mayoría."
+
+[[pitfalls]]
+title = "A lock without fencing"
+title_es = "Un bloqueo sin cercado"
+body = "The holder pauses, its lease expires, and a second worker takes the lock. Then the first one wakes up and writes too, because it still believes it holds the lock."
+body_es = "Quien tiene el bloqueo se pausa, su concesión caduca y un segundo worker lo toma. Luego el primero despierta y también escribe, porque cree que aún tiene el bloqueo."
+fix = "Hand out a fencing token that grows with each grant, and have the datastore refuse writes with an older token."
+fix_es = "Entrega un token de cercado que crece con cada concesión y haz que el almacén rechace escrituras con un token más antiguo."
+
+[[pitfalls]]
+title = "Using it as a database"
+title_es = "Usarlo como base de datos"
+body = "App data goes into the coordination service. Every write waits for a majority, it fills up, and the slow writes delay the leader elections that depend on it."
+body_es = "Los datos de la aplicación van al servicio de coordinación. Cada escritura espera a una mayoría, se llena, y las escrituras lentas retrasan las elecciones de líder que dependen de él."
+fix = "Keep only small coordination data there: leaders, locks, membership and a little config."
+fix_es = "Guarda allí solo datos pequeños de coordinación: líderes, bloqueos, pertenencia y algo de configuración."
+
+[[sources]]
+flavour = "etcd"
+title = "etcd documentation"
+url = "https://etcd.io/docs/"
+checked = false
+
+[[sources]]
+flavour = "zookeeper"
+title = "Apache ZooKeeper documentation"
+url = "https://zookeeper.apache.org/documentation.html"
+checked = false
+
+[[sources]]
+flavour = "consul"
+title = "HashiCorp Consul documentation"
+url = "https://developer.hashicorp.com/consul/docs"
+checked = false
+
+[[quiz]]
+q = "A five-member ensemble is split by the network into a group of two and a group of three. What happens to lock requests?"
+q_es = "Un conjunto de cinco miembros queda dividido por la red en un grupo de dos y otro de tres. ¿Qué pasa con las peticiones de bloqueo?"
+options = ["The group of three keeps granting locks; the group of two refuses them", "Both groups keep granting locks until the network heals", "Both groups refuse every lock until the network heals"]
+options_es = ["El grupo de tres sigue concediendo bloqueos; el de dos los rechaza", "Ambos grupos siguen concediendo bloqueos hasta que la red se recupere", "Ambos grupos rechazan todos los bloqueos hasta que la red se recupere"]
+answer = 0
+why = "A grant needs a majority, three of five. Only the larger side has one, so only it can grant; that is what stops two holders at once."
+why_es = "Una concesión necesita una mayoría, tres de cinco. Solo el lado mayor la tiene, así que solo él puede conceder; eso es lo que evita dos titulares a la vez."
+
+[[quiz]]
+q = "A worker holding a lock pauses for longer than its lease. Another worker gets the lock. How do you stop the first one's late write?"
+q_es = "Un worker con un bloqueo se pausa más tiempo que su concesión. Otro worker obtiene el bloqueo. ¿Cómo evitas la escritura tardía del primero?"
+options = ["Make the lease longer than any possible pause", "Have the first worker check the lock just before it writes", "Add more members to the coordination service", "Send a fencing token with each write and have the datastore refuse older tokens"]
+options_es = ["Hacer la concesión más larga que cualquier pausa posible", "Que el primer worker compruebe el bloqueo justo antes de escribir", "Añadir más miembros al servicio de coordinación", "Enviar un token de cercado con cada escritura y que el almacén rechace tokens más antiguos"]
+answer = 3
+why = "No lease is long enough for every pause, and a check just before the write can still go stale. Only the datastore, seeing the token, can refuse the stale holder."
+why_es = "Ninguna concesión es lo bastante larga para toda pausa, y una comprobación justo antes de escribir puede quedar obsoleta igual. Solo el almacén, al ver el token, puede rechazar al titular obsoleto."
+
+[[quiz]]
+q = "Why do coordination clusters usually have three or five members, not four?"
+q_es = "¿Por qué los clústeres de coordinación suelen tener tres o cinco miembros y no cuatro?"
+options = ["Four members would be too slow to elect a leader", "Four tolerates one failure, like three, but costs more and splits evenly", "The consensus protocols only work with odd counts", "Four members would lose data when one fails"]
+options_es = ["Cuatro miembros tardarían demasiado en elegir líder", "Cuatro tolera un fallo, como tres, pero cuesta más y se parte en mitades iguales", "Los protocolos de consenso solo funcionan con números impares", "Cuatro miembros perderían datos al fallar uno"]
+answer = 1
+why = "A majority of four is three, so only one member may fail, as with three. The fourth member adds cost and a two-two split leaves no majority."
+why_es = "La mayoría de cuatro es tres, así que solo puede fallar un miembro, como con tres. El cuarto añade coste y una partición dos-dos deja sin mayoría."

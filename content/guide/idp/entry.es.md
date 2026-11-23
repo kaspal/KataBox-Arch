@@ -1,0 +1,7 @@
+Un proveedor de identidad se encarga del inicio de sesión por ti. El usuario demuestra quién es ante el proveedor, y el proveedor le devuelve un **token** firmado. A partir de ahí, cada petición lleva ese token, y tu sistema lo comprueba antes de hacer ningún trabajo. Las contraseñas, el MFA y la recuperación de cuentas se quedan en el proveedor.
+
+Aquí hay dos operaciones muy distintas. Un **inicio de sesión** es raro y lento, y el proveedor limita cuántos acepta por segundo. Una **comprobación de token** ocurre en cada petición. Si la aplicación pregunta al proveedor cada vez (verificación remota), cada petición espera al proveedor y falla cuando está caído. Si la aplicación comprueba ella misma la firma del token con las claves de firma del proveedor en caché (verificación local), la comprobación es casi gratis y sigue funcionando durante una caída.
+
+Así que el diseño habitual es: mandar los inicios de sesión al proveedor, verificar los tokens en local y asegurarse de que un pico de inicios de sesión quede por debajo del límite del proveedor.
+
+**Cómo lo factura el simulador.** Auth0, Cognito y Okta cobran 5 $ por millón de inicios de sesión, en lugar de su precio por usuario activo al mes (precio didáctico; fuente por confirmar). Keycloak es propio, a 70 $ al mes por servidor, sin coste por inicio de sesión. Las comprobaciones locales de token no cuestan nada.

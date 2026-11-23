@@ -45,7 +45,7 @@ describe("pages", () => {
     expect(await screen.findByTestId("library")).toBeInTheDocument();
     expect(screen.getByTestId("canvas")).toBeInTheDocument();
     expect(screen.getByTestId("inspector")).toBeInTheDocument();
-    expect(screen.getAllByTestId("library-row")).toHaveLength(25 + 3);
+    expect(screen.getAllByTestId("library-row")).toHaveLength(42 + 3);
     expect(unnamed(document.body)).toEqual([]);
   });
 
@@ -79,11 +79,11 @@ describe("library", () => {
 
   it("categories collapse and show their counts", async () => {
     const { user } = renderApp("/sandbox");
-    const header = await screen.findByRole("button", { name: "Clients & Edge · 7" });
+    const header = await screen.findByRole("button", { name: "Clients & Edge · 10" });
     expect(header).toHaveAttribute("aria-expanded", "true");
     await user.click(header);
     expect(header).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getAllByTestId("library-row")).toHaveLength(25 + 3 - 7);
+    expect(screen.getAllByTestId("library-row")).toHaveLength(42 + 3 - 10);
   });
 
   it("Enter on a row opens the flavour picker with the default preselected, then adds the card", async () => {

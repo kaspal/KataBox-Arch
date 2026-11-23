@@ -1,0 +1,7 @@
+Una API de terceros es un servicio que opera otra empresa y al que llama tu sistema: un procesador de pagos, una pasarela de SMS, un servicio de envío de correo. Tú no lo dimensionas ni lo operas. Lo que controlas es **cómo lo llamas**: desde qué componente, dentro o fuera de la petición del usuario, y a qué ritmo.
+
+En el simulador, una tarjeta externa representa un proveedor que declara el problema. El problema fija su latencia, su límite de ritmo y sus caídas. Dibujar la tarjeta te deja enrutar hacia él de forma explícita y dar a cada llamador su propio camino, por ejemplo la aplicación para los pagos con tarjeta y un worker detrás de una cola para los correos. Las tarjetas vinculadas al mismo proveedor **comparten su límite de ritmo**, porque el límite es de la cuenta, no de la tarjeta. Sin tarjeta, el proveedor sigue ahí, solo que implícito.
+
+El movimiento de diseño clave es sacar a los proveedores lentos o poco fiables del camino del usuario. Una llamada hecha mientras el usuario espera falla cuando falla el proveedor. Una llamada hecha por un worker desde una cola puede esperar y reintentar.
+
+**Cómo lo factura el simulador.** La API genérica y Stripe no cuestan nada por llamada (Stripe en realidad cobra una parte de cada pago, que no se modela). Twilio cobra 7.900 $ por millón de SMS, unos 0,0079 $ cada uno, y SendGrid 900 $ por millón de correos, unos 0,0009 $ cada uno. Son precios didácticos; fuente por confirmar.

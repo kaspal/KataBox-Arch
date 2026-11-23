@@ -291,3 +291,238 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | Id | Value | Unit | Source |
 |---|---|---|---|
 | `tracing.cost.instance` | 80 | $/instance-month | source: needed (suggested: https://www.jaegertracing.io/docs/); teaching price, shaped like the list price |
+
+### `ws`
+
+| Id | Value | Unit | Source |
+|---|---|---|---|
+| `ws.max_connections` | 100000 | connections per instance | source: needed (suggested: https://socket.io/docs/v4/performance-tuning/); one gateway process holding idle sockets |
+| `ws.max_connections@phoenix` | 1000000 | connections per instance | source: needed (suggested: https://www.phoenixframework.org/blog/the-road-to-2-million-websocket-connections); one gateway process holding idle sockets |
+| `ws.conn_memory_kb` | 20 | KB per connection | source: needed (suggested: https://socket.io/docs/v4/performance-tuning/); socket buffers and per-connection state |
+| `ws.msgs_per_s` | 50000 | messages/s per instance | source: needed (suggested: https://socket.io/docs/v4/performance-tuning/); server pushes one instance sends |
+| `ws.accept_per_s` | 2000 | new connections/s per instance | source: needed (suggested: https://socket.io/docs/v4/performance-tuning/); TLS handshakes plus auth one instance accepts |
+| `ws.service_ms` | 0.5 | ms | source: needed (suggested: https://socket.io/docs/v4/performance-tuning/); ballpark |
+| `ws.servers_per_instance` | 10000 | in parallel per instance | model: effectively unlimited; the card's own limits (connections, pools) bind first |
+| `ws.p99_ratio` | 3 | × median | model: tail multiplier of the service time |
+| `ws.queue_per_server` | 8 | waiting per server | model: backlog slots before drops |
+| `ws.cost.instance` | 70 | $/instance-month | source: needed (suggested: https://socket.io/docs/v4/performance-tuning/); teaching price shaped like the list price |
+| `ws.cost.instance@aws_apigw_ws` | 0 | $/instance-month | billed another way (see the other rows for this flavour) |
+| `ws.cost.meter.conn_minutes@aws_apigw_ws` | 0.25 | $/million connection-minutes | source: needed (suggested: https://aws.amazon.com/api-gateway/pricing/); teaching price shaped like the list price |
+| `ws.cost.meter.messages@aws_apigw_ws` | 1 | $/million messages | source: needed (suggested: https://aws.amazon.com/api-gateway/pricing/); teaching price shaped like the list price |
+
+### `idp`
+
+| Id | Value | Unit | Source |
+|---|---|---|---|
+| `idp.login_ms` | 150 | ms | source: needed (suggested: https://auth0.com/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy); a password login with token issue |
+| `idp.verify_ms` | 5 | ms | source: needed (suggested: https://auth0.com/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy); a token introspection call |
+| `idp.logins_per_s` | 100 | logins/s | source: needed (suggested: https://auth0.com/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy); the tenant's login rate limit |
+| `idp.servers_per_instance` | 256 | in parallel per instance | source: needed (suggested: https://auth0.com/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy); ballpark |
+| `idp.service_ms` | 5 | ms | source: needed (suggested: https://auth0.com/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy); ballpark |
+| `idp.p99_ratio` | 4 | × median | model: tail multiplier of the service time |
+| `idp.queue_per_server` | 8 | waiting per server | model: backlog slots before drops |
+| `idp.cost.million` | 5 | $/million requests | source: needed (suggested: https://auth0.com/pricing); teaching price shaped like the list price |
+| `idp.cost.instance@keycloak` | 70 | $/instance-month | source: needed (suggested: https://www.keycloak.org/high-availability/concepts-memory-and-cpu-sizing); teaching price shaped like the list price |
+| `idp.cost.million@keycloak` | 0 | $/million requests | billed another way (see the other rows for this flavour) |
+
+### `external`
+
+| Id | Value | Unit | Source |
+|---|---|---|---|
+| `external.cost.million@twilio` | 7900 | $/million requests | source: needed (suggested: https://www.twilio.com/en-us/sms/pricing/us); teaching price shaped like the list price |
+| `external.cost.million@sendgrid` | 900 | $/million requests | source: needed (suggested: https://sendgrid.com/en-us/pricing); teaching price shaped like the list price |
+
+### `infer`
+
+| Id | Value | Unit | Source |
+|---|---|---|---|
+| `infer.ttft_ms` | 600 | ms to first token | source: needed (suggested: https://docs.anthropic.com/en/api/rate-limits); time to first token of a hosted model |
+| `infer.ttft_ms@openai_api` | 500 | ms to first token | source: needed (suggested: https://openai.com/api/pricing/); time to first token of a hosted model |
+| `infer.ttft_ms@gemini_api` | 500 | ms to first token | source: needed (suggested: https://ai.google.dev/gemini-api/docs/pricing); time to first token of a hosted model |
+| `infer.ttft_ms@vllm` | 200 | ms to first token | source: needed (suggested: https://docs.vllm.ai/en/latest/contributing/benchmarks.html); time to first token of a hosted model |
+| `infer.ttft_ms@triton` | 5 | ms to first token | source: needed (suggested: https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/perf_analyzer.html); time to first token of a hosted model |
+| `infer.tokens_per_s` | 80 | tokens/s per request | source: needed (suggested: https://docs.anthropic.com/en/api/rate-limits); output speed of one stream |
+| `infer.tokens_per_s@openai_api` | 90 | tokens/s per request | source: needed (suggested: https://openai.com/api/pricing/); output speed of one stream |
+| `infer.tokens_per_s@gemini_api` | 120 | tokens/s per request | source: needed (suggested: https://ai.google.dev/gemini-api/docs/pricing); output speed of one stream |
+| `infer.prefill_tps` | 5000 | prompt tokens/s | source: needed (suggested: https://docs.anthropic.com/en/api/rate-limits); prompt processing speed |
+| `infer.rpm` | 4000 | requests/min | source: needed (suggested: https://docs.anthropic.com/en/api/rate-limits); a hosted account tier's request limit |
+| `infer.tpm` | 400000 | tokens/min | source: needed (suggested: https://docs.anthropic.com/en/api/rate-limits); a hosted account tier's token limit |
+| `infer.servers_per_instance` | 16 | in parallel per instance | source: needed (suggested: https://docs.anthropic.com/en/api/rate-limits); ballpark |
+| `infer.service_ms` | 300 | ms | source: needed (suggested: https://docs.anthropic.com/en/api/rate-limits); ballpark |
+| `infer.p99_ratio` | 3 | × median | model: tail multiplier of the service time |
+| `infer.queue_per_server` | 64 | waiting per server | model: backlog slots before drops |
+| `infer.cost.meter.tokens_in` | 3 | $/million input tokens | source: needed (suggested: https://www.anthropic.com/pricing); teaching price shaped like the list price |
+| `infer.cost.meter.tokens_out` | 15 | $/million output tokens | source: needed (suggested: https://www.anthropic.com/pricing); teaching price shaped like the list price |
+| `infer.cost.meter.tokens_in@openai_api` | 2.5 | $/million input tokens | source: needed (suggested: https://openai.com/api/pricing/); teaching price shaped like the list price |
+| `infer.cost.meter.tokens_out@openai_api` | 10 | $/million output tokens | source: needed (suggested: https://openai.com/api/pricing/); teaching price shaped like the list price |
+| `infer.cost.meter.tokens_in@gemini_api` | 1.25 | $/million input tokens | source: needed (suggested: https://ai.google.dev/gemini-api/docs/pricing); teaching price shaped like the list price |
+| `infer.cost.meter.tokens_out@gemini_api` | 10 | $/million output tokens | source: needed (suggested: https://ai.google.dev/gemini-api/docs/pricing); teaching price shaped like the list price |
+| `infer.cost.instance@vllm` | 734 | $/instance-month | source: needed (suggested: https://aws.amazon.com/ec2/instance-types/g5/); teaching price shaped like the list price |
+| `infer.cost.meter.tokens_in@vllm` | 0 | $/million input tokens | billed another way (see the other rows for this flavour) |
+| `infer.cost.meter.tokens_out@vllm` | 0 | $/million output tokens | billed another way (see the other rows for this flavour) |
+| `infer.cost.instance@triton` | 734 | $/instance-month | source: needed (suggested: https://aws.amazon.com/ec2/instance-types/g5/); teaching price shaped like the list price |
+| `infer.cost.meter.tokens_in@triton` | 0 | $/million input tokens | billed another way (see the other rows for this flavour) |
+| `infer.cost.meter.tokens_out@triton` | 0 | $/million output tokens | billed another way (see the other rows for this flavour) |
+
+### `batch`
+
+| Id | Value | Unit | Source |
+|---|---|---|---|
+| `batch.task_overhead_ms` | 200 | ms per task | source: needed (suggested: https://spark.apache.org/docs/latest/configuration.html); scheduling and launching one task |
+| `batch.servers_per_instance` | 4 | in parallel per instance | source: needed (suggested: https://spark.apache.org/docs/latest/configuration.html); ballpark |
+| `batch.service_ms` | 1000 | ms | source: needed (suggested: https://spark.apache.org/docs/latest/configuration.html); ballpark |
+| `batch.p99_ratio` | 3 | × median | model: tail multiplier of the service time |
+| `batch.queue_per_server` | 64 | waiting per server | model: backlog slots before drops |
+| `batch.cost.instance` | 140 | $/instance-month | source: needed (suggested: https://aws.amazon.com/emr/pricing/); teaching price shaped like the list price |
+
+### `media`
+
+| Id | Value | Unit | Source |
+|---|---|---|---|
+| `media.streams_per_instance` | 500 | streams per instance | source: needed (suggested: https://docs.livekit.io/home/self-hosting/benchmark/); forwarded streams one SFU node carries |
+| `media.streams_per_instance@elemental_live` | 8 | streams per instance | source: needed (suggested: https://aws.amazon.com/medialive/pricing/); forwarded streams one SFU node carries |
+| `media.streams_per_instance@wowza` | 8 | streams per instance | source: needed (suggested: https://www.wowza.com/pricing); forwarded streams one SFU node carries |
+| `media.servers_per_instance` | 500 | in parallel per instance | source: needed (suggested: https://docs.livekit.io/home/self-hosting/benchmark/); ballpark |
+| `media.service_ms` | 20 | ms | source: needed (suggested: https://docs.livekit.io/home/self-hosting/benchmark/); ballpark |
+| `media.p99_ratio` | 3 | × median | model: tail multiplier of the service time |
+| `media.queue_per_server` | 4 | waiting per server | model: backlog slots before drops |
+| `media.cost.instance` | 70 | $/instance-month | source: needed (suggested: https://docs.livekit.io/home/self-hosting/benchmark/); teaching price shaped like the list price |
+| `media.cost.instance@elemental_live` | 2190 | $/instance-month | source: needed (suggested: https://aws.amazon.com/medialive/pricing/); teaching price shaped like the list price |
+| `media.cost.instance@wowza` | 250 | $/instance-month | source: needed (suggested: https://www.wowza.com/pricing); teaching price shaped like the list price |
+
+### `coord`
+
+| Id | Value | Unit | Source |
+|---|---|---|---|
+| `coord.election_ms` | 1000 | ms | source: needed (suggested: https://etcd.io/docs/v3.5/tuning/); election timeout (10 × heartbeat) |
+| `coord.service_ms` | 2 | ms | source: needed (suggested: https://etcd.io/docs/v3.5/op-guide/performance/); a write: leader fsync plus a quorum round trip |
+| `coord.servers_per_instance` | 64 | in parallel per instance | source: needed (suggested: https://etcd.io/docs/v3.5/op-guide/performance/); ballpark |
+| `coord.p99_ratio` | 4 | × median | model: tail multiplier of the service time |
+| `coord.queue_per_server` | 8 | waiting per server | model: backlog slots before drops |
+| `coord.cost.instance` | 70 | $/instance-month | source: needed (suggested: https://etcd.io/docs/v3.5/op-guide/performance/); teaching price shaped like the list price |
+
+### `vector`
+
+| Id | Value | Unit | Source |
+|---|---|---|---|
+| `vector.service_ms` | 2 | ms | source: needed (suggested: https://github.com/pgvector/pgvector#performance); ballpark |
+| `vector.servers_per_instance` | 16 | in parallel per instance | source: needed (suggested: https://github.com/pgvector/pgvector#performance); ballpark |
+| `vector.p99_ratio` | 4 | × median | model: tail multiplier of the service time |
+| `vector.queue_per_server` | 8 | waiting per server | model: backlog slots before drops |
+| `vector.failover_s` | 10 | s | source: needed (suggested: https://github.com/pgvector/pgvector#performance); ballpark |
+| `vector.cost.instance` | 260 | $/instance-month | source: needed (suggested: https://github.com/pgvector/pgvector#performance); teaching price shaped like the list price |
+| `vector.cost.instance@pinecone` | 0 | $/instance-month | billed another way (see the other rows for this flavour) |
+| `vector.cost.million@pinecone` | 16 | $/million requests | source: needed (suggested: https://www.pinecone.io/pricing/); teaching price shaped like the list price |
+| `vector.cost.million_write@pinecone` | 4 | $/million writes | source: needed (suggested: https://www.pinecone.io/pricing/); teaching price shaped like the list price |
+
+### `warehouse`
+
+| Id | Value | Unit | Source |
+|---|---|---|---|
+| `warehouse.concurrency` | 8 | in parallel per instance | source: needed (suggested: https://docs.snowflake.com/en/user-guide/warehouses-overview); ballpark |
+| `warehouse.scan_gbps` | 1 | GB/s per query | source: needed (suggested: https://docs.snowflake.com/en/user-guide/warehouses-overview); scan rate of one query on the smallest size |
+| `warehouse.overhead_ms` | 300 | ms per query | source: needed (suggested: https://docs.snowflake.com/en/user-guide/warehouses-overview); planning and compilation per query |
+| `warehouse.service_ms` | 300 | ms | source: needed (suggested: https://docs.snowflake.com/en/user-guide/warehouses-overview); ballpark |
+| `warehouse.p99_ratio` | 3 | × median | model: tail multiplier of the service time |
+| `warehouse.queue_per_server` | 16 | waiting per server | model: backlog slots before drops |
+| `warehouse.cost.instance` | 1460 | $/instance-month | source: needed (suggested: https://www.snowflake.com/en/pricing-options/); teaching price shaped like the list price |
+| `warehouse.cost.instance@bigquery` | 0 | $/instance-month | billed another way (see the other rows for this flavour) |
+| `warehouse.cost.meter.tb_scanned@bigquery` | 6.25 | $/TB scanned | source: needed (suggested: https://cloud.google.com/bigquery/pricing); teaching price shaped like the list price |
+| `warehouse.cost.instance@redshift` | 182 | $/instance-month | source: needed (suggested: https://aws.amazon.com/redshift/pricing/); teaching price shaped like the list price |
+| `warehouse.cost.instance@clickhouse` | 250 | $/instance-month | source: needed (suggested: https://clickhouse.com/pricing); teaching price shaped like the list price |
+| `warehouse.cost.instance@databricks_sql` | 1000 | $/instance-month | source: needed (suggested: https://www.databricks.com/product/pricing/databricks-sql); teaching price shaped like the list price |
+
+### `lakehouse`
+
+| Id | Value | Unit | Source |
+|---|---|---|---|
+| `lakehouse.servers_per_instance` | 1000 | in parallel per instance | model: effectively unlimited; the card's own limits (connections, pools) bind first |
+| `lakehouse.service_ms` | 50 | ms | source: needed (suggested: https://iceberg.apache.org/docs/latest/performance/); ballpark |
+| `lakehouse.p99_ratio` | 4 | × median | model: tail multiplier of the service time |
+| `lakehouse.queue_per_server` | 4 | waiting per server | model: backlog slots before drops |
+| `lakehouse.cost.gb` | 0.023 | $/GB-month | source: needed (suggested: https://aws.amazon.com/s3/pricing/); teaching price shaped like the list price |
+
+### `tsdb`
+
+| Id | Value | Unit | Source |
+|---|---|---|---|
+| `tsdb.points_per_s` | 500000 | points/s per instance | source: needed (suggested: https://docs.influxdata.com/influxdb/v1/guides/hardware_sizing/); points written per second on one node |
+| `tsdb.series_limit` | 1000000 | series per instance | source: needed (suggested: https://docs.influxdata.com/influxdb/v1/guides/hardware_sizing/); active series one node holds in memory |
+| `tsdb.service_ms` | 1 | ms | source: needed (suggested: https://docs.influxdata.com/influxdb/v1/guides/hardware_sizing/); ballpark |
+| `tsdb.servers_per_instance` | 64 | in parallel per instance | source: needed (suggested: https://docs.influxdata.com/influxdb/v1/guides/hardware_sizing/); ballpark |
+| `tsdb.p99_ratio` | 4 | × median | model: tail multiplier of the service time |
+| `tsdb.queue_per_server` | 8 | waiting per server | model: backlog slots before drops |
+| `tsdb.failover_s` | 30 | s | source: needed (suggested: https://docs.influxdata.com/influxdb/v1/guides/hardware_sizing/); ballpark |
+| `tsdb.cost.instance` | 260 | $/instance-month | source: needed (suggested: https://docs.influxdata.com/influxdb/v1/guides/hardware_sizing/); teaching price shaped like the list price |
+| `tsdb.cost.instance@timestream` | 0 | $/instance-month | billed another way (see the other rows for this flavour) |
+| `tsdb.cost.million@timestream` | 0.01 | $/million requests | source: needed (suggested: https://aws.amazon.com/timestream/pricing/); teaching price shaped like the list price |
+| `tsdb.cost.million_write@timestream` | 0.5 | $/million writes | source: needed (suggested: https://aws.amazon.com/timestream/pricing/); teaching price shaped like the list price |
+
+### `dbproxy`
+
+| Id | Value | Unit | Source |
+|---|---|---|---|
+| `dbproxy.service_ms` | 0.3 | ms | source: needed (suggested: https://www.pgbouncer.org/config.html); ballpark |
+| `dbproxy.servers_per_instance` | 10000 | in parallel per instance | model: effectively unlimited; the card's own limits (connections, pools) bind first |
+| `dbproxy.p99_ratio` | 3 | × median | model: tail multiplier of the service time |
+| `dbproxy.queue_per_server` | 8 | waiting per server | model: backlog slots before drops |
+| `dbproxy.cost.instance` | 30 | $/instance-month | source: needed (suggested: https://www.pgbouncer.org/config.html); teaching price shaped like the list price |
+| `dbproxy.cost.instance@rds_proxy` | 45 | $/instance-month | source: needed (suggested: https://aws.amazon.com/rds/proxy/pricing/); teaching price shaped like the list price |
+
+### `graph`
+
+| Id | Value | Unit | Source |
+|---|---|---|---|
+| `graph.edges_per_ms` | 500 | edges visited per ms | source: needed (suggested: https://neo4j.com/docs/operations-manual/current/performance/); relationships traversed per ms |
+| `graph.service_ms` | 1 | ms | source: needed (suggested: https://neo4j.com/docs/operations-manual/current/performance/); ballpark |
+| `graph.failover_s` | 30 | s | source: needed (suggested: https://neo4j.com/docs/operations-manual/current/performance/); ballpark |
+| `graph.servers_per_instance` | 32 | in parallel per instance | source: needed (suggested: https://neo4j.com/docs/operations-manual/current/performance/); ballpark |
+| `graph.p99_ratio` | 5 | × median | model: tail multiplier of the service time |
+| `graph.queue_per_server` | 4 | waiting per server | model: backlog slots before drops |
+| `graph.cost.instance` | 260 | $/instance-month | source: needed (suggested: https://neo4j.com/docs/operations-manual/current/performance/); teaching price shaped like the list price |
+| `graph.cost.instance@neptune` | 350 | $/instance-month | source: needed (suggested: https://aws.amazon.com/neptune/pricing/); teaching price shaped like the list price |
+
+### `streamproc`
+
+| Id | Value | Unit | Source |
+|---|---|---|---|
+| `streamproc.concurrency` | 4 | in parallel per instance | source: needed (suggested: https://nightlies.apache.org/flink/flink-docs-stable/docs/ops/state/large_state_tuning/); ballpark |
+| `streamproc.records_per_s` | 20000 | records/s per slot | source: needed (suggested: https://nightlies.apache.org/flink/flink-docs-stable/docs/ops/state/large_state_tuning/); simple records per slot per second |
+| `streamproc.service_ms` | 0.05 | ms | source: needed (suggested: https://nightlies.apache.org/flink/flink-docs-stable/docs/ops/state/large_state_tuning/); ballpark |
+| `streamproc.p99_ratio` | 3 | × median | model: tail multiplier of the service time |
+| `streamproc.queue_per_server` | 1000 | waiting per server | model: backlog slots before drops |
+| `streamproc.cost.instance` | 70 | $/instance-month | source: needed (suggested: https://nightlies.apache.org/flink/flink-docs-stable/docs/ops/state/large_state_tuning/); teaching price shaped like the list price |
+
+### `mqtt`
+
+| Id | Value | Unit | Source |
+|---|---|---|---|
+| `mqtt.max_connections` | 1000000 | connections per instance | source: needed (suggested: https://www.emqx.com/en/blog/how-emqx-5-0-achieves-100-million-mqtt-connections); ballpark |
+| `mqtt.conn_memory_kb` | 8 | KB per connection | source: needed (suggested: https://www.emqx.com/en/blog/how-emqx-5-0-achieves-100-million-mqtt-connections); ballpark |
+| `mqtt.msgs_per_s` | 100000 | messages/s per instance | source: needed (suggested: https://www.emqx.com/en/blog/how-emqx-5-0-achieves-100-million-mqtt-connections); ballpark |
+| `mqtt.service_ms` | 2 | ms | source: needed (suggested: https://www.emqx.com/en/blog/how-emqx-5-0-achieves-100-million-mqtt-connections); ballpark |
+| `mqtt.servers_per_instance` | 10000 | in parallel per instance | model: effectively unlimited; the card's own limits (connections, pools) bind first |
+| `mqtt.p99_ratio` | 3 | × median | model: tail multiplier of the service time |
+| `mqtt.queue_per_server` | 4 | waiting per server | model: backlog slots before drops |
+| `mqtt.cost.instance` | 70 | $/instance-month | source: needed (suggested: https://www.emqx.com/en/blog/how-emqx-5-0-achieves-100-million-mqtt-connections); teaching price shaped like the list price |
+| `mqtt.cost.instance@aws_iot_core` | 0 | $/instance-month | billed another way (see the other rows for this flavour) |
+| `mqtt.cost.meter.conn_minutes@aws_iot_core` | 0.08 | $/million connection-minutes | source: needed (suggested: https://aws.amazon.com/iot-core/pricing/); teaching price shaped like the list price |
+| `mqtt.cost.meter.messages@aws_iot_core` | 1 | $/million messages | source: needed (suggested: https://aws.amazon.com/iot-core/pricing/); teaching price shaped like the list price |
+
+### `connector`
+
+| Id | Value | Unit | Source |
+|---|---|---|---|
+| `connector.concurrency` | 4 | in parallel per instance | source: needed (suggested: https://docs.confluent.io/platform/current/connect/index.html); ballpark |
+| `connector.service_ms` | 50 | ms | source: needed (suggested: https://docs.confluent.io/platform/current/connect/index.html); ballpark |
+| `connector.p99_ratio` | 4 | × median | model: tail multiplier of the service time |
+| `connector.queue_per_server` | 8 | waiting per server | model: backlog slots before drops |
+| `connector.cost.instance` | 70 | $/instance-month | source: needed (suggested: https://docs.confluent.io/platform/current/connect/index.html); teaching price shaped like the list price |
+| `connector.cost.instance@fivetran` | 0 | $/instance-month | billed another way (see the other rows for this flavour) |
+| `connector.cost.million@fivetran` | 500 | $/million requests | source: needed (suggested: https://www.fivetran.com/pricing); teaching price shaped like the list price |
+
+### `config`
+
+| Id | Value | Unit | Source |
+|---|---|---|---|
+| `config.cost.instance` | 20 | $/instance-month | source: needed (suggested: https://aws.amazon.com/systems-manager/pricing/); teaching price shaped like the list price |

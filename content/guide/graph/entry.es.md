@@ -1,0 +1,7 @@
+Una base de datos de grafos guarda **nodos** (usuarios, productos, lugares) y las **relaciones** entre ellos como datos de primera clase. Una consulta empieza en un nodo y recorre sus vínculos: los amigos de un usuario, luego los amigos de estos, luego lo que esas personas compraron. Cada paso por los vínculos es un **salto**.
+
+Seguir un vínculo es barato, porque la base de datos guarda los vínculos de cada nodo junto a él. El peligro es la cantidad de vínculos. Si cada usuario tiene doscientos amigos, dos saltos visitan unas cuarenta mil relaciones y tres saltos unos ocho millones. El simulador suma las aristas que visita un tipo de petición y las divide por la velocidad de la base de datos en aristas por milisegundo, así que una consulta profunda muestra su coste real.
+
+Las lecturas se pueden repartir entre réplicas, que son tarjetas aparte unidas con aristas Replicate. Las escrituras siempre van al líder, y mientras se elige un líder nuevo tras un fallo, las escrituras fallan. Una base de datos de grafos es la herramienta adecuada cuando la pregunta trata de relaciones; para búsquedas por clave o informes sobre muchas filas, encaja mejor SQL, un almacén clave-valor o un data warehouse.
+
+**Cómo lo factura el simulador.** Neo4j y JanusGraph corren en tus propios servidores a 260 $ por instancia al mes, el precio de un nodo con mucha memoria. Amazon Neptune es una instancia gestionada a 350 $ al mes (precio didáctico; fuente por confirmar). No hay coste por consulta, y el almacenamiento no se factura aparte.

@@ -210,6 +210,15 @@ function Entry({ page, registry }: { page: GuidePage; registry: Registry }) {
               <p className="text-xs text-muted-foreground">{t("guide.simNote")}</p>
             </Card>
           </div>
+          {(e.not_simulated ?? []).length > 0 && (
+            <Card title={t("guide.notSimulated")} id="not-simulated">
+              <ul className="list-disc space-y-1 pl-5 text-sm" data-testid="not-simulated">
+                {L(e.not_simulated ?? [], e.not_simulated_es ?? []).map((s) => (
+                  <li key={s}>{s}</li>
+                ))}
+              </ul>
+            </Card>
+          )}
           <Card title={t("guide.pitfalls")}>
             <dl className="divide-y">
               {e.pitfalls.map((p) => (

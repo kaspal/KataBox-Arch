@@ -1,0 +1,7 @@
+Una base de datos vectorial guarda **embeddings**: listas de números que un modelo produce para un texto, una imagen o un producto, colocadas de forma que las cosas parecidas quedan cerca. Una consulta también es un embedding, y la base devuelve los `top_k` elementos guardados más cercanos. Así funcionan la búsqueda semántica, las recomendaciones "más como este" y la recuperación para respuestas de IA.
+
+Comparar una consulta con cada vector sería demasiado lento con millones de elementos, así que estas bases construyen un índice aproximado, normalmente **HNSW**, un grafo que la búsqueda recorre hacia los puntos más cercanos. Responde en milisegundos, pero de vez en cuando puede perder un vecino real. El tamaño de cada embedding (`dims`) fija cuánta memoria necesita el índice; el simulador lo mantiene solo como nota de diseño.
+
+Las colecciones grandes se dividen en **shards**. Una consulta va a todos los shards, y la respuesta espera al más lento, así que el tiempo de búsqueda depende de cuántos vectores guarda cada shard y de `top_k`. Las réplicas son tarjetas aparte unidas con aristas Replicate y añaden capacidad de lectura; las inserciones van al primario.
+
+**Cómo lo factura el simulador.** Los sabores propios (pgvector, Qdrant, Milvus) cuestan 260 $ por nodo al mes, una máquina de clase RDS. Pinecone no cobra por nodo: cobra 16 $ por millón de unidades de lectura y 4 $ por millón de unidades de escritura (precios didácticos; fuente por confirmar).

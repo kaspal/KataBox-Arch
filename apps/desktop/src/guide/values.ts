@@ -40,8 +40,9 @@ export function simValue(t: TFunction, lang: string, spec: KindSpec, flavour: Fl
     }
   }
   const c = f?.cost as Record<string, number | null> | undefined;
-  // A write price left unset bills writes as reads.
-  const n = v.cost === "per_million_write" ? (c?.per_million_write ?? c?.per_million) : c?.[v.cost];
+  const meters = f?.cost.meters as Record<string, number> | undefined;
+  // A write price left unset bills writes as reads; usage meters live under `meters`.
+  const n = v.cost === "per_million_write" ? (c?.per_million_write ?? c?.per_million) : (meters?.[v.cost] ?? c?.[v.cost]);
   if (n === undefined || n === null) return "—";
   const usd = new Intl.NumberFormat(lang, { style: "currency", currency: "USD", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n);
   return t(`guide.costUnit.${v.cost}` as "guide.costUnit.per_million", { v: usd });

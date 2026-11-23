@@ -1,0 +1,201 @@
+kind = "tsdb"
+one_liner = "A database built for a firehose of timestamped points and queries over time ranges."
+one_liner_es = "Una base de datos hecha para un torrente de puntos con marca de tiempo y consultas sobre rangos de tiempo."
+
+use_when = [
+  "Devices, servers or apps send measurements every few seconds",
+  "Writes far outnumber reads, and reads ask for a time range",
+  "Old data can be dropped or downsampled after a while",
+]
+use_when_es = [
+  "Dispositivos, servidores o aplicaciones envían mediciones cada pocos segundos",
+  "Las escrituras superan con mucho a las lecturas, y las lecturas piden un rango de tiempo",
+  "Los datos antiguos pueden borrarse o reducirse pasado un tiempo",
+]
+skip_when = [
+  "Each record is a business entity that gets updated, such as an order or a user",
+  "The data has unbounded labels such as user ids or request ids",
+  "The question is ad-hoc analytics over many dimensions: a warehouse fits better",
+]
+skip_when_es = [
+  "Cada registro es una entidad de negocio que se actualiza, como un pedido o un usuario",
+  "Los datos tienen etiquetas sin límite, como ids de usuario o de petición",
+  "La pregunta es analítica libre sobre muchas dimensiones: encaja mejor un almacén de datos",
+]
+
+formula = "ingest is capped at points_per_s per instance; past series_limit distinct series, writes slow down and then are refused; a range query costs service time plus more for each extra span of time it covers"
+formula_es = "la ingesta tiene un tope de points_per_s por instancia; por encima de series_limit series distintas, las escrituras se ralentizan y luego se rechazan; una consulta de rango cuesta el tiempo de servicio más un extra por cada tramo de tiempo adicional que cubre"
+
+gains = [
+  "Takes hundreds of thousands of points a second on modest hardware",
+  "Time-range queries over recent data are fast",
+  "Retention rules keep storage bounded",
+]
+gains_es = [
+  "Admite cientos de miles de puntos por segundo con hardware modesto",
+  "Las consultas por rango de tiempo sobre datos recientes son rápidas",
+  "Las reglas de retención mantienen el almacenamiento acotado",
+]
+costs = [
+  "A high-cardinality label can explode the number of series and stall ingestion",
+  "Queries over long spans are slow",
+  "Poor at updates and at looking up single business records",
+]
+costs_es = [
+  "Una etiqueta de alta cardinalidad puede disparar el número de series y frenar la ingesta",
+  "Las consultas sobre periodos largos son lentas",
+  "Malo para actualizaciones y para buscar registros de negocio sueltos",
+]
+
+works_with = ["metrics", "mqtt", "stream", "app", "worker"]
+practice = []
+
+interview_tip = "Estimate points per second and the number of distinct series, keep unbounded ids out of the labels, and say how long raw data is kept before downsampling."
+interview_tip_es = "Estima los puntos por segundo y el número de series distintas, deja los ids sin límite fuera de las etiquetas y di cuánto tiempo se guardan los datos en bruto antes de reducirlos."
+
+not_simulated = [
+  "Retention and downsampling jobs (retention_days is a design note only)",
+  "Compression and on-disk size",
+  "Query language features such as rates, joins and alerting rules",
+]
+not_simulated_es = [
+  "Los trabajos de retención y reducción de resolución (retention_days es solo una nota de diseño)",
+  "La compresión y el tamaño en disco",
+  "Las funciones del lenguaje de consulta, como tasas, uniones y reglas de alerta",
+]
+
+[[sim]]
+prop = "instances"
+note = "Nodes that share the ingest. Each one adds its own points per second."
+note_es = "Nodos que se reparten la ingesta. Cada uno añade sus propios puntos por segundo."
+
+[[sim]]
+prop = "points_per_s"
+note = "Points one instance can write each second. Past it, writes queue and then fail."
+note_es = "Puntos que una instancia puede escribir por segundo. Por encima, las escrituras se encolan y luego fallan."
+
+[[sim]]
+prop = "series_limit"
+note = "Distinct series the database can index. Above it writes slow down, and then new series are refused."
+note_es = "Series distintas que la base puede indexar. Por encima, las escrituras se ralentizan y luego se rechazan las series nuevas."
+
+[[sim]]
+prop = "service_ms"
+note = "Base time for a write or a short range query. Longer spans add to it."
+note_es = "Tiempo base de una escritura o de una consulta de rango corta. Los periodos más largos suman."
+
+[[sim]]
+sim = "failover_s"
+note = "With a replica wired by Replicate, how long until it takes over from a dead primary."
+note_es = "Con una réplica unida por Replicate, cuánto tarda en sustituir a una principal caída."
+
+[[sim]]
+cost = "per_instance_month"
+note = "A fixed monthly price per node for InfluxDB, TimescaleDB or Mimir."
+note_es = "Un precio mensual fijo por nodo para InfluxDB, TimescaleDB o Mimir."
+
+[[sim]]
+cost = "per_million_write"
+note = "Timestream has no node fee: it bills the points written."
+note_es = "Timestream no cobra por nodo: cobra los puntos escritos."
+
+[[sim]]
+cost = "per_million"
+note = "Timestream also bills each query."
+note_es = "Timestream también cobra cada consulta."
+
+[flavours_compared]
+flavours = ["influxdb", "timescaledb", "timestream", "mimir"]
+
+[[flavours_compared.rows]]
+label = "Built on"
+label_es = "Construido sobre"
+cells = ["Its own storage engine", "A PostgreSQL extension", "An AWS managed service", "Object storage, behind Prometheus"]
+cells_es = ["Su propio motor de almacenamiento", "Una extensión de PostgreSQL", "Un servicio gestionado de AWS", "Almacenamiento de objetos, detrás de Prometheus"]
+
+[[flavours_compared.rows]]
+label = "Query language"
+label_es = "Lenguaje de consulta"
+cells = ["SQL and InfluxQL", "Full SQL", "SQL", "PromQL"]
+cells_es = ["SQL e InfluxQL", "SQL completo", "SQL", "PromQL"]
+
+[[flavours_compared.rows]]
+label = "Typical use"
+label_es = "Uso típico"
+cells = ["IoT and app metrics", "Time series next to relational data", "Serverless IoT and ops data on AWS", "Long-term storage for Prometheus metrics"]
+cells_es = ["IoT y métricas de aplicación", "Series temporales junto a datos relacionales", "Datos IoT y de operaciones sin servidor en AWS", "Almacenamiento a largo plazo de métricas de Prometheus"]
+
+[[pitfalls]]
+title = "A cardinality explosion"
+title_es = "Una explosión de cardinalidad"
+body = "Someone adds a user id or request id as a label. Every value creates a new series, the series count passes the limit, and writes slow down and then fail for everyone."
+body_es = "Alguien añade un id de usuario o de petición como etiqueta. Cada valor crea una serie nueva, el número de series supera el límite, y las escrituras se ralentizan y luego fallan para todos."
+fix = "Keep labels to bounded sets such as region, host or status, and send per-request detail to logs or traces."
+fix_es = "Limita las etiquetas a conjuntos acotados como región, host o estado, y manda el detalle por petición a logs o trazas."
+
+[[pitfalls]]
+title = "Undersized ingest"
+title_es = "Ingesta insuficiente"
+body = "A fleet of devices reports every second and the points per second exceed one node's capacity. Writes queue, then fail, and data is lost in gaps."
+body_es = "Una flota de dispositivos informa cada segundo y los puntos por segundo superan la capacidad de un nodo. Las escrituras se encolan, luego fallan, y se pierden datos en huecos."
+fix = "Add instances, or put a stream in front to absorb bursts and write in batches."
+fix_es = "Añade instancias, o pon un stream delante para absorber ráfagas y escribir por lotes."
+
+[[pitfalls]]
+title = "Dashboards over a year of raw points"
+title_es = "Paneles sobre un año de puntos en bruto"
+body = "A dashboard asks for a whole year at full resolution on each refresh. Long range queries are slow and compete with ingest."
+body_es = "Un panel pide un año entero a resolución completa en cada actualización. Las consultas de rango largo son lentas y compiten con la ingesta."
+fix = "Query short spans by default, and keep downsampled rollups for long ones."
+fix_es = "Consulta periodos cortos por defecto y guarda agregados de menor resolución para los largos."
+
+[[sources]]
+flavour = "influxdb"
+title = "InfluxDB documentation"
+url = "https://docs.influxdata.com/"
+checked = false
+
+[[sources]]
+flavour = "timescaledb"
+title = "TimescaleDB documentation"
+url = "https://docs.timescale.com/"
+checked = false
+
+[[sources]]
+flavour = "timestream"
+title = "Amazon Timestream pricing"
+url = "https://aws.amazon.com/timestream/pricing/"
+checked = false
+
+[[sources]]
+flavour = "mimir"
+title = "Grafana Mimir documentation"
+url = "https://grafana.com/docs/mimir/latest/"
+checked = false
+
+[[quiz]]
+q = "A team adds the user id as a label on a request-latency metric. What happens to the time-series database?"
+q_es = "Un equipo añade el id de usuario como etiqueta en una métrica de latencia de peticiones. ¿Qué le pasa a la base de series temporales?"
+options = ["Nothing: labels are free", "Queries get faster because they can filter by user", "Each user becomes a new series, and past the series limit writes slow down and then fail"]
+options_es = ["Nada: las etiquetas son gratis", "Las consultas son más rápidas porque pueden filtrar por usuario", "Cada usuario se vuelve una serie nueva, y por encima del límite de series las escrituras se ralentizan y luego fallan"]
+answer = 2
+why = "Each distinct label combination is a series that must be indexed. Unbounded labels explode the count. Keep per-user detail in logs or traces."
+why_es = "Cada combinación distinta de etiquetas es una serie que hay que indexar. Las etiquetas sin límite disparan el número. Deja el detalle por usuario en logs o trazas."
+
+[[quiz]]
+q = "Fifty thousand sensors each send four points a second. One instance takes a fifth of that. What is the first fix?"
+q_es = "Cincuenta mil sensores envían cuatro puntos por segundo cada uno. Una instancia admite una quinta parte de eso. ¿Cuál es la primera solución?"
+options = ["Raise the series limit", "Add instances so total points per second cover the load", "Lower the retention", "Add a read replica"]
+options_es = ["Subir el límite de series", "Añadir instancias para que el total de puntos por segundo cubra la carga", "Reducir la retención", "Añadir una réplica de lectura"]
+answer = 1
+why = "The bottleneck is ingest rate, which scales with instances. Series limits, retention and read replicas don't add write capacity."
+why_es = "El cuello de botella es la velocidad de ingesta, que escala con las instancias. El límite de series, la retención y las réplicas de lectura no añaden capacidad de escritura."
+
+[[quiz]]
+q = "Which workload fits a time-series database best?"
+q_es = "¿Qué carga encaja mejor en una base de series temporales?"
+options = ["Server CPU and memory every ten seconds, charted over the last day", "A shopping cart updated on every click", "User profiles looked up by email", "Order history joined with customers and products"]
+options_es = ["CPU y memoria de servidores cada diez segundos, en gráficos del último día", "Un carrito de compra actualizado en cada clic", "Perfiles de usuario buscados por correo", "Historial de pedidos unido con clientes y productos"]
+answer = 0
+why = "Append-only timestamped points with bounded labels, read by time range, is exactly the shape it is built for. The others are records that get updated or joined."
+why_es = "Puntos con marca de tiempo que solo se añaden, con etiquetas acotadas, leídos por rango de tiempo, es justo la forma para la que está hecha. Los demás son registros que se actualizan o se unen."

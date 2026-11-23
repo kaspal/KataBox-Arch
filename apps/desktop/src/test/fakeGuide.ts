@@ -31,6 +31,8 @@ export const FAKE_CACHE: GuideEntry = {
   practice: ["url-shortener"],
   interview_tip: "Say what you cache and for how long.",
   interview_tip_es: "Di qué cacheas y cuánto tiempo.",
+  not_simulated: [],
+  not_simulated_es: [],
   sources: [
     { flavour: "redis", title: "Redis documentation", url: "https://redis.io/docs/latest/", checked: false },
     { flavour: "memcached", title: "Memcached wiki", url: "https://github.com/memcached/memcached/wiki", checked: false },
@@ -45,6 +47,8 @@ export const FAKE_LB: GuideEntry = {
   sim: [{ prop: "algorithm", note: "How the next server is chosen.", note_es: "Cómo se elige el siguiente servidor." }],
   flavours_compared: null,
   practice: [],
+  not_simulated: [],
+  not_simulated_es: [],
   sources: [],
 };
 

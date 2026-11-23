@@ -1,0 +1,213 @@
+kind = "mqtt"
+one_liner = "A broker that keeps millions of devices connected and passes small messages between them by topic."
+one_liner_es = "Un broker que mantiene conectados millones de dispositivos y les pasa mensajes pequeños por tema."
+
+use_when = [
+  "Many devices stay connected and send small readings often",
+  "Devices sit on slow or flaky networks and must reconnect cheaply",
+  "The server needs to push commands to devices, not only receive data",
+]
+use_when_es = [
+  "Muchos dispositivos siguen conectados y envían lecturas pequeñas a menudo",
+  "Los dispositivos están en redes lentas o inestables y deben reconectarse con poco coste",
+  "El servidor necesita enviar órdenes a los dispositivos, no solo recibir datos",
+]
+skip_when = [
+  "Clients are browsers: a WebSocket gateway fits better",
+  "Clients send a request now and then and don't need a live connection",
+  "Backend services talk to each other: a queue or stream is the usual tool",
+]
+skip_when_es = [
+  "Los clientes son navegadores: encaja mejor un gateway WebSocket",
+  "Los clientes envían una petición de vez en cuando y no necesitan una conexión viva",
+  "Son servicios de backend hablando entre sí: lo habitual es una cola o un stream",
+]
+
+formula = "connections ≤ instances × max connections (and the memory each connection holds); a dead instance's devices reconnect elsewhere; deliveries per instance ≤ msgs per s, the excess waits in a backlog; QoS at least once retries until acknowledged, QoS at most once may lose a message"
+formula_es = "conexiones ≤ instancias × conexiones máximas (y la memoria que ocupa cada conexión); los dispositivos de una instancia caída se reconectan en otra; entregas por instancia ≤ mensajes por s, el exceso espera en una cola pendiente; QoS al menos una vez reintenta hasta la confirmación, QoS como máximo una vez puede perder un mensaje"
+
+gains = [
+  "One cheap, long-lived connection per device in both directions",
+  "Publishers and subscribers only share a topic name, not addresses",
+  "Each message can choose speed or delivery guarantee with its QoS",
+]
+gains_es = [
+  "Una conexión barata y duradera por dispositivo en ambos sentidos",
+  "Quienes publican y quienes se suscriben solo comparten el nombre de un tema, no direcciones",
+  "Cada mensaje puede elegir velocidad o garantía de entrega con su QoS",
+]
+costs = [
+  "Connections are a capacity of their own, separate from messages per second",
+  "When an instance dies, all its devices reconnect at once unless clients add jitter",
+  "At-least-once delivery means duplicates, so subscribers must be idempotent",
+]
+costs_es = [
+  "Las conexiones son una capacidad propia, distinta de los mensajes por segundo",
+  "Cuando cae una instancia, todos sus dispositivos se reconectan a la vez salvo que los clientes añadan variación aleatoria",
+  "La entrega al menos una vez supone duplicados, así que los suscriptores deben ser idempotentes",
+]
+
+works_with = ["client", "lb", "streamproc", "tsdb", "stream", "worker"]
+practice = []
+
+interview_tip = "Size connections and messages per second separately, and say what happens when one broker node dies and all its devices reconnect."
+interview_tip_es = "Dimensiona por separado las conexiones y los mensajes por segundo, y di qué pasa cuando cae un nodo del broker y todos sus dispositivos se reconectan."
+
+not_simulated = [
+  "Retained messages that a new subscriber gets on connect",
+  "Session persistence across broker restarts",
+  "The cost of topic wildcards in subscriptions",
+  "Payload sizes and network bandwidth",
+]
+not_simulated_es = [
+  "Los mensajes retenidos que recibe un suscriptor nuevo al conectarse",
+  "La persistencia de sesiones tras reiniciar el broker",
+  "El coste de los comodines de tema en las suscripciones",
+  "El tamaño de los mensajes y el ancho de banda de red",
+]
+
+[[sim]]
+prop = "instances"
+note = "Broker nodes. Devices are spread over them, and a dead node's devices reconnect to the others."
+note_es = "Nodos del broker. Los dispositivos se reparten entre ellos, y los de un nodo caído se reconectan a los demás."
+
+[[sim]]
+prop = "max_connections"
+note = "Devices one node keeps connected. Connections beyond it are refused and the device retries later."
+note_es = "Dispositivos que un nodo mantiene conectados. Las conexiones por encima se rechazan y el dispositivo reintenta más tarde."
+
+[[sim]]
+prop = "conn_memory_kb"
+note = "Memory each open connection holds on the broker. Many idle devices still cost memory."
+note_es = "Memoria que ocupa en el broker cada conexión abierta. Muchos dispositivos inactivos siguen costando memoria."
+
+[[sim]]
+prop = "msgs_per_s"
+note = "Messages one node delivers per second. Beyond it, deliveries wait in a backlog and arrive late."
+note_es = "Mensajes que entrega un nodo por segundo. Por encima, las entregas esperan en una cola pendiente y llegan tarde."
+
+[[sim]]
+prop = "qos"
+note = "At most once sends and forgets, so a message can be lost. At least once retries until the receiver acknowledges, so it can arrive twice."
+note_es = "Como máximo una vez envía y olvida, así que un mensaje puede perderse. Al menos una vez reintenta hasta que el receptor confirma, así que puede llegar dos veces."
+
+[[sim]]
+prop = "service_ms"
+note = "Time the broker takes to route one publish to its subscribers."
+note_es = "Lo que tarda el broker en enrutar una publicación a sus suscriptores."
+
+[[sim]]
+sim = "servers_per_instance"
+note = "Publishes one node routes at the same time. More wait in its queue."
+note_es = "Publicaciones que un nodo enruta a la vez. Las demás esperan en su cola."
+
+[[sim]]
+cost = "per_instance_month"
+note = "A fixed monthly price per node for a self-hosted broker such as EMQX, Mosquitto or HiveMQ. AWS IoT Core has no node fee."
+note_es = "Un precio mensual fijo por nodo para un broker propio como EMQX, Mosquitto o HiveMQ. AWS IoT Core no cobra por nodo."
+
+[[sim]]
+cost = "messages_m"
+note = "AWS IoT Core bills per million messages. Retries under at least once count as messages too."
+note_es = "AWS IoT Core cobra por millón de mensajes. Los reintentos con al menos una vez también cuentan como mensajes."
+
+[[sim]]
+cost = "conn_minutes_m"
+note = "AWS IoT Core also bills per million connection-minutes, so idle devices that stay connected cost money."
+note_es = "AWS IoT Core también cobra por millón de minutos de conexión, así que los dispositivos inactivos que siguen conectados cuestan dinero."
+
+[flavours_compared]
+flavours = ["emqx", "aws_iot_core", "mosquitto", "hivemq"]
+
+[[flavours_compared.rows]]
+label = "Who runs it"
+label_es = "Quién lo opera"
+cells = ["You, or EMQX's cloud service", "AWS, fully managed", "You", "You, or HiveMQ's cloud service"]
+cells_es = ["Tú, o el servicio en la nube de EMQX", "AWS, totalmente gestionado", "Tú", "Tú, o el servicio en la nube de HiveMQ"]
+
+[[flavours_compared.rows]]
+label = "Clustering"
+label_es = "Clúster"
+cells = ["A cluster of nodes", "Scales for you", "A single node", "A cluster of nodes"]
+cells_es = ["Un clúster de nodos", "Escala por ti", "Un solo nodo", "Un clúster de nodos"]
+
+[[flavours_compared.rows]]
+label = "Billing"
+label_es = "Facturación"
+cells = ["Per node", "Per message and per connection-minute", "Per node", "Per node"]
+cells_es = ["Por nodo", "Por mensaje y por minuto de conexión", "Por nodo", "Por nodo"]
+
+[[pitfalls]]
+title = "Reconnect storm"
+title_es = "Tormenta de reconexiones"
+body = "A broker node dies. Every device it held reconnects at the same moment, the other nodes refuse most of them, and the retries keep the load high for minutes."
+body_es = "Cae un nodo del broker. Todos los dispositivos que tenía se reconectan en el mismo instante, los demás nodos rechazan la mayoría y los reintentos mantienen la carga alta durante minutos."
+fix = "Give clients a random reconnect delay with backoff, and keep spare connection room on the other nodes."
+fix_es = "Da a los clientes un retraso aleatorio de reconexión con espera creciente, y deja margen de conexiones libre en los demás nodos."
+
+[[pitfalls]]
+title = "Sizing by messages only"
+title_es = "Dimensionar solo por mensajes"
+body = "The broker handles the message rate easily, but a million devices send one reading a minute. The nodes run out of connections long before they run out of throughput."
+body_es = "El broker soporta de sobra el ritmo de mensajes, pero un millón de dispositivos envía una lectura por minuto. Los nodos se quedan sin conexiones mucho antes de quedarse sin rendimiento."
+fix = "Size nodes for the connection count and its memory first, then check the message rate."
+fix_es = "Dimensiona los nodos primero por el número de conexiones y su memoria, y luego comprueba el ritmo de mensajes."
+
+[[pitfalls]]
+title = "Lost commands at QoS zero"
+title_es = "Órdenes perdidas con QoS cero"
+body = "Commands to devices are sent at most once. A device on a bad network misses one and never learns about it."
+body_es = "Las órdenes a los dispositivos se envían como máximo una vez. Un dispositivo con mala red pierde una y nunca se entera."
+fix = "Send messages that matter at least once, and make the device handle a repeated command safely."
+fix_es = "Envía al menos una vez los mensajes importantes, y haz que el dispositivo trate sin riesgo una orden repetida."
+
+[[sources]]
+flavour = "emqx"
+title = "EMQX documentation"
+url = "https://docs.emqx.com/"
+checked = false
+
+[[sources]]
+flavour = "aws_iot_core"
+title = "AWS IoT Core documentation"
+url = "https://docs.aws.amazon.com/iot/"
+checked = false
+
+[[sources]]
+flavour = "mosquitto"
+title = "Eclipse Mosquitto documentation"
+url = "https://mosquitto.org/documentation/"
+checked = false
+
+[[sources]]
+flavour = "hivemq"
+title = "HiveMQ documentation"
+url = "https://docs.hivemq.com/"
+checked = false
+
+[[quiz]]
+q = "Two million sensors each send one small reading per minute. What limits the broker first?"
+q_es = "Dos millones de sensores envían cada uno una lectura pequeña por minuto. ¿Qué limita antes al broker?"
+options = ["Messages per second", "The number of open connections and the memory they hold", "The time to route one publish", "The QoS level"]
+options_es = ["Los mensajes por segundo", "El número de conexiones abiertas y la memoria que ocupan", "El tiempo de enrutar una publicación", "El nivel de QoS"]
+answer = 1
+why = "About thirty thousand messages a second is modest, but two million devices stay connected all the time. Connections are a capacity of their own."
+why_es = "Unos treinta mil mensajes por segundo es poco, pero dos millones de dispositivos siguen conectados todo el tiempo. Las conexiones son una capacidad propia."
+
+[[quiz]]
+q = "A broker node holding half a million devices crashes, and the clients reconnect at once with no delay. What should the design expect?"
+q_es = "Cae un nodo del broker con medio millón de dispositivos, y los clientes se reconectan a la vez sin retraso. ¿Qué debe esperar el diseño?"
+options = ["The devices move to the other nodes within a second with no errors", "The devices stay offline until the node comes back", "Only devices using QoS at least once reconnect", "A reconnect storm: most attempts are refused and retried until the load spreads out"]
+options_es = ["Los dispositivos pasan a los otros nodos en un segundo sin errores", "Los dispositivos siguen desconectados hasta que vuelve el nodo", "Solo se reconectan los dispositivos con QoS al menos una vez", "Una tormenta de reconexiones: la mayoría de los intentos se rechazan y se reintentan hasta que la carga se reparte"]
+answer = 3
+why = "All the reconnects land together and exceed what the remaining nodes can accept. A random delay on the client spreads them out."
+why_es = "Todas las reconexiones llegan juntas y superan lo que pueden aceptar los nodos restantes. Un retraso aleatorio en el cliente las reparte."
+
+[[quiz]]
+q = "An unlock command to a smart lock must not be lost. Which QoS, and what else does the device need?"
+q_es = "Una orden de abrir a una cerradura inteligente no debe perderse. ¿Qué QoS, y qué más necesita el dispositivo?"
+options = ["At least once, and the device must handle the same command twice safely", "At most once, because it is faster", "At most once, plus a retained message"]
+options_es = ["Al menos una vez, y el dispositivo debe tratar sin riesgo la misma orden dos veces", "Como máximo una vez, porque es más rápido", "Como máximo una vez, más un mensaje retenido"]
+answer = 0
+why = "At least once retries until acknowledged, so the command arrives, possibly twice. An id per command lets the device ignore the repeat."
+why_es = "Al menos una vez reintenta hasta la confirmación, así que la orden llega, quizá dos veces. Un id por orden permite al dispositivo ignorar la repetición."

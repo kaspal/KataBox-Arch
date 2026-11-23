@@ -1,0 +1,195 @@
+kind = "dbproxy"
+one_liner = "A pooler that shares a few database connections among many app connections."
+one_liner_es = "Un pooler que reparte unas pocas conexiones a la base de datos entre muchas conexiones de la aplicación."
+
+use_when = [
+  "Scaling the app out would open more connections than the database allows",
+  "Serverless functions or many small instances each open their own connection",
+  "Connections are mostly idle between short transactions",
+]
+use_when_es = [
+  "Escalar la aplicación abriría más conexiones de las que admite la base de datos",
+  "Funciones serverless o muchas instancias pequeñas abren cada una su propia conexión",
+  "Las conexiones están casi siempre inactivas entre transacciones cortas",
+]
+skip_when = [
+  "A handful of app instances stay well under the database's connection limit",
+  "The app depends on session state such as temporary tables, advisory locks or session settings",
+  "The bottleneck is query time, not connections: a pooler doesn't make queries faster",
+]
+skip_when_es = [
+  "Un puñado de instancias de la aplicación quedan muy por debajo del límite de conexiones de la base",
+  "La aplicación depende del estado de sesión, como tablas temporales, bloqueos consultivos o ajustes de sesión",
+  "El cuello de botella es el tiempo de consulta, no las conexiones: un pooler no hace las consultas más rápidas",
+]
+
+formula = "without a pooler each app slot holds one database connection, and connections above the database's max_connections fail; through the pooler, calls share pool_size server connections (transaction mode lends one per transaction), add service_ms, and wait in a queue when every pooled connection is busy"
+formula_es = "sin pooler cada hueco de la aplicación ocupa una conexión a la base, y las conexiones por encima de max_connections de la base fallan; a través del pooler, las llamadas comparten pool_size conexiones de servidor (el modo transacción presta una por transacción), suman service_ms y esperan en cola cuando todas las conexiones del pool están ocupadas"
+
+gains = [
+  "The app can scale out without exhausting database connections",
+  "The database spends less memory and CPU on idle connections",
+  "Bursts wait briefly in the pooler instead of failing to connect",
+]
+gains_es = [
+  "La aplicación puede escalar sin agotar las conexiones de la base",
+  "La base gasta menos memoria y CPU en conexiones inactivas",
+  "Las ráfagas esperan un momento en el pooler en lugar de fallar al conectar",
+]
+costs = [
+  "One more hop on every query, with a small delay",
+  "Transaction mode breaks features that rely on a session",
+  "A pool that is too small turns into a queue in front of the database",
+]
+costs_es = [
+  "Un salto más en cada consulta, con un pequeño retraso",
+  "El modo transacción rompe funciones que dependen de una sesión",
+  "Un pool demasiado pequeño se convierte en una cola delante de la base",
+]
+
+works_with = ["sql", "app", "serverless", "autoscale", "micro"]
+practice = ["flash-sale", "checkout"]
+
+interview_tip = "Multiply app instances by connections per instance and compare it with the database's limit; if it is over, put a pooler in transaction mode and size the pool to what the database handles well."
+interview_tip_es = "Multiplica las instancias de la aplicación por las conexiones por instancia y compáralo con el límite de la base; si lo supera, pon un pooler en modo transacción y dimensiona el pool según lo que la base maneja bien."
+
+not_simulated = [
+  "Prepared statements and how each pooler handles them",
+  "Session-level features that transaction pooling breaks, such as temporary tables and advisory locks",
+  "Query routing and sharding logic, as in VTGate",
+  "Authentication and TLS between the app, the pooler and the database",
+  "The pooler's cap on client connections (client_limit is a design note only)",
+]
+not_simulated_es = [
+  "Las sentencias preparadas y cómo las trata cada pooler",
+  "Las funciones de sesión que rompe el pooling por transacción, como las tablas temporales y los bloqueos consultivos",
+  "El enrutado de consultas y la lógica de sharding, como en VTGate",
+  "La autenticación y el TLS entre la aplicación, el pooler y la base",
+  "El tope de conexiones de cliente del pooler (client_limit es solo una nota de diseño)",
+]
+
+[[sim]]
+prop = "pool_size"
+note = "Server connections the pooler keeps open to the database. Calls beyond it wait in the pooler's queue."
+note_es = "Conexiones de servidor que el pooler mantiene abiertas con la base. Las llamadas que no caben esperan en la cola del pooler."
+
+[[sim]]
+prop = "mode"
+note = "Transaction mode lends a server connection for each transaction; session mode ties one to a client for as long as it stays connected."
+note_es = "El modo transacción presta una conexión de servidor por transacción; el modo sesión ata una a un cliente mientras siga conectado."
+
+[[sim]]
+prop = "instances"
+note = "Pooler nodes that share the client traffic."
+note_es = "Nodos del pooler que se reparten el tráfico de los clientes."
+
+[[sim]]
+prop = "service_ms"
+note = "The small delay the pooler adds to every call."
+note_es = "El pequeño retraso que el pooler añade a cada llamada."
+
+[[sim]]
+sim = "queue_per_server"
+note = "Waiting room per pooled connection. When it is full, new calls are dropped."
+note_es = "Sala de espera por conexión del pool. Cuando se llena, las llamadas nuevas se descartan."
+
+[[sim]]
+cost = "per_instance_month"
+note = "A fixed monthly price per pooler node. RDS Proxy stands in for its price per database vCPU."
+note_es = "Un precio mensual fijo por nodo del pooler. RDS Proxy aproxima así su precio por vCPU de la base."
+
+[flavours_compared]
+flavours = ["pgbouncer", "rds_proxy", "proxysql", "vtgate"]
+
+[[flavours_compared.rows]]
+label = "Database"
+label_es = "Base de datos"
+cells = ["PostgreSQL", "PostgreSQL and MySQL on RDS or Aurora", "MySQL", "MySQL, sharded with Vitess"]
+cells_es = ["PostgreSQL", "PostgreSQL y MySQL en RDS o Aurora", "MySQL", "MySQL, particionado con Vitess"]
+
+[[flavours_compared.rows]]
+label = "Who runs it"
+label_es = "Quién lo opera"
+cells = ["You", "AWS, fully managed", "You", "You, as part of a Vitess cluster"]
+cells_es = ["Tú", "AWS, totalmente gestionado", "Tú", "Tú, como parte de un clúster Vitess"]
+
+[[flavours_compared.rows]]
+label = "Beyond pooling"
+label_es = "Además del pooling"
+cells = ["Little: it is a lean pooler", "Faster failover and IAM sign-in", "Query rules, read/write split, caching", "Routes queries to the right shard"]
+cells_es = ["Poco: es un pooler ligero", "Conmutación por error más rápida e inicio de sesión con IAM", "Reglas de consulta, separación lectura/escritura, caché", "Enruta las consultas al shard correcto"]
+
+[[pitfalls]]
+title = "Scaling the app into a connection wall"
+title_es = "Escalar la aplicación contra un muro de conexiones"
+body = "Autoscaling adds app instances during a sale. Each one opens its own connections, the total passes the database's limit, and new instances fail to connect just when they are needed."
+body_es = "El autoescalado añade instancias durante una oferta. Cada una abre sus propias conexiones, el total supera el límite de la base, y las instancias nuevas no logran conectar justo cuando hacen falta."
+fix = "Put a pooler in transaction mode between the app and the database, with a pool the database handles comfortably."
+fix_es = "Pon un pooler en modo transacción entre la aplicación y la base, con un pool que la base maneje con holgura."
+
+[[pitfalls]]
+title = "Session mode that multiplexes nothing"
+title_es = "Modo sesión que no multiplexa nada"
+body = "The pooler runs in session mode, so each client keeps a server connection for as long as it is connected. The database sees as many connections as before, plus a hop."
+body_es = "El pooler funciona en modo sesión, así que cada cliente conserva una conexión de servidor mientras está conectado. La base ve tantas conexiones como antes, más un salto."
+fix = "Use transaction mode, and move any session-dependent code off it."
+fix_es = "Usa el modo transacción y saca de él el código que dependa de la sesión."
+
+[[pitfalls]]
+title = "A pool too small for the load"
+title_es = "Un pool demasiado pequeño para la carga"
+body = "Calls hold their connection for the whole query time, and the pool can't cover the peak. Calls queue in the pooler, latency climbs, and the queue overflows."
+body_es = "Las llamadas ocupan su conexión durante todo el tiempo de consulta, y el pool no cubre el pico. Las llamadas se encolan en el pooler, la latencia sube y la cola se desborda."
+fix = "Size the pool from peak transactions per second times query time, within what the database can serve, or make queries shorter."
+fix_es = "Dimensiona el pool según las transacciones por segundo del pico por el tiempo de consulta, dentro de lo que la base puede servir, o acorta las consultas."
+
+[[sources]]
+flavour = "pgbouncer"
+title = "PgBouncer documentation"
+url = "https://www.pgbouncer.org/config.html"
+checked = false
+
+[[sources]]
+flavour = "rds_proxy"
+title = "Amazon RDS Proxy"
+url = "https://aws.amazon.com/rds/proxy/"
+checked = false
+
+[[sources]]
+flavour = "proxysql"
+title = "ProxySQL documentation"
+url = "https://proxysql.com/documentation/"
+checked = false
+
+[[sources]]
+flavour = "vtgate"
+title = "Vitess documentation"
+url = "https://vitess.io/docs/"
+checked = false
+
+[[quiz]]
+q = "Autoscaling grows the app from ten to sixty instances, each holding twenty database connections, and the database allows five hundred. What happens without a pooler?"
+q_es = "El autoescalado lleva la aplicación de diez a sesenta instancias, cada una con veinte conexiones a la base, y la base admite quinientas. ¿Qué pasa sin pooler?"
+options = ["The database queues the extra connections until some free up", "The new instances share the existing connections", "Connections above the limit fail, so many new instances can't reach the database"]
+options_es = ["La base encola las conexiones sobrantes hasta que se liberan algunas", "Las instancias nuevas comparten las conexiones existentes", "Las conexiones por encima del límite fallan, así que muchas instancias nuevas no llegan a la base"]
+answer = 2
+why = "Sixty times twenty is far over the limit, and the database refuses new connections past it. A pooler shares a fixed pool among all instances."
+why_es = "Sesenta por veinte supera de lejos el límite, y la base rechaza las conexiones nuevas por encima. Un pooler reparte un pool fijo entre todas las instancias."
+
+[[quiz]]
+q = "A pooler sits in front of the database, but the connection count on the database hasn't dropped at all. What is the likely cause?"
+q_es = "Hay un pooler delante de la base, pero el número de conexiones en la base no ha bajado nada. ¿Cuál es la causa probable?"
+options = ["The pool_size is too small", "The pooler runs in session mode", "The pooler adds too much delay", "The database's limit is too high"]
+options_es = ["El pool_size es demasiado pequeño", "El pooler funciona en modo sesión", "El pooler añade demasiado retraso", "El límite de la base es demasiado alto"]
+answer = 1
+why = "In session mode a client keeps its server connection as long as it is connected, so nothing is shared. Transaction mode lends a connection only for each transaction."
+why_es = "En modo sesión un cliente conserva su conexión de servidor mientras está conectado, así que no se comparte nada. El modo transacción presta una conexión solo durante cada transacción."
+
+[[quiz]]
+q = "After adding a pooler in transaction mode, latency at peak climbs and some calls are dropped, while the database is lightly loaded. What should you change?"
+q_es = "Tras añadir un pooler en modo transacción, la latencia en el pico sube y algunas llamadas se descartan, mientras la base está poco cargada. ¿Qué deberías cambiar?"
+options = ["Raise pool_size so more transactions run at once", "Switch to session mode", "Remove the pooler and connect directly", "Add read replicas to the database"]
+options_es = ["Subir pool_size para que se ejecuten más transacciones a la vez", "Cambiar al modo sesión", "Quitar el pooler y conectar directamente", "Añadir réplicas de lectura a la base"]
+answer = 0
+why = "Calls are waiting for a pooled connection while the database has room. A bigger pool lets more through; session mode or no pooler brings back the connection wall."
+why_es = "Las llamadas esperan una conexión del pool mientras la base tiene margen. Un pool mayor deja pasar más; el modo sesión o quitar el pooler devuelven el muro de conexiones."

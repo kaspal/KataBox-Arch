@@ -1,0 +1,192 @@
+kind = "config"
+one_liner = "The service that pushes settings and feature flags to your apps, and decides how fast a change spreads."
+one_liner_es = "El servicio que envía ajustes y feature flags a tus aplicaciones, y decide lo rápido que se extiende un cambio."
+
+use_when = [
+  "You want to turn features on or off without a deploy",
+  "A bad setting must be rolled back in seconds, not after a new build",
+  "Changes should reach a few servers first and the rest only if all is well",
+]
+use_when_es = [
+  "Quieres activar o desactivar funciones sin desplegar",
+  "Un ajuste malo debe revertirse en segundos, no tras una compilación nueva",
+  "Los cambios deben llegar primero a unos pocos servidores y al resto solo si todo va bien",
+]
+skip_when = [
+  "The setting never changes at runtime: a file shipped with the build is enough",
+  "Per-user data that changes on every request belongs in a database, not in config",
+  "A secret such as a password belongs in a secrets manager",
+]
+skip_when_es = [
+  "El ajuste nunca cambia en ejecución: basta un fichero que viaja con la compilación",
+  "Los datos por usuario que cambian en cada petición van en una base de datos, no en la configuración",
+  "Un secreto como una contraseña va en un gestor de secretos",
+]
+
+formula = "unstaged: a push reaches every app at once (stream) or within a poll interval (poll); staged: one stage at a time, each waiting the bake time, halting if errors rise; with a kill switch, a halted change rolls back within a second; apps keep a local copy, so an outage of the service doesn't stop requests"
+formula_es = "sin etapas: un cambio llega a todas las aplicaciones a la vez (stream) o dentro de un intervalo de sondeo (poll); por etapas: una etapa cada vez, cada una esperando el tiempo de observación, deteniéndose si suben los errores; con interruptor de emergencia, un cambio detenido se revierte en menos de un segundo; las aplicaciones guardan una copia local, así que una caída del servicio no detiene las peticiones"
+
+gains = [
+  "Behaviour changes without a deploy",
+  "A staged rollout limits a bad change to a small share of servers",
+  "A kill switch undoes a bad change in seconds",
+]
+gains_es = [
+  "El comportamiento cambia sin desplegar",
+  "Un despliegue por etapas limita un cambio malo a una pequeña parte de los servidores",
+  "Un interruptor de emergencia deshace un cambio malo en segundos",
+]
+costs = [
+  "A config push is a deploy in disguise, and without stages it hits every server at once",
+  "Stages and bake time make every change slower to reach everyone",
+  "Flags pile up and leave dead code paths if nobody removes them",
+]
+costs_es = [
+  "Un cambio de configuración es un despliegue disfrazado, y sin etapas llega a todos los servidores a la vez",
+  "Las etapas y el tiempo de observación hacen que cada cambio tarde más en llegar a todos",
+  "Los flags se acumulan y dejan caminos de código muertos si nadie los quita",
+]
+
+works_with = ["app", "micro", "gateway", "metrics", "serverless"]
+practice = []
+
+interview_tip = "Treat a config change like a deploy: say how it is staged, what error signal halts it, and how fast it rolls back."
+interview_tip_es = "Trata un cambio de configuración como un despliegue: di cómo se escalona, qué señal de error lo detiene y lo rápido que se revierte."
+
+not_simulated = [
+  "Targeting rules and the evaluation of a flag for each user",
+  "Experiment statistics for A/B tests",
+  "Audit logs of who changed what",
+  "Flag debt: old flags and the dead code they leave",
+]
+not_simulated_es = [
+  "Las reglas de segmentación y la evaluación de un flag para cada usuario",
+  "La estadística de los experimentos A/B",
+  "Los registros de auditoría de quién cambió qué",
+  "La deuda de flags: flags antiguos y el código muerto que dejan",
+]
+
+[[sim]]
+prop = "delivery"
+note = "Stream pushes a change to every app as soon as it is made. Poll lets each app fetch it on its own schedule."
+note_es = "Stream envía un cambio a todas las aplicaciones en cuanto se hace. Poll deja que cada aplicación lo traiga a su ritmo."
+
+[[sim]]
+prop = "poll_s"
+note = "With poll delivery, how often each app asks for changes. A change reaches everyone within this time."
+note_es = "Con entrega por sondeo, cada cuánto pregunta cada aplicación por cambios. Un cambio llega a todas dentro de este tiempo."
+
+[[sim]]
+prop = "staged"
+note = "Off, a push reaches every app at once. On, it rolls out one stage at a time and halts when errors rise."
+note_es = "Desactivado, un cambio llega a todas las aplicaciones a la vez. Activado, se despliega etapa a etapa y se detiene cuando suben los errores."
+
+[[sim]]
+prop = "stages"
+note = "How many steps a staged rollout takes. More stages expose fewer servers to a bad change, but full rollout takes longer."
+note_es = "Cuántos pasos da un despliegue por etapas. Más etapas exponen menos servidores a un cambio malo, pero el despliegue completo tarda más."
+
+[[sim]]
+prop = "bake_s"
+note = "How long each stage runs before the next one starts. Errors in this time halt the rollout."
+note_es = "Cuánto dura cada etapa antes de empezar la siguiente. Los errores en este tiempo detienen el despliegue."
+
+[[sim]]
+prop = "kill_switch"
+note = "Once a rollout halts, the change is rolled back within a second. Without it, the servers already changed keep the bad setting."
+note_es = "Cuando un despliegue se detiene, el cambio se revierte en menos de un segundo. Sin él, los servidores ya cambiados se quedan con el ajuste malo."
+
+[[sim]]
+cost = "per_instance_month"
+note = "A flat monthly fee for the service, whatever the flavour."
+note_es = "Una cuota mensual fija por el servicio, sea cual sea la variante."
+
+[flavours_compared]
+flavours = ["launchdarkly", "aws_appconfig", "unleash"]
+
+[[flavours_compared.rows]]
+label = "Who runs it"
+label_es = "Quién lo opera"
+cells = ["LaunchDarkly, fully managed", "AWS, fully managed", "You, or Unleash's hosted service"]
+cells_es = ["LaunchDarkly, totalmente gestionado", "AWS, totalmente gestionado", "Tú, o el servicio alojado de Unleash"]
+
+[[flavours_compared.rows]]
+label = "Delivery"
+label_es = "Entrega"
+cells = ["Streams changes to its SDKs", "Apps poll, often through an agent", "SDKs poll, or a proxy streams"]
+cells_es = ["Envía los cambios en stream a sus SDK", "Las aplicaciones sondean, a menudo a través de un agente", "Los SDK sondean, o un proxy envía en stream"]
+
+[[flavours_compared.rows]]
+label = "Built for"
+label_es = "Pensado para"
+cells = ["Feature flags and targeting", "Config with staged deployments and rollback on alarms", "Open-source feature flags"]
+cells_es = ["Feature flags y segmentación", "Configuración con despliegues por etapas y reversión ante alarmas", "Feature flags de código abierto"]
+
+[[pitfalls]]
+title = "A push to everyone at once"
+title_es = "Un cambio para todos a la vez"
+body = "A typo in a config value is pushed without stages. Every server picks it up within a second and the whole fleet fails together."
+body_es = "Una errata en un valor de configuración se envía sin etapas. Todos los servidores la recogen en un segundo y toda la flota falla a la vez."
+fix = "Turn on staged rollout with a bake time long enough for errors to show, so a bad change stops at the first stage."
+fix_es = "Activa el despliegue por etapas con un tiempo de observación lo bastante largo para que se vean los errores, así un cambio malo se detiene en la primera etapa."
+
+[[pitfalls]]
+title = "Halted but not undone"
+title_es = "Detenido pero no deshecho"
+body = "The rollout halts at the second stage, but the servers already changed keep the bad value while someone writes a fix."
+body_es = "El despliegue se detiene en la segunda etapa, pero los servidores ya cambiados se quedan con el valor malo mientras alguien escribe un arreglo."
+fix = "Turn on the kill switch so a halted change rolls back on its own."
+fix_es = "Activa el interruptor de emergencia para que un cambio detenido se revierta solo."
+
+[[pitfalls]]
+title = "Config service on the request path"
+title_es = "Servicio de configuración en el camino de la petición"
+body = "Each request asks the config service for its flags. When the service is down, every request fails or waits."
+body_es = "Cada petición pregunta sus flags al servicio de configuración. Cuando el servicio cae, todas las peticiones fallan o esperan."
+fix = "Keep a local copy in each app and read flags from it; the service only updates the copy."
+fix_es = "Guarda una copia local en cada aplicación y lee los flags de ella; el servicio solo actualiza la copia."
+
+[[sources]]
+flavour = "launchdarkly"
+title = "LaunchDarkly documentation"
+url = "https://docs.launchdarkly.com/"
+checked = false
+
+[[sources]]
+flavour = "aws_appconfig"
+title = "AWS AppConfig documentation"
+url = "https://docs.aws.amazon.com/appconfig/"
+checked = false
+
+[[sources]]
+flavour = "unleash"
+title = "Unleash documentation"
+url = "https://docs.getunleash.io/"
+checked = false
+
+[[quiz]]
+q = "A config change with a bad value is pushed by stream with no stages. What does the design risk?"
+q_es = "Se envía en stream y sin etapas un cambio de configuración con un valor malo. ¿Qué arriesga el diseño?"
+options = ["Only new servers pick it up", "Every app gets it within a second and the whole fleet fails together", "The config service refuses the bad value", "Apps keep the old value until their next restart"]
+options_es = ["Solo lo recogen los servidores nuevos", "Todas las aplicaciones lo reciben en un segundo y toda la flota falla a la vez", "El servicio de configuración rechaza el valor malo", "Las aplicaciones mantienen el valor antiguo hasta su próximo reinicio"]
+answer = 1
+why = "Streaming makes every change fast, the bad ones too. Stages with a bake time limit a bad change to a small share of servers."
+why_es = "El stream hace rápido cada cambio, también los malos. Las etapas con tiempo de observación limitan un cambio malo a una pequeña parte de los servidores."
+
+[[quiz]]
+q = "A staged rollout halts at stage two because errors rise. With no kill switch, what happens to the servers in stages one and two?"
+q_es = "Un despliegue por etapas se detiene en la etapa dos porque suben los errores. Sin interruptor de emergencia, ¿qué pasa con los servidores de las etapas uno y dos?"
+options = ["They roll back on their own", "They move on to stage three anyway", "They keep the bad value until someone pushes a fix", "They stop serving traffic"]
+options_es = ["Se revierten solos", "Pasan igualmente a la etapa tres", "Se quedan con el valor malo hasta que alguien envía un arreglo", "Dejan de servir tráfico"]
+answer = 2
+why = "Halting stops the spread, not the damage already done. The kill switch is what rolls the changed servers back within a second."
+why_es = "Detener frena la propagación, no el daño ya hecho. El interruptor de emergencia es lo que revierte los servidores cambiados en menos de un segundo."
+
+[[quiz]]
+q = "The config service is down for ten minutes. Apps keep a local copy of their flags. What happens to user requests?"
+q_es = "El servicio de configuración cae diez minutos. Las aplicaciones guardan una copia local de sus flags. ¿Qué pasa con las peticiones de los usuarios?"
+options = ["They keep working with the last flags; only new changes wait", "They all fail until the service is back", "They fall back to every flag turned off"]
+options_es = ["Siguen funcionando con los últimos flags; solo esperan los cambios nuevos", "Fallan todas hasta que vuelve el servicio", "Pasan a tener todos los flags desactivados"]
+answer = 0
+why = "The config service is not on the request path. Apps read their local copy, so an outage only delays new changes."
+why_es = "El servicio de configuración no está en el camino de la petición. Las aplicaciones leen su copia local, así que una caída solo retrasa los cambios nuevos."

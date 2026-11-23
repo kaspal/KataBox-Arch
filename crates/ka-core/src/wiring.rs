@@ -161,13 +161,32 @@ pub fn table() -> WiringTable {
     use ComponentKind as K;
     use Protocol as P;
 
-    // Compute that serves requests (Autoscaling is a controller, not a server).
-    let services = || set(&[C::Compute], &[], &[K::Autoscale]);
-    // Request callers and hops: clients, the edge, and services.
-    let callers = || set(&[C::Edge, C::Compute], &[], &[K::Autoscale]);
+    // Compute that serves requests (Autoscaling is a controller, not a server; model
+    // inference answers calls but never consumes messages).
+    let services = || set(&[C::Compute], &[], &[K::Autoscale, K::Infer]);
+    // Request callers and hops: clients, the edge, and services. Identity providers,
+    // third-party APIs and model inference answer calls; they don't make them.
+    let callers = || {
+        set(
+            &[C::Edge, C::Compute],
+            &[],
+            &[K::Autoscale, K::Idp, K::External, K::Infer],
+        )
+    };
     // Request targets: the edge (not clients) and services.
     let hops = || set(&[C::Edge, C::Compute], &[], &[K::Client, K::Autoscale]);
-    let brokers = || only(&[K::Queue, K::Stream, K::Pubsub, K::Dlq]);
+    let brokers = || only(&[K::Queue, K::Stream, K::Pubsub, K::Dlq, K::Mqtt]);
+    // Consumers: services, stream processors, connectors, and WebSocket gateways pushing
+    // messages to their connections.
+    let consumers = || {
+        set(
+            &[C::Compute],
+            &[K::Streamproc, K::Connector, K::Ws],
+            &[K::Autoscale, K::Infer],
+        )
+    };
+    // Where processed records land.
+    let sinks = || only(&[K::Streamproc, K::Connector]);
 
     let rules = vec![
         rule("sync_call", P::Http, callers(), hops()),
@@ -176,7 +195,7 @@ pub fn table() -> WiringTable {
             "websocket",
             P::Ws,
             only(&[K::Client, K::Lb, K::Gateway]),
-            only(&[K::Lb, K::Gateway, K::App, K::Micro]),
+            only(&[K::Lb, K::Gateway, K::App, K::Micro, K::Ws, K::Media]),
         ),
         // Services, search indexers and token-bucket limiters read and write data.
         rule(
@@ -203,8 +222,12 @@ pub fn table() -> WiringTable {
         rule(
             "publish",
             P::Publish,
-            set(&[C::Compute], &[K::Client, K::Scheduler], &[K::Autoscale]),
-            only(&[K::Queue, K::Stream, K::Pubsub]),
+            set(
+                &[C::Compute],
+                &[K::Client, K::Scheduler, K::Ws],
+                &[K::Autoscale],
+            ),
+            only(&[K::Queue, K::Stream, K::Pubsub, K::Mqtt]),
         ),
         rule(
             "dead_letter",
@@ -219,10 +242,48 @@ pub fn table() -> WiringTable {
             only(&[K::Sql, K::Nosql]),
             only(&[K::Stream]),
         ),
+        // Change data capture through a connector (Debezium reading the database log).
+        rule(
+            "change_data_capture",
+            P::Publish,
+            only(&[K::Sql, K::Nosql]),
+            only(&[K::Connector]),
+        ),
         // Topic → queue fan-out (SNS → SQS).
         rule("fan_out", P::Publish, only(&[K::Pubsub]), only(&[K::Queue])),
-        // Consume edges start at a broker and end at a service.
-        rule("consume", P::Consume, brokers(), services()),
+        // Consume edges start at a broker and end at a consumer.
+        rule("consume", P::Consume, brokers(), consumers()),
+        // Stream processors and connectors write their results to stores and brokers.
+        rule("sink", P::Query, sinks(), cats(&[C::Data])),
+        rule(
+            "sink",
+            P::Publish,
+            sinks(),
+            only(&[K::Queue, K::Stream, K::Pubsub]),
+        ),
+        // A stream processor scoring records with a model (fraud, anomalies).
+        rule("score", P::Http, only(&[K::Streamproc]), only(&[K::Infer])),
+        // A connector polling a SaaS API.
+        rule(
+            "poll_api",
+            P::Http,
+            only(&[K::Connector]),
+            only(&[K::External]),
+        ),
+        // A connection pooler in front of its database.
+        rule(
+            "pooled_query",
+            P::Query,
+            only(&[K::Dbproxy]),
+            only(&[K::Sql]),
+        ),
+        // A warehouse reading lake tables and files in place (external tables).
+        rule(
+            "external_table",
+            P::Query,
+            only(&[K::Warehouse]),
+            only(&[K::Lakehouse, K::Object]),
+        ),
         // Replication between two stores of one kind; streams mirror across regions.
         WiringRule {
             id: "replicate".into(),
@@ -304,11 +365,22 @@ mod tests {
             for to in ComponentKind::ALL {
                 if t().allowed(from, to).contains(&P::Consume) {
                     assert!(
-                        matches!(from, K::Queue | K::Stream | K::Pubsub | K::Dlq),
+                        matches!(from, K::Queue | K::Stream | K::Pubsub | K::Dlq | K::Mqtt),
                         "{from:?}"
                     );
                     assert!(
-                        matches!(to, K::App | K::Micro | K::Worker | K::Serverless),
+                        matches!(
+                            to,
+                            K::App
+                                | K::Micro
+                                | K::Worker
+                                | K::Serverless
+                                | K::Batch
+                                | K::Media
+                                | K::Streamproc
+                                | K::Connector
+                                | K::Ws
+                        ),
                         "{to:?}"
                     );
                 }

@@ -169,7 +169,7 @@ describe("icons", () => {
     const icons = [...REGISTRY.kinds.map((k) => k.icon), ...REGISTRY.meta.map((m) => m.icon)];
     expect(icons.filter((i) => !GLYPHS[i])).toEqual([]);
     const kindGlyphs = REGISTRY.kinds.map((k) => GLYPHS[k.icon]);
-    expect(new Set(kindGlyphs).size).toBe(25);
+    expect(new Set(kindGlyphs).size).toBe(42);
   });
 });
 

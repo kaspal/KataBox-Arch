@@ -55,13 +55,25 @@ impl Role {
     pub fn of(kind: ComponentKind) -> Role {
         use ComponentKind as K;
         match kind {
-            K::Dns | K::Cdn | K::Waf | K::Lb | K::Gateway | K::Ratelimit => Role::Edge,
-            K::App | K::Micro | K::Serverless => Role::Compute,
-            K::Worker => Role::Worker,
+            K::Dns | K::Cdn | K::Waf | K::Lb | K::Gateway | K::Ratelimit | K::Ws => Role::Edge,
+            K::App | K::Micro | K::Serverless | K::Media => Role::Compute,
+            K::Worker | K::Batch | K::Streamproc | K::Connector => Role::Worker,
             K::Cache => Role::Cache,
-            K::Sql | K::Nosql | K::Object | K::Search => Role::Datastore,
-            K::Queue | K::Stream | K::Pubsub | K::Dlq => Role::Broker,
+            K::Sql
+            | K::Nosql
+            | K::Object
+            | K::Search
+            | K::Coord
+            | K::Vector
+            | K::Warehouse
+            | K::Lakehouse
+            | K::Tsdb
+            | K::Graph => Role::Datastore,
+            K::Queue | K::Stream | K::Pubsub | K::Dlq | K::Mqtt => Role::Broker,
             K::Client | K::Scheduler => Role::Source,
+            // M8: model inference, identity providers, pooled database connections, third-party
+            // API cards and config services take part in requests through their S-features.
+            K::Infer | K::Idp | K::Dbproxy | K::External | K::Config => Role::None,
             K::Autoscale | K::Metrics | K::Logs | K::Tracing => Role::None,
         }
     }

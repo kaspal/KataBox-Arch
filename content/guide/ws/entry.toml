@@ -1,0 +1,219 @@
+kind = "ws"
+one_liner = "A server that holds long-lived connections open so it can push messages to clients the moment they happen."
+one_liner_es = "Un servidor que mantiene abiertas conexiones de larga duración para empujar mensajes a los clientes en cuanto ocurren."
+
+use_when = [
+  "Clients must see updates within a second, such as chat messages or live edits",
+  "The server, not the client, decides when there is something new",
+  "Many clients stay connected for minutes or hours",
+]
+use_when_es = [
+  "Los clientes deben ver las novedades en menos de un segundo, como mensajes de chat o ediciones en vivo",
+  "Es el servidor, no el cliente, quien decide cuándo hay algo nuevo",
+  "Muchos clientes permanecen conectados durante minutos u horas",
+]
+skip_when = [
+  "Clients only ask and wait for an answer, like a normal page load",
+  "Updates every minute or so are good enough, so polling would do",
+  "The data is large files, which belong on a CDN or object storage",
+]
+skip_when_es = [
+  "Los clientes solo preguntan y esperan respuesta, como una carga de página normal",
+  "Basta con novedades cada minuto o así, así que el sondeo serviría",
+  "Los datos son ficheros grandes, que van en una CDN o en almacenamiento de objetos",
+]
+
+formula = "connections per instance ≤ min(max connections, memory ÷ memory per connection); new connections per second ≤ accept rate (the rest retry after the client's backoff); pushes per instance ≤ message rate, excess waits in a backlog; a fan-out is delivered when the last instance has pushed it"
+formula_es = "conexiones por instancia ≤ mín(conexiones máximas, memoria ÷ memoria por conexión); conexiones nuevas por segundo ≤ ritmo de aceptación (el resto reintenta tras la espera del cliente); envíos por instancia ≤ ritmo de mensajes, el exceso espera en una cola pendiente; un fan-out se entrega cuando la última instancia lo ha enviado"
+
+gains = [
+  "Updates reach clients at once, with no polling delay",
+  "No wasted requests asking whether anything changed",
+]
+gains_es = [
+  "Las novedades llegan a los clientes al momento, sin el retraso del sondeo",
+  "Sin peticiones desperdiciadas preguntando si algo cambió",
+]
+costs = [
+  "Every open connection holds memory, even when it is idle",
+  "When an instance dies, all its clients reconnect at once unless they spread out",
+  "Instances hold state, so scaling in or deploying drops connections",
+]
+costs_es = [
+  "Cada conexión abierta ocupa memoria, aunque esté inactiva",
+  "Cuando una instancia cae, todos sus clientes se reconectan a la vez salvo que se repartan",
+  "Las instancias guardan estado, así que reducir o desplegar corta conexiones",
+]
+
+works_with = ["lb", "pubsub", "app", "client", "cache"]
+practice = ["chat", "collab-docs"]
+
+interview_tip = "Size connections and pushes apart from requests per second: say how many clients stay connected, how much memory each takes, and how they reconnect when a gateway dies."
+interview_tip_es = "Dimensiona las conexiones y los envíos aparte de las peticiones por segundo: di cuántos clientes siguen conectados, cuánta memoria ocupa cada uno y cómo se reconectan cuando cae un gateway."
+
+not_simulated = [
+  "The TLS cost of each handshake, beyond the accept rate",
+  "Message ordering on a connection",
+  "Message sizes and network bandwidth",
+  "The sticky routing details of each product",
+  "API Gateway's limit on how long one connection may stay open",
+]
+not_simulated_es = [
+  "El coste TLS de cada handshake, más allá del ritmo de aceptación",
+  "El orden de los mensajes en una conexión",
+  "El tamaño de los mensajes y el ancho de banda de red",
+  "Los detalles del enrutado persistente de cada producto",
+  "El límite de API Gateway sobre cuánto puede seguir abierta una conexión",
+]
+
+[[sim]]
+prop = "instances"
+note = "Gateway servers. Each one holds its own share of the connections and pushes its own share of the messages."
+note_es = "Servidores del gateway. Cada uno mantiene su parte de las conexiones y envía su parte de los mensajes."
+
+[[sim]]
+prop = "max_connections"
+note = "The most connections one instance accepts. Past it, new connections are refused."
+note_es = "El máximo de conexiones que acepta una instancia. Por encima, las conexiones nuevas se rechazan."
+
+[[sim]]
+prop = "conn_memory_kb"
+note = "Memory each open connection holds. Together with the instance memory it sets a second cap on connections."
+note_es = "Memoria que ocupa cada conexión abierta. Junto con la memoria de la instancia fija un segundo tope de conexiones."
+
+[[sim]]
+prop = "memory_gb"
+note = "Memory per instance. Divided by the memory per connection, it caps how many clients fit."
+note_es = "Memoria por instancia. Dividida entre la memoria por conexión, limita cuántos clientes caben."
+
+[[sim]]
+prop = "accept_per_s"
+note = "New connections one instance can open per second. Attempts beyond it are dropped and retry after the client's backoff, which matters most in a reconnect storm."
+note_es = "Conexiones nuevas que una instancia puede abrir por segundo. Los intentos por encima se descartan y reintentan tras la espera del cliente, lo que pesa sobre todo en una tormenta de reconexiones."
+
+[[sim]]
+prop = "msgs_per_s"
+note = "Pushes one instance can send per second. Excess waits in a backlog and arrives late."
+note_es = "Envíos que una instancia puede hacer por segundo. El exceso espera en una cola pendiente y llega tarde."
+
+[[sim]]
+prop = "service_ms"
+note = "Time to handle one message on its way through the gateway."
+note_es = "Tiempo para procesar un mensaje a su paso por el gateway."
+
+[[sim]]
+sim = "p99_ratio"
+note = "How much slower the slow tail is than the median when handling a message."
+note_es = "Cuánto más lenta es la cola lenta que la mediana al procesar un mensaje."
+
+[[sim]]
+cost = "per_instance_month"
+note = "A fixed monthly price per self-hosted gateway server. The managed AWS flavour has no instance fee."
+note_es = "Un precio mensual fijo por servidor de gateway propio. El sabor gestionado de AWS no cobra por instancia."
+
+[[sim]]
+cost = "messages_m"
+note = "The managed AWS flavour bills each message sent or received, per million."
+note_es = "El sabor gestionado de AWS cobra cada mensaje enviado o recibido, por millón."
+
+[[sim]]
+cost = "conn_minutes_m"
+note = "The managed AWS flavour also bills the time each client stays connected, per million connection-minutes."
+note_es = "El sabor gestionado de AWS cobra además el tiempo que cada cliente sigue conectado, por millón de minutos de conexión."
+
+[flavours_compared]
+flavours = ["socket_io", "aws_apigw_ws", "phoenix"]
+
+[[flavours_compared.rows]]
+label = "Who runs it"
+label_es = "Quién lo opera"
+cells = ["You, on Node.js servers", "AWS, fully managed", "You, on Elixir servers"]
+cells_es = ["Tú, en servidores Node.js", "AWS, totalmente gestionado", "Tú, en servidores Elixir"]
+
+[[flavours_compared.rows]]
+label = "Connections per server"
+label_es = "Conexiones por servidor"
+cells = ["Tens of thousands", "Not your concern: AWS scales it", "Very many: the Erlang VM keeps each one cheap"]
+cells_es = ["Decenas de miles", "No es asunto tuyo: AWS lo escala", "Muchísimas: la máquina virtual de Erlang hace barata cada una"]
+
+[[flavours_compared.rows]]
+label = "How you pay"
+label_es = "Cómo pagas"
+cells = ["Per server", "Per message and per connection-minute", "Per server"]
+cells_es = ["Por servidor", "Por mensaje y por minuto de conexión", "Por servidor"]
+
+[[flavours_compared.rows]]
+label = "Fan-out between servers"
+label_es = "Fan-out entre servidores"
+cells = ["An adapter, often Redis pub/sub", "Your backend calls a connection URL per client", "Built-in PubSub across the cluster"]
+cells_es = ["Un adaptador, a menudo pub/sub de Redis", "Tu backend llama a una URL de conexión por cliente", "PubSub integrado en todo el clúster"]
+
+[[pitfalls]]
+title = "Reconnect storm"
+title_es = "Tormenta de reconexiones"
+body = "A gateway instance dies and all its clients reconnect in the same second. The survivors can only accept so many new connections per second, so most attempts are dropped, retry, and pile up again."
+body_es = "Cae una instancia del gateway y todos sus clientes se reconectan en el mismo segundo. Las supervivientes solo aceptan cierto número de conexiones nuevas por segundo, así que la mayoría de intentos se descartan, reintentan y vuelven a amontonarse."
+fix = "Give the client a reconnect jitter so reconnects spread over several seconds, and keep spare accept capacity on the other instances."
+fix_es = "Dale al cliente un margen aleatorio de reconexión para que las reconexiones se repartan en varios segundos, y deja capacidad de aceptación de sobra en las demás instancias."
+
+[[pitfalls]]
+title = "Sizing by requests per second"
+title_es = "Dimensionar por peticiones por segundo"
+body = "The design counts messages per second but forgets that every idle client still holds a connection and its memory. The gateway runs out of connections long before it runs out of CPU."
+body_es = "El diseño cuenta mensajes por segundo pero olvida que cada cliente inactivo sigue ocupando una conexión y su memoria. El gateway se queda sin conexiones mucho antes que sin CPU."
+fix = "Size instances for peak concurrent connections first, using memory per connection, then check the push rate."
+fix_es = "Dimensiona las instancias primero por las conexiones simultáneas del pico, usando la memoria por conexión, y luego comprueba el ritmo de envíos."
+
+[[pitfalls]]
+title = "One slow instance holds up a fan-out"
+title_es = "Una instancia lenta retrasa un fan-out"
+body = "A message to a big room must be pushed by every instance that holds a member. One instance with a backlog makes the whole delivery late."
+body_es = "Un mensaje a una sala grande lo debe enviar cada instancia que tenga a un miembro. Una sola instancia con cola pendiente retrasa toda la entrega."
+fix = "Keep push capacity well above the peak on every instance, and spread connections evenly with the load balancer."
+fix_es = "Mantén la capacidad de envío muy por encima del pico en cada instancia, y reparte las conexiones por igual con el balanceador."
+
+[[sources]]
+flavour = "socket_io"
+title = "Socket.IO documentation"
+url = "https://socket.io/docs/v4/"
+checked = false
+
+[[sources]]
+flavour = "aws_apigw_ws"
+title = "Amazon API Gateway WebSocket APIs"
+url = "https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-websocket-api.html"
+checked = false
+
+[[sources]]
+flavour = "phoenix"
+title = "Phoenix Channels guide"
+url = "https://hexdocs.pm/phoenix/channels.html"
+checked = false
+
+
+[[quiz]]
+q = "A gateway instance holding many clients dies, and the clients reconnect with no jitter. What does the simulator show?"
+q_es = "Cae una instancia del gateway con muchos clientes, y los clientes se reconectan sin margen aleatorio. ¿Qué muestra el simulador?"
+options = ["The other instances take every client within the same second", "The clients wait until the dead instance comes back", "Reconnects beyond the accept rate are dropped and retry after backoff, so clients stay offline for a while", "The load balancer queues the reconnects with no loss"]
+options_es = ["Las demás instancias aceptan a todos los clientes en el mismo segundo", "Los clientes esperan a que vuelva la instancia caída", "Las reconexiones por encima del ritmo de aceptación se descartan y reintentan tras la espera, así que los clientes siguen desconectados un rato", "El balanceador encola las reconexiones sin pérdidas"]
+answer = 2
+why = "New connections per second are capped per instance. A burst of reconnects beyond that cap is dropped and retried, which is a reconnect storm. Jitter on the client spreads the burst out."
+why_es = "Las conexiones nuevas por segundo tienen un tope por instancia. Una ráfaga de reconexiones por encima de ese tope se descarta y se reintenta: es una tormenta de reconexiones. El margen aleatorio en el cliente reparte la ráfaga."
+
+[[quiz]]
+q = "A chat app has many idle clients and few messages. Instances refuse new connections while their CPU is low. What is the right move?"
+q_es = "Una app de chat tiene muchos clientes inactivos y pocos mensajes. Las instancias rechazan conexiones nuevas aunque su CPU está baja. ¿Qué conviene hacer?"
+options = ["Add instances or memory, because connections are capped by count and memory, not by CPU", "Raise the message rate per instance", "Put a queue in front of the gateway", "Switch the clients to polling every second"]
+options_es = ["Añadir instancias o memoria, porque las conexiones tienen un tope por número y por memoria, no por CPU", "Subir el ritmo de mensajes por instancia", "Poner una cola delante del gateway", "Pasar los clientes a sondear cada segundo"]
+answer = 0
+why = "Open connections are a capacity of their own. Each one holds memory, so the gateway fills up on connections even with little traffic. Polling every second would add far more requests."
+why_es = "Las conexiones abiertas son una capacidad propia. Cada una ocupa memoria, así que el gateway se llena de conexiones aunque haya poco tráfico. Sondear cada segundo añadiría muchas más peticiones."
+
+[[quiz]]
+q = "A message goes to a room whose members are spread over many gateway instances. When is it delivered to everyone?"
+q_es = "Un mensaje va a una sala cuyos miembros están repartidos entre muchas instancias del gateway. ¿Cuándo se ha entregado a todos?"
+options = ["When the first instance pushes it", "When the average instance pushes it", "When the publisher gets an acknowledgement", "When the last instance has pushed it"]
+options_es = ["Cuando la primera instancia lo envía", "Cuando lo envía la instancia media", "Cuando quien publica recibe una confirmación", "Cuando la última instancia lo ha enviado"]
+answer = 3
+why = "A fan-out completes only when the slowest instance has pushed it. One instance with a backlog delays the whole room, so push capacity matters on every instance."
+why_es = "Un fan-out termina solo cuando la instancia más lenta lo ha enviado. Una instancia con cola pendiente retrasa a toda la sala, así que la capacidad de envío importa en cada instancia."

@@ -900,9 +900,9 @@ export type CompareRow = { label: string; label_es: string;
  */
 cells: string[]; cells_es: string[] }
 /**
- * The 25 component kinds. Ids match the icon ids (`icons.json`).
+ * The 42 component kinds. Ids match the glyph ids (`solve/glyphs.ts`).
  */
-export type ComponentKind = "client" | "dns" | "cdn" | "waf" | "lb" | "gateway" | "ratelimit" | "app" | "micro" | "worker" | "serverless" | "autoscale" | "sql" | "nosql" | "cache" | "object" | "search" | "queue" | "stream" | "pubsub" | "dlq" | "scheduler" | "metrics" | "logs" | "tracing"
+export type ComponentKind = "client" | "dns" | "cdn" | "waf" | "lb" | "gateway" | "ratelimit" | "ws" | "idp" | "external" | "app" | "micro" | "worker" | "serverless" | "autoscale" | "infer" | "batch" | "media" | "sql" | "nosql" | "cache" | "object" | "search" | "coord" | "vector" | "warehouse" | "lakehouse" | "tsdb" | "dbproxy" | "graph" | "queue" | "stream" | "pubsub" | "dlq" | "scheduler" | "streamproc" | "mqtt" | "connector" | "metrics" | "logs" | "tracing" | "config"
 /**
  * What the import did, for the summary dialog.
  */
@@ -1034,7 +1034,7 @@ at_s: number; utilisation: number }
  * Real-product flavours. A flavour belongs to one kind (`Generic` is shared by kinds with
  * no product choice yet). Vendor names belong to their owners; no logos are used.
  */
-export type Flavour = "generic" | "web" | "mobile" | "route53" | "cloudflare_dns" | "cloudfront" | "cloudflare_cdn" | "fastly" | "aws_waf" | "cloudflare_waf" | "nginx" | "haproxy" | "aws_alb" | "aws_nlb" | "kong" | "aws_api_gateway" | "envoy" | "redis_token_bucket" | "nodejs" | "spring_boot" | "go" | "django" | "celery" | "sidekiq" | "aws_lambda" | "cloud_run" | "kubernetes_hpa" | "aws_asg" | "postgresql" | "mysql" | "dynamodb" | "cassandra" | "mongodb" | "redis" | "memcached" | "s3" | "gcs" | "elasticsearch" | "opensearch" | "rabbitmq" | "sqs" | "kafka" | "kinesis" | "google_pubsub" | "sns" | "redis_pubsub" | "cron" | "airflow" | "prometheus_grafana" | "elk" | "loki" | "jaeger"
+export type Flavour = "generic" | "web" | "mobile" | "route53" | "cloudflare_dns" | "cloudfront" | "cloudflare_cdn" | "fastly" | "aws_waf" | "cloudflare_waf" | "nginx" | "haproxy" | "aws_alb" | "aws_nlb" | "kong" | "aws_api_gateway" | "envoy" | "redis_token_bucket" | "nodejs" | "spring_boot" | "go" | "django" | "celery" | "sidekiq" | "aws_lambda" | "cloud_run" | "kubernetes_hpa" | "aws_asg" | "postgresql" | "mysql" | "dynamodb" | "cassandra" | "mongodb" | "redis" | "memcached" | "s3" | "gcs" | "elasticsearch" | "opensearch" | "rabbitmq" | "sqs" | "kafka" | "kinesis" | "google_pubsub" | "sns" | "redis_pubsub" | "cron" | "airflow" | "prometheus_grafana" | "elk" | "loki" | "jaeger" | "socket_io" | "aws_apigw_ws" | "phoenix" | "auth0" | "cognito" | "keycloak" | "okta" | "stripe" | "twilio" | "sendgrid" | "claude_api" | "openai_api" | "bedrock" | "gemini_api" | "vllm" | "triton" | "spark_emr" | "dataproc" | "databricks" | "livekit" | "mediasoup" | "elemental_live" | "wowza" | "etcd" | "zookeeper" | "consul" | "pgvector" | "pinecone" | "qdrant" | "milvus" | "snowflake" | "bigquery" | "redshift" | "clickhouse" | "databricks_sql" | "iceberg" | "delta" | "hudi" | "influxdb" | "timescaledb" | "timestream" | "mimir" | "pgbouncer" | "rds_proxy" | "proxysql" | "vtgate" | "neo4j" | "neptune" | "janusgraph" | "flink" | "kafka_streams" | "spark_streaming" | "emqx" | "aws_iot_core" | "mosquitto" | "hivemq" | "kafka_connect" | "debezium" | "fivetran" | "airbyte" | "launchdarkly" | "aws_appconfig" | "unleash"
 /**
  * A flavour of a kind, with the props it changes from the kind's defaults.
  */
@@ -1097,6 +1097,10 @@ formula: string; formula_es: string; flavours_compared?: FlavoursCompared | null
  * Problem ids where this kind is a key move.
  */
 practice?: string[]; interview_tip: string; interview_tip_es: string; sources: Source[]; 
+/**
+ * What the simulator leaves out for this kind (M8; required for the kinds added in M8).
+ */
+not_simulated: string[]; not_simulated_es: string[]; 
 /**
  * Three quick-check questions (M5.5). Never sent to the UI with the entry: the app
  * serves them without their answers.
@@ -1706,7 +1710,8 @@ export type SimRow = (
  */
 { sim: string } | 
 /**
- * A `Cost` field: `per_instance_month`, `per_gb_month`, `per_million`.
+ * A `Cost` field (`per_instance_month`, `per_gb_month`, `per_million`…) or a usage meter
+ * (`tokens_in_m`, `tokens_out_m`, `tb_scanned`, `conn_minutes_m`, `messages_m`).
  */
 { cost: string }) & { 
 /**

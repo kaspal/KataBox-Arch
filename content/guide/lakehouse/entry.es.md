@@ -1,0 +1,7 @@
+Una tabla de lakehouse es un conjunto de archivos de datos, normalmente Parquet, en almacenamiento de objetos, más metadatos que dicen qué archivos forman la tabla en este momento. Formatos como Iceberg, Delta Lake y Hudi añaden lo que les falta a los archivos sueltos: confirmaciones atómicas, un esquema y un registro de particiones y estadísticas de archivos. Así, muchos motores, un almacén de datos, trabajos Spark, procesadores de streams, pueden leer y escribir una sola copia de los datos a precio de almacenamiento de objetos.
+
+La tabla no calcula nada por sí misma; su **disposición** decide lo que pagan los lectores. Con **particionado** por día u hora, una consulta que filtra por tiempo lee solo las particiones que coinciden. Sin él, cada consulta lo lee todo. La ingesta en streaming escribe archivos pequeños a menudo, y cada archivo añade sobrecarga de apertura y listado a cada lectura, así que la **compactación** los reescribe en archivos cercanos a `target_file_mb`.
+
+El simulador modela ese efecto: un almacén o un trabajo por lotes que lee la tabla recorre los bytes de las particiones que conserva y paga un coste por archivo, y el número de archivos depende de la ingesta y del calendario de compactación.
+
+**Cómo lo factura el simulador.** La tabla se cobra solo por los datos guardados, a 0,023 $ por GB al mes (S3 Standard): diez terabytes cuestan unos 230 $ al mes. Los motores que la leen son tarjetas aparte con sus propios precios.

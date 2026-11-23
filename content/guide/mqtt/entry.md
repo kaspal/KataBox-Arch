@@ -1,0 +1,7 @@
+An IoT broker speaks **MQTT**, a light protocol built for devices: sensors, cars, meters, smart locks. Each device opens one long-lived connection to the broker and keeps it. Devices **publish** small messages to a **topic** such as `fleet/42/location`, and anyone **subscribed** to that topic gets them. The same connection carries commands back down to the device.
+
+Connections are a capacity of their own. A million devices that each send one reading a minute make a small message rate, but the broker must hold a million open connections, and each one uses memory. When a node dies, all of its devices try to reconnect. If they all do it at the same moment, the other nodes refuse most of them and the retries keep the load high: a **reconnect storm**. A random delay in the client spreads the reconnects out.
+
+Each message picks a **QoS**. At most once (QoS 0) sends and forgets: fast, but a message can be lost on a bad network. At least once (QoS 1) retries until the receiver acknowledges, so the message arrives but may arrive twice. The simulator models both, together with the connection limits and reconnects.
+
+**How the simulator bills this.** EMQX, Mosquitto and HiveMQ run on your own nodes at $70 per node a month, the price of an m5.large-class machine (teaching price; source to be confirmed). AWS IoT Core has no node fee: it bills $1.00 per million messages and $0.08 per million connection-minutes, so devices that stay connected cost money even when they are quiet, and QoS 1 retries count as messages.
