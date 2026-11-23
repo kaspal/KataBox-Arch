@@ -1398,7 +1398,12 @@ lost?: number | null;
  * S8 metastable check: from this second to the end of the test, every second must be
  * within the test's error and p95 limits (the system recovered after its trigger).
  */
-recovered_by_s?: number | null }
+recovered_by_s?: number | null; 
+/**
+ * S7: writes that raced or landed on a stale primary (usually 0). Tests that set it
+ * must run unsampled.
+ */
+conflicts?: number | null }
 /**
  * One step of a path as the UI shows it.
  */
@@ -1629,7 +1634,11 @@ completion: Percentiles | null; lost: number; dead_lettered: number;
 /**
  * Failed attempts that were retried: not errors, since the message lived on (review F3).
  */
-retried?: number; stale_reads: number; stale_rate: number; cost_month: number; per_type: TypeResult[]; nodes: NodeResult[]; 
+retried?: number; stale_reads: number; stale_rate: number; 
+/**
+ * S7: writes that raced on a contended key or landed on a stale primary in a split.
+ */
+conflicts: number; cost_month: number; per_type: TypeResult[]; nodes: NodeResult[]; 
 /**
  * One entry per simulated second.
  */

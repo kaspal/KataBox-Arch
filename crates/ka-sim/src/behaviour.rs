@@ -105,6 +105,10 @@ pub struct NodeSpec {
     /// keeping at least this share in rotation.
     pub health_timeout_us: u64,
     pub min_healthy: f64,
+    /// S7 data clusters: a replica cut off from its primary promotes itself
+    /// (`split_failover = auto`); writes need a current fencing token (`fencing`).
+    pub split_failover: bool,
+    pub fencing: bool,
 }
 
 /// The value of `key` for `node`: the card's prop, else its flavour override, else the
@@ -240,5 +244,7 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         dns_failover: text(registry, node, "routing").as_deref() == Some("failover"),
         health_timeout_us: (n("health_timeout_ms").unwrap_or(0.0).max(0.0) * 1000.0) as u64,
         min_healthy: n("min_healthy_pct").unwrap_or(0.0).clamp(0.0, 100.0) / 100.0,
+        split_failover: text(registry, node, "split_failover").as_deref() == Some("auto"),
+        fencing: matches!(prop(registry, node, "fencing"), Some(PropValue::Bool(true))),
     }
 }

@@ -565,7 +565,9 @@
       "auto_rollback": "Reversión automática",
       "routing": "Enrutado",
       "health_timeout_ms": "Expulsar si la espera en cola supera",
-      "min_healthy_pct": "Mantener al menos en rotación"
+      "min_healthy_pct": "Mantener al menos en rotación",
+      "split_failover": "Conmutación en una partición",
+      "fencing": "Tokens de exclusión (fencing)"
     },
     "choice": {
       "round_robin": "Round robin",
@@ -601,7 +603,9 @@
       "remote": "Llamar al proveedor",
       "local": "Verificar en local (JWKS)",
       "full": "Completa (espera aleatoria)",
-      "failover": "Conmutación (el primero sano)"
+      "failover": "Conmutación (el primero sano)",
+      "manual": "Solo si el primario cae",
+      "auto": "Automática (riesgo de cerebro dividido)"
     }
   },
   "units": {

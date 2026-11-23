@@ -40,6 +40,9 @@ pub struct RunResult {
     pub retried: f64,
     pub stale_reads: f64,
     pub stale_rate: f64,
+    /// S7: writes that raced on a contended key or landed on a stale primary in a split.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub conflicts: f64,
     pub cost_month: f64,
     pub per_type: Vec<TypeResult>,
     pub nodes: Vec<NodeResult>,
@@ -86,4 +89,10 @@ pub struct SecondResult {
     pub ok: f64,
     pub errors: f64,
     pub p95_ms: f64,
+}
+
+/// Fields added in M8 are left out of the JSON when zero, so older results (and goldens)
+/// read and write the same bytes.
+pub fn is_zero(v: &f64) -> bool {
+    *v == 0.0
 }

@@ -14,6 +14,10 @@
 //!                         publishes the change to the stream on its CDC edge, and the
 //!                         consumer after it becomes the caller
 //! "external:email"        a provider outside the design
+//! "lock"                  take a lock (lease) before writing: from a Coordination Service
+//!                         (quorum, S7) or a cache used as a lock (no quorum)
+//! "datastore:write:atomic" a conditional write (SQL constraint, compare-and-set): a race
+//!                         on a contended key is refused cleanly instead of a conflict
 //! "service"               a call to another service that answers without calling onward
 //!                         (M8: a leaf dependency such as a recommendations service)
 //! "compute|datastore"     either role satisfies the step
@@ -113,6 +117,8 @@ pub struct Alt {
     pub external: Option<String>,
     /// A `service` step: a compute card called as a dependency (never a caller).
     pub service: bool,
+    /// `:atomic`: a conditional write (S7).
+    pub atomic: bool,
 }
 
 impl Alt {
@@ -128,6 +134,8 @@ pub struct Step {
     pub optional: bool,
     /// The `cdc` step: a stream fed by the database written just before.
     pub cdc: bool,
+    /// The `lock` step (S7).
+    pub lock: bool,
 }
 
 impl Step {
@@ -203,9 +211,31 @@ pub fn parse_step(s: &str) -> Result<Step, RouteError> {
                 kinds: vec![ComponentKind::Stream],
                 external: None,
                 service: false,
+                atomic: false,
             }],
             optional: false,
             cdc: true,
+            lock: false,
+        });
+    }
+    if body == "lock" {
+        let alt = |role: Role, kinds: Vec<ComponentKind>| Alt {
+            role,
+            write: true,
+            ws: false,
+            kinds,
+            external: None,
+            service: false,
+            atomic: false,
+        };
+        return Ok(Step {
+            alts: vec![
+                alt(Role::Datastore, vec![ComponentKind::Coord]),
+                alt(Role::Cache, Vec::new()),
+            ],
+            optional,
+            cdc: false,
+            lock: true,
         });
     }
     let mut alts = Vec::new();
@@ -226,12 +256,14 @@ pub fn parse_step(s: &str) -> Result<Step, RouteError> {
             kinds: Vec::new(),
             external: None,
             service,
+            atomic: false,
         };
         for q in parts {
             let q = q.trim();
             match q {
                 "write" => a.write = true,
                 "ws" => a.ws = true,
+                "atomic" if role == Role::Datastore => a.atomic = true,
                 _ if role == Role::External => a.external = Some(q.to_owned()),
                 _ => {
                     let kind: ComponentKind = serde_json::from_value(serde_json::Value::from(q))
@@ -248,10 +280,14 @@ pub fn parse_step(s: &str) -> Result<Step, RouteError> {
         }
         alts.push(a);
     }
+    if alts.iter().any(|a| a.atomic && !a.write) {
+        return Err(RouteError(format!("`atomic` qualifies a write: {s:?}")));
+    }
     Ok(Step {
         alts,
         optional,
         cdc: false,
+        lock: false,
     })
 }
 
@@ -466,6 +502,19 @@ mod tests {
             !parse_step("service:micro")
                 .unwrap()
                 .accepts(ComponentKind::App)
+        );
+    }
+
+    /// S7: `lock` reaches a coordination service or a cache; `atomic` marks a write.
+    #[test]
+    fn lock_and_atomic_steps() {
+        let l = parse_step("lock").unwrap();
+        assert!(l.lock && l.accepts(ComponentKind::Coord) && l.accepts(ComponentKind::Cache));
+        assert!(!l.accepts(ComponentKind::Sql));
+        assert!(parse_step("datastore:write:atomic").unwrap().alts[0].atomic);
+        assert!(
+            parse_step("datastore:atomic").is_err(),
+            "atomic reads make no sense"
         );
     }
 

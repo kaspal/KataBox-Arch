@@ -565,7 +565,9 @@
       "auto_rollback": "Automatic rollback",
       "routing": "Routing",
       "health_timeout_ms": "Eject when queue wait passes",
-      "min_healthy_pct": "Keep at least in rotation"
+      "min_healthy_pct": "Keep at least in rotation",
+      "split_failover": "Failover in a split",
+      "fencing": "Fencing tokens"
     },
     "choice": {
       "round_robin": "Round robin",
@@ -601,7 +603,9 @@
       "remote": "Call the provider",
       "local": "Verify locally (JWKS)",
       "full": "Full (random wait)",
-      "failover": "Failover (first healthy)"
+      "failover": "Failover (first healthy)",
+      "manual": "Only when the primary dies",
+      "auto": "Automatic (risks split-brain)"
     }
   },
   "units": {

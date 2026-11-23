@@ -1213,6 +1213,11 @@ fn resilience() -> Vec<PropSpec> {
         boolean("auto_rollback", false),
     ]
 }
+/// S7: `manual` (the behaviour before M8: a replica takes over only when the primary dies)
+/// or `auto` (a replica cut off from its primary by a split promotes itself: split-brain).
+fn split_failover() -> PropSpec {
+    choice("split_failover", &["manual", "auto"], "manual")
+}
 fn shed_queue() -> PropSpec {
     int("shed_queue", 0.0, 1_000_000.0, 0.0, Unit::Count)
 }
@@ -1494,6 +1499,8 @@ pub fn registry() -> Registry {
                 int("failover_s", 1.0, 600.0, 30.0, Unit::S),
                 choice("read_from", &["any", "primary"], "any"),
                 int("cdc_buffer_s", 0.0, 3600.0, 300.0, Unit::S),
+                split_failover(),
+                boolean("fencing", false),
             ],
         ),
         kind(
@@ -1505,6 +1512,8 @@ pub fn registry() -> Registry {
                 choice("consistency", &["eventual", "strong"], "eventual"),
                 service_ms(3.0),
                 int("cdc_buffer_s", 0.0, 3600.0, 300.0, Unit::S),
+                split_failover(),
+                boolean("fencing", false),
             ],
         ),
         kind(

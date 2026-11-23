@@ -48,6 +48,23 @@ pub fn check_problem(p: &ProblemDir, registry: &Registry) -> (Vec<Issue>, Judgem
             format!("must be Accepted on every test: {}", summary(&reference)),
         ));
     }
+    // S7 (M8): conflicts are counted exactly, so a test that limits them must run unsampled.
+    for t in &p.def.tests {
+        if p.def.pass_for(t).conflicts.is_none() {
+            continue;
+        }
+        if let Ok(r) = ka_judge::run_test(&p.def, t, &p.reference, registry)
+            && r.sample_factor < 1.0
+        {
+            issues.push(issue(
+                format!("{}/problem.toml", p.dir),
+                format!(
+                    "test {}: a conflicts limit needs an unsampled run (sample {:.3}); raise sample_cap",
+                    t.id, r.sample_factor
+                ),
+            ));
+        }
+    }
     // A p99 limit needs enough completions to be measured (review A4).
     for t in &p.def.tests {
         if p.def.pass_for(t).p99_ms.is_none() {

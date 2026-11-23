@@ -300,6 +300,22 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
     design uses this, even without chaos.
   - `pass.recovered_by_s = T` (the metastable check): from second T to the end of the test, every second with
     traffic must be within the test's error limit (1% if unset) and p95 limit.
+- **Quorum, fencing and races (S7, goldens k and k2).**
+  - Route step `lock`: a call to a Coordination Service (`coord`, Query edge) or to a cache used as a lock. A lock
+    from `coord` needs a quorum: the caller's side of any split must reach members holding more than half of the
+    cluster's instances (each `coord` card counts its `instances`; Replicate edges join cards into one cluster).
+    Without it the call is refused. A cache lock has no quorum. A lock is a grant, not a data write.
+  - SQL and NoSQL gain `split_failover` (`manual`: as before M8, a replica takes over only when the primary dies;
+    `auto`: once health checks see a split, plus the primary's `failover_s`, a member on the far side promotes
+    itself for writers on that side) and `fencing`. A write landing on such a self-promoted primary is a
+    `conflict`, unless the data card has `fencing` and the request holds a lock from a quorum `coord`: then the
+    stale primary refuses it (an error).
+  - Request type `contended = { keys, share }`: `share` of the requests check, then write, one of `keys` hot keys.
+    The check is the request's first call; a write whose check came before another write's commit on the same
+    key raced: a `conflict`, unless the write step is `datastore:write:atomic` (a conditional write: the loser is
+    refused cleanly, an answer) or the request holds a lock.
+  - `pass.conflicts` (usually 0) fails a test as Dropped Requests. Conflicts are counted exactly, so `ka-pack`
+    refuses a test that limits them on a sampled run. New result fields are left out of the JSON when zero.
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE

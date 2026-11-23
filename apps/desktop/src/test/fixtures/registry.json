@@ -15179,6 +15179,28 @@
               "type": "int"
             },
             "unit": "s"
+          },
+          {
+            "calibration": null,
+            "default": "manual",
+            "key": "split_failover",
+            "ty": {
+              "options": [
+                "manual",
+                "auto"
+              ],
+              "type": "choice"
+            },
+            "unit": "none"
+          },
+          {
+            "calibration": null,
+            "default": false,
+            "key": "fencing",
+            "ty": {
+              "type": "bool"
+            },
+            "unit": "none"
           }
         ]
       },
@@ -15339,6 +15361,28 @@
               "type": "int"
             },
             "unit": "s"
+          },
+          {
+            "calibration": null,
+            "default": "manual",
+            "key": "split_failover",
+            "ty": {
+              "options": [
+                "manual",
+                "auto"
+              ],
+              "type": "choice"
+            },
+            "unit": "none"
+          },
+          {
+            "calibration": null,
+            "default": false,
+            "key": "fencing",
+            "ty": {
+              "type": "bool"
+            },
+            "unit": "none"
           }
         ]
       },

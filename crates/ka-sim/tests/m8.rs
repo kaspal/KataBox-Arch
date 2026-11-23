@@ -697,3 +697,146 @@ fn golden_l3_staged_rollout() {
     ]);
     golden("l3", &run(&d, &s, 42));
 }
+
+// --- S7: quorum, fencing, races ----------------------------------------------------------------
+
+/// client → app → PostgreSQL; `book` checks then writes one hot key half the time.
+fn booking(route: &[&str], cache_lock: bool) -> (Design, Scenario) {
+    let mut nodes = vec![
+        node("client", K::Client, Flavour::Web, &[]),
+        node("app", K::App, Flavour::Go, &[("instances", 2.0)]),
+        node("db", K::Sql, Flavour::Postgresql, &[]),
+    ];
+    let mut edges = vec![
+        edge("client", "app", Protocol::Http),
+        edge("app", "db", Protocol::Query),
+    ];
+    if cache_lock {
+        nodes.push(node("locks", K::Cache, Flavour::Redis, &[]));
+        edges.push(edge("app", "locks", Protocol::Query));
+    }
+    let mut t = rtype("book", 1.0, route);
+    t.contended = Some(ka_core::scenario::Contended {
+        keys: 1,
+        share: 0.5,
+    });
+    (design(nodes, edges), scenario(300.0, 30.0, vec![t]))
+}
+
+#[test]
+fn s7_check_then_write_races_unless_atomic_or_locked() {
+    let (d, s) = booking(&["compute", "datastore", "datastore:write"], false);
+    let racy = run(&d, &s, 41);
+    assert!(racy.conflicts > 0.0, "two guests book the last room");
+    let (d, s) = booking(&["compute", "datastore", "datastore:write:atomic"], false);
+    assert_eq!(
+        run(&d, &s, 41).conflicts,
+        0.0,
+        "a conditional write refuses the loser"
+    );
+    let (d, s) = booking(&["compute", "lock", "datastore", "datastore:write"], true);
+    assert_eq!(run(&d, &s, 41).conflicts, 0.0, "the lock serialises them");
+}
+
+fn az(id: &str) -> ka_core::Group {
+    let mut g = region(id);
+    g.kind = ka_core::GroupKind::Az;
+    g
+}
+
+/// Two AZs, an app in each, a PostgreSQL primary in a and its replica in b, with
+/// `split_failover = auto`; AZ b is split off from 10 s to 30 s. `lock` is a Redis cache in
+/// b (no quorum) or an etcd cluster in a (quorum).
+fn split_brain(lock: Option<K>, fencing: bool) -> (Design, Scenario) {
+    let mut db_a = in_group(
+        node("db-a", K::Sql, Flavour::Postgresql, &[("failover_s", 5.0)]),
+        "az-a",
+    );
+    let mut db_b = in_group(
+        node("db-b", K::Sql, Flavour::Postgresql, &[("failover_s", 5.0)]),
+        "az-b",
+    );
+    for db in [&mut db_a, &mut db_b] {
+        set(db, "split_failover", PropValue::Text("auto".into()));
+        set(db, "fencing", PropValue::Bool(fencing));
+    }
+    // Users on both sides of the split, each reaching the app in their own AZ.
+    let mut nodes = vec![
+        in_group(node("client-a", K::Client, Flavour::Web, &[]), "az-a"),
+        in_group(node("client-b", K::Client, Flavour::Web, &[]), "az-b"),
+        in_group(node("app-a", K::App, Flavour::Go, &[]), "az-a"),
+        in_group(node("app-b", K::App, Flavour::Go, &[]), "az-b"),
+        db_a,
+        db_b,
+    ];
+    let mut edges = vec![
+        edge("client-a", "app-a", Protocol::Http),
+        edge("client-b", "app-b", Protocol::Http),
+        edge("app-a", "db-a", Protocol::Query),
+        edge("app-b", "db-a", Protocol::Query),
+        edge("db-a", "db-b", Protocol::Replicate),
+    ];
+    let mut route = vec!["compute", "datastore:write"];
+    match lock {
+        Some(K::Cache) => {
+            nodes.push(in_group(
+                node("locks", K::Cache, Flavour::Redis, &[]),
+                "az-b",
+            ));
+            edges.push(edge("app-a", "locks", Protocol::Query));
+            edges.push(edge("app-b", "locks", Protocol::Query));
+            route.insert(1, "lock");
+        }
+        Some(K::Coord) => {
+            nodes.push(in_group(
+                node("etcd", K::Coord, Flavour::Etcd, &[("instances", 3.0)]),
+                "az-a",
+            ));
+            edges.push(edge("app-a", "etcd", Protocol::Query));
+            edges.push(edge("app-b", "etcd", Protocol::Query));
+            route.insert(1, "lock");
+        }
+        _ => {}
+    }
+    let mut d = design(nodes, edges);
+    d.groups = vec![az("az-a"), az("az-b")];
+    let mut s = scenario(300.0, 40.0, vec![rtype("write", 1.0, &route)]);
+    s.chaos = vec![chaos(
+        serde_json::json!({ "split": { "zone": "az-b", "at": 10, "for": 20 } }),
+    )];
+    (d, s)
+}
+
+#[test]
+fn s7_split_brain_conflicts_unless_a_quorum_lock_fences_the_stale_side() {
+    let (d, s) = split_brain(None, false);
+    let brain = run(&d, &s, 42);
+    assert!(brain.conflicts > 0.0, "both sides take writes");
+    let (d, s) = split_brain(Some(K::Cache), true);
+    assert!(
+        run(&d, &s, 42).conflicts > 0.0,
+        "a lock without quorum doesn't help"
+    );
+    let (d, s) = split_brain(Some(K::Coord), true);
+    let fenced = run(&d, &s, 42);
+    assert_eq!(
+        fenced.conflicts, 0.0,
+        "the minority side can't take the lock"
+    );
+    assert!(fenced.errors > 0.0, "its writes fail instead");
+    // Without auto failover the old behaviour holds: the cut-off side's writes just fail.
+    let (mut d, s) = split_brain(None, false);
+    for n in d.nodes.iter_mut().filter(|n| n.kind == K::Sql) {
+        n.props.remove("split_failover");
+    }
+    assert_eq!(run(&d, &s, 42).conflicts, 0.0);
+}
+
+/// Golden k: split-brain with a Redis lock (conflicts) and the same with a quorum etcd.
+#[test]
+fn golden_k_quorum_and_fencing() {
+    let (d, s) = split_brain(Some(K::Cache), true);
+    golden("k", &run(&d, &s, 42));
+    let (d, s) = split_brain(Some(K::Coord), true);
+    golden("k2", &run(&d, &s, 42));
+}

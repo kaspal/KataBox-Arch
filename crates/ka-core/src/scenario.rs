@@ -52,6 +52,19 @@ pub struct RequestType {
     pub measure: Measure,
     #[serde(default)]
     pub source: Source,
+    /// S7: a share of these requests check, then write, one of a few hot keys (the last
+    /// room, a promo code's counter): overlapping check-then-write windows are races.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contended: Option<Contended>,
+}
+
+/// S7: `share` of a type's requests hit one of `keys` hot keys.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(deny_unknown_fields)]
+pub struct Contended {
+    pub keys: u64,
+    pub share: f64,
 }
 
 fn default_key_space() -> u64 {
@@ -375,6 +388,10 @@ pub struct PassCriteria {
     /// within the test's error and p95 limits (the system recovered after its trigger).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub recovered_by_s: Option<f64>,
+    /// S7: writes that raced or landed on a stale primary (usually 0). Tests that set it
+    /// must run unsampled.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub conflicts: Option<f64>,
 }
 
 /// Completed requests a test needs before its p99 is judged (review A4).
@@ -391,6 +408,7 @@ impl PassCriteria {
             stale_rate: over.stale_rate.or(self.stale_rate),
             lost: over.lost.or(self.lost),
             recovered_by_s: over.recovered_by_s.or(self.recovered_by_s),
+            conflicts: over.conflicts.or(self.conflicts),
         }
     }
 }

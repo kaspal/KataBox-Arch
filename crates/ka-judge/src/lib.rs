@@ -136,7 +136,10 @@ pub fn lint(problem: &ProblemDef, design: &Design, registry: &Registry) -> Vec<S
 
 fn verdict(r: &RunResult, limits: &PassCriteria, cost: f64, budget: f64) -> Verdict {
     let over = |v: f64, l: Option<f64>| l.is_some_and(|l| v > l);
-    if over(r.error_rate, limits.error_rate) || r.lost > limits.lost.unwrap_or(0.0) {
+    if over(r.error_rate, limits.error_rate)
+        || r.lost > limits.lost.unwrap_or(0.0)
+        || over(r.conflicts, limits.conflicts)
+    {
         return Verdict::DroppedRequests;
     }
     if over(r.latency.p95_ms, limits.p95_ms)

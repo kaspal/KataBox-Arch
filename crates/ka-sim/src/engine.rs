@@ -172,6 +172,16 @@ struct Req {
     call_key: u32,
     /// S8: served by a faulty instance (a bad deploy or config): fails when service ends.
     bad: bool,
+    /// S7: a check-then-write on a hot key (when its first call left: its read), the call in
+    /// progress is a lock / an atomic write, a lock is held (from a quorum service), and the
+    /// write in progress goes to a self-promoted primary on the far side of a split.
+    contended: bool,
+    read_at: u64,
+    call_lock: bool,
+    call_atomic: bool,
+    locked: bool,
+    lock_quorum: bool,
+    shadow: bool,
 }
 
 /// S8: dependency keys of external providers (beside card indices).
@@ -369,6 +379,9 @@ pub struct Engine {
     held_revives: Vec<u32>,
     dns_out_since: Option<u64>,
     dns_switch: BTreeMap<u32, u64>,
+    /// S7: conflicting writes, and the last commit time of each contended key.
+    conflicts: f64,
+    hot_commits: BTreeMap<u64, u64>,
 }
 
 /// One forward hop of a simulated request, for the live packet layer.
@@ -491,6 +504,8 @@ impl Engine {
             held_revives: Vec::new(),
             dns_out_since: None,
             dns_switch: BTreeMap::new(),
+            conflicts: 0.0,
+            hot_commits: BTreeMap::new(),
             caches: c
                 .nodes
                 .iter()
@@ -889,6 +904,13 @@ impl Engine {
             in_call: false,
             call_key: NONE,
             bad: false,
+            contended: false,
+            read_at: u64::MAX,
+            call_lock: false,
+            call_atomic: false,
+            locked: false,
+            lock_quorum: false,
+            shadow: false,
         };
         if let Some(i) = self.free.pop() {
             self.reqs[i as usize] = req;
@@ -907,7 +929,17 @@ impl Engine {
             Some(z) => z.sample(&mut self.rng_key[s as usize]),
             None => 1 + self.rng_key[s as usize].below(ty.def.key_space.max(1)),
         };
+        // S7: a share of a contended type's requests go for one of its few hot keys.
+        let mut key = key;
+        let mut contended = false;
+        if let Some(c) = ty.def.contended
+            && self.rng_key[s as usize].uniform() < c.share
+        {
+            key = 1 + self.rng_key[s as usize].below(c.keys.max(1));
+            contended = true;
+        }
         let r = self.alloc(src.ty, key);
+        self.reqs[r as usize].contended = contended;
         let w = self.c.weight;
         self.types[src.ty as usize].requests += w;
         self.second_mut().requests += w;
@@ -1421,6 +1453,7 @@ impl Engine {
             }
             let def = &self.c.types[ty].route.segments[seg].calls[step];
             let (writes, aside) = (def.writes(), def.is_cache_aside());
+            let (lock, atomic) = (def.lock, def.alts.iter().any(|a| a.atomic));
             // Callers avoid targets health checks have found dead. A cache-aside read whose
             // caches are all known dead is skipped: the app treats it as a miss and reads
             // the store (which then takes the full load).
@@ -1448,15 +1481,41 @@ impl Engine {
                     return;
                 }
                 Target::Node(n) => n,
-                Target::Cluster(cl) => self.cluster_member(cl, writes, caller),
+                Target::Cluster(cl) => {
+                    let p = self.cluster_member(cl, writes, caller);
+                    if writes && !lock {
+                        self.shadow_primary(cl, p, caller).unwrap_or(p)
+                    } else {
+                        p
+                    }
+                }
             };
+            if lock
+                && self.c.nodes[node as usize].kind == ComponentKind::Coord
+                && !self.quorum(node, caller)
+            {
+                // S7: this side of a split can't reach a majority of the members.
+                self.reqs[r as usize].call_key = NONE;
+                self.call_failed(r);
+                return;
+            }
             if !self.begin_call(r, caller, node) {
                 return;
             }
+            let shadow = writes
+                && self.c.cluster_of[node as usize]
+                    .is_some_and(|cl| self.cluster_primary[cl as usize] != node);
+            let now = self.now;
             let q = &mut self.reqs[r as usize];
             q.phase = Phase::Call;
             q.call_write = writes;
             q.call_aside = aside;
+            q.call_lock = lock;
+            q.call_atomic = atomic;
+            q.shadow = shadow && !lock;
+            if q.contended && q.read_at == u64::MAX {
+                q.read_at = now;
+            }
             let proto = match self.c.nodes[node as usize].spec.role {
                 Role::Cache | Role::Datastore => Protocol::Query,
                 _ => edge_protocol(&self.c, caller, node),
@@ -1568,6 +1627,83 @@ impl Engine {
         self.fail(r);
     }
 
+    /// S7: does `caller`'s side reach a majority of the coordination cluster's members
+    /// (each card counts its `instances`)?
+    fn quorum(&self, node: u32, caller: u32) -> bool {
+        let members: Vec<u32> = match self.c.cluster_of[node as usize] {
+            Some(cl) => self.c.clusters[cl as usize].members.clone(),
+            None => vec![node],
+        };
+        let size = |m: u32| self.c.nodes[m as usize].spec.instances;
+        let total: f64 = members.iter().map(|&m| size(m)).sum();
+        let reach: f64 = members
+            .iter()
+            .filter(|&&m| !self.nodes[m as usize].down && !self.cut(caller, m))
+            .map(|&m| size(m))
+            .sum();
+        reach * 2.0 > total
+    }
+
+    /// S7 split-brain: with `split_failover = auto`, a caller cut off from the primary by a
+    /// split (once health checks know, plus the primary's `failover_s`) writes to the
+    /// member on its own side that promoted itself.
+    fn shadow_primary(&self, cl: u32, primary: u32, caller: u32) -> Option<u32> {
+        let spec = &self.c.nodes[primary as usize].spec;
+        if !spec.split_failover || caller == NONE || !self.known_cut(caller, primary) {
+            return None;
+        }
+        let since = self
+            .splits
+            .iter()
+            .filter(|s| s.known)
+            .map(|s| s.since)
+            .min()?;
+        let after = since
+            + HEALTH_EVERY_US * u64::from(HEALTH_CHECKS)
+            + (spec.failover_s.max(0.0) * 1e6) as u64;
+        if self.now < after {
+            return None;
+        }
+        self.c.clusters[cl as usize]
+            .members
+            .iter()
+            .copied()
+            .find(|&m| m != primary && !self.nodes[m as usize].down && !self.cut(caller, m))
+    }
+
+    /// S7: a write commits. On a self-promoted primary it is refused with a fencing token
+    /// from a quorum lock, else it is a conflict; on a contended key, a write whose check
+    /// came before another write's commit raced, unless it was atomic or held a lock.
+    /// Returns false if the write was refused (the call failed).
+    fn s7_write_ok(&mut self, r: u32, node: u32, key: u64) -> bool {
+        let w = self.c.weight;
+        let q = &self.reqs[r as usize];
+        let (shadow, quorum, contended, read_at, atomic, locked) = (
+            q.shadow,
+            q.lock_quorum,
+            q.contended,
+            q.read_at,
+            q.call_atomic,
+            q.locked,
+        );
+        if shadow {
+            if self.c.nodes[node as usize].spec.fencing && quorum {
+                self.call_failed(r);
+                return false;
+            }
+            self.conflicts += w;
+        }
+        if contended {
+            let raced = self.hot_commits.get(&key).is_some_and(|&t| t > read_at);
+            if raced && !atomic && !locked {
+                self.conflicts += w;
+            }
+            // An atomic write that lost the race is refused cleanly ("sold out"): an answer.
+            self.hot_commits.insert(key, self.now);
+        }
+        true
+    }
+
     /// Does routing believe this call target is up, and reachable from `caller`?
     fn target_alive(&self, t: Target, caller: u32) -> bool {
         let ok = |m: u32| !self.nodes[m as usize].known_down && !self.known_cut(caller, m);
@@ -1613,7 +1749,20 @@ impl Engine {
         let q = &self.reqs[r as usize];
         let (write, aside, fill_cache) = (q.call_write, q.call_aside, q.fill_cache);
         let w = self.c.weight;
-        match self.c.nodes[node as usize].spec.role {
+        let role = if q.call_lock {
+            // S7: a lock grant, not a write of data.
+            let quorum = self.c.nodes[node as usize].kind == ComponentKind::Coord;
+            let q = &mut self.reqs[r as usize];
+            q.locked = true;
+            q.lock_quorum |= quorum;
+            Role::None
+        } else {
+            self.c.nodes[node as usize].spec.role
+        };
+        if write && role == Role::Datastore && !self.s7_write_ok(r, node, key) {
+            return;
+        }
+        match role {
             // A write-through: the cache holds the new value for every reader of the key.
             Role::Cache if write => {
                 self.record_write(key);
@@ -2601,6 +2750,7 @@ impl Engine {
             } else {
                 0.0
             },
+            conflicts: self.conflicts,
             cost_month: round2(cost_total),
             per_type,
             nodes,

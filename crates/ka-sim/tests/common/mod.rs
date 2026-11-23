@@ -54,6 +54,7 @@ pub fn rtype(id: &str, share: f64, route: &[&str]) -> RequestType {
         fanout: None,
         measure: Measure::Response,
         source: Source::Client,
+        contended: None,
     }
 }
 
