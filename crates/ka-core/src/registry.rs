@@ -1466,6 +1466,9 @@ pub fn registry() -> Registry {
             vec![
                 int("limit_rps", 1.0, 1_000_000.0, 1000.0, Unit::Rps),
                 int("burst", 1.0, 100_000.0, 100.0, Unit::Count),
+                // M10: when the limiter can't reach its state (a dead card), refuse every
+                // request (`closed`) or let them through unlimited (`open`).
+                choice("on_failure", &["closed", "open"], "closed"),
             ],
         ),
         kind(
@@ -1711,6 +1714,9 @@ pub fn registry() -> Registry {
                 // M9: a write that checks and sets in one statement (a conditional UPDATE, a
                 // condition expression): on a contended key a race is refused cleanly (S7).
                 boolean("conditional_writes", false),
+                // M10: a commit waits for replicas: none (async), one replica (`sync`), or a
+                // majority of the cluster (`quorum`).
+                choice("sync", &["none", "sync", "quorum"], "none"),
                 // M8: enforced when a problem turns connection limits on.
                 int("max_connections", 1.0, 100_000.0, 1_700.0, Unit::Count),
             ],
@@ -1911,6 +1917,8 @@ pub fn registry() -> Registry {
                 int("max_depth", 1.0, 10_000_000.0, 100_000.0, Unit::Count),
                 int("visibility_timeout_s", 1.0, 43_200.0, 30.0, Unit::S),
                 int("max_retries", 0.0, 20.0, 3.0, Unit::Count),
+                // M10: dispatch live messages before bulk ones (request types marked `bulk`).
+                boolean("priority", false),
             ],
         ),
         kind(
@@ -1926,6 +1934,8 @@ pub fn registry() -> Registry {
                 int("partitions", 1.0, 1024.0, 6.0, Unit::Count),
                 int("session_timeout_s", 1.0, 1800.0, 45.0, Unit::S),
                 int("retention_h", 1.0, 8760.0, 168.0, Unit::H),
+                // M10: dispatch live records before bulk ones (request types marked `bulk`).
+                boolean("priority", false),
             ],
         ),
         kind(

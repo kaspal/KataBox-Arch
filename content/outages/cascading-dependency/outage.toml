@@ -1,0 +1,93 @@
+id = "cascading-dependency"
+number = 13
+difficulty = "medium"
+title = "Down with the recommendations"
+title_es = "Caída con las recomendaciones"
+summary = "A recommendations service that checkout could live without stopped answering, and checkout went down with it."
+summary_es = "Un servicio de recomendaciones sin el que el checkout podía vivir dejó de responder, y el checkout cayó con él."
+story = "A shop's checkout ran on four Go App Servers (64 request slots each) in front of PostgreSQL. While building the order page, checkout also asked a recommendations service for a \"you may also like\" strip. The strip was optional: the code already rendered the page without it when the call failed. But the call had no timeout and no circuit breaker, because the recommendations service had never been down. One evening its process hung: it kept its connections open and took new calls, but answered none of them. A failed call would have been fine; a call that never ends is not. Every checkout waited for an answer that didn't come, held its slot while it waited, and gave up only when the client did, at 5 seconds. Within two seconds all 256 slots were waiting on recommendations, and from then on almost every checkout failed for as long as the service stayed hung, although the database and the checkout code were healthy."
+story_es = "El checkout de una tienda funcionaba con cuatro App Servers de Go (64 slots de petición cada uno) delante de PostgreSQL. Al montar la página del pedido, el checkout le pedía además a un servicio de recomendaciones una franja de \"también te puede gustar\". La franja era opcional: el código ya mostraba la página sin ella cuando la llamada fallaba. Pero la llamada no tenía timeout ni circuit breaker, porque el servicio de recomendaciones nunca se había caído. Una tarde su proceso se colgó: mantenía abiertas sus conexiones y aceptaba llamadas nuevas, pero no respondía ninguna. Una llamada que falla no habría sido un problema; una llamada que no termina nunca, sí. Cada checkout esperaba una respuesta que no llegaba, retenía su slot mientras tanto y solo se rendía cuando el cliente lo hacía, a los 5 segundos. En dos segundos los 256 slots estaban esperando a las recomendaciones, y a partir de ahí fallaron casi todos los checkouts mientras el servicio siguió colgado, aunque la base de datos y el código del checkout estaban sanos."
+lesson = "A fallback only helps if the call ends. A dependency that is down but doesn't refuse calls (a hung process, a host that drops packets) makes every caller wait, and a thread-per-request server that waits on an optional feature fails its core one. Give every call a timeout, so a hung dependency costs at most that long and the fallback runs. Then add a circuit breaker: when too many calls to a dependency fail, it stops calling it for a while and goes straight to the fallback, so a dependency that is merely slow doesn't add its full timeout to every request. Here a 200 ms timeout and a breaker that opens at 20% failed calls for 30 s keep checkout at full speed without its recommendations."
+lesson_es = "Un fallback solo sirve si la llamada termina. Una dependencia caída que no rechaza las llamadas (un proceso colgado, un host que descarta paquetes) hace esperar a todos sus llamantes, y un servidor con un hilo por petición que espera a una función opcional hace fallar la principal. Ponle un timeout a cada llamada, para que una dependencia colgada cueste como mucho ese tiempo y se ejecute el fallback. Después añade un circuit breaker: cuando fallan demasiadas llamadas a una dependencia, deja de llamarla durante un rato y va directo al fallback, para que una dependencia que solo está lenta no sume su timeout completo a cada petición. Aquí, un timeout de 200 ms y un breaker que se abre con un 20 % de llamadas fallidas durante 30 s mantienen el checkout a toda velocidad sin sus recomendaciones."
+target_test = "incident"
+kinds = ["micro", "app"]
+real_world = []
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "As it was"
+title_es = "Como era"
+caption = "Four Go App Servers run checkout. Each checkout calls the recommendations service, then writes the order to PostgreSQL. On a normal day it answers well under the 100 ms target."
+caption_es = "Cuatro App Servers de Go ejecutan el checkout. Cada checkout llama al servicio de recomendaciones y después escribe el pedido en PostgreSQL. En un día normal responde muy por debajo del objetivo de 100 ms."
+focus = ["checkout", "recs", "db"]
+run = { test = "normal", start_s = 5 }
+callout = { metric = "p95_ms", after = 49.1, target = 100 }
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "Recommendations hang"
+title_es = "Las recomendaciones se cuelgan"
+caption = "At 20 s the recommendations service stops answering but keeps taking calls. Checkout has no timeout, so each checkout waits, holding its slot, until the client gives up at 5 s. The slots run out within two seconds, and from then on almost every checkout fails."
+caption_es = "A los 20 s el servicio de recomendaciones deja de responder, pero sigue aceptando llamadas. El checkout no tiene timeout, así que cada checkout espera, reteniendo su slot, hasta que el cliente se rinde a los 5 s. Los slots se agotan en dos segundos, y a partir de ahí fallan casi todos los checkouts."
+focus = ["checkout", "recs"]
+run = { test = "incident", start_s = 17 }
+callout = { metric = "error_rate", after = 0.866 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "A timeout and a circuit breaker"
+title_es = "Un timeout y un circuit breaker"
+caption = "The same hang with a 200 ms call timeout and a circuit breaker on checkout (it opens at 20% failed calls, for 30 s). The first calls give up after 200 ms and checkout renders without recommendations; within two seconds the breaker opens and checkout stops calling. No checkout fails."
+caption_es = "El mismo cuelgue con un timeout de llamada de 200 ms y un circuit breaker en el checkout (se abre con un 20 % de llamadas fallidas, durante 30 s). Las primeras llamadas se rinden a los 200 ms y el checkout se muestra sin recomendaciones; en dos segundos el breaker se abre y el checkout deja de llamar. No falla ningún checkout."
+focus = ["checkout", "recs"]
+run = { test = "incident", start_s = 17 }
+callout = { metric = "error_rate", before = 0.866, after = 0 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "It comes back slow"
+title_es = "Vuelve lento"
+caption = "Later, at a busier hour, recommendations answer again, but 1 s late, for 40 s. Without the breaker every checkout would wait out its 200 ms timeout; with it, checkout stops calling within a few seconds and stays under the 100 ms target. As it was, a quarter of the checkouts in this test failed."
+caption_es = "Más tarde, en una hora con más tráfico, las recomendaciones vuelven a responder, pero con 1 s de retraso, durante 40 s. Sin el breaker, cada checkout esperaría su timeout de 200 ms; con él, el checkout deja de llamar a los pocos segundos y se mantiene por debajo del objetivo de 100 ms. Tal como era, fallaba una cuarta parte de los checkouts de esta prueba."
+focus = ["checkout", "recs"]
+run = { test = "aftershock", start_s = 12 }
+callout = { metric = "error_rate", after = 0.00298 }
+
+[scenario.nfr]
+peak_rps = 1500
+p95_ms = 100
+availability = 0.999
+budget_usd = 3000
+
+[[scenario.request_types]]
+id = "checkout"
+name = "Check out (recommendations optional)"
+name_es = "Pagar (recomendaciones opcionales)"
+share = 1.0
+route = ["edge?", "compute", "service?", "datastore:write"]
+key_space = 1000000
+
+[[scenario.tests]]
+id = "incident"
+name = "Recommendations hang for good at 20 s"
+name_es = "Las recomendaciones se cuelgan para siempre a los 20 s"
+duration_s = 150
+chaos = [{ latency = { kind = "micro", at = 20, add_ms = 10000 } }]
+pass = { p95_ms = 100, error_rate = 0.05, availability = 0.95 }
+
+[[scenario.tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[scenario.tests]]
+id = "aftershock"
+name = "They come back slow at a busier hour"
+name_es = "Vuelven lentas en una hora con más tráfico"
+duration_s = 150
+traffic = { flat = 1.5 }
+chaos = [{ latency = { kind = "micro", at = 15, for = 40, add_ms = 1000 } }]
+pass = { p95_ms = 100, error_rate = 0.05, availability = 0.95 }
+
+[scenario.pass]
+error_rate = 0.01

@@ -1,0 +1,110 @@
+{
+  "schema_version": 4,
+  "id": "fixed",
+  "name": "Fixed",
+  "problem_id": "outage--backlog-recovery",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "queue",
+      "kind": "queue",
+      "flavour": "rabbitmq",
+      "label": "queue",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {
+        "max_depth": 10000,
+        "priority": true
+      },
+      "group_id": null
+    },
+    {
+      "id": "workers",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "workers",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 3,
+        "concurrency": 8,
+        "service_ms": 50
+      },
+      "group_id": null
+    },
+    {
+      "id": "store",
+      "kind": "object",
+      "flavour": "s3",
+      "label": "store",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-app-http",
+      "from": "client",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-queue-publish",
+      "from": "app",
+      "to": "queue",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-queue-workers-consume",
+      "from": "queue",
+      "to": "workers",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-workers-store-query",
+      "from": "workers",
+      "to": "store",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

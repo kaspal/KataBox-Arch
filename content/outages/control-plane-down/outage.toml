@@ -1,0 +1,84 @@
+id = "control-plane-down"
+number = 15
+difficulty = "hard"
+title = "The control plane goes down"
+title_es = "Se cae el plano de control"
+summary = "An Availability Zone was lost while the cloud's control plane was down, so the autoscaling group the design relied on could not add a single instance."
+summary_es = "Se perdió una zona de disponibilidad mientras el plano de control de la nube estaba caído, así que el grupo de autoescalado del que dependía el diseño no pudo añadir ni una instancia."
+story = "A shop's product pages ran on Spring Boot App Servers in two Availability Zones, AZ-a and AZ-b, behind one load balancer: an autoscaling group in each zone, four instances each, a minimum of two and a maximum of twenty. At the evening peak they were about half busy, and the plan for anything bigger was simple: the groups scale out, and a lost instance is replaced. One evening the cloud's control plane, the service that starts, replaces and scales instances, stopped carrying out requests. Five seconds later AZ-a went dark. The four instances in AZ-b kept serving, but now they carried all the traffic, and then the evening peak doubled it. The group in AZ-b asked for more instances every few seconds; none started. Half the requests failed for the rest of the evening."
+story_es = "Las páginas de producto de una tienda funcionaban con App Servers de Spring Boot en dos zonas de disponibilidad, AZ-a y AZ-b, detrás de un balanceador de carga: un grupo de autoescalado en cada zona, con cuatro instancias cada uno, un mínimo de dos y un máximo de veinte. En la hora punta de la tarde estaban ocupados más o menos la mitad del tiempo, y el plan para cualquier cosa mayor era sencillo: los grupos escalan, y una instancia perdida se reemplaza. Una tarde, el plano de control de la nube, el servicio que arranca, reemplaza y escala instancias, dejó de atender peticiones. Cinco segundos después, AZ-a se apagó. Las cuatro instancias de AZ-b siguieron sirviendo, pero ahora llevaban todo el tráfico, y luego la hora punta lo duplicó. El grupo de AZ-b pidió más instancias cada pocos segundos; no arrancó ninguna. La mitad de las peticiones fallaron el resto de la tarde."
+lesson = "Autoscaling and instance replacement run on the cloud's control plane, and a big event such as a lost Availability Zone is exactly when it is most likely to be impaired. A design that needs the control plane to recover from that event is not stable. Static stability means the capacity is already running: spread the instances over three zones, each running enough that the other two can carry the peak if it is lost, and make that the group's minimum so nothing has to start during the event. Here that is six instances in each of three zones, and autoscaling only covers traffic beyond the plan. It costs more every month (about $1,600 instead of about $1,000 here); that is the price of not depending on the control plane. With the control plane working, the old design would have scaled out AZ-b and passed with about 5% errors."
+lesson_es = "El autoescalado y el reemplazo de instancias dependen del plano de control de la nube, y un gran evento, como perder una zona de disponibilidad, es justo cuando es más probable que esté degradado. Un diseño que necesita el plano de control para recuperarse de ese evento no es estable. La estabilidad estática significa que la capacidad ya está en marcha: reparte las instancias en tres zonas, cada una con las suficientes para que las otras dos aguanten el pico si se pierde, y haz que ese sea el mínimo del grupo, para que no haga falta arrancar nada durante el evento. Aquí son seis instancias en cada una de tres zonas, y el autoescalado solo cubre el tráfico que supere el plan. Cuesta más cada mes (unos 1600 $ en lugar de unos 1000 $ aquí); es el precio de no depender del plano de control. Con el plano de control funcionando, el diseño antiguo habría escalado AZ-b y habría pasado con un 5 % de errores, más o menos."
+target_test = "incident"
+kinds = ["autoscale", "app"]
+real_world = []
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "As it was"
+title_es = "Como era"
+caption = "Two zones, an autoscaling group in each with four Spring Boot instances (minimum two). On a normal evening they are about half busy and answer well under the 200 ms target."
+caption_es = "Dos zonas, un grupo de autoescalado en cada una con cuatro instancias de Spring Boot (mínimo dos). En una tarde normal están ocupadas más o menos la mitad del tiempo y responden muy por debajo del objetivo de 200 ms."
+focus = ["app-a", "app-b"]
+run = { test = "normal", start_s = 5 }
+callout = { metric = "p95_ms", after = 115, target = 200 }
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "No control plane, no AZ-a"
+title_es = "Sin plano de control, sin AZ-a"
+caption = "At 15 s the control plane stops; at 20 s AZ-a is lost. AZ-b's four instances take all the traffic, and from 40 s the evening peak doubles it. Its group asks for more instances, but none can start: about half the requests fail until the end."
+caption_es = "A los 15 s se para el plano de control; a los 20 s se pierde AZ-a. Las cuatro instancias de AZ-b reciben todo el tráfico, y a partir de los 40 s la hora punta lo duplica. Su grupo pide más instancias, pero no puede arrancar ninguna: cerca de la mitad de las peticiones fallan hasta el final."
+focus = ["app-a", "app-b"]
+run = { test = "incident", start_s = 15 }
+callout = { metric = "error_rate", after = 0.540 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "Capacity that is already running"
+title_es = "Capacidad que ya está en marcha"
+caption = "Three zones with six instances each, and a minimum of six, so nothing needs to start. The same event: losing AZ-a costs two seconds of errors until the health checks notice, and then AZ-b and AZ-c carry twice the traffic at about 73% busy, with no help from the control plane."
+caption_es = "Tres zonas con seis instancias cada una, y un mínimo de seis, así que no hace falta arrancar nada. El mismo evento: perder AZ-a cuesta dos segundos de errores hasta que lo notan las comprobaciones de salud, y después AZ-b y AZ-c llevan el doble de tráfico ocupadas un 73 % del tiempo, sin ayuda del plano de control."
+focus = ["app-a", "app-b", "app-c"]
+run = { test = "incident", start_s = 15 }
+callout = { metric = "error_rate", before = 0.540, after = 0.00259 }
+
+[scenario.nfr]
+peak_rps = 1000
+p95_ms = 200
+availability = 0.999
+budget_usd = 5000
+
+[[scenario.request_types]]
+id = "browse"
+name = "Open a product page"
+name_es = "Abrir la página de un producto"
+share = 1.0
+route = ["edge?", "compute", "datastore"]
+key_space = 1000000
+
+[[scenario.tests]]
+id = "incident"
+name = "An AZ is lost, the control plane is down, and the evening peak doubles the traffic"
+name_es = "Se pierde una AZ, el plano de control está caído y la hora punta duplica el tráfico"
+duration_s = 150
+traffic = { steps = [[0, 1], [40, 1.5], [45, 2]] }
+chaos = [{ control_plane = { at = 15, for = 120 } }, { partition = { zone = "AZ-a", at = 20 } }]
+pass = { p95_ms = 1000, error_rate = 0.1, availability = 0.9 }
+
+[[scenario.tests]]
+id = "normal"
+name = "A normal evening"
+name_es = "Una tarde normal"
+
+[[scenario.tests]]
+id = "aftershock"
+name = "The control plane is down again, and traffic triples (every AZ is fine)"
+name_es = "El plano de control vuelve a caerse y el tráfico se triplica (todas las AZ están bien)"
+duration_s = 150
+traffic = { steps = [[0, 1], [40, 2], [45, 3]] }
+chaos = [{ control_plane = { at = 15, for = 120 } }]
+pass = { p95_ms = 1000, error_rate = 0.1, availability = 0.9 }
+
+[scenario.pass]
+error_rate = 0.01

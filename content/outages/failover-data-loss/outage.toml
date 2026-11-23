@@ -1,0 +1,104 @@
+id = "failover-data-loss"
+number = 18
+difficulty = "hard"
+title = "The failover that lost payments"
+title_es = "La conmutación que perdió pagos"
+summary = "A database primary died, a replica took over within seconds, and the payments the primary had confirmed in its last 100 ms were gone."
+summary_es = "El primario de una base de datos murió, una réplica tomó el relevo en segundos, y los pagos que el primario había confirmado en sus últimos 100 ms desaparecieron."
+story = "A payments service recorded every payment in a PostgreSQL ledger: one primary in AZ-a and two replicas in AZ-b and AZ-c, with replication left at its default, asynchronous. The primary confirmed a commit as soon as it was on its own disk and streamed it to the replicas about 100 ms later. At the evening peak the service took about 240 payments a second. One evening the primary's host died. Health checks noticed within seconds, the replica in AZ-b was promoted, and after about ten seconds of failed payments everything was green again. The dashboards called it a short blip. But the payments the old primary had confirmed in its last 100 ms had never reached a replica: around 28 customers had been told their payment went through, and the new primary had no record of them. Nobody noticed until the accounts were reconciled."
+story_es = "Un servicio de pagos registraba cada pago en un libro contable en PostgreSQL: un primario en la AZ-a y dos réplicas en la AZ-b y la AZ-c, con la replicación en su valor por defecto, asíncrona. El primario confirmaba un commit en cuanto estaba en su propio disco y lo enviaba a las réplicas unos 100 ms después. En la hora punta de la tarde el servicio recibía unos 240 pagos por segundo. Una tarde murió el servidor del primario. Los chequeos de salud lo detectaron en segundos, la réplica de la AZ-b se promovió, y tras unos diez segundos de pagos fallidos todo volvió a estar en verde. Los paneles lo llamaron un pequeño tropiezo. Pero los pagos que el primario antiguo había confirmado en sus últimos 100 ms nunca llegaron a una réplica: a unos 28 clientes se les dijo que su pago se había hecho, y el nuevo primario no tenía constancia de ellos. Nadie se dio cuenta hasta que se cuadraron las cuentas."
+lesson = "With asynchronous replication, a commit is confirmed before any replica has it. A failover promotes a replica that is a little behind, and whatever the old primary confirmed within its replication lag is gone: the data you can lose (the RPO) is the lag, not zero. Failover fixes availability, not durability. For data where a lost write matters, such as money, make the commit wait for the replicas: synchronous replication (sync) waits for one replica, a quorum waits for a majority. It costs a network round trip per commit (about a millisecond more here, across AZs), and a commit that can't reach its replicas stalls, so run three members in three AZs with a quorum: any one of them can die, commits keep going, and nothing confirmed is lost. The failover still costs its seconds of errors; a failed payment is visible and can be retried, a lost one is silent."
+lesson_es = "Con la replicación asíncrona, un commit se confirma antes de que lo tenga ninguna réplica. Una conmutación promueve una réplica que va un poco por detrás, y lo que el primario antiguo confirmó dentro de su retraso de replicación desaparece: los datos que puedes perder (el RPO) son ese retraso, no cero. La conmutación arregla la disponibilidad, no la durabilidad. Para datos en los que perder una escritura importa, como el dinero, haz que el commit espere a las réplicas: la replicación síncrona (sync) espera a una réplica, un quórum espera a una mayoría. Cuesta un viaje de ida y vuelta por la red en cada commit (aquí, alrededor de un milisegundo más, entre AZ), y un commit que no llega a sus réplicas se queda bloqueado, así que usa tres miembros en tres AZ con quórum: cualquiera de ellos puede morir, los commits siguen y no se pierde nada confirmado. La conmutación sigue costando sus segundos de errores; un pago fallido se ve y se puede reintentar, uno perdido es silencioso."
+target_test = "incident"
+kinds = ["sql"]
+real_world = []
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "As it was"
+title_es = "Como era"
+caption = "Four App Servers in front of a PostgreSQL cluster: the primary in AZ-a and two replicas in AZ-b and AZ-c, replicating asynchronously with about 100 ms of lag. 30% of requests record a payment; the rest check one. On a normal evening everything answers well under the 100 ms target."
+caption_es = "Cuatro App Servers delante de un clúster de PostgreSQL: el primario en la AZ-a y dos réplicas en la AZ-b y la AZ-c, con replicación asíncrona y unos 100 ms de retraso. El 30 % de las peticiones registra un pago y el resto consulta uno. En una tarde normal todo responde muy por debajo del objetivo de 100 ms."
+focus = ["app", "db-a", "db-b", "db-c"]
+run = { test = "normal", start_s = 5 }
+callout = { metric = "p95_ms", after = 28.2, target = 100 }
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "The primary dies"
+title_es = "El primario muere"
+caption = "At 20 s the primary dies. For about ten seconds every payment fails, until health checks notice and db-b is promoted after its 10 s failover time; then all is well, and the run ends with under 2% errors. But the commits db-a confirmed in its last 100 ms never reached a replica: about 28 confirmed payments are lost, and the test fails on them."
+caption_es = "A los 20 s muere el primario. Durante unos diez segundos falla cada pago, hasta que los chequeos de salud lo detectan y db-b se promueve tras sus 10 s de conmutación; después todo va bien, y la ejecución termina con menos del 2 % de errores. Pero los commits que db-a confirmó en sus últimos 100 ms nunca llegaron a una réplica: se pierden unos 28 pagos confirmados, y la prueba falla por ellos."
+focus = ["db-a", "db-b"]
+run = { test = "incident", start_s = 18 }
+callout = { metric = "lost", after = 28 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "A quorum commit"
+title_es = "Un commit con quórum"
+caption = "The same three members, now with sync = quorum: a commit is confirmed only once a majority of the cluster (the primary and one replica) has it. Each commit pays a round trip to the nearest replica in another AZ, about a millisecond. The failover still costs its ten seconds of failed payments, but every confirmed payment survives it: nothing is lost."
+caption_es = "Los mismos tres miembros, ahora con sync = quorum: un commit se confirma solo cuando lo tiene una mayoría del clúster (el primario y una réplica). Cada commit paga un viaje de ida y vuelta a la réplica más cercana en otra AZ, alrededor de un milisegundo. La conmutación sigue costando sus diez segundos de pagos fallidos, pero cada pago confirmado sobrevive: no se pierde nada."
+focus = ["db-a", "db-b", "db-c"]
+run = { test = "incident", start_s = 18 }
+callout = { metric = "lost", before = 28, after = 0 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "It happens twice"
+title_es = "Pasa dos veces"
+caption = "db-a dies at 20 s and comes back at 60 s; at 100 s the new primary, db-b, dies too. Each failover costs about ten seconds of failed payments, but with a quorum the two live members are still a majority, so commits go on after each promotion and nothing is lost. The design as it was loses about 56 payments here, 28 per failover."
+caption_es = "db-a muere a los 20 s y vuelve a los 60 s; a los 100 s muere también el nuevo primario, db-b. Cada conmutación cuesta unos diez segundos de pagos fallidos, pero con quórum los dos miembros vivos siguen siendo mayoría, así que los commits siguen tras cada promoción y no se pierde nada. El diseño como era pierde aquí unos 56 pagos, 28 por conmutación."
+focus = ["db-a", "db-b", "db-c"]
+run = { test = "aftershock", start_s = 95 }
+callout = { metric = "error_rate", after = 0.038 }
+
+[scenario]
+replication_loss = true
+
+[scenario.nfr]
+peak_rps = 800
+p95_ms = 100
+availability = 0.999
+budget_usd = 3000
+
+[[scenario.request_types]]
+id = "status"
+name = "Check a payment's status"
+name_es = "Consultar el estado de un pago"
+share = 0.7
+route = ["edge?", "compute", "datastore"]
+key_space = 1000000
+
+[[scenario.request_types]]
+id = "pay"
+name = "Record a payment"
+name_es = "Registrar un pago"
+share = 0.3
+route = ["edge?", "compute", "datastore:write"]
+key_space = 1000000
+
+[[scenario.tests]]
+id = "incident"
+name = "The primary dies"
+name_es = "El primario muere"
+duration_s = 180
+chaos = [{ kill = { id = "db-a", at = 20 } }]
+pass = { lost = 0, p95_ms = 1000, error_rate = 0.1, availability = 0.9 }
+
+[[scenario.tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[scenario.tests]]
+id = "aftershock"
+name = "The new primary dies too"
+name_es = "El nuevo primario también muere"
+duration_s = 180
+chaos = [{ kill = { id = "db-a", at = 20, for = 40 } }, { kill = { kind = "sql", role = "primary", at = 100 } }]
+pass = { lost = 0, p95_ms = 1000, error_rate = 0.1, availability = 0.9 }
+
+[scenario.pass]
+error_rate = 0.01
+lost = 0

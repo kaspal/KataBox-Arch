@@ -1,0 +1,99 @@
+id = "split-brain"
+number = 10
+difficulty = "medium"
+title = "Split brain"
+title_es = "Cerebro dividido"
+summary = "A 20-second network split between two AZs left two primaries taking writes, and the Redis lock didn't stop it."
+summary_es = "Una partición de red de 20 segundos entre dos AZ dejó dos primarios aceptando escrituras, y el bloqueo en Redis no lo impidió."
+story = "An inventory service ran in two availability zones. Each AZ had its own users and its own two App Servers; the PostgreSQL primary was in AZ-a and its replica in AZ-b, with failover set to automatic: a member that loses sight of the primary promotes itself after 5 s. Before reserving stock, the app took a lock from one Redis, which happened to sit in AZ-b. One day the network between the two AZs broke for 20 s, while both kept running. In AZ-a, the apps couldn't reach Redis, so their reservations failed. In AZ-b, the replica saw no primary and promoted itself, and the apps there still reached Redis, took the lock and wrote to their new primary. Meanwhile the old primary in AZ-a never stepped down: two primaries. Only about 6% of requests failed, so the dashboards looked mild, but some 460 reservations went to a database the other side knew nothing about, and when the network came back there were two versions of the stock."
+story_es = "Un servicio de inventario funcionaba en dos zonas de disponibilidad. Cada AZ tenía sus propios usuarios y sus propios dos App Servers; el primario de PostgreSQL estaba en la AZ-a y su réplica en la AZ-b, con la conmutación en automático: un miembro que deja de ver al primario se promueve a sí mismo tras 5 s. Antes de reservar existencias, la aplicación tomaba un bloqueo de un único Redis, que resultaba estar en la AZ-b. Un día la red entre las dos AZ se cortó durante 20 s, mientras ambas seguían funcionando. En la AZ-a, las aplicaciones no llegaban a Redis, así que sus reservas fallaron. En la AZ-b, la réplica no veía al primario y se promovió, y las aplicaciones de allí seguían llegando a Redis, tomaban el bloqueo y escribían en su nuevo primario. Mientras tanto, el primario antiguo de la AZ-a nunca dejó de serlo: dos primarios. Solo falló alrededor del 6 % de las peticiones, así que los paneles parecían tranquilos, pero unas 460 reservas fueron a una base de datos de la que el otro lado no sabía nada, y cuando volvió la red había dos versiones de las existencias."
+lesson = "A lock protects data only if both sides of a split can't hold it at once. A Redis lock has no quorum: whoever can reach Redis gets it, split or not. A Coordination Service such as etcd grants a lock only to a side that reaches a majority of its members; with three members in three AZs, any one AZ that is cut off is a minority and gets refused. Fencing makes the database check too: a primary that promoted itself on the cut-off side refuses a write instead of accepting it. The price is availability: during a split, writes that can't be proven safe fail. Failed writes are visible and can be retried; conflicting writes are silent, and someone has to merge them by hand."
+lesson_es = "Un bloqueo protege los datos solo si los dos lados de una partición no pueden tenerlo a la vez. Un bloqueo en Redis no tiene quórum: lo consigue quien llegue a Redis, haya partición o no. Un servicio de coordinación como etcd concede un bloqueo solo al lado que llega a una mayoría de sus miembros; con tres miembros en tres AZ, cualquier AZ que quede aislada es minoría y recibe un rechazo. El fencing hace que la base de datos también compruebe: un primario que se promovió a sí mismo en el lado aislado rechaza la escritura en lugar de aceptarla. El precio es la disponibilidad: durante una partición, las escrituras que no se pueden demostrar seguras fallan. Una escritura fallida se ve y se puede reintentar; una escritura en conflicto es silenciosa, y alguien tiene que fusionarla a mano."
+target_test = "incident"
+kinds = ["coord", "sql", "cache"]
+real_world = []
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "As it was"
+title_es = "Como era"
+caption = "Two AZs, each with its users and two App Servers. The PostgreSQL primary is in AZ-a and its replica in AZ-b, with failover in a split set to auto. Every reservation first takes a lock from the Redis in AZ-b. On a normal day everything answers well under the 100 ms target."
+caption_es = "Dos AZ, cada una con sus usuarios y dos App Servers. El primario de PostgreSQL está en la AZ-a y su réplica en la AZ-b, con la conmutación en una partición en automático. Cada reserva toma primero un bloqueo del Redis de la AZ-b. En un día normal todo responde muy por debajo del objetivo de 100 ms."
+focus = ["db-a", "db-b", "lock"]
+run = { test = "normal", start_s = 5 }
+callout = { metric = "p95_ms", after = 28.8, target = 100 }
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "Two primaries"
+title_es = "Dos primarios"
+caption = "At 20 s AZ-b is cut off. AZ-a's reservations fail: Redis is on the other side. Once health checks notice and its 5 s failover time passes, the replica in AZ-b promotes itself, and AZ-b's apps, which still reach Redis, take the lock and write to it. Only 6% of requests fail, but the run ends with about 460 conflicting writes, and the test fails on them."
+caption_es = "A los 20 s la AZ-b queda aislada. Las reservas de la AZ-a fallan: Redis está al otro lado. Cuando los chequeos de salud lo detectan y pasan sus 5 s de conmutación, la réplica de la AZ-b se promueve, y las aplicaciones de la AZ-b, que siguen llegando a Redis, toman el bloqueo y escriben en ella. Solo falla el 6 % de las peticiones, pero la ejecución termina con unas 460 escrituras en conflicto, y la prueba falla por ellas."
+focus = ["db-b", "lock", "app-b"]
+run = { test = "incident", start_s = 18 }
+callout = { metric = "error_rate", after = 0.0628 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "A quorum lock and fencing"
+title_es = "Un bloqueo con quórum y fencing"
+caption = "The lock is now etcd with one member in each of three AZs, and both PostgreSQL cards have fencing on. During the same split, AZ-a and AZ-c are a majority: AZ-a keeps taking the lock and reserving. AZ-b is a minority, so its reservations fail. Errors even go down, and there are no conflicts."
+caption_es = "El bloqueo es ahora etcd con un miembro en cada una de tres AZ, y las dos tarjetas de PostgreSQL tienen el fencing activado. Durante la misma partición, la AZ-a y la AZ-c son mayoría: la AZ-a sigue tomando el bloqueo y reservando. La AZ-b es minoría, así que sus reservas fallan. Los errores incluso bajan, y no hay conflictos."
+focus = ["etcd-a", "etcd-b", "etcd-c", "db-b"]
+run = { test = "incident", start_s = 18 }
+callout = { metric = "error_rate", before = 0.0628, after = 0.0471 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "The price: writes wait"
+title_es = "El precio: las escrituras esperan"
+caption = "Now AZ-a, with the primary, is cut off. AZ-a has no majority, and on AZ-b's side the only primary is one that promoted itself, which fencing won't let write. Every reservation fails for the 20 s: more errors than in the last split, but still no conflicts. Errors can be retried; two versions of the stock can't."
+caption_es = "Ahora queda aislada la AZ-a, con el primario. La AZ-a no tiene mayoría, y en el lado de la AZ-b el único primario es uno que se promovió a sí mismo, al que el fencing no deja escribir. Todas las reservas fallan durante los 20 s: más errores que en la partición anterior, pero sigue sin haber conflictos. Los errores se pueden reintentar; dos versiones de las existencias, no."
+focus = ["etcd-a", "db-a", "db-b"]
+run = { test = "aftershock", start_s = 18 }
+callout = { metric = "error_rate", after = 0.0822 }
+
+[scenario.nfr]
+peak_rps = 400
+p95_ms = 100
+availability = 0.999
+budget_usd = 3000
+
+[[scenario.request_types]]
+id = "check"
+name = "Check stock"
+name_es = "Consultar existencias"
+share = 0.8
+route = ["edge?", "compute", "datastore"]
+key_space = 100000
+
+[[scenario.request_types]]
+id = "reserve"
+name = "Reserve stock"
+name_es = "Reservar existencias"
+share = 0.2
+route = ["edge?", "compute", "lock", "datastore:write"]
+key_space = 100000
+
+[[scenario.tests]]
+id = "incident"
+name = "AZ-b is cut off for 20 s"
+name_es = "La AZ-b queda aislada durante 20 s"
+chaos = [{ split = { zone = "az-b", at = 20, for = 20 } }]
+pass = { conflicts = 0, p95_ms = 1000, error_rate = 0.1, availability = 0.9 }
+
+[[scenario.tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[scenario.tests]]
+id = "aftershock"
+name = "AZ-a, with the primary, is cut off for 20 s"
+name_es = "La AZ-a, con el primario, queda aislada durante 20 s"
+chaos = [{ split = { zone = "az-a", at = 20, for = 20 } }]
+pass = { conflicts = 0, p95_ms = 1000, error_rate = 0.1, availability = 0.9 }
+
+[scenario.pass]
+error_rate = 0.01
+conflicts = 0

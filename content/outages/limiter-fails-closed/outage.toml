@@ -1,0 +1,91 @@
+id = "limiter-fails-closed"
+number = 14
+difficulty = "medium"
+title = "The limiter that failed closed"
+title_es = "El limitador que falló cerrado"
+summary = "The Redis behind an API's rate limiter became unreachable, and the limiter refused every request until it came back."
+summary_es = "El Redis que usaba el limitador de tasa de una API dejó de responder, y el limitador rechazó todas las peticiones hasta que volvió."
+story = "A public API served 2,000 requests per second from about two hundred customer keys. Behind the load balancer, a token-bucket rate limiter kept each key to 20 requests per second (bursts of 40), with its buckets in a shared Redis; one key that was scraping the API was cut to half of what it sent. The App Servers and the PostgreSQL database had plenty of room. One morning the Redis became unreachable for 30 seconds. The limiter could no longer count, and it was configured the way most limiters ship: if it can't tell whether a request is within the limit, it refuses it. For those 30 seconds every customer got an error, although the servers behind the limiter were healthy and nearly idle."
+story_es = "Una API pública atendía 2.000 peticiones por segundo de unas doscientas claves de clientes. Detrás del balanceador, un limitador de tasa con cubetas de tokens mantenía cada clave en 20 peticiones por segundo (ráfagas de 40), con sus cubetas en un Redis compartido; una clave que estaba rastreando la API se quedaba con la mitad de lo que enviaba. Los App Servers y la base de datos PostgreSQL tenían mucho margen. Una mañana el Redis dejó de responder durante 30 segundos. El limitador ya no podía contar, y estaba configurado como vienen casi todos: si no puede saber si una petición está dentro del límite, la rechaza. Durante esos 30 segundos todos los clientes recibieron errores, aunque los servidores detrás del limitador estaban sanos y casi sin trabajo."
+lesson = "A rate limiter is a dependency of every request, and so is the store that holds its counters: if it fails closed, losing that store takes the whole API down with it. For a general API limiter, failing open is usually right: while the store is unreachable, requests go through uncounted, and the outage costs nothing. It is a trade-off: while open, nothing limits anyone (here the scraping key gets everything it asks for), so the rest of the design must have room for that, or another layer (a WAF, a per-instance limit) must bound it. Fail closed where letting traffic through unchecked is worse than refusing it, such as a limit that protects logins against password guessing, or a limit on an expensive paid action."
+lesson_es = "Un limitador de tasa es una dependencia de cada petición, y también lo es el almacén que guarda sus contadores: si falla cerrado, perder ese almacén tumba toda la API con él. Para un limitador general de una API, fallar abierto suele ser lo correcto: mientras el almacén no responde, las peticiones pasan sin contarse, y la caída no cuesta nada. Es un compromiso: mientras está abierto, nada limita a nadie (aquí la clave que rastrea la API recibe todo lo que pide), así que el resto del diseño debe tener margen para ello, u otra capa (un WAF, un límite por instancia) debe acotarlo. Falla cerrado donde dejar pasar tráfico sin control es peor que rechazarlo, como un límite que protege el inicio de sesión contra quien adivina contraseñas, o un límite sobre una acción cara de pago."
+target_test = "incident"
+kinds = ["ratelimit", "lb"]
+real_world = []
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "As it was"
+title_es = "Como era"
+caption = "A load balancer, a Redis token-bucket limiter (20 requests per second per key), four App Servers and one PostgreSQL database. On a normal day the scraping key is cut to half, every customer gets through, and requests answer well under the 100 ms target."
+caption_es = "Un balanceador, un limitador con cubetas de tokens en Redis (20 peticiones por segundo por clave), cuatro App Servers y una base de datos PostgreSQL. En un día normal la clave que rastrea se queda en la mitad, todos los clientes pasan y las peticiones responden muy por debajo del objetivo de 100 ms."
+focus = ["lb", "limiter"]
+run = { test = "normal", start_s = 5 }
+callout = { metric = "p95_ms", after = 30.5, target = 100 }
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "Redis is unreachable"
+title_es = "Redis no responde"
+caption = "At 15 s the limiter loses its Redis for 30 seconds. It fails closed: every request is refused, from every customer, while the App Servers and the database sit idle. At 45 s Redis is back, and so is the API."
+caption_es = "A los 15 s el limitador pierde su Redis durante 30 segundos. Falla cerrado: rechaza todas las peticiones, de todos los clientes, mientras los App Servers y la base de datos están parados. A los 45 s vuelve Redis, y con él la API."
+focus = ["limiter"]
+run = { test = "incident", start_s = 12 }
+callout = { metric = "error_rate", after = 0.334 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "Fail open"
+title_es = "Fallar abierto"
+caption = "The same outage with the limiter set to fail open. While it can't count, it lets every request through: for 30 seconds the scraping key is not limited, but the App Servers have room for it, and no customer sees an error."
+caption_es = "La misma caída con el limitador configurado para fallar abierto. Mientras no puede contar, deja pasar todas las peticiones: durante 30 segundos la clave que rastrea no tiene límite, pero los App Servers tienen margen para ella, y ningún cliente ve un error."
+focus = ["limiter", "app"]
+run = { test = "incident", start_s = 12 }
+callout = { metric = "error_rate", before = 0.334, after = 0.0 }
+
+[scenario.nfr]
+peak_rps = 2000
+p95_ms = 100
+availability = 0.999
+budget_usd = 1000
+
+[[scenario.request_types]]
+id = "api"
+name = "API call from a customer"
+name_es = "Llamada a la API de un cliente"
+share = 0.98
+route = ["edge?", "compute", "datastore"]
+api_keys = 200
+
+[[scenario.request_types]]
+id = "scraper"
+name = "Calls from one key scraping the API"
+name_es = "Llamadas de una clave que rastrea la API"
+share = 0.02
+route = ["edge?", "compute", "datastore"]
+api_keys = 1
+abusive = true
+
+[[scenario.tests]]
+id = "incident"
+name = "The limiter's Redis is unreachable for 30 s"
+name_es = "El Redis del limitador no responde durante 30 s"
+duration_s = 90
+chaos = [{ kill = { kind = "ratelimit", at = 15, for = 30 } }]
+pass = { error_rate = 0.01, availability = 0.99 }
+
+[[scenario.tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[scenario.tests]]
+id = "aftershock"
+name = "Redis is gone for two minutes"
+name_es = "Redis no está durante dos minutos"
+duration_s = 180
+chaos = [{ kill = { kind = "ratelimit", at = 15, for = 120 } }]
+pass = { error_rate = 0.01, availability = 0.99 }
+
+[scenario.pass]
+error_rate = 0.01

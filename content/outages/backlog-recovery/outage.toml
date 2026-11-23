@@ -1,0 +1,93 @@
+id = "backlog-recovery"
+number = 20
+difficulty = "hard"
+title = "The backlog that buried the orders"
+title_es = "El atasco que enterró los pedidos"
+summary = "Object storage slowed down for 20 seconds, and order confirmations waited behind a pile of thumbnail jobs for more than a minute after it recovered."
+summary_es = "El almacenamiento de objetos se volvió lento durante 20 segundos, y las confirmaciones de pedidos esperaron detrás de un montón de trabajos de miniaturas durante más de un minuto después de que se recuperara."
+story = "A shop's background workers took their work from one RabbitMQ queue. Two kinds of message shared it: order confirmations (render the receipt, store it in S3, then the email goes out) and, that week, a backfill that regenerated every product thumbnail and stored it in S3 too. Two Celery workers, 8 messages at a time each, handled about 120 messages a second, and the backfill was paced to use the spare room: at the evening peak, 33 confirmations and 77 thumbnails a second kept the workers about 90% busy. Then S3 had a brownout: for 20 seconds every write took 2 seconds longer. Each worker sat waiting on S3, the pool did a fifteenth of its normal work, and about two thousand messages piled up, most of them thumbnails. When S3 recovered, the workers went back to full speed, but the queue was first in, first out: every new confirmation waited behind the thumbnails ahead of it, and with only a tenth of the pool to spare, the pile shrank slowly. Nothing failed, yet 45 seconds after S3 was fine a confirmation still took over 10 seconds, and it took more than a minute to get back under 5."
+story_es = "Los workers en segundo plano de una tienda tomaban su trabajo de una única cola de RabbitMQ. La compartían dos tipos de mensaje: las confirmaciones de pedidos (generar el recibo, guardarlo en S3 y después enviar el correo) y, esa semana, un relleno que regeneraba todas las miniaturas de producto y también las guardaba en S3. Dos workers de Celery, con 8 mensajes a la vez cada uno, procesaban unos 120 mensajes por segundo, y el relleno estaba ajustado para aprovechar la capacidad sobrante: en la hora punta de la tarde, 33 confirmaciones y 77 miniaturas por segundo mantenían a los workers ocupados alrededor del 90 % del tiempo. Entonces S3 sufrió una degradación: durante 20 segundos cada escritura tardó 2 segundos más. Cada worker se quedaba esperando a S3, el grupo hacía la quinceava parte de su trabajo normal y se acumularon unos dos mil mensajes, la mayoría miniaturas. Cuando S3 se recuperó, los workers volvieron a toda velocidad, pero la cola era FIFO (el primero en entrar es el primero en salir): cada confirmación nueva esperaba detrás de las miniaturas que tenía delante, y con solo una décima parte del grupo libre, el montón bajaba despacio. Nada falló, pero 45 segundos después de que S3 estuviera bien una confirmación todavía tardaba más de 10 segundos, y tardó más de un minuto en volver a bajar de 5."
+lesson = "A backlog is drained by the spare capacity, not the full capacity. A pool that runs 90% busy has a tenth of its power to work off a pile, so a 20-second slowdown downstream costs a minute or more of delay after the dependency recovers. When urgent and background work share a first-in, first-out queue, the urgent messages pay for the whole pile. Give the queue priority so live messages go ahead of bulk ones (the backfill waits, and nobody is waiting on the backfill), and keep drain headroom, here a third worker, so a pile is worked off in seconds and the queue doesn't fill up at the busiest hour. If the producers can outrun even that, shed or pause the background work at the source."
+lesson_es = "Un atasco se vacía con la capacidad sobrante, no con la capacidad total. Un grupo ocupado al 90 % tiene una décima parte de su potencia para despachar un montón, así que una lentitud de 20 segundos aguas abajo cuesta un minuto o más de retraso después de que la dependencia se recupere. Cuando el trabajo urgente y el de fondo comparten una cola FIFO, los mensajes urgentes pagan por todo el montón. Dale prioridad a la cola para que los mensajes en vivo pasen por delante de los masivos (el relleno espera, y nadie está esperando al relleno), y deja margen para vaciarla, aquí un tercer worker, para que un montón se despache en segundos y la cola no se llene en la hora de más tráfico. Si los productores pueden ir más rápido incluso que eso, descarta o pausa el trabajo de fondo en el origen."
+target_test = "incident"
+kinds = ["queue", "worker", "object"]
+real_world = []
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "As it was"
+title_es = "Como era"
+caption = "One RabbitMQ queue carries order confirmations and a thumbnail backfill; two Celery workers write the results to S3. The backfill keeps the workers about 90% busy, and a confirmation is done in well under the 5 s target."
+caption_es = "Una cola de RabbitMQ lleva las confirmaciones de pedidos y un relleno de miniaturas; dos workers de Celery escriben los resultados en S3. El relleno mantiene a los workers ocupados alrededor del 90 % del tiempo, y una confirmación termina muy por debajo del objetivo de 5 s."
+focus = ["queue", "workers"]
+run = { test = "normal", start_s = 5 }
+callout = { metric = "p95_ms", after = 196, target = 5000 }
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "S3 slows down"
+title_es = "S3 se vuelve lento"
+caption = "From 20 s to 40 s every write to S3 takes 2 s longer, and the workers do a fifteenth of their usual work. About two thousand messages pile up, mostly thumbnails. At 40 s S3 is fine again, but each new confirmation joins the back of the pile, and with a tenth of the pool to spare it drains slowly: confirmations stay over 10 s late until about 85 s."
+caption_es = "De los 20 s a los 40 s cada escritura en S3 tarda 2 s más, y los workers hacen la quinceava parte de su trabajo habitual. Se acumulan unos dos mil mensajes, sobre todo miniaturas. A los 40 s S3 ya está bien, pero cada confirmación nueva se pone al final del montón, y con una décima parte del grupo libre se vacía despacio: las confirmaciones siguen llegando con más de 10 s de retraso hasta los 85 s, más o menos."
+focus = ["queue", "workers", "store"]
+run = { test = "incident", start_s = 15 }
+callout = { metric = "p95_ms", after = 12800, target = 10000 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "Live first, and room to drain"
+title_es = "Primero lo urgente, y margen para vaciar"
+caption = "The queue now has priority on: a confirmation goes ahead of every queued thumbnail. A third worker gives the pool room to drain. The brownout still makes confirmations slow while S3 is slow, but within a couple of seconds of S3 recovering they are on time again; the thumbnails catch up in the background."
+caption_es = "Ahora la cola tiene la prioridad activada: una confirmación pasa por delante de todas las miniaturas en cola. Un tercer worker le da al grupo margen para vaciarla. La degradación sigue haciendo lentas las confirmaciones mientras S3 va lento, pero un par de segundos después de que S3 se recupere vuelven a llegar a tiempo; las miniaturas se ponen al día en segundo plano."
+focus = ["queue", "workers"]
+run = { test = "incident", start_s = 15 }
+callout = { metric = "p95_ms", before = 12800, after = 213, target = 10000 }
+
+[scenario.nfr]
+peak_rps = 110
+p95_ms = 5000
+availability = 0.999
+budget_usd = 5000
+
+[[scenario.request_types]]
+id = "confirm"
+name = "Confirm an order"
+name_es = "Confirmar un pedido"
+share = 0.3
+route = ["edge?", "compute", "broker", "worker", "datastore:write:object"]
+key_space = 1000000
+measure = "completion"
+
+[[scenario.request_types]]
+id = "thumbnail"
+name = "Regenerate a thumbnail (backfill)"
+name_es = "Regenerar una miniatura (relleno)"
+share = 0.7
+route = ["edge?", "compute", "broker", "worker", "datastore:write:object"]
+key_space = 1000000
+bulk = true
+
+[[scenario.tests]]
+id = "incident"
+name = "S3 writes take 2 s longer for 20 s"
+name_es = "Las escrituras en S3 tardan 2 s más durante 20 s"
+duration_s = 240
+chaos = [{ latency = { kind = "object", at = 20, for = 20, add_ms = 2000 } }]
+pass = { recovered_by_s = 45, p95_ms = 10000, error_rate = 0.1, availability = 0.9 }
+
+[[scenario.tests]]
+id = "normal"
+name = "A normal evening"
+name_es = "Una tarde normal"
+
+[[scenario.tests]]
+id = "aftershock"
+name = "The same brownout at a peak with 1.5 times the messages"
+name_es = "La misma degradación en un pico con 1,5 veces los mensajes"
+duration_s = 300
+traffic = { flat = 1.5 }
+chaos = [{ latency = { kind = "object", at = 20, for = 20, add_ms = 2000 } }]
+pass = { recovered_by_s = 50, p95_ms = 10000, error_rate = 0.1, availability = 0.9 }
+
+[scenario.pass]
+error_rate = 0.01

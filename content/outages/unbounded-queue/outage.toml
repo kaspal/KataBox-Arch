@@ -1,0 +1,83 @@
+id = "unbounded-queue"
+number = 3
+difficulty = "easy"
+title = "The queue that never drained"
+title_es = "La cola que nunca se vació"
+summary = "A 30-second burst filled a queue with no real limit, and every order was over a minute late for minutes afterwards."
+summary_es = "Una avalancha de 30 segundos llenó una cola sin límite real, y cada pedido llegó con más de un minuto de retraso durante minutos."
+story = "A shop's checkout accepted each order and put it on a RabbitMQ queue. Two Celery workers, 16 orders at a time, charged the card, reserved the stock and sent the receipt, about 100 ms per order: 160 orders a second. At the evening peak of 100 orders a second they were about 60% busy, and the queue was set to hold ten million messages so that no order would ever be turned away. Then a promotion went out, and for 30 seconds orders arrived five times as fast. The queue took them all. The workers kept going at 160 a second while about ten thousand orders piled up, and every new order waited behind them. Nothing failed, but a minute after the burst an order took more than a minute to be processed, and four minutes in the queue still hadn't drained."
+story_es = "El checkout de una tienda aceptaba cada pedido y lo ponía en una cola de RabbitMQ. Dos workers de Celery, 16 pedidos a la vez, cobraban la tarjeta, reservaban el stock y enviaban el recibo, unos 100 ms por pedido: 160 pedidos por segundo. En la hora punta de la tarde, con 100 pedidos por segundo, estaban ocupados alrededor del 60 % del tiempo, y la cola estaba configurada para guardar diez millones de mensajes para no rechazar nunca un pedido. Entonces salió una promoción y durante 30 segundos los pedidos llegaron cinco veces más rápido. La cola los aceptó todos. Los workers siguieron a 160 por segundo mientras se acumulaban unos diez mil pedidos, y cada pedido nuevo esperaba detrás de ellos. Nada falló, pero un minuto después de la avalancha un pedido tardaba más de un minuto en procesarse, y a los cuatro minutos la cola aún no se había vaciado."
+lesson = "A queue absorbs a burst only if the workers can drain it. A queue with no practical limit turns overload into delay: nothing fails, but every message, old and new, waits behind the backlog, and the backlog outlives the burst by minutes. Bound the queue to the work you can still do on time and refuse the rest at once (the caller can retry or tell the user), and add drain capacity, here an autoscaling worker group, so a burst is worked off in seconds. A few refused orders beat every order being a minute late."
+lesson_es = "Una cola absorbe una avalancha solo si los workers pueden vaciarla. Una cola sin límite práctico convierte la sobrecarga en retraso: nada falla, pero cada mensaje, viejo o nuevo, espera detrás del atasco, y el atasco dura minutos más que la avalancha. Limita la cola al trabajo que aún puedes hacer a tiempo y rechaza el resto al momento (quien llama puede reintentar o avisar al usuario), y añade capacidad para vaciarla, aquí un grupo de workers con autoescalado, para que una avalancha se despache en segundos. Unos pocos pedidos rechazados son mejores que todos los pedidos con un minuto de retraso."
+target_test = "incident"
+kinds = ["queue", "worker"]
+real_world = []
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "As it was"
+title_es = "Como era"
+caption = "The checkout puts each order on a RabbitMQ queue that holds up to ten million messages, and two Celery workers process 160 orders a second. On a normal evening an order is fully processed in well under the 5 s target."
+caption_es = "El checkout pone cada pedido en una cola de RabbitMQ que guarda hasta diez millones de mensajes, y dos workers de Celery procesan 160 pedidos por segundo. En una tarde normal un pedido se procesa del todo muy por debajo del objetivo de 5 s."
+focus = ["queue", "workers"]
+run = { test = "normal", start_s = 5 }
+callout = { metric = "p95_ms", after = 292, target = 5000 }
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "The burst"
+title_es = "La avalancha"
+caption = "From 20 s to 50 s, 500 orders a second arrive. The queue accepts every one, and the workers, still at 160 a second, fall further behind each second. The burst ends, but the backlog doesn't: orders take over a minute to be processed, and there are still no errors to warn anyone."
+caption_es = "De los 20 s a los 50 s llegan 500 pedidos por segundo. La cola los acepta todos, y los workers, todavía a 160 por segundo, se retrasan más cada segundo. La avalancha termina, pero el atasco no: los pedidos tardan más de un minuto en procesarse, y sigue sin haber errores que avisen a nadie."
+focus = ["queue", "workers"]
+run = { test = "incident", start_s = 15 }
+callout = { metric = "p95_ms", after = 66400, target = 5000 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "Bound it, drain it"
+title_es = "Limítala y vacíala"
+caption = "The queue now holds at most 3,000 orders, and the workers sit in an autoscaling group (2 to 6 instances, aiming at 50% busy). The group grows within seconds; while it does, the full queue refuses about 4% of the orders at once instead of making them all wait. Within seconds of the burst ending, orders are on time again."
+caption_es = "Ahora la cola guarda como máximo 3000 pedidos, y los workers están en un grupo con autoescalado (de 2 a 6 instancias, con el objetivo de estar ocupados al 50 %). El grupo crece en segundos; mientras tanto, la cola llena rechaza al momento alrededor del 4 % de los pedidos en vez de hacerlos esperar a todos. Pocos segundos después de la avalancha, los pedidos vuelven a llegar a tiempo."
+focus = ["queue", "workers"]
+run = { test = "incident", start_s = 15 }
+callout = { metric = "p95_ms", before = 66400, after = 7820, target = 5000 }
+
+[scenario.nfr]
+peak_rps = 100
+p95_ms = 5000
+availability = 0.999
+budget_usd = 5000
+
+[[scenario.request_types]]
+id = "order"
+name = "Place an order"
+name_es = "Hacer un pedido"
+share = 1.0
+route = ["edge?", "compute", "broker", "worker"]
+key_space = 1000000
+measure = "completion"
+
+[[scenario.tests]]
+id = "incident"
+name = "Five times the orders for 30 s"
+name_es = "Cinco veces los pedidos durante 30 s"
+duration_s = 240
+traffic = { spike = { at = 20, x = 5, for = 30 } }
+pass = { recovered_by_s = 90, p95_ms = 10000, error_rate = 0.1, availability = 0.9 }
+
+[[scenario.tests]]
+id = "normal"
+name = "A normal evening"
+name_es = "Una tarde normal"
+
+[[scenario.tests]]
+id = "aftershock"
+name = "A longer promotion: four times the orders for 90 s"
+name_es = "Una promoción más larga: cuatro veces los pedidos durante 90 s"
+duration_s = 240
+traffic = { spike = { at = 20, x = 4, for = 90 } }
+pass = { recovered_by_s = 150, p95_ms = 10000, error_rate = 0.1, availability = 0.9 }
+
+[scenario.pass]
+error_rate = 0.01

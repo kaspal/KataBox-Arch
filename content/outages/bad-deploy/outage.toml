@@ -1,0 +1,82 @@
+id = "bad-deploy"
+number = 5
+difficulty = "easy"
+title = "The bad deploy"
+title_es = "El despliegue defectuoso"
+summary = "A broken build went to every server at once, and a third of all requests failed until someone rolled it back by hand."
+summary_es = "Una versión rota llegó a todos los servidores a la vez, y un tercio de las peticiones falló hasta que alguien la revirtió a mano."
+story = "A checkout service ran on six Go App Servers behind a load balancer, with one PostgreSQL database, comfortably. A routine release carried a bug that made about 30% of requests fail. The pipeline deployed every new build to all six servers at once, so at 15 s every server was running the bad build. Nothing watched the error rate after a deploy: the on-call engineer saw the alerts, found the release, and rolled it back by hand, thirty seconds later. For those thirty seconds, almost a third of all checkouts failed."
+story_es = "Un servicio de pago funcionaba con seis App Servers de Go detrás de un balanceador de carga, con una base de datos PostgreSQL, con holgura. Una versión rutinaria traía un error que hacía fallar cerca del 30 % de las peticiones. El pipeline desplegaba cada versión nueva en los seis servidores a la vez, así que a los 15 s todos los servidores ejecutaban la versión defectuosa. Nada vigilaba la tasa de errores después de un despliegue: la persona de guardia vio las alertas, encontró la versión y la revirtió a mano, treinta segundos después. Durante esos treinta segundos, casi un tercio de los pagos falló."
+lesson = "Every deploy is a change that can break production, so limit how much of production it can reach before you know it is good. Roll out in stages (here 10% of the instances first), wait between stages (a bake time) so a bad build shows itself on a few instances, and roll back automatically when the health checks see it. The same bad build then costs a couple of seconds of errors on a tenth of the traffic instead of half a minute on all of it, and it works for a build that only makes things slow as well."
+lesson_es = "Cada despliegue es un cambio que puede romper producción, así que limita cuánto de producción puede alcanzar antes de saber que está bien. Despliega por etapas (aquí, primero el 10 % de las instancias), espera entre etapas (un tiempo de horneado) para que una versión mala se delate en pocas instancias, y revierte automáticamente cuando los health checks la detecten. La misma versión mala cuesta entonces un par de segundos de errores en una décima parte del tráfico en lugar de medio minuto en todo él, y funciona también con una versión que solo hace que todo vaya lento."
+target_test = "incident"
+kinds = ["app", "lb"]
+real_world = []
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "As it was"
+title_es = "Como era"
+caption = "Six App Servers behind a load balancer and one PostgreSQL database. On a normal day nothing fails and requests answer well under the 100 ms target."
+caption_es = "Seis App Servers detrás de un balanceador de carga y una base de datos PostgreSQL. En un día normal nada falla y las peticiones responden muy por debajo del objetivo de 100 ms."
+focus = ["app"]
+run = { test = "normal", start_s = 5 }
+callout = { metric = "p95_ms", after = 74.5, target = 100 }
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "Everyone gets the bad build"
+title_es = "Todos reciben la versión mala"
+caption = "At 15 s the bad build reaches all six servers at once (rollout 100%, no bake time). About 30% of requests fail, and they keep failing until the build is rolled back by hand at 45 s."
+caption_es = "A los 15 s la versión mala llega a los seis servidores a la vez (despliegue al 100 %, sin tiempo de horneado). Cerca del 30 % de las peticiones falla, y siguen fallando hasta que la versión se revierte a mano a los 45 s."
+focus = ["app"]
+run = { test = "incident", start_s = 12 }
+callout = { metric = "error_rate", after = 0.149 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "Stages, a bake time and auto-rollback"
+title_es = "Etapas, horneado y reversión automática"
+caption = "The same bad build, rolled out to 10% of the instances first, with a 30 s bake time before the next stage and auto-rollback on. The health checks notice the bad stage after 2 s and roll it back: a few errors on a tenth of the traffic, then nothing."
+caption_es = "La misma versión mala, desplegada primero en el 10 % de las instancias, con 30 s de horneado antes de la siguiente etapa y la reversión automática activada. Los health checks detectan la etapa mala a los 2 s y la revierten: unos pocos errores en una décima parte del tráfico, y luego nada."
+focus = ["app"]
+run = { test = "incident", start_s = 12 }
+callout = { metric = "error_rate", before = 0.149, after = 0.0011 }
+
+[scenario.nfr]
+peak_rps = 1500
+p95_ms = 100
+availability = 0.999
+budget_usd = 2000
+
+[[scenario.request_types]]
+id = "checkout"
+name = "Check out a cart"
+name_es = "Pagar un carrito"
+share = 1.0
+route = ["edge?", "compute", "datastore"]
+key_space = 1000000
+
+[[scenario.tests]]
+id = "incident"
+name = "A bad build is deployed at 15 s"
+name_es = "Se despliega una versión mala a los 15 s"
+duration_s = 60
+chaos = [{ deploy = { kind = "app", at = 15, error_rate = 0.3, for = 30 } }]
+pass = { error_rate = 0.05, availability = 0.9 }
+
+[[scenario.tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[scenario.tests]]
+id = "aftershock"
+name = "A build that is only slow"
+name_es = "Una versión que solo es lenta"
+duration_s = 60
+chaos = [{ deploy = { kind = "app", at = 15, add_ms = 400, for = 30 } }]
+pass = { p95_ms = 300, error_rate = 0.05, availability = 0.9 }
+
+[scenario.pass]
+error_rate = 0.01

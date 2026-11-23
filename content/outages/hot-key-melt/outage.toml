@@ -1,0 +1,83 @@
+id = "hot-key-melt"
+number = 6
+difficulty = "easy"
+title = "The hot key"
+title_es = "La clave caliente"
+summary = "One product went viral, and the one database partition that held it melted while the others sat idle."
+summary_es = "Un producto se hizo viral, y la única partición de la base de datos que lo guardaba se fundió mientras las demás estaban ociosas."
+story = "An online shop served its product pages from eight Go App Servers reading a Cassandra cluster with four partitions, keyed by product id. On a normal day 12,000 page loads a second spread over a million products, so every partition had plenty of room. Then one product was shown on a popular live stream. For forty seconds traffic rose to two and a half times normal, and almost half of all page loads asked for that single product. Every one of those reads went to the one partition that owns its key. That partition filled up and dropped requests while the other three were mostly idle: the database as a whole was only about half busy, yet about one page load in seven failed."
+story_es = "Una tienda online servía las páginas de sus productos con ocho App Servers de Go que leían de un clúster Cassandra con cuatro particiones, por id de producto. En un día normal, 12.000 cargas de página por segundo se repartían entre un millón de productos, así que cada partición tenía margen de sobra. Entonces un producto apareció en una retransmisión en directo muy popular. Durante cuarenta segundos el tráfico subió a dos veces y media lo normal, y casi la mitad de las cargas de página pedían ese único producto. Todas esas lecturas iban a la única partición dueña de su clave. Esa partición se llenó y empezó a descartar peticiones mientras las otras tres estaban casi ociosas: la base de datos en conjunto solo estaba ocupada cerca de la mitad del tiempo y, aun así, fallaba más o menos una carga de página de cada siete."
+lesson = "A partitioned store spreads keys, not load. When one key gets a large share of the traffic, all of it lands on the partition that owns that key, and that partition saturates while the rest idle. Adding partitions does not help, because the key still lives on one of them. Serve hot keys from memory instead: a cache in front of the store answers the viral product from RAM, and the partitions only see the misses."
+lesson_es = "Un almacén particionado reparte claves, no carga. Cuando una clave recibe una gran parte del tráfico, todo cae en la partición dueña de esa clave, y esa partición se satura mientras las demás están ociosas. Añadir particiones no ayuda, porque la clave sigue viviendo en una sola. Sirve las claves calientes desde memoria: una caché delante del almacén responde el producto viral desde la RAM, y las particiones solo ven los fallos de caché."
+target_test = "incident"
+kinds = ["cache", "nosql"]
+real_world = []
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "As it was"
+title_es = "Como era"
+caption = "Eight App Servers read product pages straight from Cassandra, four partitions keyed by product id. On a normal day the reads spread over a million products and the pages load well under the 60 ms target."
+caption_es = "Ocho App Servers leen las páginas de producto directamente de Cassandra, con cuatro particiones por id de producto. En un día normal las lecturas se reparten entre un millón de productos y las páginas cargan muy por debajo del objetivo de 60 ms."
+focus = ["app", "db"]
+run = { test = "normal", start_s = 5 }
+callout = { metric = "p95_ms", after = 22.7, target = 60 }
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "One product goes viral"
+title_es = "Un producto se hace viral"
+caption = "At 15 s traffic rises to 2.5 times normal and almost half of it asks for one product. Its partition fills up and drops requests while the other three idle: the Cassandra card is only about half busy on average, yet about one page load in seven fails."
+caption_es = "A los 15 s el tráfico sube a 2,5 veces lo normal y casi la mitad pide un solo producto. Su partición se llena y descarta peticiones mientras las otras tres están ociosas: la tarjeta de Cassandra solo está ocupada de media cerca de la mitad del tiempo y, aun así, falla más o menos una carga de página de cada siete."
+focus = ["app", "db"]
+run = { test = "incident", start_s = 12 }
+callout = { metric = "error_rate", after = 0.152 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "A cache in front"
+title_es = "Una caché delante"
+caption = "The same viral product with a Redis cache (4 GB, 5-minute TTL) in front of Cassandra. The hot product is answered from memory, the partitions only see the misses, and no page load fails."
+caption_es = "El mismo producto viral con una caché Redis (4 GB, TTL de 5 minutos) delante de Cassandra. El producto caliente se responde desde memoria, las particiones solo ven los fallos de caché y no falla ninguna carga de página."
+focus = ["app", "cache", "db"]
+run = { test = "incident", start_s = 12 }
+callout = { metric = "error_rate", before = 0.152, after = 0.0 }
+
+[scenario.nfr]
+peak_rps = 12000
+p95_ms = 60
+availability = 0.999
+budget_usd = 2000
+
+[[scenario.request_types]]
+id = "read"
+name = "Load a product page"
+name_es = "Cargar la página de un producto"
+share = 1.0
+route = ["edge?", "compute", "cache?", "datastore"]
+key_space = 1000000
+key_skew = { zipf = 0.9 }
+
+[[scenario.tests]]
+id = "incident"
+name = "One product goes viral"
+name_es = "Un producto se hace viral"
+duration_s = 90
+traffic = { spike = { at = 15, x = 2.5, for = 40 } }
+key_skew_override = { zipf = 1.6 }
+
+[[scenario.tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[scenario.tests]]
+id = "aftershock"
+name = "Another product goes viral at a busier hour"
+name_es = "Otro producto se hace viral en una hora con más tráfico"
+duration_s = 90
+traffic = { spike = { at = 15, x = 3.5, for = 40 } }
+key_skew_override = { zipf = 1.6 }
+
+[scenario.pass]
+error_rate = 0.01

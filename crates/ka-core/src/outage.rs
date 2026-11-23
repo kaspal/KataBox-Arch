@@ -77,6 +77,7 @@ impl OutageDef {
             track: Default::default(),
             challenge_ratio: None,
             connections: false,
+            replication_loss: self.scenario.replication_loss,
         }
     }
 }

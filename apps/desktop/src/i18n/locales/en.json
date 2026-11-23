@@ -626,11 +626,18 @@
       "reconnect_backoff_s": "Reconnect backoff",
       "dedup": "Idempotent writes (dedup)",
       "conditional_writes": "Conditional writes (check and set in one step)",
+      "on_failure": "When the limiter fails",
+      "priority": "Live before bulk (priority)",
+      "sync": "Commit waits for",
       "binding": "Provider",
       "serve_stale_s": "Serve stale on error for",
       "stampede_guard": "Coalesce misses (stampede guard)"
     },
     "choice": {
+      "quorum": "A majority (quorum)",
+      "sync": "One replica (sync)",
+      "open": "Let traffic through (fail open)",
+      "closed": "Refuse traffic (fail closed)",
       "round_robin": "Round robin",
       "least_conn": "Least connections",
       "key_hash": "Key hash (sticky)",

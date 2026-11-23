@@ -1,0 +1,100 @@
+id = "sync-replication-stall"
+number = 16
+difficulty = "hard"
+title = "The replica that held every commit"
+title_es = "La réplica que retenía cada commit"
+summary = "A network split cut off the only synchronous replica, and every write waited for an acknowledgement that could not come."
+summary_es = "Una partición de red aisló la única réplica síncrona, y cada escritura esperó una confirmación que no podía llegar."
+story = "An order service ran on four Go App Servers in front of a PostgreSQL cluster spread over two availability zones: the primary in AZ-a and one replica in AZ-b. To never lose an order, replication was synchronous: a commit returned only after the replica had it. Day to day this cost a cross-zone round trip and nothing more. Then the network between the zones split for thirty seconds. Both databases kept running, but the primary could no longer reach its replica, so every commit waited for an acknowledgement that never came. Each order held an app thread and a database connection until the client gave up after 2 s. Reads kept working; placing an order did not, for as long as the split lasted."
+story_es = "Un servicio de pedidos funcionaba con cuatro App Servers de Go delante de un clúster PostgreSQL repartido en dos zonas de disponibilidad: el primario en AZ-a y una réplica en AZ-b. Para no perder nunca un pedido, la replicación era síncrona: un commit solo volvía cuando la réplica ya lo tenía. En el día a día eso costaba un viaje de ida y vuelta entre zonas y nada más. Entonces la red entre las zonas se partió durante treinta segundos. Las dos bases de datos siguieron funcionando, pero el primario ya no llegaba a su réplica, así que cada commit esperó una confirmación que nunca llegó. Cada pedido retenía un hilo de la aplicación y una conexión a la base de datos hasta que el cliente se rendía a los 2 s. Las lecturas siguieron funcionando; hacer un pedido no, mientras duró la partición."
+lesson = "Synchronous replication buys durability with availability: a commit that must reach a replica stops when that replica is down or cut off. With exactly one synchronous replica, losing either zone stops every write, so the cluster is less available for writes than a single database. Make the acknowledgement a quorum instead: three zones, and a commit waits for any one of the two replicas. Losing one zone, by a split or a dead replica, still leaves a majority, so commits go on and no acknowledged write lives in only one place."
+lesson_es = "La replicación síncrona compra durabilidad con disponibilidad: un commit que tiene que llegar a una réplica se detiene cuando esa réplica cae o queda aislada. Con una sola réplica síncrona, perder cualquiera de las dos zonas detiene todas las escrituras, así que el clúster está menos disponible para escribir que una sola base de datos. Haz que la confirmación sea de quórum: tres zonas, y un commit espera a cualquiera de las dos réplicas. Perder una zona, por una partición o por una réplica caída, sigue dejando una mayoría, así que los commits continúan y ninguna escritura confirmada vive en un solo sitio."
+target_test = "incident"
+kinds = ["sql"]
+real_world = []
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "As it was"
+title_es = "Como era"
+caption = "Four App Servers and a PostgreSQL primary in AZ-a with one synchronous replica in AZ-b. Seven requests in ten read an order, three place one. On a normal day each commit pays a cross-zone round trip, and the p95 stays well under the 100 ms target."
+caption_es = "Cuatro App Servers y un primario PostgreSQL en AZ-a con una réplica síncrona en AZ-b. Siete de cada diez peticiones leen un pedido y tres hacen uno. En un día normal cada commit paga un viaje de ida y vuelta entre zonas, y el p95 queda muy por debajo del objetivo de 100 ms."
+focus = ["app", "db-a", "db-b"]
+run = { test = "normal", start_s = 5 }
+callout = { metric = "p95_ms", after = 29.9, target = 100 }
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "The zones split"
+title_es = "Las zonas se separan"
+caption = "At 20 s the link to AZ-b is cut for 30 s. Both databases are up, but no commit can reach the replica, so every write stalls until the client gives up at 2 s. Reads stop going to AZ-b after two health checks and keep working. For thirty seconds no order can be placed: about a third of all requests fail, a tenth of the whole run."
+caption_es = "A los 20 s se corta el enlace con AZ-b durante 30 s. Las dos bases de datos están en marcha, pero ningún commit llega a la réplica, así que cada escritura se queda esperando hasta que el cliente se rinde a los 2 s. Las lecturas dejan de ir a AZ-b tras dos comprobaciones de salud y siguen funcionando. Durante treinta segundos no se puede hacer ningún pedido: falla cerca de un tercio de todas las peticiones, una décima parte de toda la prueba."
+focus = ["app", "db-a", "db-b"]
+run = { test = "incident", start_s = 17 }
+callout = { metric = "error_rate", after = 0.101 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "A quorum over three zones"
+title_es = "Un quórum en tres zonas"
+caption = "The same split with a second replica in AZ-c and sync = quorum: a commit waits for any one of the two replicas. AZ-c acknowledges, so orders go on. Only the reads sent to AZ-b in the first two seconds, before the health checks noticed, fail."
+caption_es = "La misma partición con una segunda réplica en AZ-c y sync = quorum: un commit espera a cualquiera de las dos réplicas. AZ-c confirma, así que los pedidos continúan. Solo fallan las lecturas enviadas a AZ-b en los dos primeros segundos, antes de que las comprobaciones de salud lo detectaran."
+focus = ["db-a", "db-b", "db-c"]
+run = { test = "incident", start_s = 17 }
+callout = { metric = "error_rate", before = 0.101, after = 0.00522 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "A replica dies"
+title_es = "Muere una réplica"
+caption = "Now the replica in AZ-b crashes for 30 s. With one synchronous replica this stops every write again (about a tenth of the run fails); with a quorum the other replica acknowledges, and only a moment of reads fails."
+caption_es = "Ahora la réplica de AZ-b se cae durante 30 s. Con una sola réplica síncrona esto vuelve a detener todas las escrituras (falla cerca de una décima parte de la prueba); con un quórum confirma la otra réplica, y solo falla un instante de lecturas."
+focus = ["db-a", "db-b", "db-c"]
+run = { test = "aftershock", start_s = 17 }
+callout = { metric = "error_rate", after = 0.00537 }
+
+[scenario.nfr]
+peak_rps = 1000
+p95_ms = 100
+availability = 0.999
+budget_usd = 3000
+
+[[scenario.request_types]]
+id = "read"
+name = "Load an order"
+name_es = "Cargar un pedido"
+share = 0.7
+route = ["edge?", "compute", "datastore"]
+key_space = 1000000
+
+[[scenario.request_types]]
+id = "write"
+name = "Place an order"
+name_es = "Hacer un pedido"
+share = 0.3
+route = ["edge?", "compute", "datastore:write"]
+key_space = 1000000
+
+[[scenario.tests]]
+id = "incident"
+name = "The network between AZ-a and AZ-b splits for 30 s"
+name_es = "La red entre AZ-a y AZ-b se parte durante 30 s"
+duration_s = 90
+chaos = [{ split = { zone = "AZ-b", at = 20, for = 30 } }]
+pass = { p95_ms = 1000, error_rate = 0.03, availability = 0.97 }
+
+[[scenario.tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[scenario.tests]]
+id = "aftershock"
+name = "The replica in AZ-b crashes for 30 s"
+name_es = "La réplica de AZ-b se cae durante 30 s"
+duration_s = 90
+chaos = [{ kill = { kind = "sql", role = "replica", at = 20, for = 30 } }]
+pass = { p95_ms = 1000, error_rate = 0.03, availability = 0.97 }
+
+[scenario.pass]
+error_rate = 0.01

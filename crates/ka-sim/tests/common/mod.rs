@@ -62,6 +62,8 @@ pub fn rtype(id: &str, share: f64, route: &[&str]) -> RequestType {
         tokens_in: None,
         tokens_out: None,
         semantic_repeat_share: 0.0,
+        poison_share: 0.0,
+        bulk: false,
         job: None,
         event_delay: None,
         scan: None,
@@ -85,6 +87,7 @@ pub fn scenario(peak_rps: f64, duration_s: f64, types: Vec<RequestType>) -> Scen
         key_skew_override: None,
         cold_caches: false,
         connections: false,
+        replication_loss: false,
     }
 }
 

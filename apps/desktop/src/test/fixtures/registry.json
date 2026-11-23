@@ -13184,6 +13184,19 @@
               "type": "int"
             },
             "unit": "count"
+          },
+          {
+            "calibration": null,
+            "default": "closed",
+            "key": "on_failure",
+            "ty": {
+              "options": [
+                "closed",
+                "open"
+              ],
+              "type": "choice"
+            },
+            "unit": "none"
           }
         ]
       },
@@ -15951,6 +15964,20 @@
             "unit": "none"
           },
           {
+            "calibration": null,
+            "default": "none",
+            "key": "sync",
+            "ty": {
+              "options": [
+                "none",
+                "sync",
+                "quorum"
+              ],
+              "type": "choice"
+            },
+            "unit": "none"
+          },
+          {
             "calibration": {
               "id": "sql.max_connections",
               "status": "needed"
@@ -18313,6 +18340,15 @@
               "type": "int"
             },
             "unit": "count"
+          },
+          {
+            "calibration": null,
+            "default": false,
+            "key": "priority",
+            "ty": {
+              "type": "bool"
+            },
+            "unit": "none"
           }
         ]
       },
@@ -18504,6 +18540,15 @@
               "type": "int"
             },
             "unit": "h"
+          },
+          {
+            "calibration": null,
+            "default": false,
+            "key": "priority",
+            "ty": {
+              "type": "bool"
+            },
+            "unit": "none"
           }
         ]
       },

@@ -1,0 +1,269 @@
+{
+  "schema_version": 4,
+  "id": "control-plane-down-fixed",
+  "name": "Control plane down (fixed)",
+  "problem_id": "outage--control-plane-down",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": "region"
+    },
+    {
+      "id": "app-a",
+      "kind": "app",
+      "flavour": "spring_boot",
+      "label": "app-a",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 6,
+        "concurrency": 10,
+        "service_ms": 40
+      },
+      "group_id": "asg-a"
+    },
+    {
+      "id": "app-b",
+      "kind": "app",
+      "flavour": "spring_boot",
+      "label": "app-b",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 6,
+        "concurrency": 10,
+        "service_ms": 40
+      },
+      "group_id": "asg-b"
+    },
+    {
+      "id": "app-c",
+      "kind": "app",
+      "flavour": "spring_boot",
+      "label": "app-c",
+      "position": {
+        "x": 608,
+        "y": 224
+      },
+      "props": {
+        "instances": 6,
+        "concurrency": 10,
+        "service_ms": 40
+      },
+      "group_id": "asg-c"
+    },
+    {
+      "id": "db",
+      "kind": "nosql",
+      "flavour": "dynamodb",
+      "label": "db",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": "region"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app-a-http",
+      "from": "lb",
+      "to": "app-a",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app-b-http",
+      "from": "lb",
+      "to": "app-b",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app-c-http",
+      "from": "lb",
+      "to": "app-c",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-a-db-query",
+      "from": "app-a",
+      "to": "db",
+      "protocol": "query"
+    },
+    {
+      "id": "e-app-b-db-query",
+      "from": "app-b",
+      "to": "db",
+      "protocol": "query"
+    },
+    {
+      "id": "e-app-c-db-query",
+      "from": "app-c",
+      "to": "db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [
+    {
+      "id": "region",
+      "kind": "region",
+      "label": "Region",
+      "position": {
+        "x": 280,
+        "y": -40
+      },
+      "size": {
+        "w": 1168,
+        "h": 352
+      },
+      "parent_id": null
+    },
+    {
+      "id": "az-a",
+      "kind": "az",
+      "label": "AZ-a",
+      "position": {
+        "x": 584,
+        "y": -40
+      },
+      "size": {
+        "w": 256,
+        "h": 128
+      },
+      "parent_id": "region"
+    },
+    {
+      "id": "az-b",
+      "kind": "az",
+      "label": "AZ-b",
+      "position": {
+        "x": 584,
+        "y": 72
+      },
+      "size": {
+        "w": 256,
+        "h": 128
+      },
+      "parent_id": "region"
+    },
+    {
+      "id": "az-c",
+      "kind": "az",
+      "label": "AZ-c",
+      "position": {
+        "x": 584,
+        "y": 184
+      },
+      "size": {
+        "w": 256,
+        "h": 128
+      },
+      "parent_id": "region"
+    },
+    {
+      "id": "asg-a",
+      "kind": "autoscale",
+      "label": "asg-a",
+      "position": {
+        "x": 584,
+        "y": -40
+      },
+      "size": {
+        "w": 256,
+        "h": 128
+      },
+      "parent_id": "az-a",
+      "scaling": {
+        "flavour": "aws_asg",
+        "props": {
+          "min_instances": 6,
+          "max_instances": 20,
+          "target_util": 60,
+          "scale_delay_s": 15
+        }
+      }
+    },
+    {
+      "id": "asg-b",
+      "kind": "autoscale",
+      "label": "asg-b",
+      "position": {
+        "x": 584,
+        "y": 72
+      },
+      "size": {
+        "w": 256,
+        "h": 128
+      },
+      "parent_id": "az-b",
+      "scaling": {
+        "flavour": "aws_asg",
+        "props": {
+          "min_instances": 6,
+          "max_instances": 20,
+          "target_util": 60,
+          "scale_delay_s": 15
+        }
+      }
+    },
+    {
+      "id": "asg-c",
+      "kind": "autoscale",
+      "label": "asg-c",
+      "position": {
+        "x": 584,
+        "y": 184
+      },
+      "size": {
+        "w": 256,
+        "h": 128
+      },
+      "parent_id": "az-c",
+      "scaling": {
+        "flavour": "aws_asg",
+        "props": {
+          "min_instances": 6,
+          "max_instances": 20,
+          "target_util": 60,
+          "scale_delay_s": 15
+        }
+      }
+    }
+  ],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

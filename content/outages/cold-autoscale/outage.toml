@@ -1,0 +1,82 @@
+id = "cold-autoscale"
+number = 12
+difficulty = "medium"
+title = "The wave that beat the autoscaler"
+title_es = "La ola que le ganó al autoescalado"
+summary = "A TV ad sent five times the traffic in ten seconds, and the new instances arrived a minute later, when the wave was nearly over."
+summary_es = "Un anuncio de televisión multiplicó el tráfico por cinco en diez segundos, y las instancias nuevas llegaron un minuto después, cuando la ola casi había pasado."
+story = "A shop ran its product pages on Spring Boot App Servers in an autoscaling group behind a load balancer, with one PostgreSQL database. The group had a minimum of 4 instances, aimed for 70% utilisation, and a new instance took about 60 s to boot and join. On a normal evening it ran 10 instances, about 70% busy. Then a TV ad aired with the shop's address on screen: in ten seconds the traffic went from normal to five and a half times normal, and it stayed there for about a minute. The 10 instances could serve about a quarter of it; the rest was rejected. The autoscaler saw the load and asked for more instances within seconds, but they arrived 60 s later, five seconds before the wave ended. By then most of the people the ad had brought had already seen an error page."
+story_es = "Una tienda servía sus páginas de producto con App Servers Spring Boot en un grupo de autoescalado detrás de un balanceador, con una base de datos PostgreSQL. El grupo tenía un mínimo de 4 instancias, apuntaba a un 70 % de utilización, y una instancia nueva tardaba unos 60 s en arrancar y entrar en servicio. En una tarde normal funcionaba con 10 instancias, ocupadas en torno al 70 %. Entonces se emitió un anuncio de televisión con la dirección de la tienda en pantalla: en diez segundos el tráfico pasó de lo normal a cinco veces y media lo normal, y se quedó ahí cerca de un minuto. Las 10 instancias podían atender más o menos una cuarta parte; el resto se rechazó. El autoescalado vio la carga y pidió más instancias en segundos, pero llegaron 60 s después, cinco segundos antes de que acabara la ola. Para entonces, la mayoría de la gente que había traído el anuncio ya había visto una página de error."
+lesson = "Autoscaling reacts to load it has already seen, and it can only add capacity as fast as new instances start. A wave that rises in seconds and lasts a minute is over before a 60 s scale-out lands. For peaks you can see coming (an ad, a push notification, a sale), keep headroom already running: raise the minimum for those hours. Then make the policy fast where it can be: a lower target utilisation leaves room to absorb the first seconds, and pre-initialised instances (a warm pool, pods on nodes that are already up) cut the delay from a minute to seconds. Here a minimum of 16, a 40% target and a 5 s delay turn a minute of mostly errors into about four seconds of them."
+lesson_es = "El autoescalado reacciona a la carga que ya ha visto, y solo puede añadir capacidad tan rápido como arrancan las instancias nuevas. Una ola que sube en segundos y dura un minuto termina antes de que llegue un escalado de 60 s. Para los picos que ves venir (un anuncio, una notificación push, unas rebajas), ten margen ya en marcha: sube el mínimo en esas horas. Después, haz rápida la política donde se pueda: un objetivo de utilización más bajo deja sitio para absorber los primeros segundos, y las instancias preinicializadas (un warm pool, pods en nodos que ya están levantados) bajan el retraso de un minuto a segundos. Aquí, un mínimo de 16, un objetivo del 40 % y un retraso de 5 s convierten un minuto casi todo de errores en unos cuatro segundos de errores."
+target_test = "incident"
+kinds = ["autoscale", "app"]
+real_world = []
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "As it was"
+title_es = "Como era"
+caption = "Ten Spring Boot App Servers in an autoscaling group (minimum 4, target 70%, 60 s to add an instance) and one PostgreSQL database. On a normal evening the instances are about 70% busy and pages load within the 200 ms target."
+caption_es = "Diez App Servers Spring Boot en un grupo de autoescalado (mínimo 4, objetivo del 70 %, 60 s para añadir una instancia) y una base de datos PostgreSQL. En una tarde normal las instancias están ocupadas en torno al 70 % y las páginas cargan dentro del objetivo de 200 ms."
+focus = ["lb", "app"]
+run = { test = "normal", start_s = 5 }
+callout = { metric = "p95_ms", after = 143, target = 200 }
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "The ad airs"
+title_es = "Se emite el anuncio"
+caption = "At 30 s the traffic doubles, and by 40 s it is five and a half times normal. The App Servers fill up and most requests are rejected. The autoscaler asks for more instances at 35 s, but they only arrive at 95 s, five seconds before the wave ends."
+caption_es = "A los 30 s el tráfico se duplica, y a los 40 s ya es cinco veces y media lo normal. Los App Servers se llenan y la mayoría de las peticiones se rechazan. El autoescalado pide más instancias a los 35 s, pero solo llegan a los 95 s, cinco segundos antes de que acabe la ola."
+focus = ["lb", "app"]
+run = { test = "incident", start_s = 25 }
+callout = { metric = "error_rate", after = 0.545 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "Headroom and a fast policy"
+title_es = "Margen y una política rápida"
+caption = "The same ad with a minimum of 16 instances during campaign hours, a 40% target and a 5 s delay (pre-initialised instances). The first seconds of the wave fit in the headroom, the autoscaler catches up by 40 s, and only about four seconds see errors."
+caption_es = "El mismo anuncio con un mínimo de 16 instancias en las horas de campaña, un objetivo del 40 % y un retraso de 5 s (instancias preinicializadas). Los primeros segundos de la ola caben en el margen, el autoescalado se pone al día hacia los 40 s, y solo unos cuatro segundos tienen errores."
+focus = ["lb", "app"]
+run = { test = "incident", start_s = 25 }
+callout = { metric = "error_rate", before = 0.545, after = 0.0154 }
+
+[scenario.nfr]
+peak_rps = 2000
+p95_ms = 200
+availability = 0.999
+budget_usd = 5000
+
+[[scenario.request_types]]
+id = "browse"
+name = "Open the product page"
+name_es = "Abrir la página del producto"
+share = 1.0
+route = ["edge?", "compute", "datastore"]
+key_space = 1000000
+
+[[scenario.tests]]
+id = "incident"
+name = "A TV ad sends five times the traffic in ten seconds"
+name_es = "Un anuncio de televisión multiplica el tráfico por cinco en diez segundos"
+duration_s = 150
+traffic = { steps = [[0, 1], [30, 2], [33, 3], [36, 4.5], [40, 5.5], [100, 1.5]] }
+pass = { p95_ms = 500, error_rate = 0.1, availability = 0.9 }
+
+[[scenario.tests]]
+id = "normal"
+name = "A normal evening"
+name_es = "Una tarde normal"
+
+[[scenario.tests]]
+id = "aftershock"
+name = "A bigger campaign: seven times the traffic, just as fast"
+name_es = "Una campaña más grande: siete veces el tráfico, igual de rápido"
+duration_s = 150
+traffic = { steps = [[0, 1], [30, 2.5], [33, 4], [36, 5.5], [40, 7], [100, 1.5]] }
+pass = { p95_ms = 500, error_rate = 0.1, availability = 0.9 }
+
+[scenario.pass]
+error_rate = 0.01

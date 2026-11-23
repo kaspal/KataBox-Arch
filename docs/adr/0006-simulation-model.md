@@ -460,6 +460,18 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
   when the call fails, times out or meets an open breaker, the step is skipped and the request goes on (an auction
   closes without late bids; a fraud check falls back to rules). The skipped answer is not scored. (Set 3 #41, #44,
   #45.)
+- **Replay primitives (M10).** All opt-in:
+  - `poison_share` (request type): that share of messages fails at every consumer attempt (after costing its
+    service time), so it is retried, dead-lettered or lost like any failing message (replay 11).
+  - Rate Limiter `on_failure = closed|open` (default `closed`, the behaviour before M10): a killed limiter card
+    stands for a limiter whose state store is unreachable; `open` lets requests past it, unlimited (replay 14).
+  - `bulk` (request type) and Queue/Stream `priority`: on a priority broker, a non-bulk message is queued ahead of
+    every bulk one (replay 20, and the data engineering backfill problems).
+  - SQL `sync = none|sync|quorum` (default `none`): a commit on a cluster primary waits a round trip to its
+    nearest live, reachable replica (`sync`) or to enough replicas for a majority (`quorum`); when they are down or
+    cut off, the commit stalls (30 s, in practice until the caller gives up), holding its connection (replay 16).
+  - Scenario/problem flag `replication_loss` (default off): when an async primary dies, the commits it made within
+    its `replication_lag_ms` are counted as lost at failover (replay 18).
 - **`conditional_writes` (M9).** SQL, NoSQL and Cache cards have a `conditional_writes` prop: the application
   writes with a check-and-set in one statement (`UPDATE … WHERE used = false`, a DynamoDB condition expression, a
   Redis `SET NX`). A write to such a card on a contended key behaves like a `datastore:write:atomic` step: a race
@@ -483,5 +495,5 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
 - **Calibration:** the model's figures live in the registry and `docs/calibration.md` (ADR 0005). Known
   simplifications (documented for problem authors):
   - a cache's capacity is per request type;
-  - TTL expiry is per key with no stampede coalescing;
+  - TTL expiry is per key; misses are coalesced only on a cache with `stampede_guard` (S8d);
   - the return path mirrors the forward hops.

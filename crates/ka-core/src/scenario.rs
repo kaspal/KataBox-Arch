@@ -77,6 +77,14 @@ pub struct RequestType {
     /// semantic cache can answer). The traffic declares it; a design can't raise it.
     #[serde(default, skip_serializing_if = "is_zero")]
     pub semantic_repeat_share: f64,
+    /// M10: the share of these messages that can never be processed (a poison message):
+    /// every consumer attempt fails, so they are retried, dead-lettered or lost.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub poison_share: f64,
+    /// M10: background work (a backfill, a replay): a queue or stream with `priority`
+    /// dispatches every other message first.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub bulk: bool,
     /// S4: a job type's work (kind = "job").
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub job: Option<JobSpec>,
@@ -628,6 +636,11 @@ pub struct Scenario {
     /// one; a connection pooler holds its pool). Off by default: the behaviour before M8.
     #[serde(default, skip_serializing_if = "is_false")]
     pub connections: bool,
+    /// M10: when an async SQL primary dies, the writes it committed within its replication
+    /// lag (`replication_lag_ms`) are lost at failover. Off by default: the behaviour before
+    /// M10.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub replication_loss: bool,
 }
 
 fn is_false(v: &bool) -> bool {

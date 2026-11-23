@@ -511,3 +511,106 @@ fn bench_60s_at_50k_rps() {
     );
     assert!(el.as_secs_f64() < 1.0, "{el:?}");
 }
+
+#[test]
+fn poison_messages_fail_every_attempt_and_need_a_dead_letter_queue() {
+    let (mut d, mut s) = golden_c();
+    s.request_types[0].poison_share = 0.05;
+    // A queue gives up after its retries: without a DLQ, poison messages are lost.
+    d.nodes[2] = node_with("stream", K::Queue, Flavour::Sqs, &[]);
+    let lost = run(&d, &s, 1);
+    assert!(
+        lost.lost > 0.0 && lost.dead_lettered == 0.0,
+        "{}",
+        lost.lost
+    );
+    d.nodes
+        .push(node_with("dlq", K::Dlq, Flavour::Generic, &[]));
+    d.edges.push(edge("stream", "dlq", Protocol::Publish));
+    let kept = run(&d, &s, 1);
+    assert!(kept.dead_lettered > 0.0 && kept.lost == 0.0);
+    // Good messages are unaffected.
+    assert!(kept.dead_lettered < 0.08 * kept.requests);
+}
+
+#[test]
+fn a_limiter_that_fails_open_lets_traffic_through_while_it_is_down() {
+    let make = |on_failure: &str| {
+        let mut rl = node_with(
+            "rl",
+            K::Ratelimit,
+            Flavour::RedisTokenBucket,
+            &[("limit_rps", 10_000.0)],
+        );
+        rl.props.insert(
+            "on_failure".into(),
+            ka_core::PropValue::Text(on_failure.into()),
+        );
+        let d = design(
+            vec![
+                node_with("client", K::Client, Flavour::Web, &[]),
+                rl,
+                node_with("app", K::App, Flavour::Go, &[]),
+            ],
+            vec![
+                edge("client", "rl", Protocol::Http),
+                edge("rl", "app", Protocol::Http),
+            ],
+        );
+        let mut s = scenario(200.0, 30.0, vec![rtype("api", 1.0, &["edge", "compute"])]);
+        s.chaos = vec![
+            serde_json::from_value(
+                serde_json::json!({ "kill": { "id": "rl", "at": 10, "for": 10 } }),
+            )
+            .unwrap(),
+        ];
+        (d, s)
+    };
+    let (d, s) = make("closed");
+    let closed = run(&d, &s, 1);
+    let (d, s) = make("open");
+    let open = run(&d, &s, 1);
+    assert!(closed.error_rate > 0.25, "{}", closed.error_rate);
+    assert!(open.error_rate < 0.01, "{}", open.error_rate);
+}
+
+#[test]
+fn a_priority_stream_dispatches_live_messages_before_bulk_ones() {
+    let make = |priority: bool| {
+        let (mut d, mut s) = golden_c();
+        if priority {
+            d.nodes[2]
+                .props
+                .insert("priority".into(), ka_core::PropValue::Bool(true));
+        }
+        // A backfill as heavy as the live traffic: together they outrun the workers.
+        let live = s.request_types[0].clone();
+        let mut backfill = live.clone();
+        backfill.id = "backfill".into();
+        backfill.bulk = true;
+        s.request_types = vec![live, backfill];
+        s.request_types[0].share = 0.5;
+        s.request_types[1].share = 0.5;
+        s.peak_rps *= 1.6;
+        (d, s)
+    };
+    let p95 = |r: &RunResult, id: &str| {
+        r.per_type
+            .iter()
+            .find(|t| t.id == id)
+            .and_then(|t| t.completion)
+            .map(|l| l.p95_ms)
+            .unwrap_or(0.0)
+    };
+    let (d, s) = make(false);
+    let fifo = run(&d, &s, 1);
+    let (d, s) = make(true);
+    let prio = run(&d, &s, 1);
+    let live_id = s.request_types[0].id.clone();
+    assert!(
+        p95(&prio, &live_id) < p95(&fifo, &live_id) / 3.0,
+        "{} vs {}",
+        p95(&prio, &live_id),
+        p95(&fifo, &live_id)
+    );
+}

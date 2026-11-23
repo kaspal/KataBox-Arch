@@ -1,0 +1,82 @@
+id = "health-check-spiral"
+number = 17
+difficulty = "hard"
+title = "The health-check death spiral"
+title_es = "La espiral mortal de los health checks"
+summary = "Traffic doubled, the load balancer mistook busy servers for dead ones, and ejecting them overloaded the rest."
+summary_es = "El tráfico se duplicó, el balanceador confundió servidores ocupados con servidores caídos, y al expulsarlos sobrecargó al resto."
+story = "A web service ran on six Spring Boot app cards behind one nginx load balancer, each card with 2 instances of 8 threads and pages that take about 100 ms to render. On a normal day the cards were under half busy. The load balancer also had an aggressive health check: any card whose requests waited more than 200 ms in its queue was taken out of rotation. Then traffic doubled. The cards had the capacity for it, but at that load their queues sometimes grew past 200 ms of waiting. The health check took one card out, its share of the traffic moved to the other five, their queues grew, and they were taken out too. Ejected cards drained, came back, got hit by the whole load at once and were ejected again. For the rest of the surge about a third of the requests failed, while the cards were on average only about two thirds busy."
+story_es = "Un servicio web funcionaba con seis tarjetas de app Spring Boot detrás de un balanceador nginx; cada tarjeta tenía 2 instancias de 8 hilos, y una página tardaba unos 100 ms en generarse. En un día normal las tarjetas estaban ocupadas menos de la mitad del tiempo. El balanceador tenía además un health check agresivo: si las peticiones de una tarjeta esperaban más de 200 ms en su cola, la sacaba de la rotación. Entonces el tráfico se duplicó. Las tarjetas tenían capacidad para eso, pero con esa carga sus colas a veces pasaban de 200 ms de espera. El health check sacó una tarjeta, su parte del tráfico pasó a las otras cinco, sus colas crecieron y también las sacó. Las tarjetas expulsadas se vaciaban, volvían, recibían toda la carga de golpe y las volvía a expulsar. Durante el resto del pico falló cerca de un tercio de las peticiones, mientras las tarjetas estaban de media ocupadas solo unos dos tercios del tiempo."
+lesson = "A health check that can't tell busy from dead turns a load surge into an outage: every server it removes pushes its load onto the others, which then fail the same check (a death spiral). The servers were never short of capacity; the ejections were the problem. Make a busy server answer fast instead of looking dead: shed load at the app once its queue reaches a bound (here 28 waiting requests, under 200 ms of waiting), so the queue never crosses the health check's limit and the few extra requests fail at once. And cap what the load balancer may remove: with a minimum of 60% of targets in rotation it can never eject more than two of six cards, however bad the checks look."
+lesson_es = "Un health check que no distingue entre ocupado y caído convierte un pico de carga en una caída: cada servidor que retira descarga su carga sobre los demás, que entonces fallan el mismo check (una espiral mortal). A los servidores nunca les faltó capacidad; el problema fueron las expulsiones. Haz que un servidor ocupado responda rápido en vez de parecer muerto: descarta carga en la app cuando su cola alcanza un límite (aquí 28 peticiones en espera, menos de 200 ms de espera), para que la cola nunca pase el límite del health check y las pocas peticiones de más fallen al instante. Y limita lo que el balanceador puede retirar: con un mínimo del 60 % de destinos en rotación nunca puede expulsar más de dos de seis tarjetas, por mal que parezcan los checks."
+target_test = "incident"
+kinds = ["lb", "app"]
+real_world = []
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "As it was"
+title_es = "Como era"
+caption = "Six app cards behind one load balancer whose health check ejects a card when its queue wait passes 200 ms. On a normal day the cards are under half busy, nothing is ejected, and pages load well within the 1 s target."
+caption_es = "Seis tarjetas de app detrás de un balanceador cuyo health check expulsa una tarjeta cuando la espera en su cola pasa de 200 ms. En un día normal las tarjetas están ocupadas menos de la mitad del tiempo, no se expulsa ninguna, y las páginas cargan muy por debajo del objetivo de 1 s."
+focus = ["lb", "app1", "app2", "app3", "app4", "app5", "app6"]
+run = { test = "normal", start_s = 5 }
+callout = { metric = "p95_ms", after = 265, target = 1000 }
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "Traffic doubles"
+title_es = "El tráfico se duplica"
+caption = "At 20 s traffic doubles. The cards can carry it, but now and then a queue passes 200 ms of waiting, and the load balancer ejects that card. Its traffic lands on the other five, their queues pass the limit too, and they are ejected in turn. Cards drain, return and are ejected again: errors come in waves while the cards are on average only about two thirds busy."
+caption_es = "A los 20 s el tráfico se duplica. Las tarjetas pueden con él, pero de vez en cuando una cola pasa de 200 ms de espera y el balanceador expulsa esa tarjeta. Su tráfico cae sobre las otras cinco, sus colas también pasan el límite y las expulsa a su vez. Las tarjetas se vacían, vuelven y se expulsan de nuevo: los errores llegan en oleadas mientras las tarjetas están de media ocupadas solo unos dos tercios del tiempo."
+focus = ["lb", "app1", "app2", "app3", "app4", "app5", "app6"]
+run = { test = "incident", start_s = 15 }
+callout = { metric = "error_rate", after = 0.306 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "Shed load, keep a floor"
+title_es = "Descartar carga y mantener un mínimo"
+caption = "The same six cards. Each app card now turns a request away at once when 28 are already waiting, so its queue never reaches 200 ms of waiting and it never looks dead; and the load balancer keeps at least 60% of its targets in rotation. The surge costs about 1% of requests, refused quickly, instead of a third."
+caption_es = "Las mismas seis tarjetas. Ahora cada tarjeta de app rechaza al instante una petición cuando ya hay 28 esperando, así que su cola nunca llega a 200 ms de espera y nunca parece muerta; y el balanceador mantiene en rotación al menos el 60 % de sus destinos. El pico cuesta cerca del 1 % de las peticiones, rechazadas rápido, en vez de un tercio."
+focus = ["lb", "app1", "app2", "app3", "app4", "app5", "app6"]
+run = { test = "incident", start_s = 15 }
+callout = { metric = "error_rate", before = 0.306, after = 0.00953 }
+
+[scenario.nfr]
+peak_rps = 400
+p95_ms = 1000
+availability = 0.999
+budget_usd = 2000
+
+[[scenario.request_types]]
+id = "page"
+name = "Load a page"
+name_es = "Cargar una página"
+share = 1.0
+route = ["edge?", "compute"]
+key_space = 1000000
+
+[[scenario.tests]]
+id = "incident"
+name = "Traffic doubles"
+name_es = "El tráfico se duplica"
+duration_s = 120
+chaos = [{ traffic = { x = 2, at = 20 } }]
+pass = { p95_ms = 1000, error_rate = 0.05, availability = 0.95 }
+
+[[scenario.tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[scenario.tests]]
+id = "aftershock"
+name = "Traffic jumps to 2.5 times for 20 s"
+name_es = "El tráfico sube a 2,5 veces durante 20 s"
+duration_s = 120
+chaos = [{ traffic = { x = 2.5, at = 20, for = 20 } }]
+pass = { recovered_by_s = 50, p95_ms = 1000, error_rate = 0.1, availability = 0.9 }
+
+[scenario.pass]
+error_rate = 0.01

@@ -134,6 +134,9 @@ pub struct ProblemDef {
     /// M8: databases enforce their connection limits in every test (see `Scenario`).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub connections: bool,
+    /// M10: async SQL failovers lose the lag window's writes (see `Scenario`).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub replication_loss: bool,
 }
 
 impl ProblemDef {
@@ -154,6 +157,7 @@ impl ProblemDef {
             key_skew_override: test.key_skew_override,
             cold_caches: test.cold_caches,
             connections: self.connections,
+            replication_loss: self.replication_loss,
         }
     }
 

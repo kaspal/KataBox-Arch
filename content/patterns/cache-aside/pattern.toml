@@ -54,8 +54,8 @@ practice = [
   "typeahead",
 ]
 
-in_simulator = "Fully: hits, misses, TTL expiry, memory size, cold starts, flushes and stale reads are simulated. Stampede coalescing is not."
-in_simulator_es = "Completamente: se simulan aciertos, fallos, caducidad por TTL, tamaño de memoria, arranques en frío, vaciados y lecturas obsoletas. La agrupación de peticiones ante una estampida no."
+in_simulator = "Fully: hits, misses, TTL expiry, memory size, cold starts, flushes and stale reads are simulated, and so is stampede coalescing when the cache has its stampede guard on."
+in_simulator_es = "Completamente: se simulan aciertos, fallos, caducidad por TTL, tamaño de memoria, arranques en frío, vaciados y lecturas obsoletas, y también la agrupación de peticiones ante una estampida cuando la caché tiene activada su protección contra estampidas."
 
 [[quiz]]
 q = "With cache-aside, what happens on a cache miss?"

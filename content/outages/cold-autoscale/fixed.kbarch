@@ -1,0 +1,111 @@
+{
+  "schema_version": 4,
+  "id": "cold-autoscale-fixed",
+  "name": "Cold autoscaling (fixed)",
+  "problem_id": "outage--cold-autoscale",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "spring_boot",
+      "label": "app",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 16,
+        "concurrency": 20,
+        "service_ms": 50
+      },
+      "group_id": "asg"
+    },
+    {
+      "id": "db",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "db",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app-http",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-db-query",
+      "from": "app",
+      "to": "db",
+      "protocol": "query"
+    }
+  ],
+  "groups": [
+    {
+      "id": "asg",
+      "kind": "autoscale",
+      "label": "asg",
+      "position": {
+        "x": 584,
+        "y": -40
+      },
+      "size": {
+        "w": 256,
+        "h": 128
+      },
+      "parent_id": null,
+      "scaling": {
+        "flavour": "aws_asg",
+        "props": {
+          "min_instances": 16,
+          "max_instances": 48,
+          "target_util": 40,
+          "scale_delay_s": 5
+        }
+      }
+    }
+  ],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

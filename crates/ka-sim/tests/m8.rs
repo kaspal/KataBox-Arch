@@ -2039,3 +2039,97 @@ fn conditional_writes_on_the_store_make_a_contended_write_atomic() {
         "a refused race is an answer, not an error"
     );
 }
+
+// --- M10: synchronous replication and the lag window -------------------------------------
+
+/// client → app (outside the zones) → a PostgreSQL primary in AZ a, with replicas in the
+/// other `zones - 1` AZs; every request writes. AZ b is split off from 10 s to 25 s.
+fn replicated(zones: usize, sync: &str) -> (Design, Scenario) {
+    let names = ["az-a", "az-b", "az-c"];
+    let mut nodes = vec![
+        node("client", K::Client, Flavour::Web, &[("timeout_ms", 1000.0)]),
+        node("app", K::App, Flavour::Go, &[("instances", 2.0)]),
+    ];
+    let mut edges = vec![
+        edge("client", "app", Protocol::Http),
+        edge("app", "db-0", Protocol::Query),
+    ];
+    for (i, z) in names.iter().enumerate().take(zones) {
+        let mut db = in_group(
+            node(&format!("db-{i}"), K::Sql, Flavour::Postgresql, &[]),
+            z,
+        );
+        set(&mut db, "sync", PropValue::Text(sync.into()));
+        nodes.push(db);
+        if i > 0 {
+            edges.push(edge("db-0", &format!("db-{i}"), Protocol::Replicate));
+        }
+    }
+    let mut d = design(nodes, edges);
+    d.groups = names.iter().take(zones).map(|z| az(z)).collect();
+    let mut s = scenario(
+        200.0,
+        40.0,
+        vec![rtype("write", 1.0, &["compute", "datastore:write"])],
+    );
+    s.chaos = vec![chaos(
+        serde_json::json!({ "split": { "zone": "az-b", "at": 10, "for": 15 } }),
+    )];
+    (d, s)
+}
+
+#[test]
+fn a_synchronous_commit_stalls_without_its_replica_and_a_quorum_does_not() {
+    let (d, s) = replicated(2, "none");
+    let none = run(&d, &s, 61);
+    let (d, s) = replicated(2, "sync");
+    let sync = run(&d, &s, 61);
+    let (d, s) = replicated(3, "quorum");
+    let quorum = run(&d, &s, 61);
+    assert!(
+        none.error_rate < 0.01,
+        "async ignores the replica: {}",
+        none.error_rate
+    );
+    assert!(
+        sync.error_rate > 0.2,
+        "every commit waits for the cut-off replica: {}",
+        sync.error_rate
+    );
+    assert!(
+        quorum.error_rate < 0.01,
+        "AZ c acknowledges: {}",
+        quorum.error_rate
+    );
+    // An acknowledgement costs a cross-AZ round trip.
+    assert!(quorum.latency.p50_ms > none.latency.p50_ms);
+}
+
+#[test]
+fn an_async_failover_loses_the_lag_window_only_when_the_problem_counts_it() {
+    let make = |sync: &str, counted: bool| {
+        let (d, mut s) = replicated(2, sync);
+        s.replication_loss = counted;
+        s.chaos = vec![chaos(
+            serde_json::json!({ "kill": { "id": "db-0", "at": 20 } }),
+        )];
+        (d, s)
+    };
+    let (d, s) = make("none", false);
+    assert_eq!(
+        run(&d, &s, 62).lost,
+        0.0,
+        "off by default: the behaviour before M10"
+    );
+    let (d, s) = make("none", true);
+    assert!(
+        run(&d, &s, 62).lost > 0.0,
+        "the last lag window's commits are gone"
+    );
+    let (d, s) = make("sync", true);
+    assert_eq!(
+        run(&d, &s, 62).lost,
+        0.0,
+        "a synchronous replica has every commit"
+    );
+}

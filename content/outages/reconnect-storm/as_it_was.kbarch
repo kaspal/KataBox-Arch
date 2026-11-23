@@ -1,0 +1,157 @@
+{
+  "schema_version": 4,
+  "id": "reconnect-storm-was",
+  "name": "Reconnect storm (as it was)",
+  "problem_id": null,
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "rps": 1000
+      },
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "ws-1",
+      "kind": "ws",
+      "flavour": "socket_io",
+      "label": "ws-1",
+      "position": {
+        "x": 304,
+        "y": 112
+      },
+      "props": {
+        "instances": 1,
+        "max_connections": 110000,
+        "accept_per_s": 20000
+      },
+      "group_id": null
+    },
+    {
+      "id": "ws-2",
+      "kind": "ws",
+      "flavour": "socket_io",
+      "label": "ws-2",
+      "position": {
+        "x": 304,
+        "y": 224
+      },
+      "props": {
+        "instances": 1,
+        "max_connections": 110000,
+        "accept_per_s": 20000
+      },
+      "group_id": null
+    },
+    {
+      "id": "ws-3",
+      "kind": "ws",
+      "flavour": "socket_io",
+      "label": "ws-3",
+      "position": {
+        "x": 304,
+        "y": 336
+      },
+      "props": {
+        "instances": 1,
+        "max_connections": 110000,
+        "accept_per_s": 20000
+      },
+      "group_id": null
+    },
+    {
+      "id": "ws-4",
+      "kind": "ws",
+      "flavour": "socket_io",
+      "label": "ws-4",
+      "position": {
+        "x": 304,
+        "y": 448
+      },
+      "props": {
+        "instances": 1,
+        "max_connections": 110000,
+        "accept_per_s": 20000
+      },
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-ws",
+      "from": "client",
+      "to": "lb",
+      "protocol": "ws"
+    },
+    {
+      "id": "e-lb-ws-1-ws",
+      "from": "lb",
+      "to": "ws-1",
+      "protocol": "ws"
+    },
+    {
+      "id": "e-lb-ws-2-ws",
+      "from": "lb",
+      "to": "ws-2",
+      "protocol": "ws"
+    },
+    {
+      "id": "e-lb-ws-3-ws",
+      "from": "lb",
+      "to": "ws-3",
+      "protocol": "ws"
+    },
+    {
+      "id": "e-lb-ws-4-ws",
+      "from": "lb",
+      "to": "ws-4",
+      "protocol": "ws"
+    },
+    {
+      "id": "e-client-app-http",
+      "from": "client",
+      "to": "app",
+      "protocol": "http"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

@@ -1,0 +1,92 @@
+id = "global-config-push"
+number = 19
+difficulty = "hard"
+title = "The global config push"
+title_es = "El cambio de configuración global"
+summary = "One bad setting reached every Region in the same second, and a quarter of the minute's requests failed everywhere."
+summary_es = "Un ajuste malo llegó a todas las Regiones en el mismo segundo, y una cuarta parte de las peticiones de ese minuto falló en todas partes."
+story = "A storefront ran in three Regions (US, Europe and Asia-Pacific), each with three Go App Servers and its own PostgreSQL database, behind one global load balancer. Running in three Regions was meant to keep a failure in one of them from taking the whole site down. Every App Server read its settings from a hosted feature-flag service, and the service streamed each change to every Region the moment it was saved. One day someone saved a setting with a bad value, and every App Server that read it started failing half of its requests. At 15 s the change reached all three Regions at once, so there was no healthy Region left to compare with or to fall back on. It took thirty seconds to find the change and revert it by hand, and for those thirty seconds half of all requests failed, everywhere."
+story_es = "Una tienda en línea funcionaba en tres Regiones (EE. UU., Europa y Asia-Pacífico), cada una con tres App Servers de Go y su propia base de datos PostgreSQL, detrás de un único balanceador de carga global. Funcionar en tres Regiones debía evitar que un fallo en una de ellas tirara todo el sitio. Cada App Server leía su configuración de un servicio de feature flags alojado, y el servicio enviaba cada cambio a todas las Regiones en el momento en que se guardaba. Un día alguien guardó un ajuste con un valor malo, y cada App Server que lo leía empezó a fallar la mitad de sus peticiones. A los 15 s el cambio llegó a las tres Regiones a la vez, así que no quedó ninguna Región sana con la que comparar ni a la que recurrir. Encontrar el cambio y revertirlo a mano llevó treinta segundos, y durante esos treinta segundos la mitad de todas las peticiones falló, en todas partes."
+lesson = "A configuration change is a deploy that skips the deploy pipeline: it changes how every server behaves, often in seconds, and nothing checks it on the way. Regions only limit the damage if a change can't reach all of them at once. Send config changes in stages, one Region at a time, wait a bake time before the next stage, halt the moment a stage's errors rise, and keep a kill switch that reverts the change in a second. The same bad setting then costs about three seconds of errors in one Region (0.825% of the minute's requests) instead of thirty seconds everywhere (25%), and it works for a change that only makes things slow as well."
+lesson_es = "Un cambio de configuración es un despliegue que se salta el pipeline de despliegue: cambia cómo se comporta cada servidor, a menudo en segundos, y nada lo comprueba por el camino. Las Regiones solo limitan el daño si un cambio no puede llegar a todas a la vez. Envía los cambios de configuración por etapas, una Región cada vez, espera un tiempo de horneado antes de la siguiente etapa, detente en cuanto suban los errores de una etapa y ten un interruptor de emergencia (kill switch) que revierta el cambio en un segundo. El mismo ajuste malo cuesta entonces unos tres segundos de errores en una Región (el 0,825 % de las peticiones del minuto) en lugar de treinta segundos en todas partes (el 25 %), y funciona también con un cambio que solo hace que todo vaya lento."
+target_test = "incident"
+kinds = ["config", "app"]
+real_world = []
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "As it was"
+title_es = "Como era"
+caption = "Three Regions, each with three App Servers and its own PostgreSQL database, behind a global load balancer. Every App Server reads the Config card, which sends each change to all Regions at once. On a normal day nothing fails and requests answer well under the 100 ms target."
+caption_es = "Tres Regiones, cada una con tres App Servers y su propia base de datos PostgreSQL, detrás de un balanceador de carga global. Cada App Server lee la tarjeta Config, que envía cada cambio a todas las Regiones a la vez. En un día normal nada falla y las peticiones responden muy por debajo del objetivo de 100 ms."
+focus = ["flags", "app-us", "app-eu", "app-ap"]
+run = { test = "normal", start_s = 5 }
+callout = { metric = "p95_ms", after = 74.5, target = 100 }
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "Every Region gets the bad setting"
+title_es = "Todas las Regiones reciben el ajuste malo"
+caption = "At 15 s the bad setting reaches all three Regions in the same second, and half of all requests fail, in every Region. They keep failing until the change is reverted by hand at 45 s: a quarter of the minute's requests fail."
+caption_es = "A los 15 s el ajuste malo llega a las tres Regiones en el mismo segundo, y la mitad de todas las peticiones falla, en cada Región. Siguen fallando hasta que el cambio se revierte a mano a los 45 s: falla una cuarta parte de las peticiones del minuto."
+focus = ["flags", "app-us", "app-eu", "app-ap"]
+run = { test = "incident", start_s = 12 }
+callout = { metric = "error_rate", after = 0.25 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "One Region first, and a kill switch"
+title_es = "Primero una Región, y un kill switch"
+caption = "The same bad setting, sent by a Config card with staged delivery (one Region per stage, a 30 s bake time) and a kill switch. Only the US Region gets it; its errors are noticed after 2 s, the push halts, and the kill switch reverts it a second later. Europe and Asia-Pacific never see it."
+caption_es = "El mismo ajuste malo, enviado por una tarjeta Config con entrega por etapas (una Región por etapa, 30 s de horneado) y un kill switch. Solo la Región de EE. UU. lo recibe; sus errores se detectan a los 2 s, el envío se detiene y el kill switch lo revierte un segundo después. Europa y Asia-Pacífico nunca lo ven."
+focus = ["flags", "app-us"]
+run = { test = "incident", start_s = 12 }
+callout = { metric = "error_rate", before = 0.25, after = 0.00825 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "A second change that is only slow"
+title_es = "Un segundo cambio que solo es lento"
+caption = "The aftershock: the same bad setting, then at 55 s a change that adds 400 ms to every request. Sent everywhere at once, it piles up queues in every Region and the p95 climbs past 3 s. Staged, it slows only the US Region for a few seconds before the kill switch reverts it."
+caption_es = "La réplica: el mismo ajuste malo y, a los 55 s, un cambio que añade 400 ms a cada petición. Enviado a todas partes a la vez, acumula colas en cada Región y el p95 pasa de 3 s. Por etapas, solo hace lenta la Región de EE. UU. unos segundos antes de que el kill switch lo revierta."
+focus = ["flags", "app-us"]
+run = { test = "aftershock", start_s = 52 }
+callout = { metric = "p95_ms", after = 80.6, target = 300 }
+
+[scenario.nfr]
+peak_rps = 1500
+p95_ms = 100
+availability = 0.999
+budget_usd = 3000
+
+[[scenario.request_types]]
+id = "browse"
+name = "Load a product page"
+name_es = "Cargar la página de un producto"
+share = 1.0
+route = ["edge?", "compute", "datastore"]
+key_space = 1000000
+
+[[scenario.tests]]
+id = "incident"
+name = "A bad setting is pushed at 15 s"
+name_es = "Se publica un ajuste malo a los 15 s"
+duration_s = 60
+chaos = [{ config_push = { at = 15, error_rate = 0.5, for = 30 } }]
+pass = { error_rate = 0.05, availability = 0.9 }
+
+[[scenario.tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[scenario.tests]]
+id = "aftershock"
+name = "Two bad changes, the second one only slow"
+name_es = "Dos cambios malos, el segundo solo lento"
+duration_s = 90
+chaos = [{ config_push = { at = 15, error_rate = 0.5, for = 30 } }, { config_push = { at = 55, add_ms = 400, for = 30 } }]
+pass = { p95_ms = 300, error_rate = 0.05, availability = 0.9 }
+
+[scenario.pass]
+error_rate = 0.01

@@ -1,0 +1,181 @@
+{
+  "schema_version": 4,
+  "id": "health-check-spiral-was",
+  "name": "Health-check spiral (as it was)",
+  "problem_id": "outage--health-check-spiral",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "nginx",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {
+        "health_timeout_ms": 200
+      },
+      "group_id": null
+    },
+    {
+      "id": "app1",
+      "kind": "app",
+      "flavour": "spring_boot",
+      "label": "app1",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 2,
+        "concurrency": 8,
+        "service_ms": 100
+      },
+      "group_id": null
+    },
+    {
+      "id": "app2",
+      "kind": "app",
+      "flavour": "spring_boot",
+      "label": "app2",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 2,
+        "concurrency": 8,
+        "service_ms": 100
+      },
+      "group_id": null
+    },
+    {
+      "id": "app3",
+      "kind": "app",
+      "flavour": "spring_boot",
+      "label": "app3",
+      "position": {
+        "x": 608,
+        "y": 224
+      },
+      "props": {
+        "instances": 2,
+        "concurrency": 8,
+        "service_ms": 100
+      },
+      "group_id": null
+    },
+    {
+      "id": "app4",
+      "kind": "app",
+      "flavour": "spring_boot",
+      "label": "app4",
+      "position": {
+        "x": 608,
+        "y": 336
+      },
+      "props": {
+        "instances": 2,
+        "concurrency": 8,
+        "service_ms": 100
+      },
+      "group_id": null
+    },
+    {
+      "id": "app5",
+      "kind": "app",
+      "flavour": "spring_boot",
+      "label": "app5",
+      "position": {
+        "x": 608,
+        "y": 448
+      },
+      "props": {
+        "instances": 2,
+        "concurrency": 8,
+        "service_ms": 100
+      },
+      "group_id": null
+    },
+    {
+      "id": "app6",
+      "kind": "app",
+      "flavour": "spring_boot",
+      "label": "app6",
+      "position": {
+        "x": 608,
+        "y": 560
+      },
+      "props": {
+        "instances": 2,
+        "concurrency": 8,
+        "service_ms": 100
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app1-http",
+      "from": "lb",
+      "to": "app1",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app2-http",
+      "from": "lb",
+      "to": "app2",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app3-http",
+      "from": "lb",
+      "to": "app3",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app4-http",
+      "from": "lb",
+      "to": "app4",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app5-http",
+      "from": "lb",
+      "to": "app5",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app6-http",
+      "from": "lb",
+      "to": "app6",
+      "protocol": "http"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

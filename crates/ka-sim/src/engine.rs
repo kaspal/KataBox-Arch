@@ -23,6 +23,9 @@ pub const TIMEOUT_US: u64 = 5_000_000;
 pub const DRAIN_US: u64 = 30_000_000;
 /// A provider that is down fails a call after this connect timeout.
 const EXTERNAL_DOWN_US: u64 = 1_000_000;
+/// M10: a synchronous commit with no replica able to acknowledge it waits this long (in
+/// practice: until the caller gives up).
+const SYNC_STALL_US: u64 = 30_000_000;
 /// Seconds in a 30.4-day month, for per-request prices.
 const MONTH_S: f64 = 2_629_746.0;
 
@@ -186,6 +189,8 @@ struct Req {
     /// progress is a lock / an atomic write, a lock is held (from a quorum service), and the
     /// write in progress goes to a self-promoted primary on the far side of a split.
     contended: bool,
+    /// M10: a poison message: every consumer attempt fails.
+    poison: bool,
     read_at: u64,
     call_lock: bool,
     call_atomic: bool,
@@ -455,6 +460,9 @@ pub struct Engine {
     /// S7: conflicting writes, and the last commit time of each contended key.
     conflicts: f64,
     hot_commits: BTreeMap<u64, u64>,
+    /// M10 `replication_loss`: per cluster, recent commits on its primary (time, weight)
+    /// within the replication lag.
+    recent_commits: Vec<VecDeque<(u64, f64)>>,
     /// S1: per connection type, its fluid state.
     conns: Vec<Option<ConnRt>>,
     conn_drops: f64,
@@ -625,6 +633,7 @@ impl Engine {
             dns_switch: BTreeMap::new(),
             conflicts: 0.0,
             hot_commits: BTreeMap::new(),
+            recent_commits: vec![VecDeque::new(); c.clusters.len()],
             conns: c
                 .types
                 .iter()
@@ -1092,6 +1101,7 @@ impl Engine {
             call_key: NONE,
             bad: false,
             contended: false,
+            poison: false,
             read_at: u64::MAX,
             call_lock: false,
             call_atomic: false,
@@ -1138,8 +1148,12 @@ impl Engine {
             key = 1 + self.rng_key[s as usize].below(c.keys.max(1));
             contended = true;
         }
+        // M10: poison messages (drawn only when the type has some, so other runs keep
+        // their streams).
+        let poison = ty.def.poison_share > 0.0 && self.rng_misc.uniform() < ty.def.poison_share;
         let r = self.alloc(src.ty, key);
         self.reqs[r as usize].contended = contended;
+        self.reqs[r as usize].poison = poison;
         let w = self.c.weight;
         self.types[src.ty as usize].requests += w;
         self.second_mut().requests += w;
@@ -1403,6 +1417,17 @@ impl Engine {
         // A consumer's reserved slot is used by this arrival only; the calls it makes
         // afterwards queue for their servers like any request.
         let reserved = std::mem::take(&mut self.reqs[r as usize].reserved);
+        // M10: a rate limiter that fails open lets requests past while it is down (its
+        // state store unreachable), unlimited.
+        if self.nodes[node as usize].down
+            && !unreachable
+            && self.c.nodes[node as usize].kind == ComponentKind::Ratelimit
+            && self.c.nodes[node as usize].spec.fail_open
+            && self.reqs[r as usize].phase == Phase::Hop
+        {
+            self.after_hop(r, node);
+            return;
+        }
         if self.nodes[node as usize].down || unreachable {
             if reserved {
                 self.set_busy(node, 0, -1);
@@ -1918,7 +1943,14 @@ impl Engine {
                 }
             }
             Phase::Call => self.after_call(r, node),
-            Phase::Consumer => self.run_calls(r),
+            Phase::Consumer => {
+                if self.reqs[r as usize].poison {
+                    // M10: a poison message fails every attempt, after costing its service.
+                    self.fail(r);
+                } else {
+                    self.run_calls(r);
+                }
+            }
             Phase::BrokerIn => {}
         }
     }
@@ -2063,6 +2095,11 @@ impl Engine {
             let shadow = writes
                 && self.c.cluster_of[node as usize]
                     .is_some_and(|cl| self.cluster_primary[cl as usize] != node);
+            if writes && !shadow && !lock {
+                // M10: a synchronous commit waits for its replicas' acknowledgement.
+                let ack = self.sync_ack_us(node);
+                self.reqs[r as usize].extra_us += ack;
+            }
             let now = self.now;
             let q = &mut self.reqs[r as usize];
             q.phase = Phase::Call;
@@ -2294,6 +2331,56 @@ impl Engine {
         true
     }
 
+    /// M10 `sync`: the time a commit on `node` waits for its replicas' acknowledgement (a
+    /// round trip to the nearest one for `sync`, to enough of them for a majority for
+    /// `quorum`). Replicas that are down or cut off can't acknowledge; without enough of
+    /// them the commit stalls (it waits on, holding its connection, until the caller gives
+    /// up). 0 for async writes and cards outside a cluster.
+    fn sync_ack_us(&self, node: u32) -> u64 {
+        let sync = self.c.nodes[node as usize].spec.sync;
+        let Some(cl) = self.c.cluster_of[node as usize] else {
+            return 0;
+        };
+        if sync == 0 {
+            return 0;
+        }
+        let members = &self.c.clusters[cl as usize].members;
+        let mut rtts: Vec<u64> = members
+            .iter()
+            .copied()
+            .filter(|&m| m != node && !self.nodes[m as usize].down && !self.cut(node, m))
+            .map(|m| 2 * hop_latency_us(&self.c, node, m, Protocol::Replicate))
+            .collect();
+        rtts.sort_unstable();
+        let needed = if sync == 1 { 1 } else { members.len() / 2 };
+        match rtts.get(needed.max(1) - 1) {
+            Some(&t) => t,
+            None => SYNC_STALL_US,
+        }
+    }
+
+    /// M10 `replication_loss`: remember a commit on an async primary for its lag window.
+    fn note_commit(&mut self, node: u32) {
+        if !self.c.scenario.replication_loss {
+            return;
+        }
+        let Some(cl) = self.c.cluster_of[node as usize] else {
+            return;
+        };
+        let spec = &self.c.nodes[node as usize].spec;
+        if spec.sync != 0 || self.cluster_primary[cl as usize] != node {
+            return;
+        }
+        let lag = (spec.replication_lag_ms.max(0.0) * 1000.0) as u64;
+        let now = self.now;
+        let w = self.c.weight;
+        let q = &mut self.recent_commits[cl as usize];
+        q.push_back((now, w));
+        while q.front().is_some_and(|&(t, _)| now.saturating_sub(t) > lag) {
+            q.pop_front();
+        }
+    }
+
     /// Does routing believe this call target is up, and reachable from `caller`?
     fn target_alive(&self, t: Target, caller: u32) -> bool {
         let ok = |m: u32| !self.nodes[m as usize].known_down && !self.known_cut(caller, m);
@@ -2351,6 +2438,9 @@ impl Engine {
         };
         if write && role == Role::Datastore && !self.s7_write_ok(r, node, key) {
             return;
+        }
+        if write && role == Role::Datastore {
+            self.note_commit(node);
         }
         if matches!(role, Role::Datastore | Role::Cache) {
             self.check_residency(r, node);
@@ -2791,7 +2881,18 @@ impl Engine {
         self.reqs[r as usize].reserved = false;
         self.reqs[r as usize].in_flight = false;
         self.reqs[r as usize].pending += 1;
-        self.brokers[b as usize].queue.push_back(r);
+        let bulk = |e: &Self, x: u32| e.c.types[e.reqs[x as usize].ty as usize].def.bulk;
+        if self.c.nodes[b as usize].spec.priority && !bulk(self, r) {
+            // M10: a live message goes ahead of every queued bulk message.
+            let at = self.brokers[b as usize]
+                .queue
+                .iter()
+                .position(|&x| bulk(self, x))
+                .unwrap_or(self.brokers[b as usize].queue.len());
+            self.brokers[b as usize].queue.insert(at, r);
+        } else {
+            self.brokers[b as usize].queue.push_back(r);
+        }
         let len = self.brokers[b as usize].queue.len();
         let rt = &mut self.nodes[b as usize];
         rt.max_queue = rt.max_queue.max(len);
@@ -4498,6 +4599,16 @@ impl Engine {
             && self.cluster_primary[cl as usize] == n
             && self.c.clusters[cl as usize].members.len() > 1
         {
+            // M10: the async primary's last lag window of commits never reached a replica.
+            let lag = (self.c.nodes[n as usize].spec.replication_lag_ms.max(0.0) * 1000.0) as u64;
+            let now = self.now;
+            let gone: f64 = self.recent_commits[cl as usize]
+                .iter()
+                .filter(|&&(t, _)| now.saturating_sub(t) <= lag)
+                .map(|&(_, w)| w)
+                .sum();
+            self.recent_commits[cl as usize].clear();
+            self.lost += gone;
             let after = (self.c.nodes[n as usize].spec.failover_s.max(0.0) * 1e6) as u64;
             self.push(self.now + after, Ev::Failover(cl));
         }

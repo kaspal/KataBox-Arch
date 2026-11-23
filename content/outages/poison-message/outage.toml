@@ -1,0 +1,104 @@
+id = "poison-message"
+number = 11
+difficulty = "medium"
+title = "The poison message"
+title_es = "El mensaje envenenado"
+summary = "One producer started sending orders no worker could process, and twenty retries of each slowly ate the workers until every good order was late."
+summary_es = "Un productor empezó a enviar pedidos que ningún worker podía procesar, y veinte reintentos de cada uno fueron comiéndose a los workers hasta que todos los pedidos buenos llegaron tarde."
+story = "A shop's checkout put each order on a RabbitMQ queue, and two Celery workers, 10 orders at a time each, processed them in about 120 ms: some 165 orders a second, with 72 a second arriving at the evening peak. The queue retried a failed message up to 20 times, waiting 1 s, 2 s, 4 s and so on up to 32 s between tries, so that a short outage downstream would never lose an order. There was no dead-letter queue. Then a new version of one producer went out with a bug: one message in ten, 8 a second, was malformed, and the worker failed on it every time, after doing a full order's work. For five minutes nothing looked wrong. But every malformed message came back again and again, and the retries piled up: by the sixth minute the workers were busy all the time, mostly failing on the same bad messages, the queue grew, and good orders started taking 5, 10, then over 20 seconds. After its 20th retry a malformed message was dropped, and nothing was left to show what had been in it."
+story_es = "El checkout de una tienda ponía cada pedido en una cola de RabbitMQ, y dos workers de Celery, con 10 pedidos a la vez cada uno, los procesaban en unos 120 ms: unos 165 pedidos por segundo, con 72 por segundo llegando en la hora punta de la tarde. La cola reintentaba un mensaje fallido hasta 20 veces, esperando 1 s, 2 s, 4 s y así hasta 32 s entre intentos, para que una caída breve más adelante nunca hiciera perder un pedido. No había cola de mensajes fallidos. Entonces salió una versión nueva de un productor con un fallo: uno de cada diez mensajes, 8 por segundo, venía mal formado, y el worker fallaba con él cada vez, después de hacer el trabajo completo de un pedido. Durante cinco minutos nada parecía ir mal. Pero cada mensaje mal formado volvía una y otra vez, y los reintentos se acumularon: hacia el sexto minuto los workers estaban ocupados todo el tiempo, sobre todo fallando con los mismos mensajes malos, la cola creció, y los pedidos buenos empezaron a tardar 5, 10 y luego más de 20 segundos. Tras su vigésimo reintento, un mensaje mal formado se descartaba, y no quedaba nada que mostrara qué contenía."
+lesson = "Retrying a message helps when the failure is temporary; a message that can never be processed (a poison message) only comes back to cost the same work again. With many retries, each poison message costs many times a good one, and a small share of them can take more worker time than all the real traffic, slowly, as the backoff spreads the attempts out. Keep retries few (here 3) so a temporary failure still gets another chance, and wire a dead-letter queue so the messages that still fail are set aside, kept and visible, instead of retried for minutes or silently dropped. Then the workers keep up, and someone can look at the bad messages and fix the producer."
+lesson_es = "Reintentar un mensaje ayuda cuando el fallo es temporal; un mensaje que nunca se podrá procesar (un mensaje envenenado) solo vuelve para costar otra vez el mismo trabajo. Con muchos reintentos, cada mensaje envenenado cuesta muchas veces lo que uno bueno, y una pequeña parte de ellos puede llevarse más tiempo de los workers que todo el tráfico real, poco a poco, a medida que la espera entre intentos los reparte. Deja pocos reintentos (aquí 3) para que un fallo temporal tenga aún otra oportunidad, y conecta una cola de mensajes fallidos para que los que sigan fallando se aparten, guardados y a la vista, en vez de reintentarse durante minutos o descartarse en silencio. Así los workers dan abasto, y alguien puede revisar los mensajes malos y arreglar el productor."
+target_test = "incident"
+kinds = ["queue", "worker", "dlq"]
+real_world = []
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "As it was"
+title_es = "Como era"
+caption = "The checkout puts each order on a RabbitMQ queue that retries a failed message up to 20 times, and two Celery workers process about 165 orders a second. On a normal evening they are under half busy, and an order is fully processed well under the 5 s target."
+caption_es = "El checkout pone cada pedido en una cola de RabbitMQ que reintenta un mensaje fallido hasta 20 veces, y dos workers de Celery procesan unos 165 pedidos por segundo. En una tarde normal están ocupados menos de la mitad del tiempo, y un pedido se procesa del todo muy por debajo del objetivo de 5 s."
+focus = ["queue", "workers"]
+run = { test = "normal", start_s = 5 }
+callout = { metric = "p95_ms", after = 275, target = 5000 }
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "The retries pile up"
+title_es = "Los reintentos se acumulan"
+caption = "From the start, 8 malformed messages a second arrive, and each one fails, waits and comes back, every 32 s once the backoff tops out. The tries add up until, after about five and a half minutes, the workers are busy all the time, mostly with messages that will never succeed. The queue grows, and good orders take over 20 s by the end. Counting the orders still waiting when the run ends, the p95 is over a minute."
+caption_es = "Desde el principio llegan 8 mensajes mal formados por segundo, y cada uno falla, espera y vuelve, cada 32 s cuando la espera llega a su máximo. Los intentos se suman hasta que, a los cinco minutos y medio más o menos, los workers están ocupados todo el tiempo, sobre todo con mensajes que nunca saldrán bien. La cola crece, y al final los pedidos buenos tardan más de 20 s. Contando los pedidos que aún esperan cuando termina la ejecución, el p95 pasa del minuto."
+focus = ["queue", "workers"]
+run = { test = "incident", start_s = 330 }
+callout = { metric = "p95_ms", after = 66400, target = 5000 }
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "And then they are lost"
+title_es = "Y después se pierden"
+caption = "After its 20th retry, more than eight minutes after it arrived, a malformed message is dropped: there is nowhere to put it. The first ones go in the last minute and a half of the run, and nothing is left to show what they were."
+caption_es = "Tras su vigésimo reintento, más de ocho minutos después de llegar, un mensaje mal formado se descarta: no hay dónde ponerlo. Los primeros se pierden en el último minuto y medio de la ejecución, y no queda nada que muestre qué eran."
+focus = ["queue"]
+run = { test = "incident", start_s = 510 }
+callout = { metric = "lost", after = 113 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "Three retries, then the dead-letter queue"
+title_es = "Tres reintentos y luego la cola de mensajes fallidos"
+caption = "The queue now retries a message 3 times, and a Dead-letter Queue is wired to it. A malformed message costs four tries instead of twenty-one and is then set aside in the dead-letter queue, kept for someone to inspect. The workers stay about two-thirds busy, and good orders are as fast as on a normal evening."
+caption_es = "Ahora la cola reintenta un mensaje 3 veces, y tiene conectada una cola de mensajes fallidos. Un mensaje mal formado cuesta cuatro intentos en vez de veintiuno y luego se aparta en la cola de mensajes fallidos, guardado para que alguien lo revise. Los workers siguen ocupados unos dos tercios del tiempo, y los pedidos buenos van tan rápido como en una tarde normal."
+focus = ["queue", "dlq", "workers"]
+run = { test = "incident", start_s = 330 }
+callout = { metric = "p95_ms", before = 66400, after = 275, target = 5000 }
+
+[scenario.nfr]
+peak_rps = 80
+p95_ms = 5000
+availability = 0.999
+budget_usd = 5000
+
+[[scenario.request_types]]
+id = "order"
+name = "Process an order"
+name_es = "Procesar un pedido"
+share = 0.9
+route = ["edge?", "compute", "broker", "worker"]
+key_space = 1000000
+measure = "completion"
+
+[[scenario.request_types]]
+id = "malformed"
+name = "A malformed order from the buggy producer"
+name_es = "Un pedido mal formado del productor defectuoso"
+share = 0.1
+route = ["edge?", "compute", "broker", "worker"]
+key_space = 1000000
+measure = "completion"
+poison_share = 1.0
+
+[[scenario.tests]]
+id = "incident"
+name = "A buggy producer: one message in ten can't be processed"
+name_es = "Un productor defectuoso: uno de cada diez mensajes no se puede procesar"
+duration_s = 600
+pass = { p95_ms = 10000, error_rate = 0.1, availability = 0.9, lost = 0 }
+
+[[scenario.tests]]
+id = "normal"
+name = "A normal evening"
+name_es = "Una tarde normal"
+type_multipliers = { malformed = 0 }
+
+[[scenario.tests]]
+id = "aftershock"
+name = "Twice the malformed messages"
+name_es = "El doble de mensajes mal formados"
+duration_s = 600
+type_multipliers = { malformed = 2 }
+pass = { p95_ms = 10000, error_rate = 0.1, availability = 0.9, lost = 0 }
+
+[scenario.pass]
+error_rate = 0.01
+lost = 0

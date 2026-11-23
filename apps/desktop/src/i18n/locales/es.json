@@ -626,11 +626,18 @@
       "reconnect_backoff_s": "Espera al reconectar",
       "dedup": "Escrituras idempotentes (dedup)",
       "conditional_writes": "Escrituras condicionales (comprobar y escribir en un paso)",
+      "on_failure": "Si el limitador falla",
+      "priority": "Primero lo urgente (prioridad)",
+      "sync": "El commit espera a",
       "binding": "Proveedor",
       "serve_stale_s": "Servir caducado ante error durante",
       "stampede_guard": "Agrupar fallos (protección de estampida)"
     },
     "choice": {
+      "quorum": "Una mayoría (quórum)",
+      "sync": "Una réplica (síncrono)",
+      "open": "Dejar pasar el tráfico (falla abierto)",
+      "closed": "Rechazar el tráfico (falla cerrado)",
       "round_robin": "Round robin",
       "least_conn": "Menos conexiones",
       "key_hash": "Hash de clave (sticky)",

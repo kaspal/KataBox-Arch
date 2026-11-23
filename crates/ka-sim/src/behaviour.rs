@@ -150,6 +150,12 @@ pub struct NodeSpec {
     pub dedup: bool,
     /// M9 `conditional_writes`: writes to this card commit atomically on contended keys.
     pub conditional_writes: bool,
+    /// M10 rate limiter `on_failure = open`: a dead limiter lets requests through.
+    pub fail_open: bool,
+    /// M10 queue/stream `priority`: bulk messages wait behind every other message.
+    pub priority: bool,
+    /// M10 SQL `sync`: 0 async, 1 one replica acknowledges each commit, 2 a majority does.
+    pub sync: u8,
     /// S6 warehouses: scan rate per query, overhead per query, the result cache and the
     /// auto-suspend tail; lake tables: file size, partitioning (0 none, 1 day, 2 hour) and
     /// compaction.
@@ -406,6 +412,16 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
             prop(registry, node, "conditional_writes"),
             Some(PropValue::Bool(true))
         ),
+        fail_open: matches!(prop(registry, node, "on_failure"), Some(PropValue::Text(t)) if t == "open"),
+        priority: matches!(
+            prop(registry, node, "priority"),
+            Some(PropValue::Bool(true))
+        ),
+        sync: match prop(registry, node, "sync") {
+            Some(PropValue::Text(t)) if t == "sync" => 1,
+            Some(PropValue::Text(t)) if t == "quorum" => 2,
+            _ => 0,
+        },
         scan_gbps: n("scan_gbps").unwrap_or(0.5).max(1e-6),
         overhead_ms: n("overhead_ms").unwrap_or(0.0).max(0.0),
         result_cache: matches!(

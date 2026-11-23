@@ -172,3 +172,34 @@ items = [
   "problem:live-scores",
   "problem:live-streaming",
 ]
+
+[[path]]
+id = "incident-response"
+number = 6
+title = "Incident response"
+title_es = "Respuesta a incidentes"
+blurb = "Well-known kinds of outage, replayed in the simulator: watch each one happen, then fix the design so it survives the incident, a normal day and the aftershock."
+blurb_es = "Tipos de caída conocidos, repetidos en el simulador: mira cómo ocurre cada uno y arregla el diseño para que aguante el incidente, un día normal y la réplica."
+items = [
+  "replay:cache-stampede",
+  "replay:retry-storm",
+  "replay:unbounded-queue",
+  "replay:dns-ttl-failover",
+  "replay:bad-deploy",
+  "replay:hot-key-melt",
+  "pattern:circuit-breaker",
+  "replay:pool-exhaustion",
+  "replay:reconnect-storm",
+  "replay:metastable-retries",
+  "replay:split-brain",
+  "replay:poison-message",
+  "replay:cold-autoscale",
+  "replay:cascading-dependency",
+  "replay:limiter-fails-closed",
+  "replay:control-plane-down",
+  "replay:sync-replication-stall",
+  "replay:health-check-spiral",
+  "replay:failover-data-loss",
+  "replay:global-config-push",
+  "replay:backlog-recovery",
+]

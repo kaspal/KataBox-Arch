@@ -1,0 +1,84 @@
+id = "cache-stampede"
+number = 1
+difficulty = "easy"
+title = "The cache stampede"
+title_es = "La estampida de caché"
+summary = "A cache was emptied at peak, and every miss for a popular product went to the database at once."
+summary_es = "Una caché se vació en la hora punta, y cada fallo de un producto popular fue a la base de datos a la vez."
+story = "A shop's product pages ran on twenty Go App Servers, with a Redis cache in front of one PostgreSQL database. A product page needs a heavy query (about 200 ms), so the database could answer about 500 a second; it coped with 10,000 page loads a second because the cache answered almost all of them, keeping each product for 30 seconds. At the evening peak the cache was flushed. Every page load missed at once, and each miss sent its own query: a popular product had hundreds of identical queries in flight together. The database's queue filled and it refused the rest, so pages failed and the cache refilled slowly. The products that were finally cached together then expired together 30 seconds later, and the stampede came back."
+story_es = "Las páginas de producto de una tienda funcionaban con veinte App Servers de Go, con una caché Redis delante de una base de datos PostgreSQL. Una página de producto necesita una consulta pesada (unos 200 ms), así que la base de datos podía responder unas 500 por segundo; aguantaba 10.000 cargas de página por segundo porque la caché respondía casi todas y guardaba cada producto 30 segundos. En la hora punta de la tarde se vació la caché. Todas las cargas de página fallaron en la caché a la vez, y cada fallo lanzó su propia consulta: un producto popular tenía cientos de consultas idénticas en curso a la vez. La cola de la base de datos se llenó y rechazó el resto, así que las páginas fallaban y la caché se rellenaba despacio. Los productos que por fin se guardaron juntos caducaron juntos 30 segundos después, y la estampida volvió."
+lesson = "A cache doesn't only make reads fast: it hides how small the database behind it is. When the cache is emptied, the database meets the whole read load, and without coalescing every miss for a hot key becomes its own query, hundreds of copies of the same work. Request coalescing (a stampede guard, single-flight) lets one miss per key go to the database while the others wait for its answer, so a flush costs one query per key instead of one per request. Keys refilled together also expire together, so the same guard keeps the next expiry wave quiet."
+lesson_es = "Una caché no solo hace rápidas las lecturas: oculta lo pequeña que es la base de datos que tiene detrás. Cuando la caché se vacía, la base de datos recibe toda la carga de lectura, y sin agrupar fallos cada fallo de una clave popular se convierte en su propia consulta, cientos de copias del mismo trabajo. Agrupar las peticiones (una protección de estampida, single-flight) deja que vaya a la base de datos un solo fallo por clave mientras los demás esperan su respuesta, así que un vaciado cuesta una consulta por clave en lugar de una por petición. Las claves que se rellenan juntas también caducan juntas, así que la misma protección mantiene tranquila la siguiente oleada de caducidades."
+target_test = "incident"
+kinds = ["cache", "sql"]
+real_world = []
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "As it was"
+title_es = "Como era"
+caption = "Twenty App Servers, a Redis cache that keeps each product for 30 s, and one PostgreSQL database that can run about 500 product queries a second. On a normal evening the cache answers almost every one of the 10,000 page loads a second, and pages load well under the 100 ms target."
+caption_es = "Veinte App Servers, una caché Redis que guarda cada producto 30 s y una base de datos PostgreSQL que puede hacer unas 500 consultas de producto por segundo. En una tarde normal la caché responde casi todas las 10.000 cargas de página por segundo, y las páginas cargan muy por debajo del objetivo de 100 ms."
+focus = ["cache", "db"]
+run = { test = "normal", start_s = 5 }
+callout = { metric = "p95_ms", after = 19.4, target = 100 }
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "The cache is flushed"
+title_es = "Se vacía la caché"
+caption = "At 15 s the cache is emptied. Every page load misses, and each miss sends its own 200 ms query: a popular product has hundreds in flight at once. The database's queue fills and it refuses the rest for about ten seconds. Then, at about 46 s, the products that were refilled together expire together, and the errors come back."
+caption_es = "A los 15 s se vacía la caché. Todas las cargas de página fallan en la caché, y cada fallo lanza su propia consulta de 200 ms: un producto popular tiene cientos en curso a la vez. La cola de la base de datos se llena y rechaza el resto durante unos diez segundos. Después, hacia los 46 s, los productos que se rellenaron juntos caducan juntos, y los errores vuelven."
+focus = ["cache", "db"]
+run = { test = "incident", start_s = 12 }
+callout = { metric = "error_rate", after = 0.0414 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "One query per product"
+title_es = "Una consulta por producto"
+caption = "The same flush with the cache's stampede guard on: the first miss for a product goes to the database, and the other requests for it wait for that answer. The flush still costs a few seconds of errors while 2,000 products are fetched once each, but it ends by 22 s, and at 46 s the expiry wave passes quietly."
+caption_es = "El mismo vaciado con la protección de estampida de la caché activada: el primer fallo de un producto va a la base de datos, y las demás peticiones de ese producto esperan su respuesta. El vaciado sigue costando unos segundos de errores mientras se consultan 2.000 productos una vez cada uno, pero termina hacia los 22 s, y a los 46 s la oleada de caducidades pasa sin errores."
+focus = ["cache", "db"]
+run = { test = "incident", start_s = 12 }
+callout = { metric = "error_rate", before = 0.0414, after = 0.00967 }
+
+[scenario.nfr]
+peak_rps = 10000
+p95_ms = 100
+availability = 0.999
+budget_usd = 3000
+
+[[scenario.request_types]]
+id = "read"
+name = "Load a product page"
+name_es = "Cargar la página de un producto"
+share = 1.0
+route = ["edge?", "compute", "cache?", "datastore"]
+key_space = 2000
+key_skew = { zipf = 1.0 }
+
+[[scenario.tests]]
+id = "incident"
+name = "The cache is flushed at peak"
+name_es = "Se vacía la caché en la hora punta"
+duration_s = 75
+chaos = [{ flush = { kind = "cache", at = 15 } }]
+pass = { recovered_by_s = 30, p95_ms = 2000, error_rate = 0.1, availability = 0.9 }
+
+[[scenario.tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[scenario.tests]]
+id = "aftershock"
+name = "It is flushed again at a busier hour"
+name_es = "Se vuelve a vaciar en una hora con más tráfico"
+duration_s = 75
+traffic = { flat = 1.5 }
+chaos = [{ flush = { kind = "cache", at = 15 } }]
+pass = { recovered_by_s = 30, p95_ms = 2000, error_rate = 0.1, availability = 0.9 }
+
+[scenario.pass]
+error_rate = 0.01
