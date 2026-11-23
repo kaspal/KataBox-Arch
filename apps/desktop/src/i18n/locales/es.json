@@ -567,7 +567,9 @@
       "health_timeout_ms": "Expulsar si la espera en cola supera",
       "min_healthy_pct": "Mantener al menos en rotación",
       "split_failover": "Conmutación en una partición",
-      "fencing": "Tokens de exclusión (fencing)"
+      "fencing": "Tokens de exclusión (fencing)",
+      "reconnect_jitter_s": "Variación al reconectar",
+      "reconnect_backoff_s": "Espera al reconectar"
     },
     "choice": {
       "round_robin": "Round robin",

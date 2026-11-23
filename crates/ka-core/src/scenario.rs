@@ -56,6 +56,40 @@ pub struct RequestType {
     /// room, a promo code's counter): overlapping check-then-write windows are races.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub contended: Option<Contended>,
+    /// What the type is (M8): requests (the default), or long-lived connections (S1).
+    #[serde(default, skip_serializing_if = "TypeKind::is_request")]
+    pub kind: TypeKind,
+    /// S1 connection types: connections the clients keep open (at a traffic multiplier of
+    /// 1), reached over `ramp_s` seconds from the start (0: connected from the start), and the
+    /// messages the server pushes to each per second (scaled by the traffic curve).
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub connected: f64,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub ramp_s: f64,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub push_rps: f64,
+}
+
+fn is_zero(v: &f64) -> bool {
+    *v == 0.0
+}
+
+/// What a request type stands for (M8).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(rename_all = "snake_case")]
+pub enum TypeKind {
+    /// Requests arriving at `share` of the problem's rate (everything before M8).
+    #[default]
+    Request,
+    /// S1: long-lived connections to a WebSocket gateway or IoT broker.
+    Connection,
+}
+
+impl TypeKind {
+    pub fn is_request(&self) -> bool {
+        *self == TypeKind::Request
+    }
 }
 
 /// S7: `share` of a type's requests hit one of `keys` hot keys.
@@ -392,6 +426,10 @@ pub struct PassCriteria {
     /// must run unsampled.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub conflicts: Option<f64>,
+    /// S1: the least share of the target connections that must be connected in every
+    /// second after `ramp_s` + 10 s.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub connected_min: Option<f64>,
 }
 
 /// Completed requests a test needs before its p99 is judged (review A4).
@@ -409,6 +447,7 @@ impl PassCriteria {
             lost: over.lost.or(self.lost),
             recovered_by_s: over.recovered_by_s.or(self.recovered_by_s),
             conflicts: over.conflicts.or(self.conflicts),
+            connected_min: over.connected_min.or(self.connected_min),
         }
     }
 }

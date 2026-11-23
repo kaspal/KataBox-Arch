@@ -1403,7 +1403,12 @@ recovered_by_s?: number | null;
  * S7: writes that raced or landed on a stale primary (usually 0). Tests that set it
  * must run unsampled.
  */
-conflicts?: number | null }
+conflicts?: number | null; 
+/**
+ * S1: the least share of the target connections that must be connected in every
+ * second after `ramp_s` + 10 s.
+ */
+connected_min?: number | null }
 /**
  * One step of a path as the UI shows it.
  */
@@ -1638,7 +1643,12 @@ retried?: number; stale_reads: number; stale_rate: number;
 /**
  * S7: writes that raced on a contended key or landed on a stale primary in a split.
  */
-conflicts: number; cost_month: number; per_type: TypeResult[]; nodes: NodeResult[]; 
+conflicts: number; 
+/**
+ * S1: the least share of the target connections connected in any judged second (from
+ * `ramp_s` + 10 s to the end), and connection attempts refused (capacity, accept rate).
+ */
+connected_min: number; conn_drops: number; cost_month: number; per_type: TypeResult[]; nodes: NodeResult[]; 
 /**
  * One entry per simulated second.
  */

@@ -1240,6 +1240,10 @@ pub fn registry() -> Registry {
                 int("backoff_ms", 0.0, 60_000.0, 100.0, Unit::Ms),
                 choice("jitter", &["none", "full"], "none"),
                 int("retry_budget_pct", 0.0, 100.0, 0.0, Unit::Percent),
+                // S1: long-lived connections reconnect spread over this window after a drop
+                // (0: all at once, a storm), and retry a refused connection after the backoff.
+                int("reconnect_jitter_s", 0.0, 600.0, 0.0, Unit::S),
+                int("reconnect_backoff_s", 0.0, 600.0, 1.0, Unit::S),
             ],
         ),
         kind(

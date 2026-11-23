@@ -840,3 +840,135 @@ fn golden_k_quorum_and_fencing() {
     let (d, s) = split_brain(Some(K::Coord), true);
     golden("k2", &run(&d, &s, 42));
 }
+
+// --- S1: connections --------------------------------------------------------------------------
+
+/// Fans connect through an LB to two WebSocket gateways; the first dies at 20 s for good.
+fn fans(client: &[(&str, f64)], ws: &[(&str, f64)], connected: f64) -> (Design, Scenario) {
+    let d = design(
+        vec![
+            node("client", K::Client, Flavour::Web, client),
+            node("lb", K::Lb, Flavour::AwsAlb, &[]),
+            node("ws-1", K::Ws, Flavour::SocketIo, ws),
+            node("ws-2", K::Ws, Flavour::SocketIo, ws),
+            node("app", K::App, Flavour::Go, &[]),
+        ],
+        vec![
+            edge("client", "lb", Protocol::Ws),
+            edge("lb", "ws-1", Protocol::Ws),
+            edge("lb", "ws-2", Protocol::Ws),
+            edge("client", "app", Protocol::Http),
+        ],
+    );
+    let mut fans = rtype("fans", 0.0, &["edge"]);
+    fans.kind = ka_core::scenario::TypeKind::Connection;
+    fans.connected = connected;
+    fans.push_rps = 0.05;
+    let mut s = scenario(100.0, 60.0, vec![fans, rtype("api", 1.0, &["compute"])]);
+    s.chaos = vec![chaos(
+        serde_json::json!({ "kill": { "id": "ws-1", "at": 20 } }),
+    )];
+    (d, s)
+}
+
+fn conn_type(r: &RunResult) -> &ka_sim::TypeResult {
+    r.per_type.iter().find(|t| t.id == "fans").expect("fans")
+}
+
+#[test]
+fn s1_connections_hold_steady_and_count_exactly() {
+    let (d, mut s) = fans(&[], &[("instances", 1.0)], 50_000.0);
+    s.chaos.clear();
+    let r = run(&d, &s, 51);
+    assert!((r.connected_min - 1.0).abs() < 1e-9, "{}", r.connected_min);
+    assert_eq!(r.conn_drops, 0.0);
+    assert_eq!(conn_type(&r).errors, 0.0);
+}
+
+/// A gateway dies; its connections all reconnect in the same instant (no jitter) onto a
+/// survivor without headroom: most are refused, retry together, and the share connected
+/// collapses. Jitter plus headroom ride it out.
+#[test]
+fn s1_a_reconnect_storm_needs_jitter_and_headroom() {
+    let tight = [
+        ("instances", 1.0),
+        ("max_connections", 100_000.0),
+        ("accept_per_s", 2_000.0),
+    ];
+    let (d, s) = fans(&[], &tight, 150_000.0);
+    let storm = run(&d, &s, 52);
+    let roomy = [
+        ("instances", 2.0),
+        ("max_connections", 100_000.0),
+        ("accept_per_s", 2_000.0),
+    ];
+    let (d, s) = fans(&[("reconnect_jitter_s", 15.0)], &roomy, 150_000.0);
+    let calm = run(&d, &s, 52);
+    assert!(
+        storm.conn_drops > calm.conn_drops * 5.0,
+        "{} vs {}",
+        storm.conn_drops,
+        calm.conn_drops
+    );
+    assert!(storm.connected_min < 0.7, "{}", storm.connected_min);
+    assert!(
+        calm.connected_min > storm.connected_min,
+        "{} vs {}",
+        calm.connected_min,
+        storm.connected_min
+    );
+}
+
+/// Memory per connection caps a gateway below its connection limit.
+#[test]
+fn s1_memory_per_connection_caps_capacity() {
+    let small = [
+        ("instances", 1.0),
+        ("memory_gb", 1.0),
+        ("conn_memory_kb", 100.0),
+    ];
+    let (d, mut s) = fans(&[], &small, 30_000.0);
+    s.chaos.clear();
+    let r = run(&d, &s, 53);
+    // 2 gateways × 1 GB / 100 KB ≈ 21,000 connections of the 30,000 wanted.
+    assert!(
+        r.connected_min < 0.75 && r.connected_min > 0.65,
+        "{}",
+        r.connected_min
+    );
+    assert!(r.conn_drops > 0.0);
+}
+
+/// Pushes beyond a gateway's message rate build a backlog that delays delivery.
+#[test]
+fn s1_push_backlog_delays_delivery() {
+    let (d, mut s) = fans(
+        &[],
+        &[("instances", 1.0), ("msgs_per_s", 2_000.0)],
+        40_000.0,
+    );
+    s.chaos.clear();
+    s.traffic = ka_core::scenario::Curve::Spike {
+        at: 20.0,
+        x: 3.0,
+        for_s: 10.0,
+    };
+    let r = run(&d, &s, 54);
+    assert!(
+        conn_type(&r).latency.p95_ms > 500.0,
+        "{}",
+        conn_type(&r).latency.p95_ms
+    );
+}
+
+/// Golden e: the reconnect storm.
+#[test]
+fn golden_e_reconnect_storm() {
+    let tight = [
+        ("instances", 1.0),
+        ("max_connections", 100_000.0),
+        ("accept_per_s", 2_000.0),
+    ];
+    let (d, s) = fans(&[], &tight, 150_000.0);
+    golden("e", &run(&d, &s, 42));
+}

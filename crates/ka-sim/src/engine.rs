@@ -84,6 +84,8 @@ enum Ev {
     Rollback {
         chaos: u16,
     },
+    /// S1: the connection model's 100 ms step (only when a type is a connection type).
+    ConnTick,
     Second(u32),
     /// Chaos event `i` starts / ends (only scheduled when the scenario has chaos).
     Chaos(u16),
@@ -382,7 +384,26 @@ pub struct Engine {
     /// S7: conflicting writes, and the last commit time of each contended key.
     conflicts: f64,
     hot_commits: BTreeMap<u64, u64>,
+    /// S1: per connection type, its fluid state.
+    conns: Vec<Option<ConnRt>>,
+    conn_drops: f64,
 }
+
+/// S1: one connection type's state: connections per holder, push backlog per holder,
+/// reconnect attempts waiting per 100 ms slot (a ring), the least connected share per
+/// second.
+#[derive(Debug, Clone)]
+struct ConnRt {
+    conns: Vec<f64>,
+    backlog: Vec<f64>,
+    slots: Vec<f64>,
+    pending: f64,
+    min_share: Vec<f64>,
+}
+
+/// S1: the connection model's step and its reconnect horizon (2 minutes of slots).
+const CONN_TICK_US: u64 = 100_000;
+const CONN_SLOTS: usize = 1200;
 
 /// One forward hop of a simulated request, for the live packet layer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -506,6 +527,20 @@ impl Engine {
             dns_switch: BTreeMap::new(),
             conflicts: 0.0,
             hot_commits: BTreeMap::new(),
+            conns: c
+                .types
+                .iter()
+                .map(|t| {
+                    t.conn.as_ref().map(|p| ConnRt {
+                        conns: vec![0.0; p.holders.len()],
+                        backlog: vec![0.0; p.holders.len()],
+                        slots: vec![0.0; CONN_SLOTS],
+                        pending: 0.0,
+                        min_share: vec![f64::INFINITY; nsec],
+                    })
+                })
+                .collect(),
+            conn_drops: 0.0,
             caches: c
                 .nodes
                 .iter()
@@ -570,6 +605,13 @@ impl Engine {
                 .collect();
         for (t, i) in chaos {
             e.push(t, Ev::Chaos(i));
+        }
+        if e.conns.iter().any(Option::is_some) {
+            let mut t = 0;
+            while t <= e.c.duration_us {
+                e.push(t, Ev::ConnTick);
+                t += CONN_TICK_US;
+            }
         }
         let ejects = e.c.nodes.iter().any(|n| n.spec.health_timeout_us > 0);
         if !e.c.scenario.chaos.is_empty() || !e.c.scaling.is_empty() || ejects {
@@ -804,6 +846,7 @@ impl Engine {
             }
             Ev::Stage { chaos, node, stage } => self.rollout_stage(chaos, node, stage),
             Ev::Noticed { chaos, node } => self.rollout_noticed(chaos, node),
+            Ev::ConnTick => self.conn_tick(),
             Ev::Rollback { chaos } => {
                 for n in self.chaos_targets[chaos as usize].clone() {
                     self.nodes[n as usize].faulty = 0.0;
@@ -2751,6 +2794,8 @@ impl Engine {
                 0.0
             },
             conflicts: self.conflicts,
+            connected_min: self.connected_min(),
+            conn_drops: self.conn_drops,
             cost_month: round2(cost_total),
             per_type,
             nodes,
@@ -3044,6 +3089,186 @@ impl Engine {
             }
             C::Flush { .. } | C::Traffic { .. } => {}
         }
+    }
+
+    /// S1: the traffic multiplier for request type `ty` at time `t` (curve, type multiplier,
+    /// traffic chaos), as arrivals use.
+    fn traffic_mult(&self, ty: usize, t: u64) -> f64 {
+        let secs = t as f64 / 1e6;
+        let def = &self.c.types[ty].def;
+        let mut x = self.c.scenario.traffic.at(secs, self.c.scenario.duration_s)
+            * self
+                .c
+                .scenario
+                .type_multipliers
+                .get(&def.id)
+                .copied()
+                .unwrap_or(1.0);
+        for e in &self.c.scenario.chaos {
+            if let ka_core::scenario::ChaosEvent::Traffic { x: m, at, for_s } = e
+                && secs >= *at
+                && for_s.is_none_or(|f| secs < at + f)
+            {
+                x *= m;
+            }
+        }
+        x
+    }
+
+    /// S1, every 100 ms: connections follow their target; a dead holder's connections
+    /// reconnect, spread over the client's jitter; holders admit what their capacity and
+    /// accept rate allow, the rest retry after the client's backoff (counted as drops); each
+    /// holder pushes `push_rps` per connection against its message rate, and a backlog
+    /// delays delivery (the type's measured latency).
+    fn conn_tick(&mut self) {
+        let now = self.now;
+        let tick = (now / CONN_TICK_US) as usize;
+        let dt = CONN_TICK_US as f64 / 1e6;
+        let sec = (now / 1_000_000) as usize;
+        for ti in 0..self.conns.len() {
+            let Some(mut rt) = self.conns[ti].take() else {
+                continue;
+            };
+            let c = Arc::clone(&self.c);
+            let ty = &c.types[ti];
+            let plan = ty.conn.as_ref().expect("a connection type");
+            let def = &ty.def;
+            let client = &c.nodes[plan.client as usize].spec;
+            let slot_of = |k: usize| k % CONN_SLOTS;
+            let spread = |rt: &mut ConnRt, count: f64, from: usize, width_s: f64| {
+                let width = ((width_s / dt).round() as usize).clamp(1, CONN_SLOTS - 1);
+                let first = from.min(tick + CONN_SLOTS - 1 - width);
+                for k in 0..width {
+                    rt.slots[slot_of(first + k)] += count / width as f64;
+                }
+                rt.pending += count;
+            };
+            // Holders that died drop their connections; the clients reconnect.
+            for (h, &node) in plan.holders.iter().enumerate() {
+                if self.nodes[node as usize].down && rt.conns[h] > 0.0 {
+                    let n = std::mem::take(&mut rt.conns[h]);
+                    rt.backlog[h] = 0.0;
+                    spread(&mut rt, n, tick, client.reconnect_jitter_s);
+                }
+            }
+            let mult = self.traffic_mult(ti, now);
+            let ramp = if def.ramp_s > 0.0 {
+                (now as f64 / 1e6 / def.ramp_s).min(1.0)
+            } else {
+                1.0
+            };
+            let target = def.connected * mult * ramp;
+            if tick == 0 && def.ramp_s <= 0.0 {
+                // `ramp_s = 0`: the clients are connected from the start, as far as the
+                // holders can hold them (spread evenly; the rest connect as usual).
+                let n = plan.holders.len().max(1) as f64;
+                for (h, &node) in plan.holders.iter().enumerate() {
+                    let spec = &c.nodes[node as usize].spec;
+                    if !self.nodes[node as usize].down {
+                        rt.conns[h] = (target / n).min(spec.conn_capacity * spec.instances);
+                    }
+                }
+            }
+            let have: f64 = rt.conns.iter().sum();
+            if target > have + rt.pending {
+                // New clients connect.
+                let new = target - have - rt.pending;
+                spread(&mut rt, new, tick, dt);
+            } else if have > target && have > 0.0 {
+                // Clients leave.
+                let keep = target / have;
+                for c in &mut rt.conns {
+                    *c *= keep;
+                }
+            }
+            // Admission.
+            let due = std::mem::take(&mut rt.slots[slot_of(tick)]);
+            rt.pending = (rt.pending - due).max(0.0);
+            let room: Vec<f64> = plan
+                .holders
+                .iter()
+                .enumerate()
+                .map(|(h, &node)| {
+                    let n = &c.nodes[node as usize].spec;
+                    if self.nodes[node as usize].down {
+                        return 0.0;
+                    }
+                    let inst = n.instances;
+                    let cap = (n.conn_capacity * inst - rt.conns[h]).max(0.0);
+                    cap.min(n.accept_per_s * inst * dt)
+                })
+                .collect();
+            let allow: f64 = room.iter().sum();
+            let admitted = due.min(allow);
+            if allow > 0.0 {
+                for (h, r) in room.iter().enumerate() {
+                    rt.conns[h] += admitted * r / allow;
+                }
+            }
+            let refused = due - admitted;
+            if refused > 0.0 {
+                self.conn_drops += refused;
+                let back = tick + (client.reconnect_backoff_s / dt).round().max(1.0) as usize;
+                spread(&mut rt, refused, back, client.reconnect_jitter_s.max(dt));
+            }
+            if due > 0.0 {
+                let m = &mut self.types[ti];
+                m.requests += due;
+                m.ok += admitted;
+                m.errors += refused;
+                if now <= self.c.duration_us {
+                    let s = self.second_mut();
+                    s.requests += due;
+                    s.ok += admitted;
+                    s.errors += refused;
+                }
+            }
+            // Pushes.
+            for (h, &node) in plan.holders.iter().enumerate() {
+                let n = &c.nodes[node as usize].spec;
+                let rate = n.msgs_per_s * n.instances;
+                let inflow = rt.conns[h] * def.push_rps * mult * dt;
+                if inflow <= 0.0 || !rate.is_finite() && rt.backlog[h] == 0.0 {
+                    if inflow > 0.0 {
+                        self.types[ti].measured.add(1_000.0, inflow);
+                    }
+                    continue;
+                }
+                rt.backlog[h] = (rt.backlog[h] + inflow - rate * dt).max(0.0);
+                let wait_us = if rate > 0.0 {
+                    rt.backlog[h] / rate * 1e6
+                } else {
+                    1e9
+                };
+                let lat = wait_us + 1_000.0;
+                self.types[ti].measured.add(lat, inflow);
+                self.types[ti].response.add(lat, inflow);
+                if now <= self.c.duration_us {
+                    self.second_mut().measured.add(lat, inflow);
+                }
+            }
+            // The connected share, judged from ramp + 10 s.
+            let judged_from = def.ramp_s + 10.0;
+            if now as f64 / 1e6 >= judged_from && now < self.c.duration_us && target > 0.0 {
+                let share = rt.conns.iter().sum::<f64>() / target;
+                if let Some(m) = rt.min_share.get_mut(sec) {
+                    *m = m.min(share);
+                }
+            }
+            self.conns[ti] = Some(rt);
+        }
+    }
+
+    /// S1: the least connected share over the judged seconds of every connection type.
+    fn connected_min(&self) -> f64 {
+        self.conns
+            .iter()
+            .flatten()
+            .flat_map(|rt| rt.min_share.iter().copied())
+            .filter(|v| v.is_finite())
+            .fold(f64::INFINITY, f64::min)
+            .clamp(0.0, 1.0)
+            * f64::from(u8::from(self.conns.iter().any(Option::is_some)))
     }
 
     /// S8 rollouts. A deploy reaches `node` in stages of its `rollout_percent`, one every

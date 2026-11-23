@@ -567,7 +567,9 @@
       "health_timeout_ms": "Eject when queue wait passes",
       "min_healthy_pct": "Keep at least in rotation",
       "split_failover": "Failover in a split",
-      "fencing": "Fencing tokens"
+      "fencing": "Fencing tokens",
+      "reconnect_jitter_s": "Reconnect jitter",
+      "reconnect_backoff_s": "Reconnect backoff"
     },
     "choice": {
       "round_robin": "Round robin",

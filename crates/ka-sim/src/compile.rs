@@ -6,11 +6,11 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt;
 
 use ka_core::rng::Zipf;
-use ka_core::scenario::{RequestType, Scenario, Source};
+use ka_core::scenario::{RequestType, Scenario, Source, TypeKind};
 use ka_core::{ComponentKind, Design, Flavour, GroupKind, Protocol, Registry, detmath};
 
 use crate::behaviour::{NodeSpec, node_spec};
-use crate::route::{Role, Route, Step, parse_route};
+use crate::route::{Role, Route, Segment, Step, parse_route};
 
 /// Simulated arrivals per second above which requests are sampled (ADR 0006, ★1).
 pub const SAMPLE_CAP_RPS: f64 = 5_000.0;
@@ -104,6 +104,16 @@ pub struct CType {
     pub harmonic: f64,
     pub skew: f64,
     pub plan: TypePlan,
+    /// S1 connection types: where the connections land.
+    pub conn: Option<ConnPlan>,
+}
+
+/// S1: a connection type's holders (WebSocket gateways, IoT brokers its clients reach
+/// through edge hops) and the client whose reconnect policy it follows.
+#[derive(Debug, Clone)]
+pub struct ConnPlan {
+    pub holders: Vec<u32>,
+    pub client: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -399,6 +409,10 @@ pub fn compile(
     let externals = scenario.externals.clone();
     let mut types = Vec::new();
     for def in &scenario.request_types {
+        if def.kind == TypeKind::Connection {
+            types.push(connection_type(&nodes, def)?);
+            continue;
+        }
         let route = parse_route(&def.route, def.source == Source::Scheduler)
             .map_err(|e| SimError::BadScenario(format!("route of `{}`: {e}", def.id)))?;
         let plan = plan_type(&nodes, &clusters, &cluster_of, &externals, def, &route)?;
@@ -415,6 +429,7 @@ pub fn compile(
             harmonic: harmonic(def.key_space, skew),
             skew,
             plan,
+            conn: None,
         });
     }
 
@@ -437,6 +452,11 @@ pub fn compile(
         .map(|i| client_rps[i])
         .sum();
     for (ti, t) in types.iter_mut().enumerate() {
+        if t.conn.is_some() {
+            // S1: connections aren't arrivals; the connection model drives them.
+            t.rate = 0.0;
+            continue;
+        }
         let want = t.def.source;
         let candidates: Vec<u32> = (0..n_nodes as u32)
             .filter(|&i| match want {
@@ -556,6 +576,68 @@ pub fn compile(
             .collect(),
         scaling,
         deps,
+    })
+}
+
+/// S1: a connection type lands on the WebSocket gateways and IoT brokers its clients reach
+/// through edge hops (in node order).
+fn connection_type(nodes: &[CNode], def: &RequestType) -> Result<CType, SimError> {
+    let n = nodes.len();
+    let holder = |k: ComponentKind| matches!(k, ComponentKind::Ws | ComponentKind::Mqtt);
+    let (mut holders, mut client) = (BTreeSet::new(), None);
+    for c in (0..n as u32).filter(|&i| nodes[i as usize].kind == ComponentKind::Client) {
+        let mut seen = vec![false; n];
+        let mut todo = VecDeque::from([c]);
+        while let Some(i) = todo.pop_front() {
+            for &(b, p) in &nodes[i as usize].out {
+                if seen[b as usize] || matches!(p, Protocol::Query | Protocol::Replicate) {
+                    continue;
+                }
+                seen[b as usize] = true;
+                let k = nodes[b as usize].kind;
+                if holder(k) {
+                    holders.insert(b);
+                    client.get_or_insert(c);
+                } else if nodes[b as usize].spec.role == Role::Edge {
+                    todo.push_back(b);
+                }
+            }
+        }
+    }
+    let Some(client) = client else {
+        return Err(SimError::NoPath {
+            request_type: def.id.clone(),
+            reason: "no client reaches a WebSocket gateway or IoT broker".into(),
+        });
+    };
+    Ok(CType {
+        def: def.clone(),
+        route: Route {
+            hops_allowed: true,
+            hops_required: false,
+            ws: false,
+            entry: None,
+            segments: vec![Segment {
+                broker: None,
+                consumer: None,
+                calls: Vec::new(),
+            }],
+        },
+        rate: 0.0,
+        zipf: None,
+        harmonic: 1.0,
+        skew: 0.0,
+        plan: TypePlan {
+            next_hops: vec![Vec::new(); n],
+            entry_ok: vec![false; n],
+            calls: vec![vec![None; n]],
+            brokers: vec![vec![Vec::new(); n]],
+            consumers: vec![vec![Vec::new(); n]],
+        },
+        conn: Some(ConnPlan {
+            holders: holders.into_iter().collect(),
+            client,
+        }),
     })
 }
 

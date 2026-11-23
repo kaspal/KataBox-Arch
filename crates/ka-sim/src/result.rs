@@ -43,6 +43,12 @@ pub struct RunResult {
     /// S7: writes that raced on a contended key or landed on a stale primary in a split.
     #[serde(default, skip_serializing_if = "is_zero")]
     pub conflicts: f64,
+    /// S1: the least share of the target connections connected in any judged second (from
+    /// `ramp_s` + 10 s to the end), and connection attempts refused (capacity, accept rate).
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub connected_min: f64,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub conn_drops: f64,
     pub cost_month: f64,
     pub per_type: Vec<TypeResult>,
     pub nodes: Vec<NodeResult>,

@@ -109,6 +109,15 @@ pub struct NodeSpec {
     /// (`split_failover = auto`); writes need a current fencing token (`fencing`).
     pub split_failover: bool,
     pub fencing: bool,
+    /// S1 holders (WebSocket gateways, IoT brokers): connections one instance can hold, new
+    /// connections it accepts per second, and server pushes it sends per second.
+    pub conn_capacity: f64,
+    pub accept_per_s: f64,
+    pub msgs_per_s: f64,
+    /// S1 clients: how reconnects spread after a drop, and the wait before retrying a
+    /// refused connection.
+    pub reconnect_jitter_s: f64,
+    pub reconnect_backoff_s: f64,
 }
 
 /// The value of `key` for `node`: the card's prop, else its flavour override, else the
@@ -246,5 +255,17 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         min_healthy: n("min_healthy_pct").unwrap_or(0.0).clamp(0.0, 100.0) / 100.0,
         split_failover: text(registry, node, "split_failover").as_deref() == Some("auto"),
         fencing: matches!(prop(registry, node, "fencing"), Some(PropValue::Bool(true))),
+        conn_capacity: {
+            let max = n("max_connections").unwrap_or(f64::INFINITY);
+            let by_memory = match (n("memory_gb"), n("conn_memory_kb")) {
+                (Some(gb), Some(kb)) if kb > 0.0 => gb * 1024.0 * 1024.0 / kb,
+                _ => f64::INFINITY,
+            };
+            max.min(by_memory)
+        },
+        accept_per_s: n("accept_per_s").unwrap_or(10_000.0).max(0.0),
+        msgs_per_s: n("msgs_per_s").unwrap_or(f64::INFINITY).max(0.0),
+        reconnect_jitter_s: n("reconnect_jitter_s").unwrap_or(0.0).max(0.0),
+        reconnect_backoff_s: n("reconnect_backoff_s").unwrap_or(1.0).max(0.0),
     }
 }

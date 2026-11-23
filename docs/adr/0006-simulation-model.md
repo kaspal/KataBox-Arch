@@ -316,6 +316,22 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
     refused cleanly, an answer) or the request holds a lock.
   - `pass.conflicts` (usually 0) fails a test as Dropped Requests. Conflicts are counted exactly, so `ka-pack`
     refuses a test that limits them on a sampled run. New result fields are left out of the JSON when zero.
+- **Connections (S1, golden e).**
+  - A request type with `kind = "connection"` (and `share = 0`) stands for clients holding `connected`
+    long-lived connections (times the traffic multiplier), reached over `ramp_s` (0: connected from the start, as
+    far as capacity allows). It lands on the WebSocket gateways and IoT brokers its clients reach through edge
+    hops; it isn't a Poisson source and isn't sampled.
+  - A fluid model steps every 100 ms (exact counts, no per-connection events): a holder holds up to
+    `instances × min(max_connections, memory_gb / conn_memory_kb)`, and accepts `accept_per_s × instances` new
+    connections per second (spread over the live holders by their room). Refused attempts are `conn_drops` (and
+    errors of the type) and retry after the client's `reconnect_backoff_s`, spread over its `reconnect_jitter_s`.
+    When a holder dies its connections reconnect spread over `reconnect_jitter_s` (0: all in the same 100 ms, a
+    reconnect storm).
+  - Each connection receives `push_rps` messages per second (times the traffic multiplier, so a spike is a burst of
+    updates); a holder sends `msgs_per_s × instances`, and the excess waits in a backlog. Delivery latency
+    (backlog wait + 1 ms) is the type's measured latency.
+  - `connected_min` is the least connected share of the target in any second from `ramp_s` + 10 s to the end;
+    `pass.connected_min` fails a test as SLO Breach.
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE

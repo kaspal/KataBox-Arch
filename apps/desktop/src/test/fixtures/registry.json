@@ -12193,6 +12193,30 @@
               "type": "int"
             },
             "unit": "percent"
+          },
+          {
+            "calibration": null,
+            "default": 0,
+            "key": "reconnect_jitter_s",
+            "ty": {
+              "max": 600.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "s"
+          },
+          {
+            "calibration": null,
+            "default": 1,
+            "key": "reconnect_backoff_s",
+            "ty": {
+              "max": 600.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "s"
           }
         ]
       },
