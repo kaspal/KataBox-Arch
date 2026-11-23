@@ -1,0 +1,71 @@
+id = "de-realtime-metrics"
+number = 8
+set = 1
+track = "de"
+difficulty = "medium"
+title = "Real-Time Product Metrics"
+title_es = "Métricas de producto en tiempo real"
+teaches = "Count app events in event-time windows, and size the allowed lateness for phones that send their events late"
+teaches_es = "Contar eventos de una app en ventanas de tiempo de evento, y dimensionar el retraso permitido para los móviles que envían tarde"
+tags = ["streaming", "windows", "late-data", "time-series"]
+requires = ["streamproc"]
+
+challenge_ratio = 0.7
+[nfr]
+peak_rps = 5000
+p95_ms = 45000
+availability = 0.999
+budget_usd = 2200
+
+[[request_types]]
+id = "web"
+name = "An event from the web app"
+name_es = "Un evento de la app web"
+share = 0.97
+route = ["edge?", "compute", "broker", "worker:streamproc"]
+key_space = 20000
+measure = "completion"
+event_delay = { median_ms = 300, p99_ms = 3000 }
+
+[[request_types]]
+id = "mobile"
+name = "An event from the mobile app"
+name_es = "Un evento de la app móvil"
+share = 0.02
+route = ["edge?", "compute", "broker", "worker:streamproc"]
+key_space = 20000
+measure = "completion"
+event_delay = { median_ms = 5000, p99_ms = 120000 }
+
+[[request_types]]
+id = "dashboard"
+name = "Open the live metrics dashboard"
+name_es = "Abrir el panel de métricas en vivo"
+share = 0.01
+route = ["edge?", "compute", "datastore:tsdb"]
+key_space = 20000
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "phones-online"
+name = "Phones come back online: 20 times the mobile events"
+name_es = "Los móviles recuperan la conexión: 20 veces los eventos móviles"
+hidden = true
+type_multipliers = { mobile = 20 }
+
+[[tests]]
+id = "launch"
+name = "Launch day: 3 times the events for 40 s"
+name_es = "Día de lanzamiento: 3 veces los eventos durante 40 s"
+hidden = true
+duration_s = 90
+traffic = { spike = { at = 20, x = 3, for = 40 } }
+
+[pass]
+error_rate = 0.001
+lost = 0
+late_rate = 0.01

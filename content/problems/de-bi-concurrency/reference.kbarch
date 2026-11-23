@@ -1,0 +1,112 @@
+{
+  "schema_version": 4,
+  "id": "ref",
+  "name": "Analysts at 9 a.m. (reference)",
+  "problem_id": "de-bi-concurrency",
+  "nodes": [
+    {
+      "id": "analysts",
+      "kind": "client",
+      "flavour": "web",
+      "label": "analysts",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "rps": 12,
+        "timeout_ms": 120000
+      },
+      "group_id": null
+    },
+    {
+      "id": "bi",
+      "kind": "app",
+      "flavour": "go",
+      "label": "bi",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "notebooks",
+      "kind": "micro",
+      "flavour": "generic",
+      "label": "notebooks",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "wh_bi",
+      "kind": "warehouse",
+      "flavour": "snowflake",
+      "label": "wh_bi",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "instances": 3
+      },
+      "group_id": null
+    },
+    {
+      "id": "wh_heavy",
+      "kind": "warehouse",
+      "flavour": "snowflake",
+      "label": "wh_heavy",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {
+        "instances": 5
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-analysts-bi-http",
+      "from": "analysts",
+      "to": "bi",
+      "protocol": "http"
+    },
+    {
+      "id": "e-analysts-notebooks-http",
+      "from": "analysts",
+      "to": "notebooks",
+      "protocol": "http"
+    },
+    {
+      "id": "e-bi-wh_bi-query",
+      "from": "bi",
+      "to": "wh_bi",
+      "protocol": "query"
+    },
+    {
+      "id": "e-notebooks-wh_heavy-query",
+      "from": "notebooks",
+      "to": "wh_heavy",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

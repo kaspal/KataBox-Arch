@@ -1,0 +1,34 @@
+# Estimation drills for Interactive Queries on a Streaming Lake Table.
+
+[[drill]]
+id = "small-file-count"
+kind = "capacity"
+prompt = "A sale day holds {day_gb} GB of events, written by streaming ingest in files of about {file_mb} MB. How many files does a query over that day open?"
+prompt_es = "Un día de rebajas guarda {day_gb} GB de eventos, escritos por la ingesta en streaming en archivos de unos {file_mb} MB. ¿Cuántos archivos abre una consulta sobre ese día?"
+inputs = { day_gb = 20, file_mb = 4 }
+formula = "day_gb * 1024 / file_mb"
+unit = "count"
+solution = "{day_gb} GB × 1024 / {file_mb} MB = {answer} files. Compacted into 256 MB files, the same day is 80."
+solution_es = "{day_gb} GB × 1024 / {file_mb} MB = {answer} archivos. Compactado en archivos de 256 MB, el mismo día son 80."
+
+[[drill]]
+id = "file-open-time"
+kind = "capacity"
+prompt = "A query opens {files} files. Each takes about {open_ms} ms to open, and the warehouse opens {readers} at a time. How many seconds go to opening files alone?"
+prompt_es = "Una consulta abre {files} archivos. Abrir cada uno cuesta unos {open_ms} ms, y el almacén de datos abre {readers} a la vez. ¿Cuántos segundos se van solo en abrir archivos?"
+inputs = { files = 5120, open_ms = 20, readers = 8 }
+formula = "files * open_ms / readers / 1000"
+unit = "s"
+solution = "{files} × {open_ms} ms / {readers} = {answer} s, over the 8 s limit before the query reads a byte or waits for another. More warehouse instances run more queries at once, but each one still takes this long."
+solution_es = "{files} × {open_ms} ms / {readers} = {answer} s, por encima del límite de 8 s antes de que la consulta lea un byte o espere a otra. Más instancias del almacén ejecutan más consultas a la vez, pero cada una sigue tardando esto."
+
+[[drill]]
+id = "month-end-slots"
+kind = "servers"
+prompt = "At month end, {qps} queries a second arrive, and {miss_pct}% of them miss the result cache. Each of those holds a warehouse slot for {query_s} s. About how many slots are busy at once?"
+prompt_es = "A fin de mes llegan {qps} consultas por segundo, y la caché de resultados no responde el {miss_pct} % de ellas. Cada una de esas ocupa un hueco del almacén de datos durante {query_s} s. ¿Cuántos huecos están ocupados a la vez, más o menos?"
+inputs = { qps = 33, miss_pct = 80, query_s = 1.83 }
+formula = "qps * miss_pct / 100 * query_s"
+unit = "count"
+solution = "{qps} × {miss_pct} % × {query_s} s ≈ {answer} slots, with 32 available (4 instances × 8): the queue grows without end. Compacted, a query takes about 0.57 s and needs about 15 slots."
+solution_es = "{qps} × {miss_pct} % × {query_s} s ≈ {answer} huecos, con 32 disponibles (4 instancias × 8): la cola crece sin fin. Compactado, una consulta tarda unos 0,57 s y necesita unos 15 huecos."

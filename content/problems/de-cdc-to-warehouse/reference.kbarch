@@ -1,0 +1,146 @@
+{
+  "schema_version": 4,
+  "id": "de-cdc-to-warehouse-reference",
+  "name": "Orders to the warehouse (reference)",
+  "problem_id": "de-cdc-to-warehouse",
+  "nodes": [
+    {
+      "id": "shoppers",
+      "kind": "client",
+      "flavour": "web",
+      "label": "shoppers",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "orders",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "orders",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "changes",
+      "kind": "stream",
+      "flavour": "kafka",
+      "label": "changes",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {
+        "partitions": 24
+      },
+      "group_id": null
+    },
+    {
+      "id": "loader",
+      "kind": "streamproc",
+      "flavour": "flink",
+      "label": "loader",
+      "position": {
+        "x": 912,
+        "y": 112
+      },
+      "props": {
+        "instances": 2,
+        "concurrency": 12
+      },
+      "group_id": null
+    },
+    {
+      "id": "dwh",
+      "kind": "warehouse",
+      "flavour": "snowflake",
+      "label": "dwh",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {
+        "instances": 3
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-shoppers-lb-http",
+      "from": "shoppers",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app-http",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-orders-query",
+      "from": "app",
+      "to": "orders",
+      "protocol": "query"
+    },
+    {
+      "id": "e-orders-changes-publish",
+      "from": "orders",
+      "to": "changes",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-changes-loader-consume",
+      "from": "changes",
+      "to": "loader",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-loader-dwh-query",
+      "from": "loader",
+      "to": "dwh",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

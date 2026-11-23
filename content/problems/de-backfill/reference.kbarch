@@ -1,0 +1,129 @@
+{
+  "schema_version": 4,
+  "id": "ref",
+  "name": "Reference",
+  "problem_id": "de-backfill",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "api",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "kafka",
+      "kind": "stream",
+      "flavour": "kafka",
+      "label": "kafka",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {
+        "partitions": 32,
+        "priority": true
+      },
+      "group_id": null
+    },
+    {
+      "id": "flink",
+      "kind": "streamproc",
+      "flavour": "flink",
+      "label": "flink",
+      "position": {
+        "x": 912,
+        "y": 112
+      },
+      "props": {
+        "instances": 2,
+        "concurrency": 16
+      },
+      "group_id": null
+    },
+    {
+      "id": "wh",
+      "kind": "warehouse",
+      "flavour": "snowflake",
+      "label": "wh",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "instances": 3
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-api-http",
+      "from": "lb",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e-api-kafka-publish",
+      "from": "api",
+      "to": "kafka",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-kafka-flink-consume",
+      "from": "kafka",
+      "to": "flink",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-flink-wh-query",
+      "from": "flink",
+      "to": "wh",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}
