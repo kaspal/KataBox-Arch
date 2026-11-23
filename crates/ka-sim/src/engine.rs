@@ -38,11 +38,20 @@ enum Ev {
         node: u32,
         lane: u16,
     },
+    /// A call answered or failed; `call` is the call's number on its request, so an answer
+    /// that arrives after the caller gave up on that call (S8 call timeout) is ignored.
     CallBack {
         r: u32,
+        call: u32,
     },
     CallFail {
         r: u32,
+        call: u32,
+    },
+    /// S8: the caller's `call_timeout_ms` for call `call` ran out.
+    CallTimeout {
+        r: u32,
+        call: u32,
     },
     Timeout {
         r: u32,
@@ -140,6 +149,31 @@ struct Req {
     /// is (0 = the first; S8 client retries).
     src: u32,
     try_n: u32,
+    /// S8: the number of the call in progress, whether one is, and its dependency key
+    /// (callee card, or EXT_KEY | provider) for circuit breakers and bulkheads.
+    call_gen: u32,
+    in_call: bool,
+    call_key: u32,
+}
+
+/// S8: dependency keys of external providers (beside card indices).
+const EXT_KEY: u32 = 0x8000_0000;
+
+/// S8: a caller's circuit breaker for one dependency: calls and failures per second over
+/// the last 10 s (slot = second % 10, with the second it holds), and when it closes again.
+#[derive(Debug, Clone)]
+struct BreakerRt {
+    window: [(u64, f64, f64); 10],
+    open_until: u64,
+}
+
+impl Default for BreakerRt {
+    fn default() -> Self {
+        BreakerRt {
+            window: [(u64::MAX, 0.0, 0.0); 10],
+            open_until: 0,
+        }
+    }
 }
 
 /// A network split in progress (chaos `split`).
@@ -298,6 +332,9 @@ pub struct Engine {
     /// retries of the last 10 seconds (slot = second % 10, with the second it holds).
     rng_retry: Rng,
     retry_window: Vec<[(u64, f64, f64); 10]>,
+    /// S8: circuit breakers and bulkhead pools per (caller, dependency).
+    breakers: BTreeMap<(u32, u32), BreakerRt>,
+    bulk_in_flight: BTreeMap<(u32, u32), u32>,
 }
 
 /// One forward hop of a simulated request, for the live packet layer.
@@ -412,6 +449,8 @@ impl Engine {
             rng_misc: Rng::stream(seed, "misc"),
             rng_retry: Rng::stream(seed, "retry"),
             retry_window: vec![[(u64::MAX, 0.0, 0.0); 10]; c.sources.len()],
+            breakers: BTreeMap::new(),
+            bulk_in_flight: BTreeMap::new(),
             caches: c
                 .nodes
                 .iter()
@@ -665,13 +704,33 @@ impl Engine {
                 self.reqs[r as usize].pending -= 1;
                 self.on_svc_done(r, node, lane);
             }
-            Ev::CallBack { r } => {
+            Ev::CallBack { r, call } if call != self.reqs[r as usize].call_gen => {
+                // An answer to a call the caller already gave up on.
+                self.reqs[r as usize].pending -= 1;
+                self.maybe_free(r);
+            }
+            Ev::CallFail { r, call } if call != self.reqs[r as usize].call_gen => {
+                self.reqs[r as usize].pending -= 1;
+                self.maybe_free(r);
+            }
+            Ev::CallTimeout { r, call } => {
+                self.reqs[r as usize].pending -= 1;
+                let q = &self.reqs[r as usize];
+                if q.dead || !q.in_call || q.call_gen != call {
+                    self.maybe_free(r);
+                } else {
+                    // The caller stops waiting; the work it asked for runs on, unwanted.
+                    self.reqs[r as usize].call_gen += 1;
+                    self.call_failed(r);
+                }
+            }
+            Ev::CallBack { r, .. } => {
                 self.reqs[r as usize].pending -= 1;
                 self.on_callback(r);
             }
-            Ev::CallFail { r } => {
+            Ev::CallFail { r, .. } => {
                 self.reqs[r as usize].pending -= 1;
-                self.fail(r);
+                self.call_failed(r);
             }
             Ev::Timeout { r } => {
                 self.reqs[r as usize].pending -= 1;
@@ -778,6 +837,9 @@ impl Engine {
             cdc_pending: false,
             src: NONE,
             try_n: 0,
+            call_gen: 0,
+            in_call: false,
+            call_key: NONE,
         };
         if let Some(i) = self.free.pop() {
             self.reqs[i as usize] = req;
@@ -1022,11 +1084,11 @@ impl Engine {
                 self.set_busy(node, 0, -1);
             }
             self.mark(r, from, node, false);
-            if self.reqs[r as usize].phase == Phase::Consumer {
+            match self.reqs[r as usize].phase {
                 // A message handed to a consumer that died (or was cut off) on the way.
-                self.lease_lost(r);
-            } else {
-                self.fail(r);
+                Phase::Consumer => self.lease_lost(r),
+                Phase::Call => self.call_failed(r),
+                _ => self.fail(r),
             }
             return;
         }
@@ -1036,11 +1098,14 @@ impl Engine {
             return;
         }
         let cap = self.nodes[node as usize].lane_servers;
+        // S8 load shedding: past `shed_queue` waiting requests, turn new ones away at once.
+        let shed_at = self.c.nodes[node as usize].shed_queue;
         if self.nodes[node as usize].lanes[lane as usize].busy < cap {
             self.set_busy(node, lane, 1);
             self.start_service(r, node, lane);
         } else if self.nodes[node as usize].lanes[lane as usize].queue.len()
             < self.c.nodes[node as usize].lane_queue
+            && self.nodes[node as usize].lanes[lane as usize].queue.len() < shed_at
         {
             let rt = &mut self.nodes[node as usize];
             rt.lanes[lane as usize].queue.push_back(r);
@@ -1055,7 +1120,11 @@ impl Engine {
             rt.sec_drops += w;
             let from = self.reqs[r as usize].from;
             self.mark(r, from, node, false);
-            self.fail(r);
+            if self.reqs[r as usize].phase == Phase::Call {
+                self.call_failed(r);
+            } else {
+                self.fail(r);
+            }
         }
     }
 
@@ -1150,10 +1219,10 @@ impl Engine {
             // The card died while working on it. A consumer's message comes back when its
             // lease runs out; anything else fails now.
             self.release(node, lane);
-            if phase == Phase::Consumer {
-                self.lease_lost(r);
-            } else {
-                self.fail(r);
+            match phase {
+                Phase::Consumer => self.lease_lost(r),
+                Phase::Call => self.call_failed(r),
+                _ => self.fail(r),
             }
             return;
         }
@@ -1248,12 +1317,18 @@ impl Engine {
             };
             let node = match pick {
                 Target::External(x) => {
+                    if !self.begin_call(r, caller, EXT_KEY | x) {
+                        return;
+                    }
                     self.call_external(r, x);
                     return;
                 }
                 Target::Node(n) => n,
                 Target::Cluster(cl) => self.cluster_member(cl, writes, caller),
             };
+            if !self.begin_call(r, caller, node) {
+                return;
+            }
             let q = &mut self.reqs[r as usize];
             q.phase = Phase::Call;
             q.call_write = writes;
@@ -1265,6 +1340,108 @@ impl Engine {
             self.send(r, caller, node, proto, false);
             return;
         }
+    }
+
+    /// S8: a call is about to leave `caller` for dependency `key`. An open circuit breaker or
+    /// a full bulkhead pool fails it at once (returns false, having handled the failure);
+    /// otherwise the call is numbered, counted in its pool and given its timeout.
+    fn begin_call(&mut self, r: u32, caller: u32, key: u32) -> bool {
+        let spec = &self.c.nodes[caller as usize].spec;
+        let (pct, bulkhead, timeout) = (spec.breaker_pct, spec.bulkhead, spec.call_timeout_us);
+        if pct > 0.0
+            && self
+                .breakers
+                .get(&(caller, key))
+                .is_some_and(|b| self.now < b.open_until)
+        {
+            self.reqs[r as usize].call_key = NONE;
+            self.call_failed(r);
+            return false;
+        }
+        if bulkhead {
+            let deps = self.c.deps[caller as usize].max(1) as f64;
+            let servers = f64::from(self.nodes[caller as usize].lane_servers)
+                * self.nodes[caller as usize].lanes.len() as f64;
+            let cap = ((servers / deps).floor() as u32).max(1);
+            let used = self.bulk_in_flight.entry((caller, key)).or_insert(0);
+            if *used >= cap {
+                self.reqs[r as usize].call_key = NONE;
+                self.call_failed(r);
+                return false;
+            }
+            *used += 1;
+        }
+        let q = &mut self.reqs[r as usize];
+        q.call_gen += 1;
+        q.in_call = true;
+        q.call_key = key;
+        let call = q.call_gen;
+        if timeout > 0 {
+            self.push_req(self.now + timeout, Ev::CallTimeout { r, call }, r);
+        }
+        true
+    }
+
+    /// S8: the call in progress ended (answered, failed or given up on): free its bulkhead
+    /// slot and tell its circuit breaker.
+    fn end_call(&mut self, r: u32, ok: bool) {
+        let q = &mut self.reqs[r as usize];
+        if !q.in_call {
+            return;
+        }
+        q.in_call = false;
+        let (caller, key) = (q.caller, q.call_key);
+        if caller == NONE || key == NONE {
+            return;
+        }
+        let spec = &self.c.nodes[caller as usize].spec;
+        let (pct, open_us, bulkhead) = (spec.breaker_pct, spec.breaker_open_us, spec.bulkhead);
+        if bulkhead && let Some(n) = self.bulk_in_flight.get_mut(&(caller, key)) {
+            *n = n.saturating_sub(1);
+        }
+        if pct > 0.0 {
+            let sec = self.now / 1_000_000;
+            let now = self.now;
+            let b = self.breakers.entry((caller, key)).or_default();
+            if now >= b.open_until && b.open_until > 0 {
+                // Closed again after its open time: start counting afresh.
+                *b = BreakerRt::default();
+            }
+            let slot = &mut b.window[(sec % 10) as usize];
+            if slot.0 != sec {
+                *slot = (sec, 0.0, 0.0);
+            }
+            slot.1 += 1.0;
+            if !ok {
+                slot.2 += 1.0;
+                let (calls, fails) = b
+                    .window
+                    .iter()
+                    .filter(|(at, ..)| *at != u64::MAX && sec.saturating_sub(*at) < 10)
+                    .fold((0.0, 0.0), |(c, f), (_, x, y)| (c + x, f + y));
+                if calls >= 20.0 * self.c.sample.clamp(0.05, 1.0) && fails >= pct * calls {
+                    b.open_until = now + open_us;
+                }
+            }
+        }
+    }
+
+    /// A call failed (an error, a timeout, an open breaker, a full bulkhead). An optional
+    /// `service?` dependency falls back: the step is skipped and the request goes on.
+    /// Anything else fails the request, as before M8.
+    fn call_failed(&mut self, r: u32) {
+        self.end_call(r, false);
+        let q = &self.reqs[r as usize];
+        if !q.dead {
+            let (ty, seg, step) = (q.ty as usize, q.seg as usize, q.step as usize);
+            let def = self.c.types[ty].route.segments[seg].calls.get(step);
+            if def.is_some_and(|d| d.optional && d.alts.iter().all(|a| a.service)) {
+                self.reqs[r as usize].step += 1;
+                self.run_calls(r);
+                return;
+            }
+        }
+        self.fail(r);
     }
 
     /// Does routing believe this call target is up, and reachable from `caller`?
@@ -1363,11 +1540,13 @@ impl Engine {
         let caller = self.reqs[r as usize].caller;
         if self.cut(node, caller) {
             // A split opened while the call ran: the answer never arrives.
-            self.push_req(self.now + EXTERNAL_DOWN_US, Ev::CallFail { r }, r);
+            let call = self.reqs[r as usize].call_gen;
+            self.push_req(self.now + EXTERNAL_DOWN_US, Ev::CallFail { r, call }, r);
             return;
         }
         let lat = hop_latency_us(&self.c, node, caller, Protocol::Query);
-        self.push_req(self.now + lat, Ev::CallBack { r }, r);
+        let call = self.reqs[r as usize].call_gen;
+        self.push_req(self.now + lat, Ev::CallBack { r, call }, r);
     }
 
     fn on_callback(&mut self, r: u32) {
@@ -1375,6 +1554,7 @@ impl Engine {
             self.maybe_free(r);
             return;
         }
+        self.end_call(r, true);
         let caller = self.reqs[r as usize].caller;
         if caller != NONE && self.nodes[caller as usize].down {
             // The caller died while waiting: a synchronous request is lost with it; a
@@ -1396,7 +1576,8 @@ impl Engine {
         let sample = self.c.sample;
         let ext = &mut self.externals[x as usize];
         if ext.down {
-            self.push_req(now + EXTERNAL_DOWN_US, Ev::CallFail { r }, r);
+            let call = self.reqs[r as usize].call_gen;
+            self.push_req(now + EXTERNAL_DOWN_US, Ev::CallFail { r, call }, r);
             return;
         }
         if let Some(limit) = ext.rate_cut.or(def.rate_limit) {
@@ -1405,7 +1586,8 @@ impl Engine {
             ext.last = now;
             if ext.tokens < 1.0 {
                 let fast = (def.median_ms * 1000.0) as u64;
-                self.push_req(now + fast, Ev::CallFail { r }, r);
+                let call = self.reqs[r as usize].call_gen;
+                self.push_req(now + fast, Ev::CallFail { r, call }, r);
                 return;
             }
             ext.tokens -= 1.0;
@@ -1415,7 +1597,8 @@ impl Engine {
             def.median_ms,
             (def.p99_ms / def.median_ms.max(1e-9)).max(1.0),
         ) + add;
-        self.push_req(now + (ms * 1000.0) as u64, Ev::CallBack { r }, r);
+        let call = self.reqs[r as usize].call_gen;
+        self.push_req(now + (ms * 1000.0) as u64, Ev::CallBack { r, call }, r);
     }
 
     // --- Segment ends, brokers --------------------------------------------------------
@@ -1895,6 +2078,7 @@ impl Engine {
 
     fn fail(&mut self, r: u32) {
         let w = self.c.weight;
+        self.end_call(r, false);
         if !self.reqs[r as usize].resp_sent && self.retry_sync(r) {
             return;
         }

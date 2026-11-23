@@ -65,6 +65,9 @@ pub struct CNode {
     pub lane_servers: u32,
     pub lane_queue: usize,
     pub service_stretch: f64,
+    /// S8 load shedding: waiting requests per lane past which new ones are turned away
+    /// (usize::MAX = never), after sampling.
+    pub shed_queue: usize,
     /// The flavour's monthly price model.
     pub cost: ka_core::Cost,
 }
@@ -149,6 +152,8 @@ pub struct Compiled {
     /// Zones by group index (CNode::az / region point here).
     pub zones: Vec<Zone>,
     pub scaling: Vec<ScaleGroup>,
+    /// S8: distinct dependencies (call targets) per caller, for bulkhead pools.
+    pub deps: Vec<u32>,
 }
 
 const SYNC: [Protocol; 3] = [Protocol::Http, Protocol::Grpc, Protocol::Ws];
@@ -260,6 +265,7 @@ pub fn compile(
                 out: Vec::new(),
                 lane_servers: 1,
                 lane_queue: 1,
+                shed_queue: usize::MAX,
                 service_stretch: 1.0,
                 cost: registry
                     .kind(n.kind)
@@ -498,7 +504,25 @@ pub fn compile(
         n.lane_queue = ((n.spec.queue_cap / f64::from(n.spec.lanes)) * sample)
             .round()
             .max(1.0) as usize;
+        if n.spec.shed_queue > 0.0 {
+            n.shed_queue = ((n.spec.shed_queue / f64::from(n.spec.lanes)) * sample)
+                .round()
+                .max(1.0) as usize;
+        }
     }
+
+    // S8 bulkheads: the distinct dependencies each caller calls, over every type.
+    let mut dep_sets: Vec<BTreeSet<Target>> = vec![BTreeSet::new(); n_nodes];
+    for t in &types {
+        for seg in &t.plan.calls {
+            for (caller, steps) in seg.iter().enumerate() {
+                for step in steps.iter().flatten() {
+                    dep_sets[caller].extend(step.iter().copied());
+                }
+            }
+        }
+    }
+    let deps: Vec<u32> = dep_sets.iter().map(|s| s.len() as u32).collect();
 
     let mut feeds: Vec<Vec<u32>> = vec![Vec::new(); n_nodes];
     for (b, n) in nodes.iter().enumerate() {
@@ -531,6 +555,7 @@ pub fn compile(
             })
             .collect(),
         scaling,
+        deps,
     })
 }
 

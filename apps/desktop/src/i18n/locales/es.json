@@ -555,7 +555,12 @@
       "retries": "Reintentos",
       "backoff_ms": "Espera entre reintentos",
       "jitter": "Variación de la espera",
-      "retry_budget_pct": "Presupuesto de reintentos"
+      "retry_budget_pct": "Presupuesto de reintentos",
+      "call_timeout_ms": "Tiempo límite de llamada",
+      "breaker_errors_pct": "Cortocircuito con errores al",
+      "breaker_open_s": "Cortocircuito abierto durante",
+      "bulkhead": "Compartimento por dependencia",
+      "shed_queue": "Descartar carga con cola de más de"
     },
     "choice": {
       "round_robin": "Round robin",

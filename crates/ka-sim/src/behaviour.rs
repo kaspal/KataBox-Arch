@@ -81,6 +81,16 @@ pub struct NodeSpec {
     pub full_jitter: bool,
     /// Retries allowed as a share of first tries over the last 10 s; 0 = no budget.
     pub retry_budget: f64,
+    /// Callers (S8): give up on a call after this (0 = wait for it).
+    pub call_timeout_us: u64,
+    /// A circuit breaker per dependency opens at this share of failed calls (0 = none), for
+    /// `breaker_open_us`.
+    pub breaker_pct: f64,
+    pub breaker_open_us: u64,
+    /// Each dependency gets its own share of the card's slots.
+    pub bulkhead: bool,
+    /// Turn new requests away once this many wait (0 = never; before sampling).
+    pub shed_queue: f64,
 }
 
 /// The value of `key` for `node`: the card's prop, else its flavour override, else the
@@ -194,5 +204,13 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         backoff_ms: n("backoff_ms").unwrap_or(100.0).max(0.0),
         full_jitter: text(registry, node, "jitter").as_deref() == Some("full"),
         retry_budget: n("retry_budget_pct").unwrap_or(0.0).max(0.0) / 100.0,
+        call_timeout_us: (n("call_timeout_ms").unwrap_or(0.0).max(0.0) * 1000.0) as u64,
+        breaker_pct: n("breaker_errors_pct").unwrap_or(0.0).clamp(0.0, 100.0) / 100.0,
+        breaker_open_us: (n("breaker_open_s").unwrap_or(30.0).max(0.0) * 1e6) as u64,
+        bulkhead: matches!(
+            prop(registry, node, "bulkhead"),
+            Some(PropValue::Bool(true))
+        ),
+        shed_queue: n("shed_queue").unwrap_or(0.0).max(0.0),
     }
 }

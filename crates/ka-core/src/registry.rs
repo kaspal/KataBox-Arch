@@ -1198,6 +1198,20 @@ fn service_ms(default: f64) -> PropSpec {
 fn compute_props(inst: f64, conc: f64, ms: f64) -> Vec<PropSpec> {
     vec![instances(inst), concurrency(conc), service_ms(ms)]
 }
+/// S8 (M8): how a service protects itself from its dependencies and from overload. Every
+/// default is off, the behaviour before M8.
+fn resilience() -> Vec<PropSpec> {
+    vec![
+        int("call_timeout_ms", 0.0, 60_000.0, 0.0, Unit::Ms),
+        int("breaker_errors_pct", 0.0, 100.0, 0.0, Unit::Percent),
+        int("breaker_open_s", 1.0, 600.0, 30.0, Unit::S),
+        boolean("bulkhead", false),
+        shed_queue(),
+    ]
+}
+fn shed_queue() -> PropSpec {
+    int("shed_queue", 0.0, 1_000_000.0, 0.0, Unit::Count)
+}
 
 /// The registry. Order is the library's order: categories, then kinds within each.
 pub fn registry() -> Registry {
@@ -1260,7 +1274,7 @@ pub fn registry() -> Registry {
         kind(
             K::Gateway,
             vec![fl(F::Kong), fl(F::AwsApiGateway)],
-            compute_props(2.0, 256.0, 2.0),
+            [compute_props(2.0, 256.0, 2.0), vec![shed_queue()]].concat(),
         ),
         kind(
             K::Ratelimit,
@@ -1326,12 +1340,12 @@ pub fn registry() -> Registry {
                     &[("service_ms", num(20.0)), ("concurrency", num(9.0))],
                 ),
             ],
-            compute_props(2.0, 64.0, 10.0),
+            [compute_props(2.0, 64.0, 10.0), resilience()].concat(),
         ),
         kind(
             K::Micro,
             vec![fl(F::Generic)],
-            compute_props(2.0, 64.0, 10.0),
+            [compute_props(2.0, 64.0, 10.0), resilience()].concat(),
         ),
         kind(
             K::Worker,
@@ -1339,11 +1353,15 @@ pub fn registry() -> Registry {
                 fl(F::Celery),
                 fl_with(F::Sidekiq, &[("concurrency", num(5.0))]),
             ],
-            vec![
-                instances(2.0),
-                int("concurrency", 1.0, 1024.0, 8.0, Unit::Count),
-                service_ms(100.0),
-            ],
+            [
+                vec![
+                    instances(2.0),
+                    int("concurrency", 1.0, 1024.0, 8.0, Unit::Count),
+                    service_ms(100.0),
+                ],
+                resilience(),
+            ]
+            .concat(),
         ),
         kind(
             K::Serverless,

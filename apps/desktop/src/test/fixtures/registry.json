@@ -12771,6 +12771,18 @@
               "type": "float"
             },
             "unit": "ms"
+          },
+          {
+            "calibration": null,
+            "default": 0,
+            "key": "shed_queue",
+            "ty": {
+              "max": 1000000.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
           }
         ]
       },
@@ -13532,6 +13544,63 @@
               "type": "float"
             },
             "unit": "ms"
+          },
+          {
+            "calibration": null,
+            "default": 0,
+            "key": "call_timeout_ms",
+            "ty": {
+              "max": 60000.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "ms"
+          },
+          {
+            "calibration": null,
+            "default": 0,
+            "key": "breaker_errors_pct",
+            "ty": {
+              "max": 100.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "percent"
+          },
+          {
+            "calibration": null,
+            "default": 30,
+            "key": "breaker_open_s",
+            "ty": {
+              "max": 600.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "s"
+          },
+          {
+            "calibration": null,
+            "default": false,
+            "key": "bulkhead",
+            "ty": {
+              "type": "bool"
+            },
+            "unit": "none"
+          },
+          {
+            "calibration": null,
+            "default": 0,
+            "key": "shed_queue",
+            "ty": {
+              "max": 1000000.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
           }
         ]
       },
@@ -13614,6 +13683,63 @@
               "type": "float"
             },
             "unit": "ms"
+          },
+          {
+            "calibration": null,
+            "default": 0,
+            "key": "call_timeout_ms",
+            "ty": {
+              "max": 60000.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "ms"
+          },
+          {
+            "calibration": null,
+            "default": 0,
+            "key": "breaker_errors_pct",
+            "ty": {
+              "max": 100.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "percent"
+          },
+          {
+            "calibration": null,
+            "default": 30,
+            "key": "breaker_open_s",
+            "ty": {
+              "max": 600.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "s"
+          },
+          {
+            "calibration": null,
+            "default": false,
+            "key": "bulkhead",
+            "ty": {
+              "type": "bool"
+            },
+            "unit": "none"
+          },
+          {
+            "calibration": null,
+            "default": 0,
+            "key": "shed_queue",
+            "ty": {
+              "max": 1000000.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
           }
         ]
       },
@@ -13729,6 +13855,63 @@
               "type": "float"
             },
             "unit": "ms"
+          },
+          {
+            "calibration": null,
+            "default": 0,
+            "key": "call_timeout_ms",
+            "ty": {
+              "max": 60000.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "ms"
+          },
+          {
+            "calibration": null,
+            "default": 0,
+            "key": "breaker_errors_pct",
+            "ty": {
+              "max": 100.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "percent"
+          },
+          {
+            "calibration": null,
+            "default": 30,
+            "key": "breaker_open_s",
+            "ty": {
+              "max": 600.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "s"
+          },
+          {
+            "calibration": null,
+            "default": false,
+            "key": "bulkhead",
+            "ty": {
+              "type": "bool"
+            },
+            "unit": "none"
+          },
+          {
+            "calibration": null,
+            "default": 0,
+            "key": "shed_queue",
+            "ty": {
+              "max": 1000000.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
           }
         ]
       },

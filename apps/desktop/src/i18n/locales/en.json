@@ -555,7 +555,12 @@
       "retries": "Retries",
       "backoff_ms": "Retry backoff",
       "jitter": "Backoff jitter",
-      "retry_budget_pct": "Retry budget"
+      "retry_budget_pct": "Retry budget",
+      "call_timeout_ms": "Call timeout",
+      "breaker_errors_pct": "Circuit breaker at errors",
+      "breaker_open_s": "Breaker open for",
+      "bulkhead": "Bulkhead per dependency",
+      "shed_queue": "Shed load past queue"
     },
     "choice": {
       "round_robin": "Round robin",

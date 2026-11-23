@@ -14,6 +14,8 @@
 //!                         publishes the change to the stream on its CDC edge, and the
 //!                         consumer after it becomes the caller
 //! "external:email"        a provider outside the design
+//! "service"               a call to another service that answers without calling onward
+//!                         (M8: a leaf dependency such as a recommendations service)
 //! "compute|datastore"     either role satisfies the step
 //! "broker?" "worker"      an optional hand-off: a caller wired to such a broker publishes
 //!                         as usual; one that isn't makes the next segment's calls itself,
@@ -109,6 +111,8 @@ pub struct Alt {
     pub kinds: Vec<ComponentKind>,
     /// For `external:<name>`.
     pub external: Option<String>,
+    /// A `service` step: a compute card called as a dependency (never a caller).
+    pub service: bool,
 }
 
 impl Alt {
@@ -136,7 +140,7 @@ impl Step {
     }
 
     pub fn is_caller_step(&self) -> bool {
-        self.alts.iter().any(|a| a.role.is_caller())
+        self.alts.iter().any(|a| a.role.is_caller() && !a.service)
     }
 
     /// A cache step without `?` and without `:write` would be a read from a cache as the
@@ -198,6 +202,7 @@ pub fn parse_step(s: &str) -> Result<Step, RouteError> {
                 ws: false,
                 kinds: vec![ComponentKind::Stream],
                 external: None,
+                service: false,
             }],
             optional: false,
             cdc: true,
@@ -207,14 +212,20 @@ pub fn parse_step(s: &str) -> Result<Step, RouteError> {
     for alt in body.split('|') {
         let mut parts = alt.split(':');
         let role_s = parts.next().unwrap_or_default().trim();
-        let role = Role::parse(role_s)
-            .ok_or_else(|| RouteError(format!("unknown role {role_s:?} in {s:?}")))?;
+        let service = role_s == "service";
+        let role = if service {
+            Role::Compute
+        } else {
+            Role::parse(role_s)
+                .ok_or_else(|| RouteError(format!("unknown role {role_s:?} in {s:?}")))?
+        };
         let mut a = Alt {
             role,
             write: false,
             ws: false,
             kinds: Vec::new(),
             external: None,
+            service,
         };
         for q in parts {
             let q = q.trim();
@@ -225,7 +236,7 @@ pub fn parse_step(s: &str) -> Result<Step, RouteError> {
                 _ => {
                     let kind: ComponentKind = serde_json::from_value(serde_json::Value::from(q))
                         .map_err(|_| RouteError(format!("unknown qualifier {q:?} in {s:?}")))?;
-                    if Role::of(kind) != role {
+                    if Role::of(kind) != role && !(service && Role::of(kind) == Role::Compute) {
                         return Err(RouteError(format!("{q:?} is not a {role_s} in {s:?}")));
                     }
                     a.kinds.push(kind);
@@ -436,6 +447,26 @@ mod tests {
         .unwrap();
         assert_eq!(route.segments.len(), 2);
         assert!(route.segments[1].broker.as_ref().unwrap().optional);
+    }
+
+    /// M8: `service` calls a compute card as a leaf dependency; it isn't a second caller.
+    #[test]
+    fn a_service_step_is_a_call() {
+        let route = r(&["edge?", "compute", "service?", "datastore:write"]).unwrap();
+        assert_eq!(route.segments.len(), 1);
+        assert_eq!(route.segments[0].calls.len(), 2);
+        assert!(route.segments[0].calls[0].accepts(ComponentKind::Micro));
+        assert!(route.segments[0].calls[0].optional);
+        assert!(
+            parse_step("service:micro")
+                .unwrap()
+                .accepts(ComponentKind::Micro)
+        );
+        assert!(
+            !parse_step("service:micro")
+                .unwrap()
+                .accepts(ComponentKind::App)
+        );
     }
 
     #[test]

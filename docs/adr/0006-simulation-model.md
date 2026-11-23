@@ -261,6 +261,22 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
     which is how retries amplify an outage.
   - A budget allows retries only while they stay under that share of first tries over the last 10 seconds.
   - The request count (`requests`) counts users' requests, not tries.
+- **Service calls, call timeouts, fallbacks, breakers, bulkheads, shedding (S8, golden l2).**
+  - Route step `service` (or `service:<kind>`): the caller calls a compute card (Http/gRPC edge) that answers
+    without calling onward, a leaf dependency. `service?` is an optional dependency with a fallback: when the call
+    fails, times out or is refused by a breaker or bulkhead, the step is skipped and the request goes on. Every
+    other failed call still fails the request.
+  - App, microservice and worker cards gain `call_timeout_ms` (0 = wait), `breaker_errors_pct` (0 = no breaker),
+    `breaker_open_s` (30), `bulkhead` (false) and `shed_queue` (0 = never; the gateway has it too).
+  - A call timeout stops the caller waiting; the work it asked for runs on unwanted (it still loads the callee).
+    Each call is numbered, so an answer that arrives after its caller gave up is ignored.
+  - The breaker is per caller and dependency: once at least 20 calls (scaled by sampling) in the last 10 s have
+    failed at the given share, it opens for `breaker_open_s`, failing calls at once; then it closes and counts
+    afresh (no half-open probes: a still-failing dependency trips it again within a few calls).
+  - A bulkhead splits the caller's slots evenly over its distinct dependencies; a call whose pool is full fails at
+    once.
+  - Shedding: a request that would wait behind `shed_queue` others (per lane, scaled by sampling) is dropped at
+    once, an error, instead of queuing toward a timeout.
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE
