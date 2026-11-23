@@ -1,0 +1,103 @@
+{
+  "schema_version": 4,
+  "id": "geo-ip-naive",
+  "name": "Geo-IP lookup (first try)",
+  "problem_id": "geo-ip",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb-us",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb-us",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": "us"
+    },
+    {
+      "id": "app-us",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app-us",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 4
+      },
+      "group_id": "us"
+    },
+    {
+      "id": "cache-us",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "cache-us",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "memory_gb": 2,
+        "ttl_s": 0
+      },
+      "group_id": "us"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-us-http",
+      "from": "client",
+      "to": "lb-us",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-us-app-us-http",
+      "from": "lb-us",
+      "to": "app-us",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-us-cache-us-query",
+      "from": "app-us",
+      "to": "cache-us",
+      "protocol": "query"
+    }
+  ],
+  "groups": [
+    {
+      "id": "us",
+      "kind": "region",
+      "label": "us-east",
+      "position": {
+        "x": 280,
+        "y": -40
+      },
+      "size": {
+        "w": 1168,
+        "h": 128
+      },
+      "parent_id": null
+    }
+  ],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

@@ -15942,6 +15942,15 @@
             "unit": "none"
           },
           {
+            "calibration": null,
+            "default": false,
+            "key": "conditional_writes",
+            "ty": {
+              "type": "bool"
+            },
+            "unit": "none"
+          },
+          {
             "calibration": {
               "id": "sql.max_connections",
               "status": "needed"
@@ -16230,6 +16239,15 @@
               "type": "bool"
             },
             "unit": "none"
+          },
+          {
+            "calibration": null,
+            "default": false,
+            "key": "conditional_writes",
+            "ty": {
+              "type": "bool"
+            },
+            "unit": "none"
           }
         ]
       },
@@ -16489,6 +16507,15 @@
             "calibration": null,
             "default": false,
             "key": "stampede_guard",
+            "ty": {
+              "type": "bool"
+            },
+            "unit": "none"
+          },
+          {
+            "calibration": null,
+            "default": false,
+            "key": "conditional_writes",
             "ty": {
               "type": "bool"
             },

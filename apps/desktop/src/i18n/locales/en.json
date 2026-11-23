@@ -625,6 +625,7 @@
       "reconnect_jitter_s": "Reconnect jitter",
       "reconnect_backoff_s": "Reconnect backoff",
       "dedup": "Idempotent writes (dedup)",
+      "conditional_writes": "Conditional writes (check and set in one step)",
       "binding": "Provider",
       "serve_stale_s": "Serve stale on error for",
       "stampede_guard": "Coalesce misses (stampede guard)"

@@ -1,0 +1,49 @@
+id = "geo-ip"
+number = 35
+set = 3
+difficulty = "easy"
+title = "Geo-IP Lookup"
+title_es = "Geolocalización por IP"
+teaches = "Serve a small read-only dataset from memory in two Regions, so losing one Region costs a DNS TTL, not the service"
+teaches_es = "Servir un conjunto de datos pequeño y de solo lectura desde memoria en dos regiones, para que perder una cueste un TTL de DNS y no el servicio"
+tags = ["multi-region", "dns", "in-memory", "read-only-data"]
+
+challenge_ratio = 0.75
+[nfr]
+peak_rps = 30000
+p95_ms = 40
+availability = 0.999
+budget_usd = 1800
+
+[[request_types]]
+id = "lookup"
+name = "Look up an IP address"
+name_es = "Consultar una dirección IP"
+share = 1.0
+route = ["edge?", "compute", "cache"]
+key_space = 1000000
+key_skew = { zipf = 0.8 }
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "busy-hour"
+name = "The busiest hour of the week"
+name_es = "La hora más ocupada de la semana"
+hidden = true
+traffic = { spike = { at = 15, x = 2, for = 30 } }
+
+[[tests]]
+id = "region-lost"
+name = "A Region goes dark"
+name_es = "Se apaga una región"
+hidden = true
+duration_s = 120
+chaos = [{ partition = { zone = "us", at = 30 } }]
+pass = { error_rate = 0.08, availability = 0.92, p95_ms = 1000 }
+
+[pass]
+error_rate = 0.001

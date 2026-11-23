@@ -1708,6 +1708,9 @@ pub fn registry() -> Registry {
                 boolean("fencing", false),
                 // S5: idempotent writes (upsert by key): a replayed result isn't a duplicate.
                 boolean("dedup", false),
+                // M9: a write that checks and sets in one statement (a conditional UPDATE, a
+                // condition expression): on a contended key a race is refused cleanly (S7).
+                boolean("conditional_writes", false),
                 // M8: enforced when a problem turns connection limits on.
                 int("max_connections", 1.0, 100_000.0, 1_700.0, Unit::Count),
             ],
@@ -1732,6 +1735,9 @@ pub fn registry() -> Registry {
                 boolean("fencing", false),
                 // S5: idempotent writes (upsert by key): a replayed result isn't a duplicate.
                 boolean("dedup", false),
+                // M9: a write that checks and sets in one statement (a conditional UPDATE, a
+                // condition expression): on a contended key a race is refused cleanly (S7).
+                boolean("conditional_writes", false),
             ],
         ),
         kind(
@@ -1757,6 +1763,9 @@ pub fn registry() -> Registry {
                 // origin fails; and coalesce concurrent misses for one key.
                 int("serve_stale_s", 0.0, 86_400.0, 0.0, Unit::S),
                 boolean("stampede_guard", false),
+                // M9: a write that checks and sets in one statement (a conditional UPDATE, a
+                // condition expression): on a contended key a race is refused cleanly (S7).
+                boolean("conditional_writes", false),
             ],
         ),
         kind(

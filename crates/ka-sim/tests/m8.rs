@@ -1972,3 +1972,70 @@ fn s8d_a_stampede_guard_coalesces_misses_after_a_flush() {
         herd.errors
     );
 }
+
+#[test]
+fn s8d_requests_coalesced_behind_a_stale_answer_get_the_stale_copy_too() {
+    let make = |guard: bool| {
+        let (mut d, s) = weather(&[("ttl_s", 30.0), ("serve_stale_s", 3600.0)], guard);
+        set(&mut d.nodes[1], "call_timeout_ms", PropValue::Number(300.0));
+        (d, s)
+    };
+    let (d, s) = make(false);
+    let alone = run(&d, &s, 144);
+    let (d, s) = make(true);
+    let guarded = run(&d, &s, 144);
+    assert!(
+        guarded.errors <= alone.errors,
+        "waiters must not go to the dead provider: {} vs {}",
+        guarded.errors,
+        alone.errors
+    );
+    assert!(guarded.stale_reads > 0.0);
+}
+
+#[test]
+fn a_restarted_cache_replica_resyncs_from_a_live_member() {
+    let make = |replicated: bool| {
+        let (mut d, mut s) = weather(&[("ttl_s", 600.0)], false);
+        let mut b = d.nodes[2].clone();
+        b.id = "cache-b".into();
+        d.nodes.push(b);
+        if replicated {
+            d.edges.push(edge("cache", "cache-b", Protocol::Replicate));
+        } else {
+            d.edges.push(edge("app", "cache-b", Protocol::Query));
+        }
+        s.chaos = vec![chaos(
+            serde_json::json!({ "kill": { "id": "cache", "at": 20, "for": 5 } }),
+        )];
+        (d, s)
+    };
+    // After the restart (t = 25 s): the seconds before that are the health-check window.
+    let after = |r: &ka_sim::RunResult| -> f64 {
+        r.series
+            .iter()
+            .filter(|x| x.t >= 26)
+            .map(|x| x.errors)
+            .sum()
+    };
+    let (d, s) = make(false);
+    let cold = after(&run(&d, &s, 145));
+    let (d, s) = make(true);
+    let warm = after(&run(&d, &s, 145));
+    assert!(
+        warm < cold / 3.0,
+        "a replica comes back with its member's copy: {warm} vs {cold}"
+    );
+}
+
+#[test]
+fn conditional_writes_on_the_store_make_a_contended_write_atomic() {
+    let (mut d, s) = booking(&["compute", "datastore", "datastore:write"], false);
+    set(&mut d.nodes[2], "conditional_writes", PropValue::Bool(true));
+    let r = run(&d, &s, 41);
+    assert_eq!(r.conflicts, 0.0, "the store refuses the race's loser");
+    assert!(
+        r.error_rate < 0.01,
+        "a refused race is an answer, not an error"
+    );
+}

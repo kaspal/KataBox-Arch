@@ -1,0 +1,196 @@
+{
+  "schema_version": 4,
+  "id": "geo-ip-ref",
+  "name": "Geo-IP lookup (reference)",
+  "problem_id": "geo-ip",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "dns",
+      "kind": "dns",
+      "flavour": "route53",
+      "label": "dns",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {
+        "ttl_s": 30
+      },
+      "group_id": null
+    },
+    {
+      "id": "lb-us",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb-us",
+      "position": {
+        "x": 304,
+        "y": 112
+      },
+      "props": {},
+      "group_id": "us"
+    },
+    {
+      "id": "app-us",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app-us",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 6
+      },
+      "group_id": "us"
+    },
+    {
+      "id": "cache-us",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "cache-us",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "memory_gb": 2,
+        "ttl_s": 0
+      },
+      "group_id": "us"
+    },
+    {
+      "id": "lb-eu",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb-eu",
+      "position": {
+        "x": 304,
+        "y": 224
+      },
+      "props": {},
+      "group_id": "eu"
+    },
+    {
+      "id": "app-eu",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app-eu",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "instances": 6
+      },
+      "group_id": "eu"
+    },
+    {
+      "id": "cache-eu",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "cache-eu",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {
+        "memory_gb": 2,
+        "ttl_s": 0
+      },
+      "group_id": "eu"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-dns-http",
+      "from": "client",
+      "to": "dns",
+      "protocol": "http"
+    },
+    {
+      "id": "e-dns-lb-us-http",
+      "from": "dns",
+      "to": "lb-us",
+      "protocol": "http"
+    },
+    {
+      "id": "e-dns-lb-eu-http",
+      "from": "dns",
+      "to": "lb-eu",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-us-app-us-http",
+      "from": "lb-us",
+      "to": "app-us",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-eu-app-eu-http",
+      "from": "lb-eu",
+      "to": "app-eu",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-us-cache-us-query",
+      "from": "app-us",
+      "to": "cache-us",
+      "protocol": "query"
+    },
+    {
+      "id": "e-app-eu-cache-eu-query",
+      "from": "app-eu",
+      "to": "cache-eu",
+      "protocol": "query"
+    }
+  ],
+  "groups": [
+    {
+      "id": "us",
+      "kind": "region",
+      "label": "us-east",
+      "position": {
+        "x": 280,
+        "y": -40
+      },
+      "size": {
+        "w": 1168,
+        "h": 240
+      },
+      "parent_id": null
+    },
+    {
+      "id": "eu",
+      "kind": "region",
+      "label": "eu-west",
+      "position": {
+        "x": 280,
+        "y": 72
+      },
+      "size": {
+        "w": 1168,
+        "h": 240
+      },
+      "parent_id": null
+    }
+  ],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

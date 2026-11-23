@@ -1647,8 +1647,9 @@ impl Engine {
     }
 
     /// S8d: the leading miss for a key ended. Filled: the waiting requests are answered from
-    /// the cache. Failed: they go to the origin themselves.
-    fn wake_coalesced(&mut self, r: u32, node: u32, filled: bool) {
+    /// the cache. Stale: the origin failed and the leader was answered from an expired copy,
+    /// so they are too. Failed: they go to the origin themselves.
+    fn wake_coalesced(&mut self, r: u32, node: u32, filled: bool, stale: bool) {
         if !std::mem::take(&mut self.reqs[r as usize].leads) || node == NONE {
             return;
         }
@@ -1664,8 +1665,11 @@ impl Engine {
                 self.maybe_free(x);
                 continue;
             }
-            if filled {
+            if filled || stale {
                 self.reads += w;
+                if stale {
+                    self.stale_reads += w;
+                }
                 let q = &mut self.reqs[x as usize];
                 q.hit_end = true;
                 q.fill_cache = NONE;
@@ -2065,7 +2069,8 @@ impl Engine {
             q.call_write = writes;
             q.call_aside = aside;
             q.call_lock = lock;
-            q.call_atomic = atomic;
+            q.call_atomic =
+                atomic || (writes && self.c.nodes[node as usize].spec.conditional_writes);
             q.shadow = shadow && !lock;
             if q.contended && q.read_at == u64::MAX {
                 q.read_at = now;
@@ -2174,7 +2179,7 @@ impl Engine {
             self.reads += w;
             self.stale_reads += w;
             let fc = std::mem::replace(&mut self.reqs[r as usize].fill_cache, NONE);
-            self.wake_coalesced(r, fc, false);
+            self.wake_coalesced(r, fc, false, true);
             self.reqs[r as usize].hit_end = true;
             self.run_calls(r);
             return;
@@ -2409,7 +2414,7 @@ impl Engine {
                 if fill_cache != NONE {
                     self.fill(fill_cache, ty, key);
                     self.reqs[r as usize].fill_cache = NONE;
-                    self.wake_coalesced(r, fill_cache, true);
+                    self.wake_coalesced(r, fill_cache, true, false);
                 }
             }
             _ => {}
@@ -2446,7 +2451,7 @@ impl Engine {
             let (ty, key) = (self.reqs[r as usize].ty as usize, self.reqs[r as usize].key);
             self.fill(fc, ty, key);
             self.reqs[r as usize].fill_cache = NONE;
-            self.wake_coalesced(r, fc, true);
+            self.wake_coalesced(r, fc, true, false);
         }
         let caller = self.reqs[r as usize].caller;
         if caller != NONE && self.nodes[caller as usize].down {
@@ -2978,7 +2983,7 @@ impl Engine {
         self.end_call(r, false);
         if self.reqs[r as usize].leads {
             let fc = self.reqs[r as usize].fill_cache;
-            self.wake_coalesced(r, fc, false);
+            self.wake_coalesced(r, fc, false, false);
         }
         if self.reqs[r as usize].job != NO_JOB && !self.reqs[r as usize].dead {
             self.job_task_failed(r);
@@ -3790,7 +3795,9 @@ impl Engine {
             } else {
                 1.0
             };
-            let target = def.connected * mult * ramp;
+            // The traffic curve scales what connections receive (pushes), not how many
+            // clients there are: a goal is a burst of messages, not ten times the fans (M9).
+            let target = def.connected * ramp;
             if tick == 0 && def.ramp_s <= 0.0 {
                 // `ramp_s = 0`: the clients are connected from the start, as far as the
                 // holders can hold them (spread evenly; the rest connect as usual).
@@ -4488,14 +4495,37 @@ impl Engine {
         }
     }
 
-    /// A card comes back. A cache comes back empty.
+    /// A card comes back. A cache comes back empty, unless it is a member of a replicated
+    /// cache cluster with a live member: then it resyncs that member's copy (a Redis replica's
+    /// full sync), and keys expire as they would have.
     fn revive(&mut self, n: u32) {
         if !self.nodes[n as usize].down {
             return;
         }
         self.nodes[n as usize].down = false;
         if self.caches[n as usize].is_some() {
-            self.flush(n);
+            let source = self.c.cluster_of[n as usize].and_then(|cl| {
+                self.c.clusters[cl as usize]
+                    .members
+                    .iter()
+                    .copied()
+                    .find(|&m| {
+                        m != n && !self.nodes[m as usize].down && self.caches[m as usize].is_some()
+                    })
+            });
+            match source {
+                Some(m) => {
+                    let (fills, flushed_at, seen) = {
+                        let c = self.caches[m as usize].as_ref().expect("cache state");
+                        (c.fills.clone(), c.flushed_at, c.seen)
+                    };
+                    let cache = self.caches[n as usize].as_mut().expect("cache state");
+                    cache.fills = fills;
+                    cache.flushed_at = flushed_at;
+                    cache.seen = seen;
+                }
+                None => self.flush(n),
+            }
         }
         for b in self.c.feeds[n as usize].clone() {
             self.try_dispatch(b);

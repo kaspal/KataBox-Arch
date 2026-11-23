@@ -625,6 +625,7 @@
       "reconnect_jitter_s": "Variación al reconectar",
       "reconnect_backoff_s": "Espera al reconectar",
       "dedup": "Escrituras idempotentes (dedup)",
+      "conditional_writes": "Escrituras condicionales (comprobar y escribir en un paso)",
       "binding": "Proveedor",
       "serve_stale_s": "Servir caducado ante error durante",
       "stampede_guard": "Agrupar fallos (protección de estampida)"

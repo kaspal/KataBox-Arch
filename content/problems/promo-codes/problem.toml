@@ -1,0 +1,57 @@
+id = "promo-codes"
+number = 34
+set = 3
+difficulty = "easy"
+title = "Promo Codes"
+title_es = "Códigos promocionales"
+teaches = "Cache the code lookups, make the limited redeem a conditional write, and keep a replica ready for the primary's failure"
+teaches_es = "Cachear la consulta de códigos, hacer del canje limitado una escritura condicional y tener una réplica lista para cuando falle la primaria"
+tags = ["caching", "races", "failover", "read-heavy"]
+
+[nfr]
+peak_rps = 2000
+p95_ms = 100
+availability = 0.999
+budget_usd = 1300
+
+[[request_types]]
+id = "validate"
+name = "Check a code at checkout"
+name_es = "Comprobar un código al pagar"
+share = 0.95
+route = ["edge?", "compute", "cache?", "datastore"]
+key_space = 5000
+key_skew = { zipf = 1.0 }
+
+[[request_types]]
+id = "redeem"
+name = "Redeem a code with limited uses"
+name_es = "Canjear un código de usos limitados"
+share = 0.05
+route = ["edge?", "compute", "datastore", "datastore:write"]
+key_space = 5000
+contended = { keys = 1, share = 0.3 }
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "influencer"
+name = "An influencer shares a code"
+name_es = "Una influencer comparte un código"
+hidden = true
+traffic = { spike = { at = 15, x = 6, for = 30 } }
+pass = { conflicts = 0 }
+
+[[tests]]
+id = "db-failover"
+name = "The database primary fails"
+name_es = "Falla la primaria de la base de datos"
+hidden = true
+chaos = [{ kill = { kind = "sql", role = "primary", at = 20 } }]
+pass = { error_rate = 0.02, availability = 0.98 }
+
+[pass]
+error_rate = 0.01

@@ -33,6 +33,8 @@ items = [
   "concept:cdn",
   "problem:static-site-cdn",
   "problem:pastebin",
+  "problem:comments",
+  "problem:promo-codes",
 ]
 
 [[path]]
@@ -69,6 +71,7 @@ items = [
   "pattern:outbox",
   "pattern:backpressure",
   "problem:news-feed",
+  "problem:password-reset",
 ]
 
 [[path]]
@@ -100,6 +103,7 @@ items = [
   "problem:ad-clicks",
   "problem:leaderboard",
   "problem:ride-sharing",
+  "problem:hotel-booking",
 ]
 
 [[path]]
@@ -129,6 +133,8 @@ items = [
   "guide:logs",
   "guide:tracing",
   "problem:flash-sale",
+  "problem:weather-proxy",
+  "problem:geo-ip",
 ]
 
 [[path]]
@@ -154,4 +160,6 @@ items = [
   "problem:ride-sharing",
   "problem:flash-sale",
   "problem:exchange",
+  "guide:ws",
+  "problem:live-scores",
 ]

@@ -1,0 +1,34 @@
+# Estimation drills for Comment Threads.
+
+[[drill]]
+id = "viral-hot-key"
+kind = "qps"
+prompt = "On a normal evening, {peak_rps} requests a second reach your comment threads. A story goes viral and traffic grows {spike_x} times, and the top thread now gets {top_share} of all requests. How many requests a second hit that one thread?"
+prompt_es = "En una tarde normal llegan {peak_rps} peticiones por segundo a tus hilos de comentarios. Una noticia se hace viral, el tráfico se multiplica por {spike_x} y el hilo más popular se lleva ahora {top_share} de todas las peticiones. ¿Cuántas peticiones por segundo llegan a ese único hilo?"
+inputs = { peak_rps = 6000, spike_x = 3, top_share = 0.32 }
+formula = "peak_rps * spike_x * top_share"
+unit = "rps"
+solution = "{peak_rps} × {spike_x} = 18,000 requests a second, and 32% of them go to one thread: {answer} a second for a single key. A partitioned store keeps that key on one partition, so no number of partitions shares it out. A cache answers it from memory instead."
+solution_es = "{peak_rps} × {spike_x} = 18 000 peticiones por segundo, y el 32 % va a un hilo: {answer} por segundo para una sola clave. Un almacén particionado guarda esa clave en una partición, así que ningún número de particiones la reparte. Una caché la responde desde memoria."
+
+[[drill]]
+id = "hot-partition"
+kind = "qps"
+prompt = "During the viral spike, {total_rps} requests a second reach a Cassandra with {partitions} partitions and no cache in front. The viral thread gets {hot_rps} of them, and the rest spread evenly. How many requests a second reach the partition that holds the viral thread?"
+prompt_es = "Durante el pico viral llegan {total_rps} peticiones por segundo a un Cassandra con {partitions} particiones y sin caché delante. El hilo viral se lleva {hot_rps} de ellas, y el resto se reparte por igual. ¿Cuántas peticiones por segundo llegan a la partición que guarda el hilo viral?"
+inputs = { total_rps = 18000, hot_rps = 5800, partitions = 2 }
+formula = "hot_rps + (total_rps - hot_rps) / partitions"
+unit = "rps"
+solution = "The viral thread's {hot_rps} all go to its own partition, plus its share of the other {total_rps} − {hot_rps}: {answer} a second, about twice what the other partition gets. More partitions shrink only the second part; the {hot_rps} stay on one machine."
+solution_es = "Las {hot_rps} del hilo viral van todas a su partición, más su parte de las otras {total_rps} − {hot_rps}: {answer} por segundo, más o menos el doble de lo que recibe la otra partición. Más particiones solo encogen la segunda parte; las {hot_rps} siguen en una máquina."
+
+[[drill]]
+id = "hot-thread-comments"
+kind = "qps"
+prompt = "During the viral spike, {total_rps} requests a second arrive, {write_share} of them are new comments, and the viral thread gets {top_share} of the comments too. How many comments a second does that one thread get?"
+prompt_es = "Durante el pico viral llegan {total_rps} peticiones por segundo, {write_share} de ellas son comentarios nuevos, y el hilo viral se lleva también {top_share} de los comentarios. ¿Cuántos comentarios por segundo recibe ese hilo?"
+inputs = { total_rps = 18000, write_share = 0.04, top_share = 0.32 }
+formula = "total_rps * write_share * top_share"
+unit = "rps"
+solution = "{total_rps} × 4% × 32% ≈ {answer} comments a second on one thread. Each one is written to Cassandra and then refreshes the cache, so between those two steps a read can get the old copy. That is why the reference's stale reads rise during the viral test, while its errors stay at zero."
+solution_es = "{total_rps} × 4 % × 32 % ≈ {answer} comentarios por segundo en un hilo. Cada uno se escribe en Cassandra y después refresca la caché, así que entre esos dos pasos una lectura puede recibir la copia vieja. Por eso suben las lecturas obsoletas de la referencia en la prueba viral, mientras sus errores siguen en cero."

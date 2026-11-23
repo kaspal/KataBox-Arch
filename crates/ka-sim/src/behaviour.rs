@@ -148,6 +148,8 @@ pub struct NodeSpec {
     pub checkpoint_us: u64,
     pub state_kb: f64,
     pub dedup: bool,
+    /// M9 `conditional_writes`: writes to this card commit atomically on contended keys.
+    pub conditional_writes: bool,
     /// S6 warehouses: scan rate per query, overhead per query, the result cache and the
     /// auto-suspend tail; lake tables: file size, partitioning (0 none, 1 day, 2 hour) and
     /// compaction.
@@ -395,6 +397,10 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         checkpoint_us: (n("checkpoint_s").unwrap_or(60.0).max(1.0) * 1e6) as u64,
         state_kb: n("state_kb").unwrap_or(1.0).max(0.0),
         dedup: matches!(prop(registry, node, "dedup"), Some(PropValue::Bool(true))),
+        conditional_writes: matches!(
+            prop(registry, node, "conditional_writes"),
+            Some(PropValue::Bool(true))
+        ),
         scan_gbps: n("scan_gbps").unwrap_or(0.5).max(1e-6),
         overhead_ms: n("overhead_ms").unwrap_or(0.0).max(0.0),
         result_cache: matches!(

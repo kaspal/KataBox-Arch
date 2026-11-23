@@ -1,0 +1,59 @@
+id = "comments"
+number = 32
+set = 3
+difficulty = "easy"
+title = "Comment Threads"
+title_es = "Hilos de comentarios"
+teaches = "Put a cache in front of a sharded store so a viral thread doesn't melt the one shard that holds it"
+teaches_es = "Poner una caché delante de un almacén particionado para que un hilo viral no funda la partición que lo guarda"
+tags = ["caching", "hot-keys", "sharding", "read-heavy"]
+
+challenge_ratio = 0.8
+[nfr]
+peak_rps = 6000
+p95_ms = 60
+availability = 0.999
+budget_usd = 1200
+
+[[request_types]]
+id = "read"
+name = "Load a thread's comments"
+name_es = "Cargar los comentarios de un hilo"
+share = 0.96
+route = ["edge?", "compute", "cache?", "datastore"]
+key_space = 100000
+key_skew = { zipf = 0.9 }
+
+[[request_types]]
+id = "write"
+name = "Post a comment"
+name_es = "Publicar un comentario"
+share = 0.04
+route = ["edge?", "compute", "datastore:write", "cache:write?"]
+key_space = 100000
+key_skew = { zipf = 0.9 }
+
+[[tests]]
+id = "normal"
+name = "A normal evening"
+name_es = "Una tarde normal"
+
+[[tests]]
+id = "viral"
+name = "One thread goes viral"
+name_es = "Un hilo se hace viral"
+hidden = true
+traffic = { spike = { at = 15, x = 3, for = 30 } }
+key_skew_override = { zipf = 1.4 }
+
+[[tests]]
+id = "flush"
+name = "The cache is flushed on a busy evening"
+name_es = "Se vacía la caché en una tarde con mucho tráfico"
+hidden = true
+traffic = { flat = 2 }
+key_skew_override = { zipf = 1.2 }
+chaos = [{ flush = { kind = "cache", at = 20 } }]
+
+[pass]
+error_rate = 0.01

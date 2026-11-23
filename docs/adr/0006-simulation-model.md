@@ -445,7 +445,19 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
     plus this window, a failed origin call (error, timeout, 429) answers from that copy, counted as a stale read.
     The request still waits for the failure, so it goes with a short call timeout.
   - `stampede_guard` (request coalescing): while a miss for a key is in flight, later misses for the same key wait
-    for its answer and are served from the fill; if it fails, they go to the origin themselves.
+    for its answer and are served from the fill; if it fails and the leader is answered from an expired copy
+    (`serve_stale_s`), they are answered from it too; if it fails outright, they go to the origin themselves.
+  - A cache in a replicated cache cluster (cache cards joined by Replicate) that comes back after a kill resyncs
+    a live member's copy (a Redis replica's full sync) instead of coming back empty; keys expire as they would
+    have. With no live member it still comes back empty (M9 Set 3 #31).
+- **Connection types and the traffic curve (M9).** For a `kind = "connection"` type, a test's traffic curve
+  scales the pushes each connection receives (a goal is a burst of messages), not the number of connected clients;
+  clients joining over time is `ramp_s`. Before M9 the curve scaled both (no shipped content relied on it).
+- **`conditional_writes` (M9).** SQL, NoSQL and Cache cards have a `conditional_writes` prop: the application
+  writes with a check-and-set in one statement (`UPDATE … WHERE used = false`, a DynamoDB condition expression, a
+  Redis `SET NX`). A write to such a card on a contended key behaves like a `datastore:write:atomic` step: a race
+  is refused cleanly instead of counting as a conflict. It is how a design (not only a route) makes the write
+  atomic (Set 3 #33, #34).
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE

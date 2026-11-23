@@ -1,0 +1,65 @@
+id = "password-reset"
+number = 33
+set = 3
+difficulty = "easy"
+title = "Password Reset"
+title_es = "Restablecer la contraseña"
+teaches = "Send the email from a queue with retries so a provider outage only delays it, and redeem a one-time token with a conditional write so it works exactly once"
+teaches_es = "Enviar el correo desde una cola con reintentos para que una caída del proveedor solo lo retrase, y canjear un token de un solo uso con una escritura condicional para que funcione exactamente una vez"
+tags = ["queues", "external-providers", "idempotency", "races"]
+
+[nfr]
+peak_rps = 400
+p95_ms = 1000
+availability = 0.999
+budget_usd = 1300
+
+[[externals]]
+name = "email"
+median_ms = 150
+p99_ms = 800
+rate_limit = 600
+
+[[request_types]]
+id = "request"
+name = "Ask for a reset link"
+name_es = "Pedir un enlace de restablecimiento"
+share = 0.7
+route = ["edge?", "compute", "datastore:write", "broker?", "worker", "external:email"]
+key_space = 1000000
+measure = "completion"
+
+[[request_types]]
+id = "redeem"
+name = "Open the link and set a new password"
+name_es = "Abrir el enlace y poner una contraseña nueva"
+share = 0.3
+route = ["edge?", "compute", "datastore", "datastore:write"]
+key_space = 1000000
+contended = { keys = 20, share = 0.1 }
+
+[[tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[tests]]
+id = "email-down"
+name = "The email provider is down for 30 s"
+name_es = "El proveedor de correo cae durante 30 s"
+hidden = true
+duration_s = 120
+chaos = [{ external = { name = "email", at = 20, for = 30, down = true } }]
+pass = { p95_ms = 60000 }
+
+[[tests]]
+id = "link-scanners"
+name = "Mail scanners open every link twice"
+name_es = "Los escáneres de correo abren cada enlace dos veces"
+hidden = true
+type_multipliers = { redeem = 4 }
+pass = { conflicts = 0 }
+
+[pass]
+error_rate = 0.01
+lost = 0

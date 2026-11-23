@@ -1,0 +1,59 @@
+id = "hotel-booking"
+number = 36
+set = 3
+difficulty = "medium"
+title = "Hotel Booking"
+title_es = "Reservas de hotel"
+teaches = "Cache searches so one popular query doesn't pin a search shard, and book with a conditional write so the last room is sold once"
+teaches_es = "Cachear las búsquedas para que una consulta popular no sature una partición de búsqueda, y reservar con una escritura condicional para que la última habitación se venda una sola vez"
+tags = ["caching", "search", "hot-keys", "races"]
+# Double bookings need every booking simulated: run the last-room test (5,700 req/s) unsampled.
+sample_cap = 8000
+
+challenge_ratio = 0.7
+[nfr]
+peak_rps = 5000
+p95_ms = 200
+availability = 0.999
+budget_usd = 2000
+
+[[request_types]]
+id = "search"
+name = "Search hotels for some dates"
+name_es = "Buscar hoteles para unas fechas"
+share = 0.98
+route = ["edge?", "compute", "cache?", "datastore:search"]
+key_space = 200000
+key_skew = { zipf = 1.0 }
+
+[[request_types]]
+id = "book"
+name = "Book a room"
+name_es = "Reservar una habitación"
+share = 0.02
+route = ["edge?", "compute", "datastore:sql", "datastore:write:sql"]
+key_space = 500000
+contended = { keys = 10, share = 0.2 }
+
+[[tests]]
+id = "normal"
+name = "A normal week"
+name_es = "Una semana normal"
+
+[[tests]]
+id = "holiday"
+name = "Holiday bookings open"
+name_es = "Se abren las reservas de vacaciones"
+hidden = true
+traffic = { spike = { at = 15, x = 3, for = 30 } }
+
+[[tests]]
+id = "last-room"
+name = "Everyone wants the last room"
+name_es = "Todos quieren la última habitación"
+hidden = true
+type_multipliers = { book = 8 }
+pass = { conflicts = 0 }
+
+[pass]
+error_rate = 0.01

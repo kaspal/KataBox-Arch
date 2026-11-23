@@ -22,7 +22,7 @@ const USAGE: &str = "usage:
   ka-pack validate [--run [--verbose]] [--problems a,b] [--kind problems|samples|guide|practice] [--content DIR]
   ka-pack build --out FILE [--content DIR]
   ka-pack pack HEAD.toml --problems a,b --out FILE.kbpack [--content DIR]
-  ka-pack try --problems a,b         judge the designs only (tuning drafts; not a check)
+  ka-pack try --problems a,b [seconds]   judge the designs only (tuning drafts; not a check)
   ka-pack migrate [--content DIR]   rewrite every .kbarch in the current format
   ka-pack challenge [--problems a,b] [--write] [--evals N]   search half-cost proofs (M8.5)";
 
@@ -254,6 +254,44 @@ fn main() -> ExitCode {
                             .collect::<Vec<_>>()
                             .join(", ");
                         println!("  {name} cards ({}): {cards}", t.id);
+                    }
+                }
+            }
+            // `try --problems a seconds`: every test's seconds with errors (or over the p95).
+            if args.rest.iter().any(|a| a == "seconds") {
+                for p in &problems {
+                    for t in &p.def.tests {
+                        for (name, d) in [("reference", &p.reference), ("naive", &p.naive)] {
+                            let Ok(r) = ka_judge::run_test(&p.def, t, d, &registry) else {
+                                continue;
+                            };
+                            let bad = r
+                                .series
+                                .iter()
+                                .filter(|s| s.errors > 0.0 || s.p95_ms > p.def.nfr.p95_ms)
+                                .map(|s| {
+                                    format!(
+                                        "{}:{:.0}e/{:.0}ms",
+                                        s.t,
+                                        100.0 * s.errors / s.requests.max(1.0),
+                                        s.p95_ms
+                                    )
+                                })
+                                .collect::<Vec<_>>()
+                                .join(" ");
+                            println!(
+                                "  {name} {} seconds (error %/p95): {bad}{}",
+                                t.id,
+                                if r.conflicts > 0.0 || r.duplicates > 0.0 {
+                                    format!(
+                                        " | conflicts {:.0}, duplicates {:.0}",
+                                        r.conflicts, r.duplicates
+                                    )
+                                } else {
+                                    String::new()
+                                }
+                            );
+                        }
                     }
                 }
             }
