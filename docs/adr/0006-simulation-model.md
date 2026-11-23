@@ -350,6 +350,12 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
   - Usage meters bill tokens (`tokens_in_m`, `tokens_out_m` per million), halved with `api_mode = batch`; the
     batch API also skips the per-minute limits. Its delivery window isn't simulated. Connection-minutes and pushed
     messages (S1) bill through the same meters.
+- **Semantic cache (S3, golden g).** A cache with `mode = semantic` on a `cache?` step answers a request with
+  probability `semantic_repeat_share` × fill × capacity: the request type declares how many requests are
+  near-repeats; fill = 1 − e^(−seen ÷ distinct), with `seen` the lookups since the cache was last emptied and
+  `distinct` the type's `key_space`; capacity = min(1, entries that fit (`memory_gb ÷ value_kb`) ÷ distinct). A
+  warm cache starts full; a flush or restart empties it. Each lookup adds 15 ms (an embedding and an ANN search; a
+  modelling choice). The design can't raise the hit rate above what the traffic declares.
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE

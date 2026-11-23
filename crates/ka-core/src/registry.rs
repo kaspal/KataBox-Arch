@@ -1530,6 +1530,9 @@ pub fn registry() -> Registry {
                 boolean("persistence", false),
                 service_ms(0.01),
                 int("failover_s", 1.0, 600.0, 15.0, Unit::S),
+                // S3: `semantic` answers near-repeat questions (an embedding lookup); its hit
+                // rate comes from the traffic, never from the design.
+                choice("mode", &["exact", "semantic"], "exact"),
             ],
         ),
         kind(

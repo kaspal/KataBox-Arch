@@ -73,6 +73,10 @@ pub struct RequestType {
     pub tokens_in: Option<Tokens>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tokens_out: Option<Tokens>,
+    /// S3: the share of these requests that are near-repeats of an earlier one (what a
+    /// semantic cache can answer). The traffic declares it; a design can't raise it.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub semantic_repeat_share: f64,
 }
 
 /// S2: a token count's mean and 95th percentile.

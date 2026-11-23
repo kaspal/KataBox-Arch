@@ -1091,3 +1091,83 @@ fn golden_f_token_requests() {
     );
     golden("f2", &run(&d, &s, 42));
 }
+
+// --- S3: semantic cache --------------------------------------------------------------------
+
+/// client → app → semantic cache (aside) → hosted model; the cache is flushed at 20 s.
+fn faq(mode: &str, share: f64) -> (Design, Scenario) {
+    let mut cache = node("cache", K::Cache, Flavour::Redis, &[("memory_gb", 4.0)]);
+    set(&mut cache, "mode", PropValue::Text(mode.into()));
+    let d = design(
+        vec![
+            node("client", K::Client, Flavour::Web, &[]),
+            node("app", K::App, Flavour::Go, &[]),
+            cache,
+            node("llm", K::Infer, Flavour::ClaudeApi, &[]),
+        ],
+        vec![
+            edge("client", "app", Protocol::Http),
+            edge("app", "cache", Protocol::Query),
+            edge("app", "llm", Protocol::Http),
+        ],
+    );
+    let mut t = chat_type(400.0, 200.0);
+    t.route = vec!["compute".into(), "cache?".into(), "model".into()];
+    t.semantic_repeat_share = share;
+    t.key_space = 20_000;
+    let mut s = scenario(20.0, 60.0, vec![t]);
+    s.chaos = vec![chaos(
+        serde_json::json!({ "flush": { "id": "cache", "at": 20 } }),
+    )];
+    (d, s)
+}
+
+#[test]
+fn s3_a_semantic_cache_answers_repeats_and_cuts_model_cost() {
+    let warm = |mode: &str, share: f64| {
+        let (d, mut s) = faq(mode, share);
+        s.chaos.clear();
+        (d, s)
+    };
+    let (d, s) = warm("exact", 0.6);
+    let exact = run(&d, &s, 71);
+    let (d, s) = warm("semantic", 0.6);
+    let semantic = run(&d, &s, 71);
+    let served = |r: &RunResult| r.nodes.iter().find(|n| n.id == "llm").unwrap().served;
+    assert!(
+        served(&semantic) < served(&exact) * 0.6,
+        "{} vs {}",
+        served(&semantic),
+        served(&exact)
+    );
+    assert!(semantic.latency.p50_ms < exact.latency.p50_ms);
+    // The traffic sets the ceiling: no repeats, no hits.
+    let (d, s) = warm("semantic", 0.0);
+    let none = run(&d, &s, 71);
+    assert!(
+        served(&none) >= served(&exact) * 0.95,
+        "{} vs {}",
+        served(&none),
+        served(&exact)
+    );
+}
+
+/// After a flush a semantic cache must see the questions again before it hits.
+#[test]
+fn s3_a_flushed_semantic_cache_refills_slowly() {
+    let (d, s) = faq("semantic", 0.6);
+    let r = run(&d, &s, 72);
+    let llm = r.nodes.iter().find(|n| n.id == "llm").unwrap();
+    let before: f64 = llm.util_series[10..20].iter().sum();
+    let after: f64 = llm.util_series[21..31].iter().sum();
+    assert!(
+        after > before * 1.3,
+        "the model takes the load after the flush: {after} vs {before}"
+    );
+}
+
+#[test]
+fn golden_g_semantic_cache() {
+    let (d, s) = faq("semantic", 0.6);
+    golden("g", &run(&d, &s, 42));
+}

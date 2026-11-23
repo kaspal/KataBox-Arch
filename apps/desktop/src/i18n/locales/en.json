@@ -607,7 +607,9 @@
       "full": "Full (random wait)",
       "failover": "Failover (first healthy)",
       "manual": "Only when the primary dies",
-      "auto": "Automatic (risks split-brain)"
+      "auto": "Automatic (risks split-brain)",
+      "exact": "Exact keys",
+      "semantic": "Semantic (near-repeats)"
     }
   },
   "units": {

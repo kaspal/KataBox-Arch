@@ -15552,6 +15552,19 @@
               "type": "int"
             },
             "unit": "s"
+          },
+          {
+            "calibration": null,
+            "default": "exact",
+            "key": "mode",
+            "ty": {
+              "options": [
+                "exact",
+                "semantic"
+              ],
+              "type": "choice"
+            },
+            "unit": "none"
           }
         ]
       },

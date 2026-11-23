@@ -129,6 +129,8 @@ pub struct NodeSpec {
     pub rpm: f64,
     pub tpm: f64,
     pub batch_api: bool,
+    /// S3: a semantic cache (`mode = semantic`).
+    pub semantic: bool,
 }
 
 /// The value of `key` for `node`: the card's prop, else its flavour override, else the
@@ -299,5 +301,7 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         rpm: n("rpm").unwrap_or(f64::INFINITY),
         tpm: n("tpm").unwrap_or(f64::INFINITY),
         batch_api: text(registry, node, "api_mode").as_deref() == Some("batch"),
+        semantic: text(registry, node, "mode").as_deref() == Some("semantic")
+            && node.kind == K::Cache,
     }
 }

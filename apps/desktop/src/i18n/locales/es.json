@@ -607,7 +607,9 @@
       "full": "Completa (espera aleatoria)",
       "failover": "Conmutación (el primero sano)",
       "manual": "Solo si el primario cae",
-      "auto": "Automática (riesgo de cerebro dividido)"
+      "auto": "Automática (riesgo de cerebro dividido)",
+      "exact": "Claves exactas",
+      "semantic": "Semántica (casi repetidas)"
     }
   },
   "units": {

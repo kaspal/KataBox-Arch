@@ -285,6 +285,8 @@ struct CacheRt {
     fills: Vec<Vec<i64>>,
     /// When the cache was last emptied (a flush, or coming back after a kill).
     flushed_at: Option<u64>,
+    /// S3: questions a semantic cache has seen since it was last emptied (its fill).
+    seen: f64,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -417,6 +419,9 @@ struct ConnRt {
     pending: f64,
     min_share: Vec<f64>,
 }
+
+/// S3: what one semantic-cache lookup adds (an embedding and an ANN search; model).
+const SEMANTIC_LOOKUP_MS: f64 = 15.0;
 
 /// S1: the connection model's step and its reconnect horizon (2 minutes of slots).
 const CONN_TICK_US: u64 = 100_000;
@@ -569,6 +574,7 @@ impl Engine {
                     matches!(n.kind, ComponentKind::Cache | ComponentKind::Cdn).then(|| CacheRt {
                         fills: vec![Vec::new(); c.types.len()],
                         flushed_at: None,
+                        seen: 0.0,
                     })
                 })
                 .collect(),
@@ -1335,6 +1341,10 @@ impl Engine {
         if q.seg >= 1 {
             median *= q.units;
         }
+        if n.spec.semantic {
+            // S3: an embedding plus a nearest-neighbour lookup (a modelling choice).
+            median += SEMANTIC_LOOKUP_MS;
+        }
         let ratio = n.spec.p99_ratio;
         let stretch = self.nodes[node as usize].stretch;
         let cold = n.spec.cold_start_ms;
@@ -1348,6 +1358,32 @@ impl Engine {
             }
         }
         (us as u64).max(1) + self.nodes[node as usize].add_us
+    }
+
+    /// S3: a semantic cache answers a near-repeat once it has seen the question: hit
+    /// probability = `semantic_repeat_share` × fill × capacity, where fill = 1 − e^(−seen ÷
+    /// distinct questions) (questions seen since the cache was last emptied) and capacity =
+    /// min(1, entries that fit ÷ distinct questions). A warm cache starts full.
+    fn semantic_hit(&mut self, node: u32, ty: usize) -> bool {
+        let def = &self.c.types[ty].def;
+        let (share, distinct, value_kb) = (
+            def.semantic_repeat_share,
+            def.key_space.max(1) as f64,
+            def.value_kb,
+        );
+        let memory = self.c.nodes[node as usize].spec.memory_gb;
+        let w = self.c.weight;
+        let cold = self.c.scenario.cold_caches;
+        let Some(cache) = self.caches[node as usize].as_mut() else {
+            return false;
+        };
+        if cache.flushed_at.is_none() && !cold && cache.seen == 0.0 {
+            cache.seen = distinct * 10.0;
+        }
+        let fill = 1.0 - detmath::exp(-cache.seen / distinct);
+        cache.seen += w;
+        let capacity = (memory * 1024.0 * 1024.0 / value_kb.max(1e-9) / distinct).min(1.0);
+        self.rng_s8.uniform() < share * fill * capacity
     }
 
     /// S2: the request's tokens, drawn once (lognormal from the mean and 95th percentile).
@@ -1945,7 +1981,12 @@ impl Engine {
                 }
             }
             Role::Cache if aside => {
-                if self.cache_hit(node, ty, key) {
+                let hit = if self.c.nodes[node as usize].spec.semantic {
+                    self.semantic_hit(node, ty)
+                } else {
+                    self.cache_hit(node, ty, key)
+                };
+                if hit {
                     // One read, answered by the cache: stale if the key was written after
                     // the cache filled it (cache-aside doesn't invalidate).
                     self.reads += w;
@@ -3570,6 +3611,7 @@ impl Engine {
                 f.clear();
             }
             cache.flushed_at = Some(now);
+            cache.seen = 0.0;
         }
     }
 
