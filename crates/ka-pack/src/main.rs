@@ -227,6 +227,15 @@ fn main() -> ExitCode {
                 Ok(p) => p,
                 Err(issues) => return report(&issues),
             };
+            // M10: `outage--<id>` tries a replay (fix = reference, as it was = naive).
+            if let Ok(outages) = ka_pack::outages::load_outages(&args.content, &registry) {
+                problems.extend(
+                    outages
+                        .iter()
+                        .filter(|o| only.contains(&ka_core::outage::outage_problem_id(&o.def.id)))
+                        .map(ka_pack::problems::ProblemDir::from_outage),
+                );
+            }
             problems.retain(|p| only.contains(&p.def.id));
             // Per card, on the first test: where the money and the load go.
             for p in &problems {

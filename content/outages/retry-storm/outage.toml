@@ -1,0 +1,82 @@
+id = "retry-storm"
+number = 2
+difficulty = "easy"
+title = "The retry storm"
+title_es = "La tormenta de reintentos"
+summary = "A database slowed down for ten seconds, and the clients' instant retries kept it down."
+summary_es = "Una base de datos se volvió lenta diez segundos, y los reintentos inmediatos de los clientes la mantuvieron caída."
+story = "An account service ran on six Go App Servers in front of one PostgreSQL database, comfortably: the database was about a third busy at the evening peak. One evening a disk on the database host slowed every query by 100 ms for ten seconds. The clients had a 500 ms timeout and retried a failed call three times, immediately. Queries piled up, calls timed out, and every timed-out call came back three more times. When the disk recovered ten seconds later, the database was still facing four times its normal load, and it stayed down until people stopped clicking."
+story_es = "Un servicio de cuentas funcionaba con seis App Servers de Go delante de una base de datos PostgreSQL, con holgura: la base de datos estaba ocupada un tercio del tiempo en la hora punta de la tarde. Una tarde, un disco del servidor de la base de datos hizo que cada consulta tardara 100 ms más durante diez segundos. Los clientes tenían un timeout de 500 ms y reintentaban una llamada fallida tres veces, de inmediato. Las consultas se acumularon, las llamadas expiraron, y cada llamada expirada volvía tres veces más. Cuando el disco se recuperó diez segundos después, la base de datos seguía recibiendo cuatro veces su carga normal, y siguió caída hasta que la gente dejó de hacer clic."
+lesson = "Retries are extra load arriving exactly when the system has the least room for it. Instant retries can turn a short slowdown into an outage that outlives its cause: the trigger is gone, but the retries keep the database saturated (a metastable failure). Back off between tries, add jitter so the retries don't arrive together, and cap retries with a budget (here 10% of first tries), so a slowdown costs a few seconds of errors and then ends."
+lesson_es = "Los reintentos son carga extra que llega justo cuando el sistema tiene menos margen. Los reintentos inmediatos pueden convertir una lentitud breve en una caída que dura más que su causa: el disparador desaparece, pero los reintentos mantienen saturada la base de datos (un fallo metaestable). Espera entre intentos, añade jitter para que los reintentos no lleguen juntos y limítalos con un presupuesto (aquí, el 10 % de los primeros intentos), de modo que una lentitud cueste unos segundos de errores y luego termine."
+target_test = "incident"
+kinds = ["client", "sql"]
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "As it was"
+title_es = "Como era"
+caption = "Six App Servers and one PostgreSQL database. On a normal evening the database is about a third busy and answers in well under the 100 ms target."
+caption_es = "Seis App Servers y una base de datos PostgreSQL. En una tarde normal la base de datos está ocupada un tercio del tiempo y responde muy por debajo del objetivo de 100 ms."
+focus = ["client", "db"]
+run = { test = "normal", start_s = 5 }
+callout = { metric = "p95_ms", after = 74.5, target = 100 }
+
+[[step]]
+snapshot = "as_it_was.kbarch"
+title = "The disk slows down"
+title_es = "El disco se vuelve lento"
+caption = "At 15 s every query takes 100 ms longer. Calls start timing out, and each timeout comes back three more times at once. At 25 s the disk is fine again, but the retries keep the database saturated: the errors never stop."
+caption_es = "A los 15 s cada consulta tarda 100 ms más. Las llamadas empiezan a expirar, y cada timeout vuelve tres veces más de golpe. A los 25 s el disco ya está bien, pero los reintentos mantienen saturada la base de datos: los errores no paran."
+focus = ["client", "db"]
+run = { test = "incident", start_s = 12 }
+callout = { metric = "error_rate", after = 0.876 }
+
+[[step]]
+snapshot = "fixed.kbarch"
+title = "Backoff, jitter and a budget"
+title_es = "Espera, jitter y un presupuesto"
+caption = "The same slowdown with retries that wait (200 ms, doubling, with full jitter) and a retry budget of 10% of first tries. The slowdown still costs its ten seconds of errors, but at 25 s everything recovers."
+caption_es = "La misma lentitud con reintentos que esperan (200 ms, el doble cada vez, con jitter completo) y un presupuesto de reintentos del 10 % de los primeros intentos. La lentitud sigue costando sus diez segundos de errores, pero a los 25 s todo se recupera."
+focus = ["client", "db"]
+run = { test = "incident", start_s = 12 }
+callout = { metric = "error_rate", before = 0.876, after = 0.062 }
+
+[scenario.nfr]
+peak_rps = 1500
+p95_ms = 100
+availability = 0.999
+budget_usd = 2000
+
+[[scenario.request_types]]
+id = "read"
+name = "Load an account page"
+name_es = "Cargar la página de una cuenta"
+share = 1.0
+route = ["edge?", "compute", "datastore"]
+key_space = 1000000
+
+[[scenario.tests]]
+id = "incident"
+name = "The database slows down for 10 s"
+name_es = "La base de datos se vuelve lenta durante 10 s"
+duration_s = 150
+chaos = [{ latency = { kind = "sql", at = 15, for = 10, add_ms = 100 } }]
+pass = { recovered_by_s = 35, p95_ms = 2000, error_rate = 0.1, availability = 0.9 }
+
+[[scenario.tests]]
+id = "normal"
+name = "A normal day"
+name_es = "Un día normal"
+
+[[scenario.tests]]
+id = "aftershock"
+name = "It slows down again at a busier hour"
+name_es = "Vuelve a ir lenta en una hora con más tráfico"
+duration_s = 150
+traffic = { flat = 1.5 }
+chaos = [{ latency = { kind = "sql", at = 15, for = 10, add_ms = 100 } }]
+pass = { recovered_by_s = 35, p95_ms = 2000, error_rate = 0.1, availability = 0.9 }
+
+[scenario.pass]
+error_rate = 0.01

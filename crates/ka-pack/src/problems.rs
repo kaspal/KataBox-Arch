@@ -41,6 +41,27 @@ pub struct ProblemDir {
     texts: Vec<(String, String)>,
 }
 
+impl ProblemDir {
+    /// An outage replay seen as a problem for `try` and `challenge`: the fix is the
+    /// reference, the design as it was is the naive one.
+    pub fn from_outage(o: &crate::outages::OutageDir) -> ProblemDir {
+        ProblemDir {
+            dir: o.dir.clone(),
+            def: o.def.problem(),
+            statement_en: String::new(),
+            statement_es: String::new(),
+            hints_en: o.hints_en.clone(),
+            hints_es: o.hints_es.clone(),
+            editorial_en: String::new(),
+            editorial_es: String::new(),
+            reference: o.fixed.clone(),
+            naive: o.as_it_was.clone(),
+            challenge: None,
+            texts: Vec::new(),
+        }
+    }
+}
+
 /// M8.5: the challenge's budget as a share of the reference's cost (0.5 unless the problem
 /// proves a higher one), and the share above which there is no challenge (review ★17).
 pub const CHALLENGE_DEFAULT: f64 = 0.5;
