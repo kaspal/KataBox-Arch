@@ -10,8 +10,9 @@ use crate::registry::{ComponentKind, Flavour};
 use crate::ser_num;
 
 /// The `.kbarch` format version this build writes. Older versions are migrated on open;
-/// newer ones are refused. v3: cards store only the props the user set (ADR 0003).
-pub const SCHEMA_VERSION: u32 = 3;
+/// newer ones are refused. v3: cards store only the props the user set (ADR 0003). v4 (M8):
+/// zones may carry a residency `region_tag` and a service-mesh setting.
+pub const SCHEMA_VERSION: u32 = 4;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
@@ -120,6 +121,32 @@ pub struct Group {
     /// The scaling policy of an Autoscale wrapper (and only of one).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scaling: Option<Scaling>,
+    /// A Region's residency tag (v4, S9), e.g. `eu`: requests that must stay in a region
+    /// check the tags of the stores they touch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub region_tag: Option<String>,
+    /// A service mesh over the cards in this Region or AZ (v4): sidecar latency and the
+    /// mesh's retries, timeouts and circuit breaking.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mesh: Option<Mesh>,
+}
+
+/// A zone's service mesh (v4): the product and its policy props (`registry.mesh_props`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(deny_unknown_fields)]
+pub struct Mesh {
+    pub flavour: MeshFlavour,
+    pub props: BTreeMap<String, PropValue>,
+}
+
+/// Service-mesh products.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(rename_all = "snake_case")]
+pub enum MeshFlavour {
+    Istio,
+    Linkerd,
 }
 
 /// An autoscaling group's policy: the Autoscaling kind's flavour and props (v2).

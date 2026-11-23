@@ -7,6 +7,9 @@
 //! - **Schema 2 (M5.1):** a generic `docs (kind, id, json)` table for the practice content
 //!   (`numbers`, then estimation drills, flaw drills, learning paths, cross-links), so each
 //!   new content type adds rows, not a schema.
+//! - **Schema 3 (M8):** problems gain `track` (`core`, `ai`, `de`) and `challenge_ratio` (the
+//!   "same SLO, half the cost" budget as a share of `ref_cost`; NULL = no challenge). Outage
+//!   replays are `docs` rows of kind `outage`.
 
 use std::path::Path;
 
@@ -16,7 +19,7 @@ use sqlx::{Connection, Row, SqliteConnection};
 
 use crate::{Result, StoreError};
 
-pub const CONTENT_SCHEMA: i64 = 2;
+pub const CONTENT_SCHEMA: i64 = 3;
 
 const SCHEMA_SQL: &str = r#"
 CREATE TABLE meta (
@@ -43,7 +46,9 @@ CREATE TABLE problems (
   editorial_es TEXT NOT NULL,
   reference    TEXT NOT NULL,
   ref_cost     REAL NOT NULL,
-  ref_p95_ms   REAL NOT NULL
+  ref_p95_ms   REAL NOT NULL,
+  track        TEXT NOT NULL DEFAULT 'core',
+  challenge_ratio REAL
 );
 CREATE TABLE guide (
   kind  TEXT PRIMARY KEY,
@@ -112,6 +117,10 @@ pub struct ProblemRow {
     pub ref_cost: f64,
     /// The reference's p95 on the first test (ms), for the cost vs speed chart.
     pub ref_p95_ms: f64,
+    /// `core` (Sets 1–3), `ai` or `de` (schema 3).
+    pub track: String,
+    /// The half-cost challenge's budget as a share of `ref_cost`; None = no challenge.
+    pub challenge_ratio: Option<f64>,
 }
 
 /// One sample (a walkthrough story). `def` is the `SampleDef` as JSON; `snapshots` maps each
@@ -207,8 +216,9 @@ pub async fn write_content(path: &Path, data: &ContentData) -> Result<()> {
         sqlx::query(
             r#"INSERT INTO problems (id, number, "set", difficulty, title_en, title_es, teaches_en,
                teaches_es, tags, nfr, def, statement_en, statement_es, hints_en, hints_es,
-               editorial_en, editorial_es, reference, ref_cost, ref_p95_ms)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
+               editorial_en, editorial_es, reference, ref_cost, ref_p95_ms, track,
+               challenge_ratio)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
         )
         .bind(&p.id)
         .bind(p.number)
@@ -230,6 +240,8 @@ pub async fn write_content(path: &Path, data: &ContentData) -> Result<()> {
         .bind(&p.reference)
         .bind(p.ref_cost)
         .bind(p.ref_p95_ms)
+        .bind(&p.track)
+        .bind(p.challenge_ratio)
         .execute(&mut *tx)
         .await?;
     }
@@ -309,7 +321,7 @@ pub struct ContentDb {
 
 const PROBLEM_COLUMNS: &str = r#"id, number, "set", difficulty, title_en, title_es, teaches_en,
     teaches_es, tags, nfr, def, statement_en, statement_es, hints_en, hints_es, editorial_en,
-    editorial_es, reference, ref_cost, ref_p95_ms"#;
+    editorial_es, reference, ref_cost, ref_p95_ms, track, challenge_ratio"#;
 
 fn problem_row(r: &sqlx::sqlite::SqliteRow) -> Result<ProblemRow> {
     let json_list = |col: &str| -> Result<Vec<String>> {
@@ -337,6 +349,8 @@ fn problem_row(r: &sqlx::sqlite::SqliteRow) -> Result<ProblemRow> {
         reference: r.try_get("reference")?,
         ref_cost: r.try_get("ref_cost")?,
         ref_p95_ms: r.try_get("ref_p95_ms")?,
+        track: r.try_get("track")?,
+        challenge_ratio: r.try_get("challenge_ratio")?,
     })
 }
 
@@ -376,10 +390,13 @@ impl ContentDb {
             .await?)
     }
 
-    /// Every problem, in catalogue order (set, then number).
+    /// Every problem, in catalogue order: the core track, then AI, then data engineering;
+    /// within a track by set, then number.
     pub async fn problems(&self) -> Result<Vec<ProblemRow>> {
         let rows = sqlx::query(&format!(
-            r#"SELECT {PROBLEM_COLUMNS} FROM problems ORDER BY "set", number"#
+            r#"SELECT {PROBLEM_COLUMNS} FROM problems ORDER BY
+               CASE track WHEN 'core' THEN 0 WHEN 'ai' THEN 1 WHEN 'de' THEN 2 ELSE 3 END,
+               "set", number"#
         ))
         .fetch_all(&self.pool)
         .await?;
@@ -568,6 +585,8 @@ mod tests {
             editorial_es: "Editorial".into(),
             reference: "{}".into(),
             ref_cost: 1234.5,
+            track: "core".into(),
+            challenge_ratio: Some(0.5),
             ref_p95_ms: 42.5,
         }
     }

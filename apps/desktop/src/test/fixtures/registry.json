@@ -6991,6 +6991,44 @@
       "max_note": 4000,
       "max_notes": 200
     },
+    "mesh_props": [
+      {
+        "calibration": null,
+        "default": 0,
+        "key": "mesh_retries",
+        "ty": {
+          "max": 10.0,
+          "min": 0.0,
+          "step": 1.0,
+          "type": "int"
+        },
+        "unit": "count"
+      },
+      {
+        "calibration": null,
+        "default": 0,
+        "key": "mesh_timeout_ms",
+        "ty": {
+          "max": 60000.0,
+          "min": 0.0,
+          "step": 1.0,
+          "type": "int"
+        },
+        "unit": "ms"
+      },
+      {
+        "calibration": null,
+        "default": 0,
+        "key": "mesh_breaker_errors_pct",
+        "ty": {
+          "max": 100.0,
+          "min": 0.0,
+          "step": 1.0,
+          "type": "int"
+        },
+        "unit": "percent"
+      }
+    ],
     "meta": [
       {
         "icon": "zone",
@@ -7466,5 +7504,5 @@
       ]
     }
   },
-  "schema_version": 3
+  "schema_version": 4
 }

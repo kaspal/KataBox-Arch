@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "static-site-cdn-naive",
   "name": "Static Site + CDN (first try)",
   "problem_id": "static-site-cdn",

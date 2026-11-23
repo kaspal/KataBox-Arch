@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "concept-worker-nine-judges",
   "name": "Online Judge (9 judges)",
   "problem_id": "online-judge",

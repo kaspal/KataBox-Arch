@@ -736,6 +736,9 @@ pub struct Registry {
     pub categories: Vec<Category>,
     pub kinds: Vec<KindSpec>,
     pub meta: Vec<MetaSpec>,
+    /// A zone's service-mesh policy props (v4); their defaults leave the mesh's retries,
+    /// timeouts and circuit breaking off.
+    pub mesh_props: Vec<PropSpec>,
     pub wiring: WiringTable,
     pub limits: crate::validate::Limits,
 }
@@ -1117,6 +1120,11 @@ pub fn registry() -> Registry {
                 kind: MetaKind::Note,
                 icon: "note".into(),
             },
+        ],
+        mesh_props: vec![
+            int("mesh_retries", 0.0, 10.0, 0.0, Unit::Count),
+            int("mesh_timeout_ms", 0.0, 60_000.0, 0.0, Unit::Ms),
+            int("mesh_breaker_errors_pct", 0.0, 100.0, 0.0, Unit::Percent),
         ],
         wiring: wiring::table(),
         limits: crate::validate::Limits::default(),

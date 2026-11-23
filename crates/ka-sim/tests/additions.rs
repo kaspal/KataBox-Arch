@@ -371,6 +371,8 @@ fn region(id: &str) -> Group {
         size: Size { w: 400.0, h: 300.0 },
         parent_id: None,
         scaling: None,
+        region_tag: None,
+        mesh: None,
     }
 }
 

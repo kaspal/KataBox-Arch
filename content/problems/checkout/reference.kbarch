@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "checkout-reference",
   "name": "Checkout & Inventory (reference)",
   "problem_id": "checkout",
@@ -116,8 +116,8 @@
         "y": 884
       },
       "props": {
-        "instances": 12,
-        "concurrency": 64
+        "concurrency": 64,
+        "instances": 12
       },
       "group_id": null
     }

@@ -200,6 +200,8 @@ mod tests {
             size: Size { w: 100.0, h: 100.0 },
             parent_id: parent.map(Into::into),
             scaling: None,
+            region_tag: None,
+            mesh: None,
         }
     }
 

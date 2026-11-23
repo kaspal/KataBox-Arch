@@ -83,10 +83,23 @@ fn migrate(mut value: Value, version: u64, registry: &Registry) -> Result<Value>
         value = v2_to_v3(value, registry);
         at = 3;
     }
+    if at == 3 {
+        value = v3_to_v4(value);
+        at = 4;
+    }
     match at {
-        3 => Ok(value),
+        4 => Ok(value),
         v => Err(invalid_file(format!("unknown schema_version {v}"))),
     }
+}
+
+/// v3 → v4 (M8): zones may carry `region_tag` and `mesh`, both optional, so a v3 file is a
+/// valid v4 file once its version says so.
+fn v3_to_v4(mut value: Value) -> Value {
+    if let Some(obj) = value.as_object_mut() {
+        obj.insert("schema_version".into(), Value::from(4));
+    }
+    value
 }
 
 /// The M0 placeholder defaults that differ from today's calibrated ones (commit 6f0267c,
@@ -427,6 +440,8 @@ pub(crate) mod tests {
             size: Size { w: 760.0, h: 520.0 },
             parent_id: None,
             scaling: None,
+            region_tag: None,
+            mesh: None,
         });
         d.groups.push(Group {
             id: "az-1".into(),
@@ -436,6 +451,8 @@ pub(crate) mod tests {
             size: Size { w: 400.0, h: 300.0 },
             parent_id: Some("region-1".into()),
             scaling: None,
+            region_tag: None,
+            mesh: None,
         });
         d.nodes.push(node(
             "client-1",

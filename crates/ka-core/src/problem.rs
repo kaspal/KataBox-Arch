@@ -18,6 +18,34 @@ pub enum Difficulty {
     Hard,
 }
 
+/// The catalogue a problem belongs to (M8): the core sets, the AI systems track or the data
+/// engineering track. Problems are unique by (track, set, number).
+#[derive(
+    Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
+)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(rename_all = "snake_case")]
+pub enum Track {
+    #[default]
+    Core,
+    Ai,
+    De,
+}
+
+impl Track {
+    pub fn id(self) -> &'static str {
+        match self {
+            Track::Core => "core",
+            Track::Ai => "ai",
+            Track::De => "de",
+        }
+    }
+
+    pub fn is_core(&self) -> bool {
+        *self == Track::Core
+    }
+}
+
 /// The non-functional requirements shown in the brief.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
@@ -75,6 +103,9 @@ pub struct ProblemDef {
     pub id: String,
     pub number: u32,
     pub set: u32,
+    /// `core` (the default), `ai` or `de`.
+    #[serde(default, skip_serializing_if = "Track::is_core")]
+    pub track: Track,
     pub difficulty: Difficulty,
     pub title: String,
     pub title_es: String,
@@ -95,6 +126,11 @@ pub struct ProblemDef {
     /// where the review A1 accuracy check showed sampling changes a verdict.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sample_cap: Option<f64>,
+    /// The "same SLO, half the cost" budget as a share of the reference's cost, when 0.5
+    /// isn't reachable: the proven `challenge.kbarch` cost over the reference's, rounded up to
+    /// the next 0.05 (at most 0.80; above that the problem has no challenge). Unset = 0.5.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub challenge_ratio: Option<f64>,
 }
 
 impl ProblemDef {

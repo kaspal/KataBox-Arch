@@ -191,10 +191,15 @@ pub fn validate_problems(problems: &[ProblemDir], registry: &Registry) -> Vec<Is
         if !ids.insert(d.id.clone()) {
             bad("problem.toml", format!("duplicate id {:?}", d.id));
         }
-        if !numbers.insert((d.set, d.number)) {
+        if !numbers.insert((d.track, d.set, d.number)) {
             bad(
                 "problem.toml",
-                format!("set {} number {} is taken", d.set, d.number),
+                format!(
+                    "{} set {} number {} is taken",
+                    d.track.id(),
+                    d.set,
+                    d.number
+                ),
             );
         }
         for (en, es, what) in [
@@ -394,6 +399,9 @@ impl ProblemDir {
             .map_err(|e| e.to_string())?,
             ref_cost: run.cost_month,
             ref_p95_ms: run.latency.p95_ms,
+            track: d.track.id().into(),
+            // M8.5 sets this from the problem's `challenge.kbarch`.
+            challenge_ratio: None,
         })
     }
 }

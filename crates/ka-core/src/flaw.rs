@@ -72,6 +72,8 @@ impl FlawDef {
             tests: self.scenario.tests.clone(),
             pass: self.scenario.pass.clone(),
             sample_cap: self.scenario.sample_cap,
+            track: Default::default(),
+            challenge_ratio: None,
         }
     }
 }

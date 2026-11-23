@@ -604,6 +604,8 @@ error_rate = 0.001
             reference,
             ref_cost: 500.0,
             ref_p95_ms: 30.0,
+            track: "core".into(),
+            challenge_ratio: None,
         };
         let content = dir.join("content.db");
         ka_store::write_content(

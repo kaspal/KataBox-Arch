@@ -283,7 +283,7 @@ describe("live runs", () => {
     await waitFor(() => expect(fake().api.startRun).toHaveBeenCalledTimes(1));
     const [sent, options] = vi.mocked(fake().api.startRun).mock.calls[0];
     expect(sent.nodes.map((n) => n.id)).toEqual(["c1", "a1"]);
-    expect(sent.schema_version).toBe(3);
+    expect(sent.schema_version).toBe(4);
     expect(options).toEqual({ preset: "normal", problem: null, speed: 1, chaos: [], startS: 0 });
     expect(screen.getByRole("tab", { name: "Metrics" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText("Run the design to see live metrics.")).toBeInTheDocument();

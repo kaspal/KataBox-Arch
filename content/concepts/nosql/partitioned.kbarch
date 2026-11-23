@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "concept-nosql-partitioned",
   "name": "Ride Sharing (a partitioned store)",
   "problem_id": "ride-sharing",

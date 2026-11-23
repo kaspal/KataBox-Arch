@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "pastebin-naive",
   "name": "Pastebin (first try)",
   "problem_id": "pastebin",

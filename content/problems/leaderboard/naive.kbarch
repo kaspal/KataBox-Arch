@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "leaderboard-naive",
   "name": "Game Leaderboard (first try)",
   "problem_id": "leaderboard",

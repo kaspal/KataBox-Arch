@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "session-store-reference",
   "name": "Session Store (reference)",
   "problem_id": "session-store",

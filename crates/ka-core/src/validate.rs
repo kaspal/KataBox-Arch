@@ -67,6 +67,9 @@ pub enum IssueCode {
     BadScaling,
     /// A wrapper kind (Autoscaling) placed as a card.
     WrapperAsCard,
+    /// A residency tag on a zone that isn't a Region, or a malformed tag; or a service mesh on
+    /// a zone that isn't a Region or AZ, or with an unknown or out-of-range prop (v4).
+    BadZoneSetting,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -122,6 +125,27 @@ fn scaling_ok(g: &crate::design::Group, registry: &Registry) -> bool {
         (GroupKind::Autoscale, None) => false,
         (_, scaling) => scaling.is_none(),
     }
+}
+
+/// A residency tag (`eu`, `us`, `apac`…): 2–8 lowercase letters, on a Region only. A mesh sits
+/// on a Region or AZ, with props from `registry.mesh_props`.
+fn zone_settings_ok(g: &crate::design::Group, registry: &Registry) -> bool {
+    let tag_ok = g.region_tag.as_deref().is_none_or(|t| {
+        g.kind == GroupKind::Region
+            && (2..=8).contains(&t.len())
+            && t.bytes().all(|b| b.is_ascii_lowercase())
+    });
+    let mesh_ok = g.mesh.as_ref().is_none_or(|m| {
+        matches!(g.kind, GroupKind::Region | GroupKind::Az)
+            && m.props.iter().all(|(k, val)| {
+                registry
+                    .mesh_props
+                    .iter()
+                    .find(|p| &p.key == k)
+                    .is_some_and(|p| p.accepts(val))
+            })
+    });
+    tag_ok && mesh_ok
 }
 
 /// Every problem with `design`, in a stable order. Empty means valid.
@@ -180,6 +204,9 @@ pub fn validate(design: &Design, registry: &Registry) -> Vec<DesignIssue> {
         }
         if !scaling_ok(g, registry) {
             out.push(issue(IssueCode::BadScaling, &[&g.id]));
+        }
+        if !zone_settings_ok(g, registry) {
+            out.push(issue(IssueCode::BadZoneSetting, &[&g.id]));
         }
     }
     for g in &design.groups {
@@ -337,6 +364,8 @@ mod tests {
             size: Size { w: 900.0, h: 600.0 },
             parent_id: None,
             scaling: None,
+            region_tag: None,
+            mesh: None,
         });
         d.groups.push(Group {
             id: "az1".into(),
@@ -346,6 +375,8 @@ mod tests {
             size: Size { w: 400.0, h: 300.0 },
             parent_id: Some("r1".into()),
             scaling: None,
+            region_tag: None,
+            mesh: None,
         });
         d.nodes.push(node("c", ComponentKind::Client, Flavour::Web));
         let mut app = node("a", ComponentKind::App, Flavour::Go);
@@ -480,6 +511,8 @@ mod tests {
             size: Size { w: 300.0, h: 200.0 },
             parent_id: Some("az1".into()),
             scaling,
+            region_tag: None,
+            mesh: None,
         }
     }
 
@@ -555,5 +588,34 @@ mod tests {
             None,
             "gRPC and WebSocket remain"
         );
+    }
+
+    /// v4: a residency tag sits on a Region only, as 2–8 lowercase letters; a mesh sits on a
+    /// Region or AZ, with known props in range.
+    #[test]
+    fn zone_settings_are_checked() {
+        use crate::design::{Mesh, MeshFlavour};
+        let r = registry();
+        let mut d = valid();
+        d.groups[0].region_tag = Some("eu".into());
+        let mesh = |k: &str, v: f64| Mesh {
+            flavour: MeshFlavour::Istio,
+            props: [(k.to_owned(), PropValue::Number(v))].into_iter().collect(),
+        };
+        d.groups[1].mesh = Some(mesh("mesh_retries", 2.0));
+        assert!(validate(&d, &r).is_empty());
+        for bad in ["EU", "e", "europe-west"] {
+            let mut d = d.clone();
+            d.groups[0].region_tag = Some(bad.into());
+            assert_eq!(codes(&d), vec![IssueCode::BadZoneSetting], "{bad}");
+        }
+        let mut az_tag = d.clone();
+        az_tag.groups[1].region_tag = Some("eu".into());
+        assert_eq!(codes(&az_tag), vec![IssueCode::BadZoneSetting]);
+        for (k, v) in [("mesh_retries", 11.0), ("retries", 1.0)] {
+            let mut bad = d.clone();
+            bad.groups[1].mesh = Some(mesh(k, v));
+            assert_eq!(codes(&bad), vec![IssueCode::BadZoneSetting], "{k}");
+        }
     }
 }

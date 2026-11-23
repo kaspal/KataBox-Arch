@@ -603,6 +603,8 @@ error_rate = 0.001
                 reference: String::new(),
                 ref_cost: 1.0,
                 ref_p95_ms: 1.0,
+                track: "core".into(),
+                challenge_ratio: None,
             };
             let db = staging.join("content.db");
             tokio::runtime::Builder::new_current_thread()

@@ -1,6 +1,6 @@
 {
   "design": {
-    "schema_version": 3,
+    "schema_version": 4,
     "id": "compose-e68ab3738fdeb4a4",
     "name": "shop",
     "problem_id": null,

@@ -170,6 +170,8 @@ impl App {
             reference: doc.fixed.clone(),
             ref_cost: doc.ref_cost,
             ref_p95_ms: doc.ref_p95_ms,
+            track: "core".into(),
+            challenge_ratio: None,
         })
     }
 

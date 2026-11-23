@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "flaw-cache-no-ttl-broken",
   "name": "Product catalogue",
   "problem_id": null,

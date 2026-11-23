@@ -1068,7 +1068,17 @@ parent_id: string | null;
 /**
  * The scaling policy of an Autoscale wrapper (and only of one).
  */
-scaling?: Scaling | null }
+scaling?: Scaling | null; 
+/**
+ * A Region's residency tag (v4, S9), e.g. `eu`: requests that must stay in a region
+ * check the tags of the stores they touch.
+ */
+region_tag?: string | null; 
+/**
+ * A service mesh over the cards in this Region or AZ (v4): sidecar latency and the
+ * mesh's retries, timeouts and circuit breaking.
+ */
+mesh?: Mesh | null }
 export type GroupKind = "region" | "az" | 
 /**
  * An autoscaling group wrapped around compute cards (v2).
@@ -1140,7 +1150,12 @@ export type IssueCode =
 /**
  * A wrapper kind (Autoscaling) placed as a card.
  */
-"wrapper_as_card"
+"wrapper_as_card" | 
+/**
+ * A residency tag on a zone that isn't a Region, or a malformed tag; or a service mesh on
+ * a zone that isn't a Region or AZ, or with an unknown or out-of-range prop (v4).
+ */
+"bad_zone_setting"
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
 export type Judgement = { problem_id: string; 
 /**
@@ -1202,6 +1217,14 @@ max_label: number;
  */
 max_note: number }
 export type MappedService = { service: string; image: string | null; kind: ComponentKind; flavour: Flavour }
+/**
+ * A zone's service mesh (v4): the product and its policy props (`registry.mesh_props`).
+ */
+export type Mesh = { flavour: MeshFlavour; props: Partial<{ [key in string]: PropValue }> }
+/**
+ * Service-mesh products.
+ */
+export type MeshFlavour = "istio" | "linkerd"
 /**
  * Canvas items that are not components.
  */
@@ -1506,7 +1529,12 @@ export type ReferencePoint = { cost_usd: number; p95_ms: number }
 /**
  * Everything the editor needs to know about components, sent to the UI once.
  */
-export type Registry = { categories: Category[]; kinds: KindSpec[]; meta: MetaSpec[]; wiring: WiringTable; limits: Limits }
+export type Registry = { categories: Category[]; kinds: KindSpec[]; meta: MetaSpec[]; 
+/**
+ * A zone's service-mesh policy props (v4); their defaults leave the mesh's retries,
+ * timeouts and circuit breaking off.
+ */
+mesh_props: PropSpec[]; wiring: WiringTable; limits: Limits }
 export type RequestTypeBrief = { id: string; name: string | null; name_es: string | null; share: number }
 export type Role = "primary" | "replica" | "any"
 /**

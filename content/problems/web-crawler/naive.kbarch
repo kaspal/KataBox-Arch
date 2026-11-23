@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "web-crawler-naive",
   "name": "Web Crawler (first try)",
   "problem_id": "web-crawler",

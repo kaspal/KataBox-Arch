@@ -155,6 +155,8 @@ fn a_partitioned_zone_is_unreachable_while_it_lasts() {
         size: Size { w: 400.0, h: 300.0 },
         parent_id: None,
         scaling: None,
+        region_tag: None,
+        mesh: None,
     });
     d.nodes[1].group_id = Some("az-1".into());
     let mut s = scenario(0.0, 20.0, vec![rtype("call", 1.0, &["compute"])]);
@@ -245,6 +247,8 @@ fn an_autoscaling_group_grows_under_load_and_costs_more() {
             flavour: Flavour::KubernetesHpa,
             props,
         }),
+        region_tag: None,
+        mesh: None,
     });
     d.nodes[1].group_id = Some("asg".into());
     let s = scenario(0.0, 60.0, vec![rtype("call", 1.0, &["compute"])]);

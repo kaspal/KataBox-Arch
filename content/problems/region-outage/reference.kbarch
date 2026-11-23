@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "region-outage-reference",
   "name": "Survive a Region Outage (reference)",
   "problem_id": "region-outage",

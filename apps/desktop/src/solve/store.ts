@@ -25,7 +25,7 @@ import type {
 } from "@/bindings";
 
 /** The `.kbarch` format version (ADR 0003); a test keeps it equal to Rust's. */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 /** The card size the canvas draws (also used before React Flow has measured a card). */
 export const CARD_W = 208;

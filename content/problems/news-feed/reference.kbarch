@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "news-feed-reference",
   "name": "News Feed (reference)",
   "problem_id": "news-feed",

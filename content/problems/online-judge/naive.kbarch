@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "online-judge-naive",
   "name": "Online Judge (first try)",
   "problem_id": "online-judge",

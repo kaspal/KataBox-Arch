@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "page-view-counter-naive",
   "name": "Page-View Counter (first try)",
   "problem_id": "page-view-counter",

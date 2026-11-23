@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "flaw-small-pool-broken",
   "name": "Reports",
   "problem_id": null,
@@ -26,8 +26,8 @@
         "y": 170
       },
       "props": {
-        "instances": 2,
-        "concurrency": 16
+        "concurrency": 16,
+        "instances": 2
       },
       "group_id": null
     },

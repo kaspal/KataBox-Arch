@@ -48,7 +48,7 @@ describe("editor store", () => {
     s().addEdge(a, b, "http");
     s().addNote({ x: 0, y: 200 });
     const design = toDesign(s());
-    expect(design.schema_version).toBe(3);
+    expect(design.schema_version).toBe(4);
     expect(fromDesign(design)).toEqual(s().doc);
     s().load(design, "C:/d.kbarch");
     expect(isDirty()).toBe(false);

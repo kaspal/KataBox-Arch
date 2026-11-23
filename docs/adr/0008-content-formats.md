@@ -138,3 +138,11 @@ The arguments are parsed by hand, as in KataBox.
   works unchanged.
 - **`content.db` schema 2** stores all of these in one generic `docs (kind, id, json)` table, so new practice
   content adds rows, not schemas.
+
+## Tracks and challenges (M8)
+- **`problem.toml` gains `track`** (`core` by default, `ai` or `de`). Problems are unique by (track, set, number);
+  AI and data engineering problems use `set = 1`.
+- **`challenge_ratio`** (optional): the "same SLO, half the cost" budget as a share of the reference's cost, when
+  0.5 isn't reachable.
+- **`content.db` schema 3:** `problems.track` and `problems.challenge_ratio` (NULL = no challenge). The catalogue is
+  ordered core, AI, data engineering, then set and number. Outage replays are `docs` rows of kind `outage`.

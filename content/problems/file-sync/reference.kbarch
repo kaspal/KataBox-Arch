@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "file-sync-reference",
   "name": "Cloud File Sync (reference)",
   "problem_id": "file-sync",
@@ -115,8 +115,8 @@
         "y": 952
       },
       "props": {
-        "instances": 4,
         "concurrency": 32,
+        "instances": 4,
         "service_ms": 5
       },
       "group_id": null

@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "flaw-missing-dlq-fixed",
   "name": "Receipts",
   "problem_id": null,

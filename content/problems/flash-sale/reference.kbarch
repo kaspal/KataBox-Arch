@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "flash-sale-reference",
   "name": "Flash-Sale Ticketing (reference)",
   "problem_id": "flash-sale",
