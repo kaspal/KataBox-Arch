@@ -55,6 +55,10 @@ enum Ev {
     Redeliver {
         r: u32,
     },
+    /// A client tries a failed synchronous request again (S8).
+    Retry {
+        r: u32,
+    },
     Second(u32),
     /// Chaos event `i` starts / ends (only scheduled when the scenario has chaos).
     Chaos(u16),
@@ -132,6 +136,10 @@ struct Req {
     cdc_at: u64,
     /// A CDC change on its way to its stream (not yet accepted).
     cdc_pending: bool,
+    /// The client source that sent a synchronous request (NONE: none), and which try this
+    /// is (0 = the first; S8 client retries).
+    src: u32,
+    try_n: u32,
 }
 
 /// A network split in progress (chaos `split`).
@@ -286,6 +294,10 @@ pub struct Engine {
     cdc_audit: Option<Vec<(u64, u64)>>,
     /// Messages still unfinished at the end have been counted (once).
     censored: bool,
+    /// S8 client retries: the backoff jitter stream, and per source the first tries and
+    /// retries of the last 10 seconds (slot = second % 10, with the second it holds).
+    rng_retry: Rng,
+    retry_window: Vec<[(u64, f64, f64); 10]>,
 }
 
 /// One forward hop of a simulated request, for the live packet layer.
@@ -398,6 +410,8 @@ impl Engine {
                 .map(|n| Rng::stream(seed, &format!("svc:{}", n.id)))
                 .collect(),
             rng_misc: Rng::stream(seed, "misc"),
+            rng_retry: Rng::stream(seed, "retry"),
+            retry_window: vec![[(u64::MAX, 0.0, 0.0); 10]; c.sources.len()],
             caches: c
                 .nodes
                 .iter()
@@ -669,6 +683,10 @@ impl Engine {
             Ev::Failover(cl) => self.failover(cl),
             Ev::ScaleTick => self.scale_tick(),
             Ev::ScaleApply { group, instances } => self.scale_apply(group, f64::from(instances)),
+            Ev::Retry { r } => {
+                self.reqs[r as usize].pending -= 1;
+                self.on_retry(r);
+            }
             Ev::Requeue { r } => {
                 self.reqs[r as usize].pending -= 1;
                 let b = self.reqs[r as usize].broker;
@@ -758,6 +776,8 @@ impl Engine {
             wrote: NONE,
             cdc_at: 0,
             cdc_pending: false,
+            src: NONE,
+            try_n: 0,
         };
         if let Some(i) = self.free.pop() {
             self.reqs[i as usize] = req;
@@ -788,9 +808,86 @@ impl Engine {
             req.phase = Phase::Entry;
             self.run_calls(r);
         } else {
-            self.push_req(self.now + TIMEOUT_US, Ev::Timeout { r }, r);
+            self.reqs[r as usize].src = s;
+            self.count_try(s, false);
+            let timeout = self.c.nodes[src.node as usize].spec.timeout_us;
+            self.push_req(self.now + timeout, Ev::Timeout { r }, r);
             self.hop_from(r, src.node);
         }
+    }
+
+    /// S8: count a first try or a retry in the source's 10-second window.
+    fn count_try(&mut self, s: u32, retry: bool) {
+        let sec = self.now / 1_000_000;
+        let slot = &mut self.retry_window[s as usize][(sec % 10) as usize];
+        if slot.0 != sec {
+            *slot = (sec, 0.0, 0.0);
+        }
+        if retry {
+            slot.2 += 1.0;
+        } else {
+            slot.1 += 1.0;
+        }
+    }
+
+    /// S8: a client's synchronous request failed; try it again if its policy allows.
+    /// The new try is a fresh request with the same type, key and start (its latency spans
+    /// every try); the failed one only cleans up.
+    fn retry_sync(&mut self, r: u32) -> bool {
+        let q = &self.reqs[r as usize];
+        let s = q.src;
+        if s == NONE || q.seg != 0 {
+            return false;
+        }
+        let node = self.c.sources[s as usize].node;
+        let spec = &self.c.nodes[node as usize].spec;
+        if q.try_n >= spec.retries {
+            return false;
+        }
+        let (budget, backoff_ms, jitter) = (spec.retry_budget, spec.backoff_ms, spec.full_jitter);
+        if budget > 0.0 {
+            let sec = self.now / 1_000_000;
+            let (first, again) = self.retry_window[s as usize]
+                .iter()
+                .filter(|(at, ..)| *at != u64::MAX && sec.saturating_sub(*at) < 10)
+                .fold((0.0, 0.0), |(f, a), (_, x, y)| (f + x, a + y));
+            if again + 1.0 > budget * first {
+                return false;
+            }
+        }
+        let (ty, key, start, try_n) = (q.ty, q.key, q.start, q.try_n);
+        let mut wait = backoff_ms * 1000.0 * f64::from(1u32 << try_n.min(16));
+        if jitter {
+            wait *= self.rng_retry.uniform();
+        }
+        // The new try first (so it never reuses the failed one's slot while callers still
+        // hold it), then the failed try ends, quietly.
+        let r2 = self.alloc(ty, key);
+        {
+            let q = &mut self.reqs[r as usize];
+            q.resp_sent = true;
+            q.dead = true;
+        }
+        self.release_caller(r);
+        self.finish(r);
+        {
+            let q = &mut self.reqs[r2 as usize];
+            q.start = start;
+            q.src = s;
+            q.try_n = try_n + 1;
+        }
+        self.retried += self.c.weight;
+        self.count_try(s, true);
+        self.push_req(self.now + wait as u64, Ev::Retry { r: r2 }, r2);
+        true
+    }
+
+    fn on_retry(&mut self, r: u32) {
+        let s = self.reqs[r as usize].src;
+        let node = self.c.sources[s as usize].node;
+        let timeout = self.c.nodes[node as usize].spec.timeout_us;
+        self.push_req(self.now + timeout, Ev::Timeout { r }, r);
+        self.hop_from(r, node);
     }
 
     // --- Hops -------------------------------------------------------------------------
@@ -1798,6 +1895,9 @@ impl Engine {
 
     fn fail(&mut self, r: u32) {
         let w = self.c.weight;
+        if !self.reqs[r as usize].resp_sent && self.retry_sync(r) {
+            return;
+        }
         if !self.reqs[r as usize].resp_sent {
             let ty = self.reqs[r as usize].ty as usize;
             self.types[ty].errors += w;

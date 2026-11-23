@@ -550,7 +550,12 @@
       "kill_switch": "Interruptor de emergencia",
       "mesh_retries": "Reintentos de la malla",
       "mesh_timeout_ms": "Tiempo límite de la malla",
-      "mesh_breaker_errors_pct": "Cortocircuito de la malla"
+      "mesh_breaker_errors_pct": "Cortocircuito de la malla",
+      "timeout_ms": "Tiempo límite",
+      "retries": "Reintentos",
+      "backoff_ms": "Espera entre reintentos",
+      "jitter": "Variación de la espera",
+      "retry_budget_pct": "Presupuesto de reintentos"
     },
     "choice": {
       "round_robin": "Round robin",
@@ -584,7 +589,8 @@
       "stream": "Por streaming",
       "poll": "Por sondeo",
       "remote": "Llamar al proveedor",
-      "local": "Verificar en local (JWKS)"
+      "local": "Verificar en local (JWKS)",
+      "full": "Completa (espera aleatoria)"
     }
   },
   "units": {

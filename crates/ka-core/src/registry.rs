@@ -1208,7 +1208,16 @@ pub fn registry() -> Registry {
         kind(
             K::Client,
             vec![fl(F::Web), fl(F::Mobile)],
-            vec![int("rps", 1.0, 1_000_000.0, 1000.0, Unit::Rps)],
+            vec![
+                int("rps", 1.0, 1_000_000.0, 1000.0, Unit::Rps),
+                // S8 (M8): how a client gives up and tries again. The defaults are the
+                // behaviour before M8: one try, a 5 s timeout.
+                int("timeout_ms", 100.0, 120_000.0, 5_000.0, Unit::Ms),
+                int("retries", 0.0, 10.0, 0.0, Unit::Count),
+                int("backoff_ms", 0.0, 60_000.0, 100.0, Unit::Ms),
+                choice("jitter", &["none", "full"], "none"),
+                int("retry_budget_pct", 0.0, 100.0, 0.0, Unit::Percent),
+            ],
         ),
         kind(
             K::Dns,

@@ -12132,6 +12132,67 @@
               "type": "int"
             },
             "unit": "rps"
+          },
+          {
+            "calibration": null,
+            "default": 5000,
+            "key": "timeout_ms",
+            "ty": {
+              "max": 120000.0,
+              "min": 100.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "ms"
+          },
+          {
+            "calibration": null,
+            "default": 0,
+            "key": "retries",
+            "ty": {
+              "max": 10.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "count"
+          },
+          {
+            "calibration": null,
+            "default": 100,
+            "key": "backoff_ms",
+            "ty": {
+              "max": 60000.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "ms"
+          },
+          {
+            "calibration": null,
+            "default": "none",
+            "key": "jitter",
+            "ty": {
+              "options": [
+                "none",
+                "full"
+              ],
+              "type": "choice"
+            },
+            "unit": "none"
+          },
+          {
+            "calibration": null,
+            "default": 0,
+            "key": "retry_budget_pct",
+            "ty": {
+              "max": 100.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "percent"
           }
         ]
       },

@@ -73,6 +73,14 @@ pub struct NodeSpec {
     pub bill_lanes: f64,
     /// The share of requests through the card that are billed (DNS: `query_ratio`).
     pub bill_ratio: f64,
+    /// Clients (S8): when a synchronous request gives up, and how it tries again.
+    pub timeout_us: u64,
+    pub retries: u32,
+    pub backoff_ms: f64,
+    /// Full jitter: each backoff is drawn uniformly between zero and its full length.
+    pub full_jitter: bool,
+    /// Retries allowed as a share of first tries over the last 10 s; 0 = no budget.
+    pub retry_budget: f64,
 }
 
 /// The value of `key` for `node`: the card's prop, else its flavour override, else the
@@ -181,5 +189,10 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
             K::Dns => n("query_ratio").unwrap_or(1.0),
             _ => 1.0,
         },
+        timeout_us: (n("timeout_ms").unwrap_or(5_000.0).max(1.0) * 1000.0) as u64,
+        retries: n("retries").unwrap_or(0.0).max(0.0) as u32,
+        backoff_ms: n("backoff_ms").unwrap_or(100.0).max(0.0),
+        full_jitter: text(registry, node, "jitter").as_deref() == Some("full"),
+        retry_budget: n("retry_budget_pct").unwrap_or(0.0).max(0.0) / 100.0,
     }
 }

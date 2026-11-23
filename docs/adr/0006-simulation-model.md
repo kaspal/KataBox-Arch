@@ -247,6 +247,21 @@ new.
 - **Still simplifications:** DNS TTL, WAF and gateway blocking, the serverless cold-start rule, sagas and circuit
   breakers.
 
+### M8 additions (opt-in; goldens a–d unchanged)
+Every M8 feature is switched on by a prop, a request-type field or a scenario field whose default is the behaviour
+before M8, and its events are scheduled only when a run uses it. Tests: `tests/m8.rs`, one golden each.
+
+- **Client retries and timeouts (S8, golden l).** Client cards gain `timeout_ms` (default 5,000: the old fixed
+  client timeout), `retries` (0), `backoff_ms` (100), `jitter` (`none` | `full`) and `retry_budget_pct` (0 = no
+  budget).
+  - A synchronous request that fails (an error, a drop, a 429, a timeout) is tried again after
+    `backoff_ms × 2^try`, times a uniform draw with full jitter (its own `retry` stream).
+  - The new try is a fresh request with the same type, key and start time: the user-visible latency spans every try,
+    and only the last try's failure counts as an error. Each try counts in `retried` and loads every card it reaches,
+    which is how retries amplify an outage.
+  - A budget allows retries only while they stay under that share of first tries over the last 10 seconds.
+  - The request count (`requests`) counts users' requests, not tries.
+
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE
   operations.

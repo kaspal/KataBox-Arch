@@ -550,7 +550,12 @@
       "kill_switch": "Kill switch",
       "mesh_retries": "Mesh retries",
       "mesh_timeout_ms": "Mesh timeout",
-      "mesh_breaker_errors_pct": "Mesh circuit breaker"
+      "mesh_breaker_errors_pct": "Mesh circuit breaker",
+      "timeout_ms": "Timeout",
+      "retries": "Retries",
+      "backoff_ms": "Retry backoff",
+      "jitter": "Backoff jitter",
+      "retry_budget_pct": "Retry budget"
     },
     "choice": {
       "round_robin": "Round robin",
@@ -584,7 +589,8 @@
       "stream": "Streamed",
       "poll": "Polled",
       "remote": "Call the provider",
-      "local": "Verify locally (JWKS)"
+      "local": "Verify locally (JWKS)",
+      "full": "Full (random wait)"
     }
   },
   "units": {
