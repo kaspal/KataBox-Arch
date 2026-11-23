@@ -4,7 +4,7 @@
 //! live-run scrubbing.
 
 use std::cmp::Reverse;
-use std::collections::{BTreeMap, BinaryHeap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, BinaryHeap, VecDeque};
 use std::sync::Arc;
 
 use ka_core::rng::Rng;
@@ -67,6 +67,22 @@ enum Ev {
     /// A client tries a failed synchronous request again (S8).
     Retry {
         r: u32,
+    },
+    /// S8: rollout stage `stage` (1-based) of deploy or config push `chaos` reaches `node`
+    /// (a config push stage: every node in stage `stage`'s Region; node = NONE).
+    Stage {
+        chaos: u16,
+        node: u32,
+        stage: u16,
+    },
+    /// S8: a bad change was noticed: roll it back (auto-rollback, kill switch) or halt.
+    Noticed {
+        chaos: u16,
+        node: u32,
+    },
+    /// S8: a config push's kill switch rolls the change back everywhere.
+    Rollback {
+        chaos: u16,
     },
     Second(u32),
     /// Chaos event `i` starts / ends (only scheduled when the scenario has chaos).
@@ -154,6 +170,8 @@ struct Req {
     call_gen: u32,
     in_call: bool,
     call_key: u32,
+    /// S8: served by a faulty instance (a bad deploy or config): fails when service ends.
+    bad: bool,
 }
 
 /// S8: dependency keys of external providers (beside card indices).
@@ -228,6 +246,13 @@ struct NodeRt {
     drop_series: Vec<f64>,
     rr: usize,
     warm: u32,
+    /// S8: the share of this card's instances running a bad build or config, what they do
+    /// wrong, and whether its LB health checks have ejected it for being overloaded.
+    faulty: f64,
+    faulty_err: f64,
+    faulty_add_us: u64,
+    ejected: bool,
+    eject_checks: u8,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -335,6 +360,15 @@ pub struct Engine {
     /// S8: circuit breakers and bulkhead pools per (caller, dependency).
     breakers: BTreeMap<(u32, u32), BreakerRt>,
     bulk_in_flight: BTreeMap<(u32, u32), u32>,
+    /// S8: faulty-instance and DNS draws; rollouts halted or rolled back, per (chaos, node);
+    /// control-plane outages in progress and the revivals they hold back; a DNS outage's
+    /// start; when each failover DNS card saw its primary go.
+    rng_s8: Rng,
+    rollout_done: BTreeSet<(u16, u32)>,
+    control_plane: u32,
+    held_revives: Vec<u32>,
+    dns_out_since: Option<u64>,
+    dns_switch: BTreeMap<u32, u64>,
 }
 
 /// One forward hop of a simulated request, for the live packet layer.
@@ -451,6 +485,12 @@ impl Engine {
             retry_window: vec![[(u64::MAX, 0.0, 0.0); 10]; c.sources.len()],
             breakers: BTreeMap::new(),
             bulk_in_flight: BTreeMap::new(),
+            rng_s8: Rng::stream(seed, "s8"),
+            rollout_done: BTreeSet::new(),
+            control_plane: 0,
+            held_revives: Vec::new(),
+            dns_out_since: None,
+            dns_switch: BTreeMap::new(),
             caches: c
                 .nodes
                 .iter()
@@ -516,7 +556,8 @@ impl Engine {
         for (t, i) in chaos {
             e.push(t, Ev::Chaos(i));
         }
-        if !e.c.scenario.chaos.is_empty() || !e.c.scaling.is_empty() {
+        let ejects = e.c.nodes.iter().any(|n| n.spec.health_timeout_us > 0);
+        if !e.c.scenario.chaos.is_empty() || !e.c.scaling.is_empty() || ejects {
             let mut t = HEALTH_EVERY_US;
             while t <= e.c.duration_us + DRAIN_US {
                 e.push(t, Ev::Health);
@@ -746,6 +787,13 @@ impl Engine {
                 self.reqs[r as usize].pending -= 1;
                 self.on_retry(r);
             }
+            Ev::Stage { chaos, node, stage } => self.rollout_stage(chaos, node, stage),
+            Ev::Noticed { chaos, node } => self.rollout_noticed(chaos, node),
+            Ev::Rollback { chaos } => {
+                for n in self.chaos_targets[chaos as usize].clone() {
+                    self.nodes[n as usize].faulty = 0.0;
+                }
+            }
             Ev::Requeue { r } => {
                 self.reqs[r as usize].pending -= 1;
                 let b = self.reqs[r as usize].broker;
@@ -840,6 +888,7 @@ impl Engine {
             call_gen: 0,
             in_call: false,
             call_key: NONE,
+            bad: false,
         };
         if let Some(i) = self.free.pop() {
             self.reqs[i as usize] = req;
@@ -958,8 +1007,16 @@ impl Engine {
         let live: Vec<u32> = cands
             .iter()
             .copied()
-            .filter(|c| !self.nodes[*c as usize].known_down && !self.known_cut(from, *c))
+            .filter(|c| {
+                let rt = &self.nodes[*c as usize];
+                !rt.known_down && !rt.ejected && !self.known_cut(from, *c)
+            })
             .collect();
+        // S8: every target ejected by health checks for overload: the LB has nowhere to
+        // send it (a 503).
+        if live.is_empty() && cands.iter().any(|c| self.nodes[*c as usize].ejected) {
+            return None;
+        }
         let list: &[u32] = if live.is_empty() { cands } else { &live };
         if list.is_empty() {
             return None;
@@ -984,6 +1041,35 @@ impl Engine {
             rt.rr % list.len()
         };
         Some(list[i])
+    }
+
+    /// S8 failover DNS: answers point at the first target (in design order) while health
+    /// checks find it up, else at the next live one. Clients cache answers for the card's
+    /// TTL, so after a switch a shrinking share (uniform cache ages) still goes to the old
+    /// target.
+    fn dns_pick(&mut self, from: u32, cands: &[u32]) -> Option<u32> {
+        let &primary = cands.first()?;
+        let up = |e: &Engine, c: u32| !e.nodes[c as usize].known_down && !e.known_cut(from, c);
+        if up(self, primary) {
+            self.dns_switch.remove(&from);
+            return Some(primary);
+        }
+        let switched = *self.dns_switch.entry(from).or_insert(self.now);
+        let ttl = self.c.nodes[from as usize].spec.ttl_s * 1e6;
+        let stale = if ttl <= 0.0 {
+            0.0
+        } else {
+            (1.0 - (self.now - switched) as f64 / ttl).max(0.0)
+        };
+        if self.rng_s8.uniform() < stale {
+            return Some(primary);
+        }
+        cands
+            .iter()
+            .copied()
+            .skip(1)
+            .find(|&c| up(self, c))
+            .or(Some(primary))
     }
 
     fn send(&mut self, r: u32, from: u32, to: u32, proto: Protocol, hop: bool) {
@@ -1031,7 +1117,12 @@ impl Engine {
         let ty = self.reqs[r as usize].ty as usize;
         let cands = self.c.types[ty].plan.next_hops[from as usize].clone();
         let key = self.reqs[r as usize].key;
-        let Some(next) = self.pick(from, &cands, key) else {
+        let picked = if self.c.nodes[from as usize].spec.dns_failover {
+            self.dns_pick(from, &cands)
+        } else {
+            self.pick(from, &cands, key)
+        };
+        let Some(next) = picked else {
             self.fail(r);
             return;
         };
@@ -1159,7 +1250,14 @@ impl Engine {
     }
 
     fn start_service(&mut self, r: u32, node: u32, lane: u16) {
-        let us = self.service_us(r, node);
+        let mut us = self.service_us(r, node);
+        let faulty = self.nodes[node as usize].faulty;
+        if faulty > 0.0 && self.rng_s8.uniform() < faulty {
+            let rt = &self.nodes[node as usize];
+            us += rt.faulty_add_us;
+            let err = rt.faulty_err;
+            self.reqs[r as usize].bad = err > 0.0 && self.rng_s8.uniform() < err;
+        }
         self.push_req(self.now + us, Ev::SvcDone { r, node, lane }, r);
     }
 
@@ -1215,6 +1313,16 @@ impl Engine {
             self.maybe_free(r);
             return;
         }
+        if std::mem::take(&mut self.reqs[r as usize].bad) && !self.nodes[node as usize].down {
+            // S8: a faulty instance (bad deploy or config) got it wrong: an ordinary failure.
+            self.release(node, lane);
+            if phase == Phase::Call {
+                self.call_failed(r);
+            } else {
+                self.fail(r);
+            }
+            return;
+        }
         if self.nodes[node as usize].down {
             // The card died while working on it. A consumer's message comes back when its
             // lease runs out; anything else fails now.
@@ -1266,6 +1374,22 @@ impl Engine {
         if kind == ComponentKind::Ratelimit && !self.take_token(r, node) {
             self.shed(r);
             return;
+        }
+        if kind == ComponentKind::Dns
+            && let Some(since) = self.dns_out_since
+        {
+            // S8 DNS outage: answers cached within the TTL still work (cache ages are
+            // uniform), the rest can't resolve.
+            let ttl = self.c.nodes[node as usize].spec.ttl_s * 1e6;
+            let expired = if ttl <= 0.0 {
+                1.0
+            } else {
+                ((self.now - since) as f64 / ttl).min(1.0)
+            };
+            if self.rng_s8.uniform() < expired {
+                self.fail(r);
+                return;
+            }
         }
         self.hop_from(r, node);
     }
@@ -2643,6 +2767,52 @@ impl Engine {
             }
             // Traffic is read from the scenario when arrivals are generated.
             C::Traffic { .. } => {}
+            C::Deploy {
+                target,
+                error_rate,
+                add_ms,
+                for_s: f,
+                ..
+            } => {
+                targets = self
+                    .resolve(target)
+                    .into_iter()
+                    .filter(|&n| self.c.nodes[n as usize].spec.role.is_caller())
+                    .collect();
+                for &n in &targets {
+                    let rt = &mut self.nodes[n as usize];
+                    rt.faulty_err = error_rate.clamp(0.0, 1.0);
+                    rt.faulty_add_us = (add_ms.max(0.0) * 1000.0) as u64;
+                    self.rollout_stage(i, n, 1);
+                }
+                for_s = *f;
+            }
+            C::ConfigPush {
+                error_rate,
+                add_ms,
+                for_s: f,
+                ..
+            } => {
+                targets = (0..self.c.nodes.len() as u32)
+                    .filter(|&n| self.c.nodes[n as usize].spec.role.is_caller())
+                    .collect();
+                for &n in &targets {
+                    let rt = &mut self.nodes[n as usize];
+                    rt.faulty_err = error_rate.clamp(0.0, 1.0);
+                    rt.faulty_add_us = (add_ms.max(0.0) * 1000.0) as u64;
+                }
+                self.chaos_targets[i as usize] = targets.clone();
+                self.rollout_stage(i, NONE, 1);
+                for_s = *f;
+            }
+            C::DnsOutage { for_s: f, .. } => {
+                self.dns_out_since = Some(self.now);
+                for_s = *f;
+            }
+            C::ControlPlane { for_s: f, .. } => {
+                self.control_plane += 1;
+                for_s = *f;
+            }
         }
         self.chaos_targets[i as usize] = targets;
         if let Some(f) = for_s {
@@ -2658,7 +2828,29 @@ impl Engine {
         match &ev {
             C::Kill { .. } | C::Partition { .. } => {
                 for n in targets {
-                    self.revive(n);
+                    if self.control_plane > 0 {
+                        // No replacement instances while the control plane is down.
+                        self.held_revives.push(n);
+                    } else {
+                        self.revive(n);
+                    }
+                }
+            }
+            C::Deploy { .. } | C::ConfigPush { .. } => {
+                // Rolled back by hand.
+                for n in targets {
+                    self.nodes[n as usize].faulty = 0.0;
+                    self.rollout_done.insert((i, n));
+                }
+                self.rollout_done.insert((i, NONE));
+            }
+            C::DnsOutage { .. } => self.dns_out_since = None,
+            C::ControlPlane { .. } => {
+                self.control_plane = self.control_plane.saturating_sub(1);
+                if self.control_plane == 0 {
+                    for n in std::mem::take(&mut self.held_revives) {
+                        self.revive(n);
+                    }
                 }
             }
             C::Latency { add_ms, .. } => {
@@ -2701,6 +2893,98 @@ impl Engine {
                 }
             }
             C::Flush { .. } | C::Traffic { .. } => {}
+        }
+    }
+
+    /// S8 rollouts. A deploy reaches `node` in stages of its `rollout_percent`, one every
+    /// `bake_s`; with `auto_rollback`, a stage is noticed one health interval after it starts
+    /// and rolled back. A config push (node = NONE) reaches every service at once, or, with a
+    /// staged Config card, one Region per stage, halting at the first stage noticed; with a
+    /// kill switch it is rolled back a second after that.
+    fn rollout_stage(&mut self, chaos: u16, node: u32, stage: u16) {
+        if self.rollout_done.contains(&(chaos, node)) {
+            return;
+        }
+        let k = f64::from(stage);
+        if node != NONE {
+            let spec = &self.c.nodes[node as usize].spec;
+            let (share, bake, auto) = (spec.rollout_share, spec.bake_us, spec.auto_rollback);
+            let reach = if bake == 0 { 1.0 } else { (k * share).min(1.0) };
+            self.nodes[node as usize].faulty = reach;
+            if auto {
+                self.push(self.now + HEALTH_EVERY_US, Ev::Noticed { chaos, node });
+            }
+            if reach < 1.0 {
+                self.push(
+                    self.now + bake,
+                    Ev::Stage {
+                        chaos,
+                        node,
+                        stage: stage + 1,
+                    },
+                );
+            }
+            return;
+        }
+        // A config push.
+        let config =
+            (0..self.c.nodes.len()).find(|&n| self.c.nodes[n].kind == ComponentKind::Config);
+        let targets: Vec<u32> = self.chaos_targets[chaos as usize].clone();
+        let staged = config.map(|c| &self.c.nodes[c].spec).filter(|s| s.staged);
+        let Some(spec) = staged else {
+            for &n in &targets {
+                self.nodes[n as usize].faulty = 1.0;
+            }
+            if config.is_some_and(|c| self.c.nodes[c].spec.kill_switch) {
+                self.push(self.now + HEALTH_EVERY_US, Ev::Noticed { chaos, node });
+            }
+            return;
+        };
+        // Stages: the services' Regions in zone order; services outside any Region last.
+        let mut regions: Vec<Option<u32>> = targets
+            .iter()
+            .map(|&n| self.c.nodes[n as usize].region)
+            .collect();
+        regions.sort_by_key(|r| r.unwrap_or(u32::MAX));
+        regions.dedup();
+        let Some(&region) = regions.get(usize::from(stage) - 1) else {
+            return;
+        };
+        for &n in &targets {
+            if self.c.nodes[n as usize].region == region {
+                self.nodes[n as usize].faulty = 1.0;
+            }
+        }
+        let bake = spec.bake_us;
+        self.push(self.now + HEALTH_EVERY_US, Ev::Noticed { chaos, node });
+        if usize::from(stage) < regions.len() {
+            self.push(
+                self.now + bake.max(HEALTH_EVERY_US + 1),
+                Ev::Stage {
+                    chaos,
+                    node,
+                    stage: stage + 1,
+                },
+            );
+        }
+    }
+
+    fn rollout_noticed(&mut self, chaos: u16, node: u32) {
+        if self.rollout_done.contains(&(chaos, node)) {
+            return;
+        }
+        if node != NONE {
+            // Auto-rollback.
+            self.nodes[node as usize].faulty = 0.0;
+            self.rollout_done.insert((chaos, node));
+            return;
+        }
+        // A config push: halt the stages; with a kill switch, roll back a second later.
+        self.rollout_done.insert((chaos, NONE));
+        let config =
+            (0..self.c.nodes.len()).find(|&n| self.c.nodes[n].kind == ComponentKind::Config);
+        if config.is_some_and(|c| self.c.nodes[c].spec.kill_switch) {
+            self.push(self.now + 1_000_000, Ev::Rollback { chaos });
         }
     }
 
@@ -2783,6 +3067,7 @@ impl Engine {
                 s.known = s.checks >= HEALTH_CHECKS;
             }
         }
+        self.eject_overloaded();
         for rt in &mut self.nodes {
             if rt.down != rt.known_down {
                 rt.checks += 1;
@@ -2792,6 +3077,55 @@ impl Engine {
                 }
             } else {
                 rt.checks = 0;
+            }
+        }
+    }
+
+    /// S8: load balancers with `health_timeout_ms` eject a target whose queue wait passes it
+    /// on two checks in a row, and take it back after two checks under it; at least
+    /// `min_healthy_pct` of its targets always stay in rotation.
+    fn eject_overloaded(&mut self) {
+        for lb in 0..self.c.nodes.len() {
+            let spec = &self.c.nodes[lb].spec;
+            if spec.health_timeout_us == 0 {
+                continue;
+            }
+            let (limit_ms, floor) = (spec.health_timeout_us as f64 / 1000.0, spec.min_healthy);
+            let targets: Vec<u32> = self.c.nodes[lb]
+                .out
+                .iter()
+                .filter(|(_, p)| matches!(p, Protocol::Http | Protocol::Grpc | Protocol::Ws))
+                .map(|(t, _)| *t)
+                .collect();
+            let n = targets.len();
+            let keep = (floor * n as f64).ceil() as usize;
+            for &t in &targets {
+                let cn = &self.c.nodes[t as usize];
+                let rt = &self.nodes[t as usize];
+                let per_lane = f64::from(rt.lane_servers.max(1));
+                let wait_ms = rt
+                    .lanes
+                    .iter()
+                    .map(|l| l.queue.len() as f64 / per_lane * cn.spec.service_ms * rt.stretch)
+                    .fold(0.0, f64::max);
+                let over = wait_ms > limit_ms;
+                let healthy = targets
+                    .iter()
+                    .filter(|&&x| !self.nodes[x as usize].ejected)
+                    .count();
+                let rt = &mut self.nodes[t as usize];
+                if over != rt.ejected {
+                    rt.eject_checks += 1;
+                    if rt.eject_checks >= HEALTH_CHECKS {
+                        rt.eject_checks = 0;
+                        if over && healthy <= keep {
+                            continue;
+                        }
+                        rt.ejected = over;
+                    }
+                } else {
+                    rt.eject_checks = 0;
+                }
             }
         }
     }
@@ -2872,7 +3206,8 @@ impl Engine {
                     * f64::from(self.c.nodes[m as usize].spec.lanes)
                     * SCALE_EVERY_US as f64;
             }
-            if self.scale_pending[g] || cap <= 0.0 {
+            if self.scale_pending[g] || cap <= 0.0 || self.control_plane > 0 {
+                // S8: no scaling decisions while the control plane is down.
                 continue;
             }
             let util = busy / cap;
@@ -2899,6 +3234,10 @@ impl Engine {
 
     fn scale_apply(&mut self, g: u32, instances: f64) {
         self.scale_pending[g as usize] = false;
+        if self.control_plane > 0 {
+            // S8: the decision can't be carried out (no new instances start).
+            return;
+        }
         let now = self.now;
         let sample = self.c.sample;
         for m in self.c.scaling[g as usize].members.clone() {

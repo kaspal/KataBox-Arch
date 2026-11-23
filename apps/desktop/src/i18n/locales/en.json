@@ -560,7 +560,12 @@
       "breaker_errors_pct": "Circuit breaker at errors",
       "breaker_open_s": "Breaker open for",
       "bulkhead": "Bulkhead per dependency",
-      "shed_queue": "Shed load past queue"
+      "shed_queue": "Shed load past queue",
+      "rollout_percent": "Rollout per stage",
+      "auto_rollback": "Automatic rollback",
+      "routing": "Routing",
+      "health_timeout_ms": "Eject when queue wait passes",
+      "min_healthy_pct": "Keep at least in rotation"
     },
     "choice": {
       "round_robin": "Round robin",
@@ -595,7 +600,8 @@
       "poll": "Polled",
       "remote": "Call the provider",
       "local": "Verify locally (JWKS)",
-      "full": "Full (random wait)"
+      "full": "Full (random wait)",
+      "failover": "Failover (first healthy)"
     }
   },
   "units": {

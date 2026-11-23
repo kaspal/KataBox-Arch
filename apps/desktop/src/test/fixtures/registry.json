@@ -12275,6 +12275,19 @@
             "unit": "s"
           },
           {
+            "calibration": null,
+            "default": "round_robin",
+            "key": "routing",
+            "ty": {
+              "options": [
+                "round_robin",
+                "failover"
+              ],
+              "type": "choice"
+            },
+            "unit": "none"
+          },
+          {
             "calibration": {
               "id": "dns.query_ratio",
               "status": "needed"
@@ -12661,6 +12674,30 @@
               "type": "float"
             },
             "unit": "ms"
+          },
+          {
+            "calibration": null,
+            "default": 0,
+            "key": "health_timeout_ms",
+            "ty": {
+              "max": 60000.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "ms"
+          },
+          {
+            "calibration": null,
+            "default": 0,
+            "key": "min_healthy_pct",
+            "ty": {
+              "max": 100.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "percent"
           }
         ]
       },
@@ -13601,6 +13638,39 @@
               "type": "int"
             },
             "unit": "count"
+          },
+          {
+            "calibration": null,
+            "default": 100,
+            "key": "rollout_percent",
+            "ty": {
+              "max": 100.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "percent"
+          },
+          {
+            "calibration": null,
+            "default": 0,
+            "key": "bake_s",
+            "ty": {
+              "max": 3600.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "s"
+          },
+          {
+            "calibration": null,
+            "default": false,
+            "key": "auto_rollback",
+            "ty": {
+              "type": "bool"
+            },
+            "unit": "none"
           }
         ]
       },
@@ -13740,6 +13810,39 @@
               "type": "int"
             },
             "unit": "count"
+          },
+          {
+            "calibration": null,
+            "default": 100,
+            "key": "rollout_percent",
+            "ty": {
+              "max": 100.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "percent"
+          },
+          {
+            "calibration": null,
+            "default": 0,
+            "key": "bake_s",
+            "ty": {
+              "max": 3600.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "s"
+          },
+          {
+            "calibration": null,
+            "default": false,
+            "key": "auto_rollback",
+            "ty": {
+              "type": "bool"
+            },
+            "unit": "none"
           }
         ]
       },
@@ -13912,6 +14015,39 @@
               "type": "int"
             },
             "unit": "count"
+          },
+          {
+            "calibration": null,
+            "default": 100,
+            "key": "rollout_percent",
+            "ty": {
+              "max": 100.0,
+              "min": 1.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "percent"
+          },
+          {
+            "calibration": null,
+            "default": 0,
+            "key": "bake_s",
+            "ty": {
+              "max": 3600.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "s"
+          },
+          {
+            "calibration": null,
+            "default": false,
+            "key": "auto_rollback",
+            "ty": {
+              "type": "bool"
+            },
+            "unit": "none"
           }
         ]
       },

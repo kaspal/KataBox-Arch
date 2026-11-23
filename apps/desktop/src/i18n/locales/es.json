@@ -560,7 +560,12 @@
       "breaker_errors_pct": "Cortocircuito con errores al",
       "breaker_open_s": "Cortocircuito abierto durante",
       "bulkhead": "Compartimento por dependencia",
-      "shed_queue": "Descartar carga con cola de más de"
+      "shed_queue": "Descartar carga con cola de más de",
+      "rollout_percent": "Despliegue por etapa",
+      "auto_rollback": "Reversión automática",
+      "routing": "Enrutado",
+      "health_timeout_ms": "Expulsar si la espera en cola supera",
+      "min_healthy_pct": "Mantener al menos en rotación"
     },
     "choice": {
       "round_robin": "Round robin",
@@ -595,7 +600,8 @@
       "poll": "Por sondeo",
       "remote": "Llamar al proveedor",
       "local": "Verificar en local (JWKS)",
-      "full": "Completa (espera aleatoria)"
+      "full": "Completa (espera aleatoria)",
+      "failover": "Conmutación (el primero sano)"
     }
   },
   "units": {

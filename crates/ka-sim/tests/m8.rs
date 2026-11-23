@@ -365,3 +365,335 @@ fn golden_l2_resilience() {
     );
     golden("l2", &run(&d, &s, 42));
 }
+
+// --- S8: deploys, config pushes, control plane, DNS, health-check ejection -------------------
+
+fn region(id: &str) -> ka_core::Group {
+    ka_core::Group {
+        id: id.into(),
+        kind: ka_core::GroupKind::Region,
+        label: id.into(),
+        position: ka_core::Point { x: 0.0, y: 0.0 },
+        size: ka_core::Size { w: 100.0, h: 100.0 },
+        parent_id: None,
+        scaling: None,
+        region_tag: None,
+        mesh: None,
+    }
+}
+
+fn in_group(mut n: ka_core::Node, g: &str) -> ka_core::Node {
+    n.group_id = Some(g.into());
+    n
+}
+
+fn set(n: &mut ka_core::Node, k: &str, v: PropValue) {
+    n.props.insert(k.into(), v);
+}
+
+fn simple_app(app: Vec<(&str, PropValue)>) -> (Design, Scenario) {
+    let mut a = node("app", K::App, Flavour::Go, &[("instances", 4.0)]);
+    for (k, v) in app {
+        set(&mut a, k, v);
+    }
+    let d = design(
+        vec![
+            node("client", K::Client, Flavour::Web, &[]),
+            a,
+            node("db", K::Sql, Flavour::Postgresql, &[]),
+        ],
+        vec![
+            edge("client", "app", Protocol::Http),
+            edge("app", "db", Protocol::Query),
+        ],
+    );
+    let mut s = scenario(
+        400.0,
+        60.0,
+        vec![rtype("read", 1.0, &["compute", "datastore"])],
+    );
+    s.chaos = vec![chaos(serde_json::json!({
+        "deploy": { "id": "app", "at": 10, "for": 40, "error_rate": 0.5 }
+    }))];
+    (d, s)
+}
+
+/// A bad build everywhere at once fails half the traffic until it's rolled back by hand; a
+/// staged rollout with automatic rollback limits it to the first stage, briefly.
+#[test]
+fn s8_a_staged_rollout_with_auto_rollback_limits_a_bad_deploy() {
+    let (d, s) = simple_app(vec![]);
+    let big_bang = run(&d, &s, 31);
+    let (d, s) = simple_app(vec![
+        ("rollout_percent", PropValue::Number(10.0)),
+        ("bake_s", PropValue::Number(60.0)),
+        ("auto_rollback", PropValue::Bool(true)),
+    ]);
+    let staged = run(&d, &s, 31);
+    assert!(big_bang.error_rate > 0.2, "{}", big_bang.error_rate);
+    assert!(staged.error_rate < 0.002, "{}", staged.error_rate);
+    assert!(staged.errors > 0.0, "the canary still hits a few");
+}
+
+/// Two Regions, each with its app; a bad config push reaches both at once, unless a staged
+/// Config card sends it one Region at a time and its kill switch rolls it back.
+fn two_regions(config: Option<&[(&str, bool)]>) -> (Design, Scenario) {
+    let mut nodes = vec![
+        node("client", K::Client, Flavour::Web, &[]),
+        node("lb", K::Lb, Flavour::AwsAlb, &[]),
+        in_group(node("app-a", K::App, Flavour::Go, &[]), "r-a"),
+        in_group(node("app-b", K::App, Flavour::Go, &[]), "r-b"),
+    ];
+    if let Some(props) = config {
+        let mut c = node(
+            "flags",
+            K::Config,
+            Flavour::Launchdarkly,
+            &[("bake_s", 30.0)],
+        );
+        for (k, v) in props {
+            set(&mut c, k, PropValue::Bool(*v));
+        }
+        nodes.push(c);
+    }
+    let mut d = design(
+        nodes,
+        vec![
+            edge("client", "lb", Protocol::Http),
+            edge("lb", "app-a", Protocol::Http),
+            edge("lb", "app-b", Protocol::Http),
+        ],
+    );
+    d.groups = vec![region("r-a"), region("r-b")];
+    let mut s = scenario(400.0, 60.0, vec![rtype("hit", 1.0, &["edge", "compute"])]);
+    s.chaos = vec![chaos(serde_json::json!({
+        "config_push": { "at": 10, "for": 30, "error_rate": 1.0 }
+    }))];
+    (d, s)
+}
+
+#[test]
+fn s8_a_staged_config_push_with_a_kill_switch_limits_the_blast_radius() {
+    let (d, s) = two_regions(None);
+    let global = run(&d, &s, 32);
+    let (d, s) = two_regions(Some(&[("staged", true)]));
+    let staged = run(&d, &s, 32);
+    let (d, s) = two_regions(Some(&[("staged", true), ("kill_switch", true)]));
+    let both = run(&d, &s, 32);
+    assert!(global.error_rate > 0.4, "{}", global.error_rate);
+    assert!(
+        staged.error_rate < global.error_rate * 0.7,
+        "one Region only: {}",
+        staged.error_rate
+    );
+    assert!(
+        both.error_rate < 0.05,
+        "rolled back in seconds: {}",
+        both.error_rate
+    );
+}
+
+/// With the control plane down, autoscaling can't add instances, so a ramp that it would
+/// normally absorb overloads the tier (static stability is the fix).
+#[test]
+fn s8_no_scaling_while_the_control_plane_is_down() {
+    let make = |cp: bool| {
+        let mut d = design(
+            vec![
+                node("client", K::Client, Flavour::Web, &[]),
+                in_group(
+                    node(
+                        "app",
+                        K::App,
+                        Flavour::Go,
+                        &[("instances", 2.0), ("concurrency", 8.0)],
+                    ),
+                    "asg",
+                ),
+            ],
+            vec![edge("client", "app", Protocol::Http)],
+        );
+        let mut g = region("asg");
+        g.kind = ka_core::GroupKind::Autoscale;
+        g.scaling = Some(ka_core::Scaling {
+            flavour: Flavour::KubernetesHpa,
+            props: [
+                ("max_instances".to_owned(), PropValue::Number(20.0)),
+                ("scale_delay_s".to_owned(), PropValue::Number(10.0)),
+            ]
+            .into_iter()
+            .collect(),
+        });
+        d.groups = vec![g];
+        let mut s = scenario(2000.0, 90.0, vec![rtype("hit", 1.0, &["compute"])]);
+        s.traffic = ka_core::scenario::Curve::Ramp { from: 0.5, to: 3.0 };
+        if cp {
+            s.chaos = vec![chaos(serde_json::json!({ "control_plane": { "at": 5 } }))];
+        }
+        (d, s)
+    };
+    let (d, s) = make(false);
+    let scales = run(&d, &s, 33);
+    let (d, s) = make(true);
+    let stuck = run(&d, &s, 33);
+    assert!(
+        stuck.errors > scales.errors * 5.0 + 100.0,
+        "{} vs {}",
+        stuck.errors,
+        scales.errors
+    );
+}
+
+/// Failover DNS with a long TTL keeps clients on a dead Region; a short TTL moves them.
+fn dns_failover(ttl: f64) -> (Design, Scenario) {
+    let mut d = design(
+        vec![
+            node("client", K::Client, Flavour::Web, &[]),
+            node("dns", K::Dns, Flavour::Route53, &[("ttl_s", ttl)]),
+            in_group(node("app-a", K::App, Flavour::Go, &[]), "r-a"),
+            in_group(node("app-b", K::App, Flavour::Go, &[]), "r-b"),
+        ],
+        vec![
+            edge("client", "dns", Protocol::Http),
+            edge("dns", "app-a", Protocol::Http),
+            edge("dns", "app-b", Protocol::Http),
+        ],
+    );
+    set(
+        &mut d.nodes[1],
+        "routing",
+        PropValue::Text("failover".into()),
+    );
+    d.groups = vec![region("r-a"), region("r-b")];
+    let mut s = scenario(300.0, 90.0, vec![rtype("hit", 1.0, &["edge", "compute"])]);
+    s.chaos = vec![chaos(
+        serde_json::json!({ "partition": { "zone": "r-a", "at": 10 } }),
+    )];
+    (d, s)
+}
+
+#[test]
+fn s8_dns_ttl_decides_how_long_clients_stay_on_a_dead_region() {
+    let (d, s) = dns_failover(86_400.0);
+    let long = run(&d, &s, 34);
+    let (d, s) = dns_failover(20.0);
+    let short = run(&d, &s, 34);
+    let last = |r: &RunResult| {
+        r.series
+            .iter()
+            .rev()
+            .take(20)
+            .map(|x| x.errors)
+            .sum::<f64>()
+    };
+    assert!(
+        last(&long) > 1000.0,
+        "still on the dead Region: {}",
+        last(&long)
+    );
+    assert_eq!(last(&short), 0.0, "moved within the TTL");
+    // Before the partition, everything goes to the first Region.
+    let served = |r: &RunResult, id: &str| r.nodes.iter().find(|n| n.id == id).unwrap().served;
+    assert!(served(&short, "app-a") > 0.0 && served(&short, "app-b") > 0.0);
+}
+
+/// A DNS outage only hurts clients whose cached answer expired.
+#[test]
+fn s8_a_dns_outage_spares_cached_answers() {
+    let make = |ttl: f64| {
+        let d = design(
+            vec![
+                node("client", K::Client, Flavour::Web, &[]),
+                node("dns", K::Dns, Flavour::Route53, &[("ttl_s", ttl)]),
+                node("app", K::App, Flavour::Go, &[]),
+            ],
+            vec![
+                edge("client", "dns", Protocol::Http),
+                edge("dns", "app", Protocol::Http),
+            ],
+        );
+        let mut s = scenario(300.0, 60.0, vec![rtype("hit", 1.0, &["edge", "compute"])]);
+        s.chaos = vec![chaos(
+            serde_json::json!({ "dns_outage": { "at": 10, "for": 20 } }),
+        )];
+        (d, s)
+    };
+    let (d, s) = make(0.0);
+    let none = run(&d, &s, 35);
+    let (d, s) = make(300.0);
+    let cached = run(&d, &s, 35);
+    assert!(none.error_rate > 0.3, "{}", none.error_rate);
+    assert!(
+        cached.error_rate < none.error_rate / 5.0,
+        "{}",
+        cached.error_rate
+    );
+}
+
+/// Aggressive health checks eject overloaded targets, which overloads the rest (a spiral);
+/// a minimum-healthy floor keeps capacity in rotation.
+fn spiral(min_healthy: f64) -> (Design, Scenario) {
+    let app = |id: &str| {
+        node(
+            id,
+            K::App,
+            Flavour::Go,
+            &[("instances", 1.0), ("concurrency", 16.0)],
+        )
+    };
+    let d = design(
+        vec![
+            node("client", K::Client, Flavour::Web, &[]),
+            node(
+                "lb",
+                K::Lb,
+                Flavour::AwsAlb,
+                &[
+                    ("health_timeout_ms", 20.0),
+                    ("min_healthy_pct", min_healthy),
+                ],
+            ),
+            app("a1"),
+            app("a2"),
+            app("a3"),
+        ],
+        vec![
+            edge("client", "lb", Protocol::Http),
+            edge("lb", "a1", Protocol::Http),
+            edge("lb", "a2", Protocol::Http),
+            edge("lb", "a3", Protocol::Http),
+        ],
+    );
+    let mut s = scenario(7000.0, 60.0, vec![rtype("hit", 1.0, &["edge", "compute"])]);
+    s.traffic = ka_core::scenario::Curve::Spike {
+        at: 10.0,
+        x: 1.6,
+        for_s: 20.0,
+    };
+    (d, s)
+}
+
+#[test]
+fn s8_health_check_ejection_spirals_without_a_floor() {
+    let (d, s) = spiral(0.0);
+    let no_floor = run(&d, &s, 36);
+    let (d, s) = spiral(100.0);
+    let floor = run(&d, &s, 36);
+    assert!(
+        no_floor.errors > floor.errors,
+        "{} vs {}",
+        no_floor.errors,
+        floor.errors
+    );
+}
+
+/// Golden l3: a bad deploy behind a staged rollout with auto-rollback.
+#[test]
+fn golden_l3_staged_rollout() {
+    let (d, s) = simple_app(vec![
+        ("rollout_percent", PropValue::Number(25.0)),
+        ("bake_s", PropValue::Number(20.0)),
+        ("auto_rollback", PropValue::Bool(true)),
+    ]);
+    golden("l3", &run(&d, &s, 42));
+}

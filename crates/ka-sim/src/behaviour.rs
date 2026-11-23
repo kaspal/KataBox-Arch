@@ -91,6 +91,20 @@ pub struct NodeSpec {
     pub bulkhead: bool,
     /// Turn new requests away once this many wait (0 = never; before sampling).
     pub shed_queue: f64,
+    /// S8 rollouts: the share of instances each stage reaches, the wait between stages
+    /// (deploys, and a Config card's staged pushes), and automatic rollback.
+    pub rollout_share: f64,
+    pub bake_us: u64,
+    pub auto_rollback: bool,
+    /// A Config card: pushes go one Region at a time; a kill switch rolls back fast.
+    pub staged: bool,
+    pub kill_switch: bool,
+    /// DNS in failover mode (S8): answers point at the first healthy target.
+    pub dns_failover: bool,
+    /// Load balancers (S8): eject targets whose queue wait passes this (0 = liveness only),
+    /// keeping at least this share in rotation.
+    pub health_timeout_us: u64,
+    pub min_healthy: f64,
 }
 
 /// The value of `key` for `node`: the card's prop, else its flavour override, else the
@@ -212,5 +226,19 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
             Some(PropValue::Bool(true))
         ),
         shed_queue: n("shed_queue").unwrap_or(0.0).max(0.0),
+        rollout_share: n("rollout_percent").unwrap_or(100.0).clamp(1.0, 100.0) / 100.0,
+        bake_us: (n("bake_s").unwrap_or(0.0).max(0.0) * 1e6) as u64,
+        auto_rollback: matches!(
+            prop(registry, node, "auto_rollback"),
+            Some(PropValue::Bool(true))
+        ),
+        staged: matches!(prop(registry, node, "staged"), Some(PropValue::Bool(true))),
+        kill_switch: matches!(
+            prop(registry, node, "kill_switch"),
+            Some(PropValue::Bool(true))
+        ),
+        dns_failover: text(registry, node, "routing").as_deref() == Some("failover"),
+        health_timeout_us: (n("health_timeout_ms").unwrap_or(0.0).max(0.0) * 1000.0) as u64,
+        min_healthy: n("min_healthy_pct").unwrap_or(0.0).clamp(0.0, 100.0) / 100.0,
     }
 }

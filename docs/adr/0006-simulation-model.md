@@ -277,6 +277,29 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
     once.
   - Shedding: a request that would wait behind `shed_queue` others (per lane, scaled by sampling) is dropped at
     once, an error, instead of queuing toward a timeout.
+- **Deploys, config pushes, the control plane, DNS, health-check ejection, recovery (S8, golden l3).**
+  - Chaos `deploy { id|kind…, at, error_rate, add_ms, for }`: the selected services run a bad build on a share of
+    their instances (a request served there fails with `error_rate` and takes `add_ms` longer; one `s8` stream
+    draws). The share grows by the card's `rollout_percent` every `bake_s` (`bake_s` 0: all at once); with
+    `auto_rollback`, each stage is noticed one health interval (2 s) after it starts and rolled back. `for` is the
+    hand rollback.
+  - Chaos `config_push { at, error_rate, add_ms, for }`: every service turns faulty at once. A Config card with
+    `staged` sends it one Region per stage (zone order; services outside Regions last), every `bake_s` (at least
+    one health interval), halting at the first stage, which is noticed after 2 s; with `kill_switch` the change is
+    rolled back 1 s after it is noticed (with or without staging).
+  - Chaos `control_plane { at, for }`: no autoscaling decision applies and killed cards don't come back until it
+    ends; running instances keep serving.
+  - Chaos `dns_outage { at, for }`: at a DNS card, a request fails with probability min(1, elapsed / `ttl_s`):
+    answers cached within the TTL still work (uniform cache ages). `cache_flush` is another name for `flush`.
+  - DNS `routing = failover`: answers point at the first target in design order while it is healthy, else the
+    next live one; after a switch, a share 1 − elapsed / TTL of clients still uses its cached (dead) answer.
+    `round_robin` (the default) keeps the old spread over every healthy target.
+  - Load balancers: `health_timeout_ms` ejects a target whose estimated queue wait (queue ÷ servers × service
+    time) passes it on two checks in a row, and takes it back after two checks under it; `min_healthy_pct` keeps
+    that share of targets in rotation. With every target ejected the LB answers 503. Health checks run whenever a
+    design uses this, even without chaos.
+  - `pass.recovered_by_s = T` (the metastable check): from second T to the end of the test, every second with
+    traffic must be within the test's error limit (1% if unset) and p95 limit.
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE

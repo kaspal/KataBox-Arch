@@ -143,6 +143,7 @@ fn verdict(r: &RunResult, limits: &PassCriteria, cost: f64, budget: f64) -> Verd
         || (p99_judged(r) && over(r.latency.p99_ms, limits.p99_ms))
         || limits.availability.is_some_and(|a| r.availability < a)
         || over(r.stale_rate, limits.stale_rate)
+        || !recovered(r, limits)
     {
         return Verdict::SloBreach;
     }
@@ -150,6 +151,24 @@ fn verdict(r: &RunResult, limits: &PassCriteria, cost: f64, budget: f64) -> Verd
         return Verdict::OverBudget;
     }
     Verdict::Accepted
+}
+
+/// S8 metastable check: from `recovered_by_s` to the end of the test, every second with
+/// traffic is within the test's error limit (1% if unset) and p95 limit.
+pub fn recovered(r: &RunResult, limits: &PassCriteria) -> bool {
+    let Some(from) = limits.recovered_by_s else {
+        return true;
+    };
+    let err_limit = limits.error_rate.unwrap_or(0.01);
+    r.series
+        .iter()
+        .filter(|s| f64::from(s.t) >= from && f64::from(s.t) < r.duration_s)
+        .all(|s| {
+            let done = s.ok + s.errors;
+            let err_ok = done <= 0.0 || s.errors / done <= err_limit;
+            let p95_ok = limits.p95_ms.is_none_or(|l| s.p95_ms <= l);
+            err_ok && p95_ok
+        })
 }
 
 /// Simulated requests the run completed (sampling counted back out).

@@ -1207,6 +1207,10 @@ fn resilience() -> Vec<PropSpec> {
         int("breaker_open_s", 1.0, 600.0, 30.0, Unit::S),
         boolean("bulkhead", false),
         shed_queue(),
+        // How a new build reaches the instances: in stages, with a wait between them.
+        int("rollout_percent", 1.0, 100.0, 100.0, Unit::Percent),
+        int("bake_s", 0.0, 3600.0, 0.0, Unit::S),
+        boolean("auto_rollback", false),
     ]
 }
 fn shed_queue() -> PropSpec {
@@ -1238,6 +1242,9 @@ pub fn registry() -> Registry {
             vec![fl(F::Route53), fl(F::CloudflareDns)],
             vec![
                 int("ttl_s", 0.0, 86_400.0, 300.0, Unit::S),
+                // S8: `failover` answers with the first healthy target; clients cache the
+                // answer for the TTL. `round_robin` spreads over every healthy target.
+                choice("routing", &["round_robin", "failover"], "round_robin"),
                 // Billing only: the share of requests that reach the DNS service as a query
                 // (clients and resolvers cache answers for the TTL).
                 float("query_ratio", 0.001, 1.0, 0.001, 0.01, Unit::None),
@@ -1269,6 +1276,10 @@ pub fn registry() -> Registry {
                     "round_robin",
                 ),
                 service_ms(0.5),
+                // S8: eject targets whose queue wait passes this (0 = liveness checks only),
+                // keeping at least this share in rotation.
+                int("health_timeout_ms", 0.0, 60_000.0, 0.0, Unit::Ms),
+                int("min_healthy_pct", 0.0, 100.0, 0.0, Unit::Percent),
             ],
         ),
         kind(

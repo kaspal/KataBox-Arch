@@ -269,7 +269,8 @@ pub enum ChaosEvent {
         #[serde(default, rename = "for")]
         for_s: Option<f64>,
     },
-    /// A cache or CDN is emptied (a restart, a purge).
+    /// A cache or CDN is emptied (a restart, a purge). `cache_flush` is the same event.
+    #[serde(alias = "cache_flush")]
     Flush {
         #[serde(flatten)]
         target: Selector,
@@ -289,6 +290,47 @@ pub enum ChaosEvent {
         #[serde(default)]
         rate: Option<f64>,
     },
+    /// S8: a bad build is deployed to the compute cards selected. Its instances fail
+    /// `error_rate` of their requests and add `add_ms`. It rolls out by each card's
+    /// `rollout_percent` every `bake_s`, rolls back by itself with `auto_rollback`, and is
+    /// rolled back by hand after `for` seconds.
+    Deploy {
+        #[serde(flatten)]
+        target: Selector,
+        at: f64,
+        #[serde(default)]
+        error_rate: f64,
+        #[serde(default)]
+        add_ms: f64,
+        #[serde(default, rename = "for")]
+        for_s: Option<f64>,
+    },
+    /// S8: a bad config change reaches every service. A Config card with `staged` sends it
+    /// one Region at a time, every `bake_s`, and halts at the first stage that breaks; with
+    /// `kill_switch` the change is rolled back a second after it is noticed.
+    ConfigPush {
+        at: f64,
+        #[serde(default)]
+        error_rate: f64,
+        #[serde(default)]
+        add_ms: f64,
+        #[serde(default, rename = "for")]
+        for_s: Option<f64>,
+    },
+    /// S8: DNS can't answer. Clients keep using answers they cached within the TTL of the
+    /// DNS card on their path; the rest can't resolve.
+    DnsOutage {
+        at: f64,
+        #[serde(default, rename = "for")]
+        for_s: Option<f64>,
+    },
+    /// S8: the cloud control plane is down: no scaling decisions apply and no replacement
+    /// instances start, while running instances keep serving.
+    ControlPlane {
+        at: f64,
+        #[serde(default, rename = "for")]
+        for_s: Option<f64>,
+    },
 }
 
 impl ChaosEvent {
@@ -300,7 +342,11 @@ impl ChaosEvent {
             | ChaosEvent::Split { at, .. }
             | ChaosEvent::Traffic { at, .. }
             | ChaosEvent::Flush { at, .. }
-            | ChaosEvent::External { at, .. } => *at,
+            | ChaosEvent::External { at, .. }
+            | ChaosEvent::Deploy { at, .. }
+            | ChaosEvent::ConfigPush { at, .. }
+            | ChaosEvent::DnsOutage { at, .. }
+            | ChaosEvent::ControlPlane { at, .. } => *at,
         }
     }
 }
@@ -325,6 +371,10 @@ pub struct PassCriteria {
     /// Messages that may be lost (usually 0).
     #[serde(default)]
     pub lost: Option<f64>,
+    /// S8 metastable check: from this second to the end of the test, every second must be
+    /// within the test's error and p95 limits (the system recovered after its trigger).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub recovered_by_s: Option<f64>,
 }
 
 /// Completed requests a test needs before its p99 is judged (review A4).
@@ -340,6 +390,7 @@ impl PassCriteria {
             availability: over.availability.or(self.availability),
             stale_rate: over.stale_rate.or(self.stale_rate),
             lost: over.lost.or(self.lost),
+            recovered_by_s: over.recovered_by_s.or(self.recovered_by_s),
         }
     }
 }

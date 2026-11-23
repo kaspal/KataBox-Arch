@@ -870,14 +870,37 @@ export type ChaosEvent =
  */
 { traffic: { x: number; at: number; for?: number | null } } | 
 /**
- * A cache or CDN is emptied (a restart, a purge).
+ * A cache or CDN is emptied (a restart, a purge). `cache_flush` is the same event.
  */
 { flush: { target: Selector; at: number } } | 
 /**
  * An external provider goes down, slows by `add_ms`, or cuts its rate limit to `rate`
  * calls per second.
  */
-{ external: { name: string; at: number; for?: number | null; down?: boolean; add_ms?: number; rate?: number | null } }
+{ external: { name: string; at: number; for?: number | null; down?: boolean; add_ms?: number; rate?: number | null } } | 
+/**
+ * S8: a bad build is deployed to the compute cards selected. Its instances fail
+ * `error_rate` of their requests and add `add_ms`. It rolls out by each card's
+ * `rollout_percent` every `bake_s`, rolls back by itself with `auto_rollback`, and is
+ * rolled back by hand after `for` seconds.
+ */
+{ deploy: { target: Selector; at: number; error_rate?: number; add_ms?: number; for?: number | null } } | 
+/**
+ * S8: a bad config change reaches every service. A Config card with `staged` sends it
+ * one Region at a time, every `bake_s`, and halts at the first stage that breaks; with
+ * `kill_switch` the change is rolled back a second after it is noticed.
+ */
+{ config_push: { at: number; error_rate?: number; add_ms?: number; for?: number | null } } | 
+/**
+ * S8: DNS can't answer. Clients keep using answers they cached within the TTL of the
+ * DNS card on their path; the rest can't resolve.
+ */
+{ dns_outage: { at: number; for?: number | null } } | 
+/**
+ * S8: the cloud control plane is down: no scaling decisions apply and no replacement
+ * instances start, while running instances keep serving.
+ */
+{ control_plane: { at: number; for?: number | null } }
 /**
  * How close an answer was.
  */
@@ -1370,7 +1393,12 @@ p99_ms?: number | null; error_rate?: number | null; availability?: number | null
 /**
  * Messages that may be lost (usually 0).
  */
-lost?: number | null }
+lost?: number | null; 
+/**
+ * S8 metastable check: from this second to the end of the test, every second must be
+ * within the test's error and p95 limits (the system recovered after its trigger).
+ */
+recovered_by_s?: number | null }
 /**
  * One step of a path as the UI shows it.
  */
