@@ -11,7 +11,7 @@ Tienes un rastreador que mantiene una copia al día de páginas web para un prod
 | Ritmo de rastreo | 800 URLs/s |
 | Tiempo de finalización p95 | 4 s o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 2 500 $ al mes |
+| Presupuesto | 7500 $ al mes |
 
 ## El tráfico
 

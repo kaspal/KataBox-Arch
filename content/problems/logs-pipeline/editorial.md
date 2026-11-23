@@ -8,7 +8,7 @@ A stream hands out one message per partition at a time, so the partitions cap ho
 
 ## The reference design
 
-The Collector, 2 Go instances behind a Load Balancer, publishes each batch to a Kafka stream with 128 partitions. Two Celery Shipper cards consume it, Shippers A and Shippers B, each with 10 instances at Celery's default concurrency of 8: 160 slots in all, more than the 128 partitions, so either card can carry a normal day alone. Both write to an S3 archive; searches go to Elasticsearch. This costs about $4,913 per month, mostly the archive: about $2,569, because S3 charges for every write and 990 batches a second is about 2.6 billion writes a month. On a normal day the p95 is about 152 ms.
+The Collector, 2 Go instances behind a Load Balancer, publishes each batch to a Kafka stream with 128 partitions. Two Celery Shipper cards consume it, Shippers A and Shippers B, each with 10 instances at Celery's default concurrency of 8: 160 slots in all, more than the 128 partitions, so either card can carry a normal day alone. Both write to an S3 archive; searches go to Elasticsearch. This costs about $14,814 per month, mostly the archive: about $12,800, because S3 charges $5 for every million writes and 990 batches a second is about 2.6 billion writes a month. On a normal day the p95 is about 152 ms.
 
 "An incident triples the logs" runs three times the traffic for 10 seconds, from 20 seconds in, and allows a p95 of 15 seconds. About 1,000 batches a second more arrive than 128 partitions can archive, so roughly 10,000 queue in the stream. Afterwards the spare 1,000 a second clears them in about 10 seconds: the p95 is about 5.4 s.
 
@@ -16,7 +16,7 @@ The Collector, 2 Go instances behind a Load Balancer, publishes each batch to a 
 
 ## Why the first try breaks
 
-A common first try uses 96 partitions and a single Shipper card of 12 instances: 96 slots, for about $4,353 per month. It passes "Normal day" with the same p95. It even passes the incident, though its bigger backlog drains more slowly and the p95 reaches about 10.5 s.
+A common first try uses 96 partitions and a single Shipper card of 12 instances: 96 slots, for about $14,254 per month. It passes "Normal day" with the same p95. It even passes the incident, though its bigger backlog drains more slowly and the p95 reaches about 10.5 s.
 
 The rebalance test is where it fails. When the only Shipper card dies, the stream has no one left to hand batches to. Nothing is archived from 20 seconds on; every batch waits until the run ends and counts at its age then. The p95 reaches about 66 seconds. No batch is lost; the stream keeps them all.
 

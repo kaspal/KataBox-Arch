@@ -11,7 +11,7 @@ You run a marketing platform. Your customers write a campaign, pick their audien
 | Peak traffic | 500 emails/s |
 | p95 completion latency | 30 s or less |
 | Availability | 99.9% or more |
-| Budget | $1,500 per month |
+| Budget | $3,300 per month |
 | Lost messages | None |
 
 ## The traffic

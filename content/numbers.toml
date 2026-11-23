@@ -1,6 +1,7 @@
 # The numbers cheat sheet (M5.1): rough speeds and sizes for back-of-the-envelope estimates.
 # Orders of magnitude, not benchmarks. Sources: a URL; `needed: <URL>` until checked;
-# `arithmetic` for a derived constant; `simulator` for a figure read from the registry's
+# `arithmetic` for a derived constant; `rule of thumb` for a convention with no single source;
+# `simulator` for a figure read from the registry's
 # calibration (docs/calibration.md), so estimates and the simulator agree.
 
 # --- Memory -----------------------------------------------------------------------------------
@@ -14,7 +15,8 @@ value = 1
 unit = "ns"
 note = "The CPU's own cache: about a nanosecond. Everything else is slower than this."
 note_es = "La caché propia de la CPU: alrededor de un nanosegundo. Todo lo demás es más lento."
-source = "needed: https://colin-scott.github.io/personal_website/research/interactive_latency.html"
+# cited: https://colin-scott.github.io/personal_website/research/interactive_latency.html: 1 ns; Gregg, Systems Performance, 2nd ed. (2020), Table 2.2: 0.9 ns
+source = "https://colin-scott.github.io/personal_website/research/interactive_latency.html"
 
 [[figure]]
 id = "memory-reference"
@@ -25,7 +27,8 @@ value = 100
 unit = "ns"
 note = "Reading RAM is about a hundred times slower than the L1 cache, and still far faster than any disk."
 note_es = "Leer la RAM es unas cien veces más lento que la caché L1, y aun así mucho más rápido que cualquier disco."
-source = "needed: https://colin-scott.github.io/personal_website/research/interactive_latency.html"
+# cited: https://colin-scott.github.io/personal_website/research/interactive_latency.html: 100 ns; Gregg, Systems Performance, 2nd ed. (2020), Table 2.2: about 100 ns
+source = "https://colin-scott.github.io/personal_website/research/interactive_latency.html"
 
 [[figure]]
 id = "memory-read-1mb"
@@ -56,22 +59,24 @@ id = "ssd-random-read"
 group = "storage"
 label = "SSD random read"
 label_es = "Lectura aleatoria en SSD"
-value = 100
+value = 50
 unit = "us"
-note = "A 4 KB read from an NVMe SSD: about a tenth of a millisecond, a thousand times slower than RAM."
-note_es = "Una lectura de 4 KB en un SSD NVMe: una décima de milisegundo, mil veces más lento que la RAM."
-source = "needed: https://colin-scott.github.io/personal_website/research/interactive_latency.html"
+note = "A 4 KB read from an NVMe SSD: about a twentieth of a millisecond, some 500 times slower than RAM."
+note_es = "Una lectura de 4 KB en un SSD NVMe: una veinteava parte de milisegundo, unas 500 veces más lenta que la RAM."
+# cited: Samsung 990 PRO datasheet: QD1 random read 22K IOPS, about 45 us per read; Gregg, Systems Performance, 2nd ed. (2020), Table 2.2: SSD I/O 50-150 us
+source = "https://download.semiconductor.samsung.com/resources/data-sheet/Samsung_NVMe_SSD_990_PRO_Datasheet_Rev.1.0_10129514072296.pdf"
 
 [[figure]]
 id = "ssd-read-1mb"
 group = "storage"
 label = "Read 1 MB sequentially from SSD"
 label_es = "Leer 1 MB seguido de un SSD"
-value = 0.5
+value = 0.3
 unit = "ms"
-note = "Sequential reads from an SSD run at a few gigabytes a second."
-note_es = "Las lecturas seguidas de un SSD van a unos pocos gigabytes por segundo."
-source = "needed: https://colin-scott.github.io/personal_website/research/interactive_latency.html"
+note = "Sequential reads from an NVMe SSD run at several gigabytes a second: a megabyte in about a third of a millisecond."
+note_es = "Las lecturas seguidas de un SSD NVMe van a varios gigabytes por segundo: un megabyte en un tercio de milisegundo."
+# cited: Samsung 990 PRO brochure: PCIe 3.0 SSDs about 3,500 MB/s, PCIe 4.0 up to 7,450 MB/s; 1 MB at 3.5 GB/s is about 0.29 ms
+source = "https://download.semiconductor.samsung.com/resources/brochure/990_PRO_Series_Brouchure_Web_Version_1.0.pdf"
 
 [[figure]]
 id = "disk-seek"
@@ -82,7 +87,8 @@ value = 10
 unit = "ms"
 note = "A spinning disk has to move its head: about ten milliseconds per random read. Avoid random reads on it."
 note_es = "Un disco giratorio tiene que mover el cabezal: unos diez milisegundos por lectura aleatoria. Evita leer al azar en él."
-source = "needed: https://colin-scott.github.io/personal_website/research/interactive_latency.html"
+# cited: Gregg, Systems Performance, 2nd ed. (2020), Table 2.2: rotational disk I/O 1-10 ms; https://colin-scott.github.io/personal_website/research/interactive_latency.html: 10 ms (its year-2000 base figure)
+source = "https://colin-scott.github.io/personal_website/research/interactive_latency.html"
 
 [[figure]]
 id = "sql-query"
@@ -117,7 +123,8 @@ value = 0.5
 unit = "ms"
 note = "Two servers in the same data center talk in well under a millisecond."
 note_es = "Dos servidores del mismo centro de datos se hablan en mucho menos de un milisegundo."
-source = "needed: https://docs.aws.amazon.com/whitepapers/latest/aws-fault-isolation-boundaries/availability-zones.html"
+# cited: https://colin-scott.github.io/personal_website/research/interactive_latency.html: round trip within the same datacenter, 500 us
+source = "https://colin-scott.github.io/personal_website/research/interactive_latency.html"
 
 [[figure]]
 id = "rtt-cross-az"
@@ -128,7 +135,8 @@ value = 1.5
 unit = "ms"
 note = "Zones in one region are a few kilometres apart: about a millisecond or two. The simulator adds the same between zones."
 note_es = "Las zonas de una región están a pocos kilómetros: uno o dos milisegundos. El simulador suma lo mismo entre zonas."
-source = "needed: https://docs.aws.amazon.com/whitepapers/latest/aws-fault-isolation-boundaries/availability-zones.html"
+# cited: AWS: Availability Zones are up to about 100 km apart, with single-digit millisecond latency between them
+source = "https://docs.aws.amazon.com/whitepapers/latest/aws-fault-isolation-boundaries/availability-zones.html"
 
 [[figure]]
 id = "rtt-cross-region"
@@ -137,20 +145,22 @@ label = "Round trip between regions on one continent"
 label_es = "Ida y vuelta entre regiones de un continente"
 value = 70
 unit = "ms"
-note = "Light in fibre covers about 200 km per millisecond, each way. A US coast-to-coast round trip is around 70 ms, as in the simulator."
-note_es = "La luz en fibra recorre unos 200 km por milisegundo, en cada sentido. Una ida y vuelta de costa a costa en EE. UU. ronda los 70 ms, como en el simulador."
-source = "needed: https://www.cloudping.co/"
+note = "Across a continent and back: about 60-70 ms. Cross-region calls belong off the request path."
+note_es = "Cruzar un continente y volver: unos 60-70 ms. Las llamadas entre regiones no deben estar en el camino de la petición."
+# cited: cloudping P50 on 2026-11-22: us-east-1 to us-west-2 about 61 ms
+source = "https://www.cloudping.co/"
 
 [[figure]]
 id = "rtt-intercontinental"
 group = "network"
 label = "Round trip across an ocean"
 label_es = "Ida y vuelta a través de un océano"
-value = 150
+value = 120
 unit = "ms"
-note = "Europe to the US west coast, or the US to Asia: well over 100 ms. No design trick makes light faster."
-note_es = "De Europa a la costa oeste de EE. UU., o de EE. UU. a Asia: bastante más de 100 ms. Ningún truco de diseño hace la luz más rápida."
-source = "needed: https://www.cloudping.co/"
+note = "Across an ocean and back: about 100-150 ms. No user should wait on several of these."
+note_es = "Cruzar un océano y volver: unos 100-150 ms. Ningún usuario debería esperar varias de estas."
+# cited: cloudping P50 on 2026-11-22: us-west-2 to ap-northeast-1 about 107 ms, eu-west-1 to us-west-2 about 118 ms; https://colin-scott.github.io/personal_website/research/interactive_latency.html: CA to the Netherlands 150 ms
+source = "https://www.cloudping.co/"
 
 [[figure]]
 id = "nic-bandwidth"
@@ -159,9 +169,10 @@ label = "A server's network link"
 label_es = "El enlace de red de un servidor"
 value = 10
 unit = "Gbps"
-note = "A common server network card: 10 gigabits a second, about 1.25 gigabytes a second at best."
-note_es = "Una tarjeta de red de servidor habitual: 10 gigabits por segundo, como mucho unos 1,25 gigabytes por segundo."
-source = "needed: https://aws.amazon.com/ec2/instance-types/"
+note = "A common server's network link: up to 10 Gbps, and one connection gets at most about half of it."
+note_es = "El enlace de red de un servidor corriente: hasta 10 Gbps, y una sola conexión obtiene como mucho la mitad."
+# cited: AWS: m5.large has up to 10 Gbps; https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-network-bandwidth.html: one flow is capped at 5 Gbps outside a placement group
+source = "https://aws.amazon.com/blogs/aws/m5-the-next-generation-of-general-purpose-ec2-instances"
 
 [[figure]]
 id = "send-1mb-1gbps"
@@ -262,7 +273,8 @@ value = 10
 unit = "MB/s"
 note = "A planning figure: a partition handles roughly ten megabytes a second. Partitions also cap how many consumers work in parallel."
 note_es = "Una cifra de planificación: una partición maneja unos diez megabytes por segundo. Las particiones también limitan cuántos consumidores trabajan en paralelo."
-source = "needed: https://www.confluent.io/blog/how-choose-number-topics-partitions-kafka-cluster/"
+# cited: Confluent: producers reach 10s of MB/sec on one partition; consumer throughput depends on the application
+source = "https://www.confluent.io/blog/how-choose-number-topics-partitions-kafka-cluster/"
 
 # --- Sizes ------------------------------------------------------------------------------------
 
@@ -286,7 +298,8 @@ value = 100
 unit = "B"
 note = "Most links fit in about a hundred bytes; a short link's record with its metadata is a few hundred."
 note_es = "La mayoría de los enlaces caben en unos cien bytes; el registro de un enlace corto con sus metadatos ocupa unos cientos."
-source = "needed: https://developer.mozilla.org/en-US/docs/Learn_web_development/Howto/Web_mechanics/What_is_a_URL"
+# a rule of thumb (M7b review); the page for context: https://developer.mozilla.org/en-US/docs/Learn_web_development/Howto/Web_mechanics/What_is_a_URL
+source = "rule of thumb"
 
 [[figure]]
 id = "photo"
@@ -297,7 +310,8 @@ value = 3
 unit = "MB"
 note = "A compressed photo: a few megabytes. A thumbnail of it is a few tens of kilobytes."
 note_es = "Una foto comprimida: unos pocos megabytes. Su miniatura ocupa unas decenas de kilobytes."
-source = "needed: https://en.wikipedia.org/wiki/JPEG"
+# a rule of thumb (M7b review); the page for context: https://en.wikipedia.org/wiki/JPEG
+source = "rule of thumb"
 
 [[figure]]
 id = "video-minute"
@@ -354,4 +368,5 @@ value = 3
 unit = "count"
 note = "A rule of thumb: the busiest hour runs at two to three times the day's average. Size for the peak, not the average."
 note_es = "Una regla práctica: la hora más ocupada va a dos o tres veces la media del día. Dimensiona para el pico, no para la media."
-source = "needed: https://sre.google/sre-book/handling-overload/"
+# a rule of thumb (M7b review); the page for context: https://sre.google/sre-book/handling-overload/
+source = "rule of thumb"

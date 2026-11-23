@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { Check, Copy, FileDown, FileImage, Share2 } from "lucide-react";
+import { Check, Copy, FileDown, FileImage, Film, Share2 } from "lucide-react";
 import type { Registry } from "@/bindings";
 import { useReportError } from "@/app/dialogs";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,10 @@ import { useRegistry } from "@/lib/queries";
 import { flavourName, kindName } from "@/solve/registry";
 import { designSvg, readPalette, svgToPng, type SceneNames } from "@/solve/export/scene";
 import { toDesign, useEditor } from "@/solve/store";
+import { useRun } from "@/solve/run/runStore";
+import { useProblemMode } from "@/solve/problem/context";
+import { openAnimation } from "@/solve/export/animationStore";
+import { webmType } from "@/solve/export/animation";
 
 const PROTOCOLS = ["http", "grpc", "ws", "query", "publish", "consume", "replicate"] as const;
 const GROUPS = ["region", "az", "autoscale"] as const;
@@ -28,7 +32,7 @@ export function exportNames(t: TFunction, registry: Registry): Record<string, st
 }
 
 export function ExportMenu() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const registry = useRegistry();
   const report = useReportError();
   const [copied, setCopied] = useState(false);
@@ -51,6 +55,31 @@ export function ExportMenu() {
       await api.saveMermaid(d, names(), `${d.name || "design"}.mmd`);
     } catch (e) {
       report(e);
+    }
+  };
+
+  // The run the Export menu animates: the problem test Run plays, else the Sandbox preset.
+  const mode = useProblemMode();
+  const preset = useRun((s) => s.preset);
+  const problemTest = useRun((s) => s.problemTest);
+  const webm = webmType();
+  const animate = () => {
+    const d = design();
+    const test = problemTest ? mode?.brief.tests.find((x) => x.id === problemTest.test_id) : undefined;
+    if (problemTest && test) {
+      openAnimation({
+        source: { type: "test", design: d, problem_id: problemTest.problem_id, test_id: test.id },
+        label: i18n.language.startsWith("es") ? test.name_es : test.name,
+        minStart: 0,
+        durationS: test.duration_s,
+      });
+    } else {
+      openAnimation({
+        source: { type: "sandbox", design: d, preset },
+        label: `${t("animation.sandbox")} · ${t(`run.presets.${preset}`)}`,
+        minStart: 0,
+        durationS: 60,
+      });
     }
   };
 
@@ -99,6 +128,13 @@ export function ExportMenu() {
           <DropdownMenuItem onSelect={() => void image("png")} className="gap-2">
             <FileImage aria-hidden className="size-4" />
             {t("export.savePng")}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={animate} disabled={!webm} className="items-start gap-2" data-testid="export-webm">
+            <Film aria-hidden className="mt-0.5 size-4" />
+            <span>
+              {t("export.saveWebm")}
+              {!webm && <span className="block text-xs text-muted-foreground">{t("export.webmUnsupported")}</span>}
+            </span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

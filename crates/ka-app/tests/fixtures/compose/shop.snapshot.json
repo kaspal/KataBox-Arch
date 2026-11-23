@@ -1,0 +1,371 @@
+{
+  "design": {
+    "schema_version": 3,
+    "id": "compose-e68ab3738fdeb4a4",
+    "name": "shop",
+    "problem_id": null,
+    "nodes": [
+      {
+        "id": "api",
+        "kind": "app",
+        "flavour": "go",
+        "label": "api",
+        "position": {
+          "x": 304,
+          "y": 0
+        },
+        "props": {
+          "instances": 3
+        },
+        "group_id": null
+      },
+      {
+        "id": "cache",
+        "kind": "cache",
+        "flavour": "redis",
+        "label": "cache",
+        "position": {
+          "x": 912,
+          "y": 0
+        },
+        "props": {},
+        "group_id": null
+      },
+      {
+        "id": "db",
+        "kind": "sql",
+        "flavour": "postgresql",
+        "label": "db",
+        "position": {
+          "x": 912,
+          "y": 112
+        },
+        "props": {},
+        "group_id": null
+      },
+      {
+        "id": "docs",
+        "kind": "nosql",
+        "flavour": "mongodb",
+        "label": "docs",
+        "position": {
+          "x": 912,
+          "y": 224
+        },
+        "props": {},
+        "group_id": null
+      },
+      {
+        "id": "events",
+        "kind": "stream",
+        "flavour": "kafka",
+        "label": "events",
+        "position": {
+          "x": 608,
+          "y": 0
+        },
+        "props": {},
+        "group_id": null
+      },
+      {
+        "id": "lb",
+        "kind": "lb",
+        "flavour": "haproxy",
+        "label": "lb",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "props": {},
+        "group_id": null
+      },
+      {
+        "id": "ledger",
+        "kind": "nosql",
+        "flavour": "cassandra",
+        "label": "ledger",
+        "position": {
+          "x": 912,
+          "y": 336
+        },
+        "props": {},
+        "group_id": null
+      },
+      {
+        "id": "queue",
+        "kind": "queue",
+        "flavour": "rabbitmq",
+        "label": "queue",
+        "position": {
+          "x": 608,
+          "y": 112
+        },
+        "props": {},
+        "group_id": null
+      },
+      {
+        "id": "replica",
+        "kind": "sql",
+        "flavour": "mysql",
+        "label": "replica",
+        "position": {
+          "x": 912,
+          "y": 448
+        },
+        "props": {},
+        "group_id": null
+      },
+      {
+        "id": "search",
+        "kind": "search",
+        "flavour": "elasticsearch",
+        "label": "search",
+        "position": {
+          "x": 912,
+          "y": 560
+        },
+        "props": {},
+        "group_id": null
+      },
+      {
+        "id": "search2",
+        "kind": "search",
+        "flavour": "opensearch",
+        "label": "search2",
+        "position": {
+          "x": 912,
+          "y": 672
+        },
+        "props": {},
+        "group_id": null
+      },
+      {
+        "id": "sessions",
+        "kind": "cache",
+        "flavour": "memcached",
+        "label": "sessions",
+        "position": {
+          "x": 912,
+          "y": 784
+        },
+        "props": {},
+        "group_id": null
+      },
+      {
+        "id": "stream2",
+        "kind": "stream",
+        "flavour": "kafka",
+        "label": "stream2",
+        "position": {
+          "x": 608,
+          "y": 224
+        },
+        "props": {},
+        "group_id": null
+      },
+      {
+        "id": "web",
+        "kind": "lb",
+        "flavour": "nginx",
+        "label": "web",
+        "position": {
+          "x": 0,
+          "y": 112
+        },
+        "props": {},
+        "group_id": null
+      },
+      {
+        "id": "wide",
+        "kind": "nosql",
+        "flavour": "cassandra",
+        "label": "wide",
+        "position": {
+          "x": 912,
+          "y": 896
+        },
+        "props": {},
+        "group_id": null
+      },
+      {
+        "id": "worker",
+        "kind": "app",
+        "flavour": "go",
+        "label": "worker",
+        "position": {
+          "x": 304,
+          "y": 112
+        },
+        "props": {
+          "instances": 64
+        },
+        "group_id": null
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "from": "api",
+        "to": "db",
+        "protocol": "query"
+      },
+      {
+        "id": "e2",
+        "from": "api",
+        "to": "cache",
+        "protocol": "query"
+      },
+      {
+        "id": "e3",
+        "from": "web",
+        "to": "api",
+        "protocol": "http"
+      },
+      {
+        "id": "e4",
+        "from": "worker",
+        "to": "db",
+        "protocol": "query"
+      },
+      {
+        "id": "e5",
+        "from": "worker",
+        "to": "cache",
+        "protocol": "query"
+      },
+      {
+        "id": "e6",
+        "from": "worker",
+        "to": "queue",
+        "protocol": "publish"
+      }
+    ],
+    "groups": [],
+    "notes": [],
+    "viewport": {
+      "x": 0,
+      "y": 0,
+      "zoom": 1
+    }
+  },
+  "mapped": [
+    {
+      "service": "cache",
+      "image": "valkey/valkey:8",
+      "kind": "cache",
+      "flavour": "redis"
+    },
+    {
+      "service": "db",
+      "image": "postgres:16",
+      "kind": "sql",
+      "flavour": "postgresql"
+    },
+    {
+      "service": "docs",
+      "image": "mongo:7",
+      "kind": "nosql",
+      "flavour": "mongodb"
+    },
+    {
+      "service": "events",
+      "image": "bitnami/kafka:3.7",
+      "kind": "stream",
+      "flavour": "kafka"
+    },
+    {
+      "service": "lb",
+      "image": "haproxy:3.0",
+      "kind": "lb",
+      "flavour": "haproxy"
+    },
+    {
+      "service": "ledger",
+      "image": "cassandra",
+      "kind": "nosql",
+      "flavour": "cassandra"
+    },
+    {
+      "service": "queue",
+      "image": "rabbitmq:3-management",
+      "kind": "queue",
+      "flavour": "rabbitmq"
+    },
+    {
+      "service": "replica",
+      "image": "mariadb",
+      "kind": "sql",
+      "flavour": "mysql"
+    },
+    {
+      "service": "search",
+      "image": "elasticsearch:8.15.0",
+      "kind": "search",
+      "flavour": "elasticsearch"
+    },
+    {
+      "service": "search2",
+      "image": "opensearchproject/opensearch",
+      "kind": "search",
+      "flavour": "opensearch"
+    },
+    {
+      "service": "sessions",
+      "image": "memcached",
+      "kind": "cache",
+      "flavour": "memcached"
+    },
+    {
+      "service": "stream2",
+      "image": "redpanda",
+      "kind": "stream",
+      "flavour": "kafka"
+    },
+    {
+      "service": "web",
+      "image": "docker.io/library/nginx:1.27-alpine",
+      "kind": "lb",
+      "flavour": "nginx"
+    },
+    {
+      "service": "wide",
+      "image": "scylladb/scylla",
+      "kind": "nosql",
+      "flavour": "cassandra"
+    }
+  ],
+  "guessed": [
+    {
+      "service": "api",
+      "image": null,
+      "kind": "app",
+      "flavour": "go"
+    },
+    {
+      "service": "worker",
+      "image": "ghcr.io/acme/worker@sha256:0123456789abcdef",
+      "kind": "app",
+      "flavour": "go"
+    }
+  ],
+  "clamped": [
+    "worker"
+  ],
+  "skipped_edges": [
+    {
+      "from": "db",
+      "to": "cache",
+      "reason": {
+        "type": "not_allowed",
+        "wiring": "data_calls_out"
+      }
+    },
+    {
+      "from": "ledger",
+      "to": "ghost",
+      "reason": {
+        "type": "unknown_service"
+      }
+    }
+  ]
+}

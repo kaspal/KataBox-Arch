@@ -11,7 +11,7 @@ You run the photo backend for a group of mobile apps. People take a picture, tap
 | Peak traffic | 300 uploads/s |
 | p95 completion latency | 5 s or less |
 | Availability | 99.9% or more |
-| Budget | $5,000 per month |
+| Budget | $14,500 per month |
 | Lost messages | None |
 
 ## The traffic

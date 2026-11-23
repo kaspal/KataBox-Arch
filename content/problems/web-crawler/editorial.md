@@ -8,7 +8,7 @@ At 800 URLs/s, almost all the time goes into one step: the fetch. It takes about
 
 A Scheduler (Airflow) publishes URLs to an SQS Queue. 6 Crawler Workers with 64 threads each take them from the Queue. Before fetching, each Worker checks a Redis Cache of seen URLs (4 GB, TTL one day). A hit means "already seen, skip it", and the work ends there. A miss records the URL, fetches the page and writes it to Cassandra with 8 partitions.
 
-This costs about $1,672 per month. Its p95 is about 0.4 s on a normal crawl. With duplicates, most URLs are skipped and p95 drops to about 0.06 s. With slow hosts it reaches about 1.7 s.
+This costs about $5,026 per month. Its p95 is about 0.4 s on a normal crawl. With duplicates, most URLs are skipped and p95 drops to about 0.06 s. With slow hosts it reaches about 1.7 s.
 
 ## Why the first try breaks
 

@@ -10,7 +10,7 @@ Las lecturas siguen una Zipf 1,0 sobre 5 millones de pastes, así que una caché
 
 Un Load Balancer reparte el tráfico entre 4 App Servers Go. Las lecturas consultan primero una Cache Redis de 4 GB y, si fallan, van a Object Storage (S3). Las creaciones escriben el contenido directamente en Object Storage. El diseño no tiene ninguna SQL Database.
 
-Cuesta unos 2 579 $ al mes, y la mayor parte son peticiones a Object Storage, que en este modelo cuestan 1 $ por millón. Supera la ráfaga con un p95 cercano a 127 ms, y resiste la caché fría porque Object Storage puede atender todas las lecturas por sí solo mientras la caché se calienta.
+Cuesta unos 4 840 $ al mes, y la mayor parte son escrituras en Object Storage: S3 cobra 5 $ por millón de PUT y 0,40 $ por millón de GET, así que las 300 creaciones por segundo cuestan unos 3 900 $ al mes. Supera la ráfaga con un p95 cercano a 127 ms, y resiste la caché fría porque Object Storage puede atender todas las lecturas por sí solo mientras la caché se calienta.
 
 ## Por qué falla el primer intento
 

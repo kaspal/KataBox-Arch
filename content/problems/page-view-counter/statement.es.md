@@ -11,7 +11,7 @@ Tienes un servicio que cuenta visitas para sitios web. Cada vez que alguien abre
 | Tráfico pico | 3000 peticiones/s |
 | Latencia p95 hasta completar | 3 s o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 3500 $ al mes |
+| Presupuesto | 1700 $ al mes |
 | Mensajes perdidos | Ninguno |
 
 ## El tráfico

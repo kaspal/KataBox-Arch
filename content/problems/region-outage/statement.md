@@ -12,7 +12,7 @@ You run the account service of an app used around the world. People open their a
 | Reads | 90% of requests |
 | p95 latency | 250 ms or less |
 | Availability | 99.9% or more |
-| Budget | $9,000 per month |
+| Budget | $1,900 per month |
 
 ## The traffic
 

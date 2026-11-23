@@ -9,6 +9,7 @@ import type { OpenedDesign } from "@/bindings";
 import { askUnsaved, useReportError } from "@/app/dialogs";
 import { api } from "@/lib/api";
 import { queryKeys } from "@/lib/queries";
+import { showComposeSummary } from "@/solve/ComposeSummary";
 import { isDirty, toDesign, useEditor } from "@/solve/store";
 
 /** A file name for Save As: the design's name without characters Windows refuses. */
@@ -99,6 +100,20 @@ export function useFileActions() {
     }
   }, [confirmReplace, report, show]);
 
+  /** Import a docker-compose file as a new, unsaved design (M7b.1). */
+  const importCompose = useCallback(async () => {
+    if (!(await confirmReplace())) return;
+    try {
+      const result = await api.importComposeDialog();
+      if (!result) return;
+      useEditor.getState().loadUnsaved(result.design);
+      void navigate({ to: "/sandbox" });
+      showComposeSummary(result);
+    } catch (e) {
+      report(e);
+    }
+  }, [confirmReplace, navigate, report]);
+
   const openRecent = useCallback(
     async (path: string) => {
       if (useEditor.getState().path === path) {
@@ -128,5 +143,5 @@ export function useFileActions() {
     [refreshRecents, report],
   );
 
-  return { newDesign, open, openRecent, forgetRecent, save, saveAs, confirmReplace };
+  return { newDesign, open, importCompose, openRecent, forgetRecent, save, saveAs, confirmReplace };
 }

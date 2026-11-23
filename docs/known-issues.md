@@ -7,10 +7,16 @@ it matters.
 ## Not built yet
 - **AI review, Explain my design and the mock interview** arrive in M4. The buttons say so; the AI will never change
   a score.
-- **Animated exports (GIF, WebM)** and the **printable Guide (PDF)** are planned; images (SVG, PNG) and Mermaid work.
+- **GIF export** is planned; WebM video, images (SVG, PNG) and Mermaid work.
+- **PDF printing** works on Windows only for now. On Linux, use **Save print-ready HTML** and print it from a browser.
+- **The print layout** leaves out the concept cards, the simulator tables and the quizzes (they need the app).
+- **WebM records in real time** (a 30-second clip takes about 30 seconds) and stops if the window is hidden. Web
+  views without `MediaRecorder` (WebKitGTK on Linux) can't record it; the menu says so.
+- **Saved WebM files carry no duration:** browsers' `MediaRecorder` doesn't write one, so some players show the
+  length as unknown and seek roughly. The video itself plays normally.
+- **Exported images name their fonts but don't embed them;** another computer shows them in its own fallback fonts.
 - **The in-app problem editor** is planned; authors use `ka-pack new`, `try`, `validate` and `pack`
   ([pack-authoring.md](pack-authoring.md)).
-- **docker-compose import** is planned (it needs a YAML parser the build doesn't include yet).
 - **The Progress page** is a placeholder; progress shows on Home, the Problems list, the Guide and pattern counts and the drill pages.
 - **Linux builds** are configured but not yet built or tested (they need a Linux host).
 
@@ -20,6 +26,9 @@ it matters.
   the Guide text. Their Guide entries are complete.
 
 ## Simplified on purpose
+- **docker-compose import** reads `services`, `image`, `deploy.replicas`, `depends_on`, `links` and merge keys
+  (`<<`); networks, volumes, ports, environment and profiles are ignored. Only the first YAML document is read, and
+  keys that are anchors, aliases or structures are refused.
 - **Packets per partition:** a stream hands out one message per partition at a time across the whole stream, so a
   single hot key can't overload one partition.
 - **Batching** isn't simulated: counters and log shippers handle each message separately.

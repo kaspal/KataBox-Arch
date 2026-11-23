@@ -11,7 +11,7 @@ Tienes el cuadro de sugerencias que aparece bajo un campo de búsqueda. Mientras
 | Tráfico pico | 6 000 peticiones/s (una por pulsación) |
 | Latencia p95 | 60 ms o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 3 000 $ al mes |
+| Presupuesto | 3000 $ al mes |
 
 ## El tráfico
 

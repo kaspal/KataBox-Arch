@@ -1,7 +1,7 @@
 // The UI's only door to the backend. Wraps the generated tauri-specta commands: unwraps
 // `{status, data | error}` and throws the typed AppError. Components use the hooks in
 // `queries.ts` (or call `api` for actions); tests mock this module (`test/mockApi.ts`).
-import { Channel } from "@tauri-apps/api/core";
+import { Channel, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import {
   commands,
@@ -35,6 +35,7 @@ import {
   type Design,
   type DesignIssue,
   type JsonValue,
+  type ComposeImport,
   type OpenedDesign,
   type RecentEntry,
   type Registry,
@@ -43,11 +44,21 @@ import {
   type RunInfo,
   type RunResult,
   type SandboxPreset,
-  ExportFormat,
   KataboxLink,
   PackInfo,
   PackPreview,
 } from "@/bindings";
+
+/** What an export saves (`ka_app::ExportFormat`). */
+export type ExportFormat = "svg" | "png" | "webm" | "gif" | "html";
+
+/** Which run an animated export shows (`ka_app::frames::FramesSource`). */
+export type FramesSource =
+  | { type: "sandbox"; design: Design; preset: SandboxPreset }
+  | { type: "test"; design: Design; problem_id: string; test_id: string }
+  | { type: "submission"; submission_id: number; test_id: string };
+
+export type FramesRequest = { source: FramesSource; from_s: number; seconds: number; fps: 15 | 30 };
 
 export async function call<T>(p: Promise<Result<T, AppError>>): Promise<T> {
   const r = await p;
@@ -85,6 +96,11 @@ export const api = {
   forgetRecent: (path: string): Promise<null> => call(commands.forgetRecent(path)),
   openDesignDialog: (): Promise<OpenedDesign | null> => call(commands.openDesignDialog()),
   openRecent: (path: string): Promise<OpenedDesign> => call(commands.openRecent(path)),
+  importComposeDialog: (): Promise<ComposeImport | null> => call(commands.importComposeDialog()),
+  // Printable Guide (M7b.3): Rust's Save dialog keeps the path behind a one-shot token; the
+  // print page then asks Rust to print itself to it. null when cancelled.
+  pickPdfPath: (suggestedName: string): Promise<number | null> => call(commands.pickPdfPath(suggestedName)),
+  printPdf: (token: number): Promise<string> => call(commands.printPdf(token)),
   saveDesign: (path: string, design: Design): Promise<string> => call(commands.saveDesign(path, design)),
   saveDesignAs: (design: Design, suggestedName: string): Promise<string | null> =>
     call(commands.saveDesignAs(design, suggestedName)),
@@ -153,9 +169,16 @@ export const api = {
   mermaidText: (design: Design, names: Record<string, string>): Promise<string> => commands.mermaidText(design, names),
   saveMermaid: (design: Design, names: Record<string, string>, suggestedName: string): Promise<string | null> =>
     call(commands.saveMermaid(design, names, suggestedName)),
-  // Image export (M7.3): the bytes the UI rendered; Rust opens the Save dialog. null when cancelled.
+  // Export (M7.3, M7b.2/3): the bytes the UI rendered go as a raw body, the format and name in
+  // headers; Rust opens the Save dialog. null when cancelled. Not a specta command (raw body).
   saveExport: (format: ExportFormat, data: Uint8Array, suggestedName: string): Promise<string | null> =>
-    call(commands.saveExport(format, Array.from(data), suggestedName)),
+    invoke<string | null>("save_export", data, {
+      headers: { "ka-format": format, "ka-name": encodeURIComponent(suggestedName) },
+    }),
+  // Animated export (M7b.2): a run's frames, stepped headless in Rust, as raw bytes
+  // (`unpackFrames`). Not a specta command (raw response).
+  runFrames: async (request: FramesRequest): Promise<ArrayBuffer> =>
+    toArrayBuffer(await invoke<unknown>("run_frames", { request })),
   // Problem packs (M6.4): Rust opens the file dialog; null when cancelled.
   previewPack: (): Promise<PackPreview | null> => call(commands.previewPack()),
   applyPack: (token: number): Promise<PackInfo> => call(commands.applyPack(token)),

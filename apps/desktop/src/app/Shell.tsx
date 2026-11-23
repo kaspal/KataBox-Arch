@@ -2,13 +2,16 @@
 // navigation on the desk, the page on a sheet next to it, plus the global pieces: the
 // Ctrl+K palette, file shortcuts, the window title, and the unsaved-changes close guard.
 import { useEffect, useState } from "react";
-import { Link, Outlet } from "@tanstack/react-router";
+import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Command as CommandIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CommandPalette } from "@/app/CommandPalette";
 import { Notice, UnsavedDialog, askUnsaved } from "@/app/dialogs";
+import { ComposeSummary } from "@/solve/ComposeSummary";
+import { AnimationDialog } from "@/solve/export/AnimationDialog";
+import { PrintFallbackDialog } from "@/print/PrintMenu";
 import { NAV, SETTINGS_NAV, type NavItem } from "@/app/nav";
 import { api } from "@/lib/api";
 import { useAppInfo } from "@/lib/queries";
@@ -75,6 +78,7 @@ function NavLink({ item }: { item: NavItem }) {
 export function Shell() {
   const { t } = useTranslation();
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const printing = useRouterState({ select: (st) => st.location.pathname.startsWith("/print") });
   const info = useAppInfo();
   const files = useFileActions();
   useWindowSync();
@@ -100,6 +104,28 @@ export function Shell() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [files]);
+
+  const dialogs = (
+    <>
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+      <UnsavedDialog />
+      <Notice />
+      <ComposeSummary />
+      <AnimationDialog />
+      <PrintFallbackDialog />
+    </>
+  );
+  // The print layout (M7b.3) is paper: no rail, no frame.
+  if (printing) {
+    return (
+      <>
+        <main id="main" tabIndex={-1} className="h-full overflow-auto bg-white outline-none">
+          <Outlet />
+        </main>
+        {dialogs}
+      </>
+    );
+  }
 
   return (
     <div className="flex h-full gap-0 bg-desk p-3">
@@ -159,9 +185,7 @@ export function Shell() {
           <Outlet />
         </main>
       </div>
-      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
-      <UnsavedDialog />
-      <Notice />
+      {dialogs}
     </div>
   );
 }

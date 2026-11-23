@@ -8,7 +8,7 @@ At 4,000 requests/s, about 3,960 are segment plays and about 40 are uploads. The
 
 The Client talks to a CDN (CloudFront) with a TTL of a day. Segment misses go to Object Storage (S3), which holds every rendition. The CDN forwards uploads to a Load Balancer in front of 2 Go Upload API servers. Each upload is written to S3 and published to an SQS Queue, and 8 Transcoder Workers drain the Queue and write the renditions back.
 
-This costs about $8,968 per month, most of it CDN requests. The p95 is about 7 ms, because nearly every play ends at the edge. It handles the season premiere, which sends 10 times the traffic for 20 seconds with even hotter segments (Zipf 1.4): hotter segments only raise the CDN hit rate. It also handles the upload rush, when uploads run at 6 times their normal rate: the Queue lengthens a little, and viewers never notice.
+This costs about $9,881 per month, most of it CDN requests. The p95 is about 7 ms, because nearly every play ends at the edge. It handles the season premiere, which sends 10 times the traffic for 20 seconds with even hotter segments (Zipf 1.4): hotter segments only raise the CDN hit rate. It also handles the upload rush, when uploads run at 6 times their normal rate: the Queue lengthens a little, and viewers never notice.
 
 ## Why the first try breaks
 

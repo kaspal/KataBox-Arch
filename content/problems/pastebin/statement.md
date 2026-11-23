@@ -12,7 +12,7 @@ People paste a block of text, anything from a one-line command to a 1 MB log fil
 | Reads | 85% of requests |
 | p95 latency | 150 ms or less |
 | Availability | 99.9% or more |
-| Budget | $4,000 per month |
+| Budget | $8,000 per month |
 
 ## The traffic
 

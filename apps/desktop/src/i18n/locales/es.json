@@ -63,7 +63,18 @@
     "no_path": "Ninguna solicitud puede atravesar este diseño. Conecta un cliente a un servicio.",
     "content_missing": "Falta el catálogo de problemas en esta instalación. Vuelve a instalar la app.",
     "pack_refused": "Este paquete no ha superado las comprobaciones de seguridad y contenido, así que no se ha instalado nada.",
-    "pack_version": "Este paquete no puede sustituir al instalado: es más antiguo, o es la misma versión con otro contenido."
+    "pack_version": "Este paquete no puede sustituir al instalado: es más antiguo, o es la misma versión con otro contenido.",
+    "compose_too_large": "Este archivo docker-compose ocupa más de 1 MB, así que no se ha importado.",
+    "compose_too_complex": "Este archivo docker-compose es demasiado complejo para importarlo (demasiadas partes, alias o niveles).",
+    "compose_too_many_services": "Este archivo docker-compose tiene más de 200 servicios, así que no se ha importado.",
+    "compose_unsupported": "Este archivo docker-compose usa YAML que la importación no lee, como anclas o alias en las claves.",
+    "compose_invalid": "Este no es un archivo docker-compose que la importación pueda leer: el YAML no es válido o no tiene servicios.",
+    "export_hidden_refused": "Una prueba oculta solo se puede exportar desde sus Resultados, dentro de la parte que muestra la repetición.",
+    "export_busy": "Ya se está preparando una animación. Espera a que termine.",
+    "pdf_token": "Esa petición de impresión ha caducado. Inténtalo de nuevo.",
+    "pdf_unsupported": "La vista web de este sistema no puede imprimir a PDF.",
+    "pdf_failed": "No se pudo imprimir a PDF.",
+    "pdf_timeout": "La impresión a PDF tardó demasiado."
   },
   "files": {
     "unsaved": {
@@ -391,7 +402,8 @@
       "retention_h": "Retención",
       "retention_days": "Retención",
       "interval_s": "Intervalo",
-      "sample_rate": "Tasa de muestreo"
+      "sample_rate": "Tasa de muestreo",
+      "query_ratio": "Parte de las peticiones que son consultas DNS"
     },
     "choice": {
       "round_robin": "Round robin",
@@ -463,16 +475,17 @@
     "p99": "Latencia p99",
     "throughput": "Rendimiento",
     "errorRate": "Tasa de errores",
-    "cost": "Coste",
+    "cost": "Coste mensual",
     "perMonth": "/mes",
-    "lastSecond": "Latencia, rendimiento y errores cubren el último segundo simulado; el coste es mensual con el tráfico visto hasta ahora.",
+    "lastSecond": "Latencia, rendimiento y errores son del último segundo simulado. El coste es mensual, con la carga media de esta ejecución y precios de lista: sin niveles gratuitos, descuentos ni transferencia de datos.",
     "busiest": "Componentes más ocupados",
     "down": "caído",
     "sampled": "Se simula el {{pct}} % de las solicitudes; los recuentos se escalan de vuelta.",
     "p95Trend": "Latencia p95 por segundo",
     "stale": "Lecturas obsoletas",
     "availability": "Disponibilidad",
-    "retried": "Reintentos"
+    "retried": "Reintentos",
+    "costTest": "El coste es el de la prueba «{{name}}»."
   },
   "breaking": {
     "title": "Punto de ruptura",
@@ -540,7 +553,8 @@
     "hint": "Pista {{n}}",
     "showHint": "Mostrar la pista {{n}}",
     "editorial": "Solución comentada",
-    "compare": "Comparar"
+    "compare": "Comparar",
+    "testAvailability": "disponibilidad ≥ {{a}}"
   },
   "results": {
     "title": "Resultados",
@@ -567,7 +581,10 @@
     },
     "stuck": "¿Te has atascado?",
     "retried_one": "{{n}} intento falló y se reintentó: no es un error, porque el mensaje se entregó o se guardó igualmente.",
-    "retried_other": "{{n}} intentos fallaron y se reintentaron: no son errores, porque los mensajes se entregaron o se guardaron igualmente."
+    "retried_other": "{{n}} intentos fallaron y se reintentaron: no son errores, porque los mensajes se entregaron o se guardaron igualmente.",
+    "costNote": "Coste mensual con la carga de «{{test}}», a precios de lista: sin niveles gratuitos, descuentos ni transferencia de datos.",
+    "lost": "{{n}} mensajes perdidos (límite {{limit}})",
+    "exportReplay": "Exportar repetición"
   },
   "compare": {
     "open": "Comparar con la referencia",
@@ -666,12 +683,16 @@
     "costField": {
       "per_instance_month": "Precio por instancia",
       "per_gb_month": "Precio por GB",
-      "per_million": "Precio por millón de peticiones"
+      "per_million": "Precio por millón de peticiones o lecturas",
+      "per_lane_month": "Precio por shard o partición",
+      "per_million_write": "Precio por millón de escrituras o mensajes"
     },
     "costUnit": {
       "per_instance_month": "{{v}} al mes",
       "per_gb_month": "{{v}} por GB al mes",
-      "per_million": "{{v}} por millón"
+      "per_million": "{{v}} por millón",
+      "per_lane_month": "{{v}} al mes cada uno",
+      "per_million_write": "{{v}} por millón"
     },
     "conceptCard": "Tarjeta de concepto",
     "playConcept_one": "Ver la tarjeta de concepto ({{count}} paso)",
@@ -783,7 +804,8 @@
       "cited": "Fuente: {{host}}",
       "needed": "Fuente por comprobar (sugerida: {{host}})",
       "arithmetic": "Aritmética",
-      "simulator": "La cifra del propio simulador"
+      "simulator": "La cifra del propio simulador",
+      "ruleOfThumb": "Una regla práctica"
     }
   },
   "packs": {
@@ -828,7 +850,9 @@
     "saveMermaid": "Guardar como Mermaid…",
     "copied": "Diagrama Mermaid copiado.",
     "saveSvg": "Guardar como imagen SVG…",
-    "savePng": "Guardar como imagen PNG…"
+    "savePng": "Guardar como imagen PNG…",
+    "saveWebm": "Guardar animación (WebM)…",
+    "webmUnsupported": "La vista web de este sistema no puede grabar vídeo."
   },
   "katabox": {
     "title": "Relacionado en KataBox",
@@ -849,5 +873,53 @@
       "completion": "Finalización p99",
       "mixed": "p99 (respuestas y finalizaciones)"
     }
+  },
+  "compose": {
+    "import": "Importar docker-compose…",
+    "title": "Importado desde docker-compose",
+    "summary": "{{cards}} tarjetas y {{edges}} conexiones. Revisa las suposiciones de abajo y guarda el diseño.",
+    "mapped_one": "{{count}} servicio reconocido por su imagen",
+    "mapped_other": "{{count}} servicios reconocidos por sus imágenes",
+    "guessed_one": "{{count}} servicio dibujado como App Server",
+    "guessed_other": "{{count}} servicios dibujados como App Servers",
+    "guessedHint": "La importación no conoce sus imágenes, así que se convirtieron en App Servers. Cambia el tipo en el Inspector si alguno es otra cosa.",
+    "noImage": "construido desde el código",
+    "clamped_one": "{{count}} servicio tenía más réplicas de las que admite una tarjeta (64)",
+    "clamped_other": "{{count}} servicios tenían más réplicas de las que admite una tarjeta (64)",
+    "skipped_one": "{{count}} dependencia no dibujada",
+    "skipped_other": "{{count}} dependencias no dibujadas",
+    "unknownService": "En el archivo no hay ningún servicio con ese nombre.",
+    "done": "Hecho"
+  },
+  "animation": {
+    "title": "Guardar una animación",
+    "sandbox": "Sandbox",
+    "start": "Inicio (s)",
+    "length": "Duración (s, como mucho {{max}})",
+    "realTime": "El vídeo se graba en tiempo real: un clip de 30 segundos tarda unos 30 segundos. Mantén esta ventana abierta.",
+    "record": "Grabar",
+    "preparing": "Preparando los fotogramas…",
+    "recording": "Grabando el fotograma {{done}} de {{total}}…",
+    "progress": "Progreso de la grabación",
+    "saving": "Guardando…",
+    "saved": "Animación guardada.",
+    "cancelled": "Grabación cancelada.",
+    "hidden": "La grabación se detuvo porque la ventana quedó oculta.",
+    "hud": "{{label}} · {{t}} s · p95 {{p95}} ms · {{rps}} pet/s · errores {{errors}}"
+  },
+  "print": {
+    "menu": "Imprimir",
+    "savePdf": "Guardar como PDF…",
+    "saveHtml": "Guardar página lista para imprimir…",
+    "preparingPdf": "Preparando el PDF…",
+    "preparingHtml": "Preparando la página…",
+    "pdfSaved": "PDF guardado.",
+    "htmlSaved": "Página lista para imprimir guardada.",
+    "failed": "No se pudo preparar la página para imprimirla.",
+    "pdfFailedTitle": "No se pudo crear el PDF",
+    "pdfFailedBody": "Puedes guardar una página HTML lista para imprimir y pasarla a PDF desde un navegador.",
+    "formula": "Regla práctica",
+    "pathItems": "Lo que cubre la ruta",
+    "wholeGuide": "Imprimir la Guía"
   }
 }

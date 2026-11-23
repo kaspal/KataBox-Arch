@@ -11,7 +11,7 @@ You run a service that sends notifications on behalf of other apps: push alerts 
 | Peak traffic | 1,500 notifications/s |
 | p95 completion latency | 3 s or less |
 | Availability | 99.9% or more |
-| Budget | $5,000 per month |
+| Budget | $9,000 per month |
 | Lost messages | None |
 
 ## The traffic

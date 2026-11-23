@@ -12,7 +12,7 @@ tags = ["queues", "retries", "dlq", "rate-limiting", "scheduler"]
 peak_rps = 500
 p95_ms = 30000
 availability = 0.999
-budget_usd = 1500
+budget_usd = 3300
 
 [[externals]]
 name = "email"

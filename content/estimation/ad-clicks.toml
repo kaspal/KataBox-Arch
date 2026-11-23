@@ -25,10 +25,10 @@ solution_es = "{clicks_per_s} − {ceiling_per_s} = 4100 clics por segundo que s
 [[drill]]
 id = "messages-per-month"
 kind = "capacity"
-prompt = "Every one of the {clicks_per_s} clicks a second at peak is one message on the stream, and the stream is billed per message. If the peak lasted all month ({seconds_per_month} seconds), how many messages would that be?"
-prompt_es = "Cada uno de los {clicks_per_s} clics por segundo del pico es un mensaje en el stream, y el stream se cobra por mensaje. Si el pico durara todo el mes ({seconds_per_month} segundos), ¿cuántos mensajes serían?"
+prompt = "Every one of the {clicks_per_s} clicks a second at peak is one message on the stream. If the peak lasted all month ({seconds_per_month} seconds), how many messages would that be?"
+prompt_es = "Cada uno de los {clicks_per_s} clics por segundo del pico es un mensaje en el stream. Si el pico durara todo el mes ({seconds_per_month} segundos), ¿cuántos mensajes serían?"
 inputs = { clicks_per_s = 9_900, seconds_per_month = 2_592_000 }
 formula = "clicks_per_s * seconds_per_month"
 unit = "count"
-solution = "{clicks_per_s} × {seconds_per_month} s ≈ {answer} messages, about 25.7 billion. At $0.20 per million that is about $5,100 a month, most of the budget. Collectors that add up clicks per ad before publishing would send far fewer messages."
-solution_es = "{clicks_per_s} × {seconds_per_month} s ≈ {answer} mensajes, unos 25 700 millones. A 0,20 $ por millón son unos 5100 $ al mes, la mayor parte del presupuesto. Unas collectors que sumaran los clics por anuncio antes de publicar enviarían muchos menos mensajes."
+solution = "{clicks_per_s} × {seconds_per_month} s ≈ {answer} messages, about 25.7 billion. Kafka (Amazon MSK) doesn't bill them one by one: the stream is one broker at $153 a month. They are still work, each one an aggregator slot and a counter increment. Collectors that add up clicks per ad before publishing would send far fewer messages."
+solution_es = "{clicks_per_s} × {seconds_per_month} s ≈ {answer} mensajes, unos 25 700 millones. Kafka (Amazon MSK) no los cobra uno a uno: el stream es un broker de 153 $ al mes. Siguen siendo trabajo, cada uno un hueco de agregador y un incremento de contador. Unas collectors que sumaran los clics por anuncio antes de publicar enviarían muchos menos mensajes."

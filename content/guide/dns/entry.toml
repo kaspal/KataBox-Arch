@@ -63,8 +63,8 @@ note_es = "Consultas atendidas a la vez. Es alto porque un DNS gestionado no es 
 
 [[sim]]
 cost = "per_million"
-note = "Managed DNS is priced per query, not per server."
-note_es = "El DNS gestionado se cobra por consulta, no por servidor."
+note = "Managed DNS is priced per query, not per server. Clients and resolvers cache answers, so only a small share of requests are billed as queries."
+note_es = "El DNS gestionado se cobra por consulta, no por servidor. Los clientes y los resolvedores cachean las respuestas, así que solo una pequeña parte de las peticiones se cobra como consulta."
 
 [flavours_compared]
 flavours = ["route53", "cloudflare_dns"]

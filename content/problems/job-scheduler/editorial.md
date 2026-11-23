@@ -8,7 +8,7 @@ At 100 jobs/s and about 100 ms each, the steady work keeps about 10 Worker slots
 
 The Scheduler publishes to an SQS Queue with a max depth of 1,000,000. Celery Workers consume it, inside an Autoscaling group with a minimum of 2, a maximum of 24, a target utilisation of 60% and a scale delay of 10 seconds. Each Worker writes its result to PostgreSQL, which handles 100 small writes a second with ease.
 
-This costs about $759 per month. On a normal hour the p95 completion time is about 0.3 s. When the whole worker pool goes down for 20 seconds, jobs pile up in the Queue, none are lost, and the p95 rises to about 19 s while the backlog drains. At midnight, when 10 times the jobs arrive for 10 seconds, the Queue absorbs the burst, the group scales up, and the p95 reaches about 24 s. Both hidden tests allow a p95 of up to 40 s.
+This costs about $928 per month. On a normal hour the p95 completion time is about 0.3 s. When the whole worker pool goes down for 20 seconds, jobs pile up in the Queue, none are lost, and the p95 rises to about 19 s while the backlog drains. At midnight, when 10 times the jobs arrive for 10 seconds, the Queue absorbs the burst, the group scales up, and the p95 reaches about 24 s. Both hidden tests allow a p95 of up to 40 s.
 
 ## Why the first try breaks
 

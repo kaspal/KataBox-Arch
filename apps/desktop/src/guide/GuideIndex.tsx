@@ -1,5 +1,6 @@
 // /guide: the Component Guide index (guide-index mockup). Entries grouped by category, a
 // search over names and one-liners, the "Start here" six, and a read mark on each entry.
+import { PrintMenu } from "@/print/PrintMenu";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "@tanstack/react-router";
@@ -84,6 +85,7 @@ export function GuideIndex() {
         <Link to="/glossary" className="text-sm font-semibold whitespace-nowrap text-primary underline underline-offset-4">
           {t("glossary.title")}
         </Link>
+        <PrintMenu what="guide" name={t("guide.title")} label={t("print.wholeGuide")} />
         <label className="relative block w-72">
           <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("guide.search")} aria-label={t("guide.searchLabel")} className="bg-card pl-9" />

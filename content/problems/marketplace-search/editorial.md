@@ -10,7 +10,7 @@ Each update ends with a trip through the stream: an Indexer spends about 10 ms o
 
 ## The reference design
 
-A Load Balancer (AWS ALB) sends requests to 8 Go instances of the Search API, 512 slots at the default concurrency of 64. Searches check a Redis query cache with a TTL of 30 s first, and on a miss ask Elasticsearch, with 4 shards. Updates are written to PostgreSQL, which is wired to a Kafka stream of 24 partitions by its change data capture edge. 2 Celery Indexers, with a service time of 10 ms, consume the stream and write each change into Elasticsearch. This costs about $1,760 per month, with a p95 of about 50 ms.
+A Load Balancer (AWS ALB) sends requests to 8 Go instances of the Search API, 512 slots at the default concurrency of 64. Searches check a Redis query cache with a TTL of 30 s first, and on a miss ask Elasticsearch, with 4 shards. Updates are written to PostgreSQL, which is wired to a Kafka stream of 24 partitions by its change data capture edge. 2 Celery Indexers, with a service time of 10 ms, consume the stream and write each change into Elasticsearch. This costs about $1,764 per month, with a p95 of about 50 ms.
 
 "A reindex at peak" adds 30 ms to every Elasticsearch call from 15 seconds, for 30 seconds, and allows a p95 of 400 ms. Only cache misses are slowed: the p95 rises to about 143 ms. Each change now takes about 60 ms; 24 partitions still allow about 400 a second and the Indexers' 16 slots (2 × the default concurrency of 8) about 260, so the index keeps up. "Everyone searches for the same thing" makes query popularity much steeper (Zipf 1.5). The cache absorbs the hotter queries, and the p95 drops to about 38 ms.
 
@@ -18,7 +18,7 @@ In tuning, a stream left at Kafka's default 6 partitions fell further and furthe
 
 ## Why the first try breaks
 
-A common first try is the same design without the query cache, for about $1,644 per month. Every search reaches Elasticsearch, and even on a normal day the busiest shard cannot keep up, because the popular queries all land on it. The App Servers fill up waiting on it, and about 61% of requests are dropped, with a p95 of about 4.5 s. The reindex makes it worse, about 73%, and so do the hot queries, about 66%.
+A common first try is the same design without the query cache, for about $1,728 per month. Every search reaches Elasticsearch, and even on a normal day the busiest shard cannot keep up, because the popular queries all land on it. The App Servers fill up waiting on it, and about 61% of requests are dropped, with a p95 of about 4.5 s. The reindex makes it worse, about 73%, and so do the hot queries, about 66%.
 
 More shards do not fix it. A query still goes to one shard, so the hot one stays hot: 10 shards still dropped requests in tuning. A small cache in front of the hot queries does what more shards cannot.
 

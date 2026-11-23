@@ -12,7 +12,7 @@ tags = ["queues", "retries", "dlq", "external-providers"]
 peak_rps = 2000
 p95_ms = 5000
 availability = 0.999
-budget_usd = 5000
+budget_usd = 10000
 
 [[externals]]
 name = "endpoints"

@@ -4,6 +4,9 @@ import { cleanup, configure } from "@testing-library/react";
 import i18n from "i18next";
 import { initI18n } from "@/i18n";
 import { resetDialogs } from "@/app/dialogs";
+import { resetComposeSummary } from "@/solve/ComposeSummary";
+import { resetAnimation } from "@/solve/export/animationStore";
+import { resetPrintFallback } from "@/print/printing";
 import { useEditor } from "@/solve/store";
 
 // jsdom lacks a few browser APIs that Radix, cmdk and the virtualizer use.
@@ -71,6 +74,9 @@ afterEach(() => {
   cleanup();
   // Module-level stores outlive a render: start each test with a fresh design.
   resetDialogs();
+  resetComposeSummary();
+  resetAnimation();
+  resetPrintFallback();
   useEditor.getState().newDesign("Untitled design");
   localStorage.clear();
   document.documentElement.classList.remove("dark");

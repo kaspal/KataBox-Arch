@@ -8,7 +8,7 @@ Con 40 envíos/s y unos 2 segundos cada uno, hay unos 80 envíos evaluándose en
 
 Un Load Balancer reparte el tráfico entre 2 servidores Go de la Submit API. Publican en una Queue SQS con un max depth de 1 000 000. La consumen Judge Workers, empezando con 12 instancias de 8 huecos, dentro de un Autoscaling group con un mínimo de 12, un máximo de 80, una utilización objetivo del 60 % y un retardo de escalado de 10 segundos. Cada veredicto se escribe en PostgreSQL.
 
-Cuesta unos 1 963 $ al mes. En una tarde tranquila el p95 ronda los 5,7 s. Cuando empieza el concurso, el tráfico sube de 1 a 6 veces a lo largo del minuto, hasta 240 envíos por segundo; el grupo sigue añadiendo instancias a medida que sube la utilización, y el p95 ronda los 21 s. Cuando se cae una máquina de evaluación, la tarjeta de los Judge Workers queda fuera de servicio durante 20 segundos; los envíos esperan en la Queue, no se pierde ninguno y el p95 ronda los 23 s. Las dos pruebas ocultas admiten un p95 de hasta 30 s.
+Cuesta unos 2 008 $ al mes. En una tarde tranquila el p95 ronda los 5,7 s. Cuando empieza el concurso, el tráfico sube de 1 a 6 veces a lo largo del minuto, hasta 240 envíos por segundo; el grupo sigue añadiendo instancias a medida que sube la utilización, y el p95 ronda los 21 s. Cuando se cae una máquina de evaluación, la tarjeta de los Judge Workers queda fuera de servicio durante 20 segundos; los envíos esperan en la Queue, no se pierde ninguno y el p95 ronda los 23 s. Las dos pruebas ocultas admiten un p95 de hasta 30 s.
 
 ## Por qué falla el primer intento
 

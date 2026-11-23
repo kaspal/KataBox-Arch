@@ -38,6 +38,14 @@ tauri-specta = { version = "=2.0.0-rc.21", features = ["typescript"] }
 tauri-plugin-dialog = "2"
 # Auto-update, prepared but off: only `--features updater` registers it. No keys exist.
 tauri-plugin-updater = { version = "2", optional = true }
+# Printing to PDF (M7b.3): the oneshot answer and its timeout.
+tokio = { workspace = true, features = ["sync", "time"] }
+
+# WebView2's PrintToPdf (M7b.3, review A8): pinned to the versions wry already locks, so
+# nothing new is compiled or downloaded (cargo tree -d and cargo deny show no duplicates).
+[target.'cfg(windows)'.dependencies]
+webview2-com = "=0.39.1"
+windows = "=0.62.2"
 
 [features]
 updater = ["dep:tauri-plugin-updater"]

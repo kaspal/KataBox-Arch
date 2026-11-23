@@ -8,9 +8,9 @@ El tiempo se va en los pedidos. Guardar el pedido lleva milisegundos; el cobro t
 
 ## El diseño de referencia
 
-Un Load Balancer (AWS ALB) envía a los clientes a 4 instancias Go de la Shop API, con la concurrencia por defecto de 64: 256 huecos. Las visitas a productos siguen el patrón cache-aside a través de una Cache Redis con un TTL de 60 s hacia PostgreSQL, una principal y una réplica. El pedido se escribe en la principal y luego se publica en una Queue SQS con max_retries en 8 y una Dead-letter Queue detrás. La consumen 12 Workers de pago Celery, cada uno con concurrencia 64: 768 huecos. La respuesta al cliente sale en cuanto el pedido queda guardado y en la cola, así que el p95 ronda los 32 ms. Cuesta unos 2767 $ al mes.
+Un Load Balancer (AWS ALB) envía a los clientes a 4 instancias Go de la Shop API, con la concurrencia por defecto de 64: 256 huecos. Las visitas a productos siguen el patrón cache-aside a través de una Cache Redis con un TTL de 60 s hacia PostgreSQL, una principal y una réplica. El pedido se escribe en la principal y luego se publica en una Queue SQS con max_retries en 8 y una Dead-letter Queue detrás. La consumen 12 Workers de pago Celery, cada uno con concurrencia 64: 768 huecos. La respuesta al cliente sale en cuanto el pedido queda guardado y en la cola, así que el p95 ronda los 32 ms. Cuesta unos 4418 $ al mes.
 
-«El proveedor de pagos se ralentiza» añade 2,5 s a cada llamada de pago a partir del segundo 15, durante 30 segundos. Los 768 huecos de los Workers son menos que los 2240 que necesitan los cobros lentos, así que se acumula trabajo en la cola, que se vacía cuando el proveedor se recupera. Los App Servers nunca esperan al proveedor, así que el p95 se queda en unos 32 ms. «Tormenta de doble clic (pedidos ×2)» duplica el tráfico de pedidos durante toda la ejecución, hasta unos 1600 pedidos por segundo. Cada uno sigue siendo una escritura rápida y una publicación: el p95 ronda los 35 ms. La factura sube a unos 3612 $ con el tráfico extra.
+«El proveedor de pagos se ralentiza» añade 2,5 s a cada llamada de pago a partir del segundo 15, durante 30 segundos. Los 768 huecos de los Workers son menos que los 2240 que necesitan los cobros lentos, así que se acumula trabajo en la cola, que se vacía cuando el proveedor se recupera. Los App Servers nunca esperan al proveedor, así que el p95 se queda en unos 32 ms. «Tormenta de doble clic (pedidos ×2)» duplica el tráfico de pedidos durante toda la ejecución, hasta unos 1600 pedidos por segundo. Cada uno sigue siendo una escritura rápida y una publicación: el p95 ronda los 35 ms. La factura sube a casi 7000 $ con los mensajes extra.
 
 ## Por qué falla el primer intento
 
@@ -18,7 +18,7 @@ Un primer intento habitual es la misma tienda sin cola: 6 instancias Go, 384 hue
 
 Las dos pruebas ocultas los desbordan. Cuando el proveedor se ralentiza, los cobros necesitan unos 2240 huecos y hay 384. Cuando los pedidos se duplican, 1600 cobros por segundo necesitan unos 480 huecos solo con la mediana, más que los 384 disponibles. En las dos pruebas se descarta cerca del 40 % de todas las peticiones, también las visitas a productos: esperan los mismos huecos de App Server, y todos están atascados en un pago.
 
-La cola no es gratis. SQS cuesta aquí unos 886 $ al mes y los Workers 840 $: juntos, más que toda la factura del primer intento. Lo que compra es aislamiento: un proveedor lento llena una cola en vez de la tienda.
+La cola no es gratis. Solo SQS cuesta aquí unos 2537 $ al mes, más del doble de toda la factura del primer intento, y los Workers suman 840 $. Lo que compra es aislamiento: un proveedor lento llena una cola en vez de la tienda.
 
 ## Lo que el simulador deja fuera
 

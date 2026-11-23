@@ -29,7 +29,7 @@
   "retried": 0.0,
   "stale_reads": 0.0,
   "stale_rate": 0.0,
-  "cost_month": 1054.61,
+  "cost_month": 1033.0,
   "per_type": [
     {
       "id": "update",
@@ -375,7 +375,7 @@
       "max_queue": 4987.0,
       "drops": 0.0,
       "served": 9104.0,
-      "cost_month": 174.61,
+      "cost_month": 153.0,
       "util_series": [
         0.0,
         0.0,

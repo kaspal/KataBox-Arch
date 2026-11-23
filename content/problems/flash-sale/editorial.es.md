@@ -8,7 +8,7 @@ Antes de la venta, 2 000 peticiones/s se reparten en unas 1 800 visitas a págin
 
 El Client habla con una CDN con un TTL de 60 segundos. Los fallos de página van a Object Storage (S3). La CDN reenvía el pago a un Application Load Balancer delante de 4 servidores Go de la Checkout API. Cada servidor pone el pedido en una Queue SQS con un max depth de 1 000 000 y responde al comprador. Los Payment Workers, 8 instancias con 64 huecos cada una, toman pedidos de la Queue, cobran a través del proveedor y escriben la entrada en PostgreSQL.
 
-Cuesta unos 5 429 $ al mes. El p95 se mantiene cerca de 25 ms durante la apertura, porque la respuesta al comprador solo espera a la Queue. Cuando el proveedor de pagos se ralentiza y añade 3 segundos a cada cobro durante 30 segundos, los Workers vacían la cola más despacio y la Queue se alarga. Ningún comprador espera y no se pierde ningún pedido.
+Cuesta unos 5 814 $ al mes. El p95 se mantiene cerca de 25 ms durante la apertura, porque la respuesta al comprador solo espera a la Queue. Cuando el proveedor de pagos se ralentiza y añade 3 segundos a cada cobro durante 30 segundos, los Workers vacían la cola más despacio y la Queue se alarga. Ningún comprador espera y no se pierde ningún pedido.
 
 ## Por qué falla el primer intento
 

@@ -2,13 +2,13 @@
 
 ## Adónde va la carga
 
-Con 4 000 mensajes/s, cada mensaje pasa dos veces por cómputo: una en el gateway de quien lo envía, que lo publica, y otra en el gateway del destinatario, que lo entrega. Entre ambos está el broker. Un Pub/Sub entrega una copia de cada mensaje a cada gateway suscrito, y las peticiones de pub/sub crecen con el tráfico: son la mayor parte de la factura. El trabajo por mensaje es pequeño. Lo difícil es que la entrega siga funcionando cuando falla un gateway y cuando la tarde se anima.
+Con 4 000 mensajes/s, cada mensaje pasa dos veces por cómputo: una en el gateway de quien lo envía, que lo publica, y otra en el gateway del destinatario, que lo entrega. Entre ambos está el broker. Un Pub/Sub entrega una copia de cada mensaje a cada gateway suscrito, Aquí el Pub/Sub Redis es un nodo propio de 36 $ al mes, sin coste por mensaje, así que los gateways son la mayor parte de la factura. El trabajo por mensaje es pequeño. Lo difícil es que la entrega siga funcionando cuando falla un gateway y cuando la tarde se anima.
 
 ## El diseño de referencia
 
 Un Network Load Balancer que admite WebSockets reparte las conexiones entre dos tarjetas de gateway, Gateway A y Gateway B, cada una con 2 instancias Go. Ambas publican en un Pub/Sub Redis, el «bus de mensajes», y ambas consumen de él, así que el gateway que tenga al destinatario puede entregar.
 
-Cuesta unos 5 590 $ al mes y su p95 ronda los 28 ms en una tarde normal. Cuando Gateway A se cae, fallan los mensajes que estaba atendiendo, y durante un momento el Load Balancer sigue enviándole tráfico. Las comprobaciones de salud lo detectan en 2 a 4 segundos y las conexiones pasan a Gateway B. Falla alrededor del 1,7 % de los mensajes y algunas entregas esperan cerca de un segundo; después, Gateway B lo lleva todo. El diseño también aguanta el pico de la noche.
+Cuesta unos 341 $ al mes y su p95 ronda los 28 ms en una tarde normal. Cuando Gateway A se cae, fallan los mensajes que estaba atendiendo, y durante un momento el Load Balancer sigue enviándole tráfico. Las comprobaciones de salud lo detectan en 2 a 4 segundos y las conexiones pasan a Gateway B. Falla alrededor del 1,7 % de los mensajes y algunas entregas esperan cerca de un segundo; después, Gateway B lo lleva todo. El diseño también aguanta el pico de la noche.
 
 ## Por qué falla el primer intento
 

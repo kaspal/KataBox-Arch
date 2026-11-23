@@ -12,7 +12,7 @@ Vendes entradas para grandes eventos. La mayoría de los días son tranquilos: l
 | Navegación | 90 % de las peticiones |
 | Latencia p95 | 100 ms o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 8 000 $ al mes |
+| Presupuesto | 9000 $ al mes |
 
 ## El tráfico
 

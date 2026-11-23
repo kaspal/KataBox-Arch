@@ -19,6 +19,7 @@ export function sourceLabel(t: TFunction, source: string): string {
   const s = source.trim();
   if (s === "arithmetic") return t("numbers.source.arithmetic");
   if (s === "simulator") return t("numbers.source.simulator");
+  if (s === "rule of thumb") return t("numbers.source.ruleOfThumb");
   const needed = s.startsWith("needed:");
   const url = needed ? s.slice("needed:".length).trim() : s;
   let host = url;

@@ -11,7 +11,7 @@ Gestionas el núcleo que mueve el dinero en una app de pagos. Cada transferencia
 | Tráfico pico | 1000 transferencias/s |
 | Latencia p95 hasta completar | 3 s o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 4000 $ al mes |
+| Presupuesto | 3800 $ al mes |
 | Mensajes perdidos | Ninguno |
 
 ## El tráfico

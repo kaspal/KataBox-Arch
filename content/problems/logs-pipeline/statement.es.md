@@ -11,7 +11,7 @@ Llevas la plataforma de logs de una empresa con cientos de servicios. Cada servi
 | Tráfico pico | 1000 peticiones/s |
 | Latencia p95 (los lotes se miden hasta quedar archivados) | 2 s o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 6000 $ al mes |
+| Presupuesto | 18 500 $ al mes |
 | Mensajes perdidos | Ninguno |
 
 ## El tráfico

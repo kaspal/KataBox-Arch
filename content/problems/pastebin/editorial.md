@@ -10,7 +10,7 @@ Reads follow Zipf 1.0 over 5 million pastes, so a cache in front of the store ca
 
 A Load Balancer spreads traffic over 4 Go App Servers. Reads check a Redis Cache of 4 GB first and fall through to Object Storage (S3) on a miss. Creates write the body straight to Object Storage. There is no SQL Database in the design.
 
-It costs about $2,579 per month, and most of that is Object Storage requests, priced at $1 per million in this model. It passes the burst with a p95 near 127 ms, and it survives the cold cache because Object Storage can serve every read on its own while the cache warms up.
+It costs about $4,840 per month, and most of that is Object Storage writes: S3 bills $5 per million PUTs and $0.40 per million GETs, so the 300 creates a second cost about $3,900 a month. It passes the burst with a p95 near 127 ms, and it survives the cold cache because Object Storage can serve every read on its own while the cache warms up.
 
 ## Why the first try breaks
 

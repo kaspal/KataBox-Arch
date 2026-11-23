@@ -8,4 +8,4 @@ Haz que todos los servidores de sincronización publiquen sus ediciones en un ú
 
 ## 3
 
-Pon un Network Load Balancer delante de dos tarjetas de App Servers Go con 3 instancias cada una. Conecta las dos tarjetas para que publiquen en un Pub/Sub Redis y consuman de él, y escribe las instantáneas en PostgreSQL. El bus cobra por mensaje, así que mira cuánto pesa en el coste mensual antes de añadir más de nada.
+Pon un Network Load Balancer delante de dos tarjetas de App Servers Go con 3 instancias cada una. Conecta las dos tarjetas para que publiquen en un Pub/Sub Redis y consuman de él, y escribe las instantáneas en PostgreSQL. Un Pub/Sub Redis propio no cobra por mensaje, así que el coste mensual son sobre todo las tarjetas de sincronización y la base de datos: mira cuánto suma cada una antes de añadir más de nada.

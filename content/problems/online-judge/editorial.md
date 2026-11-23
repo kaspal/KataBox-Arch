@@ -8,7 +8,7 @@ At 40 submissions/s and about 2 seconds each, about 80 submissions are being jud
 
 A Load Balancer spreads traffic over 2 Go Submit API servers. They publish to an SQS Queue with a max depth of 1,000,000. Judge Workers consume it, starting at 12 instances of 8 slots, inside an Autoscaling group with a minimum of 12, a maximum of 80, a target utilisation of 60% and a scale delay of 10 seconds. Each verdict is written to PostgreSQL.
 
-This costs about $1,963 per month. On a quiet afternoon the p95 is about 5.7 s. When the contest starts, traffic ramps from 1 to 6 times over the minute, up to 240 submissions a second; the group keeps adding instances as utilisation climbs, and the p95 is about 21 s. When a judge machine crashes, the Judge Workers card is down for 20 seconds; submissions wait in the Queue, none are lost, and the p95 is about 23 s. Both hidden tests allow a p95 of up to 30 s.
+This costs about $2,008 per month. On a quiet afternoon the p95 is about 5.7 s. When the contest starts, traffic ramps from 1 to 6 times over the minute, up to 240 submissions a second; the group keeps adding instances as utilisation climbs, and the p95 is about 21 s. When a judge machine crashes, the Judge Workers card is down for 20 seconds; submissions wait in the Queue, none are lost, and the p95 is about 23 s. Both hidden tests allow a p95 of up to 30 s.
 
 ## Why the first try breaks
 

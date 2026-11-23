@@ -1,5 +1,7 @@
 // Routes: code-based TanStack Router with hash history, so a reload under Tauri's asset
 // protocol always lands on index.html. The Sandbox (React Flow) loads lazily.
+import { validWhat } from "@/print/printing";
+import type { PrintSearch } from "@/print/PrintPage";
 import {
   createHashHistory,
   createRootRoute,
@@ -100,6 +102,19 @@ const routeTree = rootRoute.addChildren([
     getParentRoute: () => rootRoute,
     path: "/samples/$id",
     component: lazyRouteComponent(() => import("@/tour/SamplePage"), "SamplePage"),
+  }),
+  // The print layout (M7b.3): no app chrome; validated search only.
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/print",
+    validateSearch: (s: Record<string, unknown>): PrintSearch => ({
+      what: validWhat(s.what) ? s.what : "guide",
+      ...(typeof s.pdf === "number" && Number.isInteger(s.pdf) && s.pdf > 0 ? { pdf: s.pdf } : {}),
+      ...(s.html === 1 ? { html: 1 as const } : {}),
+      ...(typeof s.back === "string" && s.back.startsWith("/") && s.back.length < 512 ? { back: s.back } : {}),
+      ...(typeof s.name === "string" ? { name: s.name.slice(0, 120) } : {}),
+    }),
+    component: lazyRouteComponent(() => import("@/print/PrintRoute"), "PrintRoute"),
   }),
   createRoute({ getParentRoute: () => rootRoute, path: "/progress", component: Progress }),
   createRoute({ getParentRoute: () => rootRoute, path: "/settings", component: Settings }),

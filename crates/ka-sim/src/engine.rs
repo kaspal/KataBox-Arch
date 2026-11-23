@@ -20,7 +20,7 @@ const NONE: u32 = u32::MAX;
 /// Clients give up on a synchronous request after this long.
 pub const TIMEOUT_US: u64 = 5_000_000;
 /// After the last arrival, in-flight work may finish for this long.
-const DRAIN_US: u64 = 30_000_000;
+pub const DRAIN_US: u64 = 30_000_000;
 /// A provider that is down fails a call after this connect timeout.
 const EXTERNAL_DOWN_US: u64 = 1_000_000;
 /// Seconds in a 30.4-day month, for per-request prices.
@@ -172,6 +172,9 @@ struct NodeRt {
     scale_busy: f64,
     add_us: u64,
     served: f64,
+    /// Billed units (ADR 0006): reads and writes, each scaled by the flavour's unit size.
+    bill_r: f64,
+    bill_w: f64,
     drops: f64,
     max_queue: usize,
     sec_max_queue: usize,
@@ -568,7 +571,9 @@ impl Engine {
     pub fn snapshot(&self) -> Snapshot {
         let c = &self.c;
         let now = self.now;
-        let elapsed_s = (now as f64 / 1e6).max(1e-6);
+        // Billed over the test's own length, as the judge does (the drain after it isn't
+        // traffic), so a finished run's tile equals its judged cost.
+        let elapsed_s = (now.min(self.c.duration_us) as f64 / 1e6).max(1e-6);
         let mut cost_month = 0.0;
         let nodes = c
             .nodes
@@ -583,10 +588,7 @@ impl Engine {
                         + f64::from(l.busy) * now.saturating_sub(l.busy_since) as f64;
                     queue += l.queue.len();
                 }
-                cost_month +=
-                    n.cost.per_instance_month * self.mean_instances(i).max(1.0) * n.spec.cost_lanes
-                        + n.cost.per_gb_month * n.spec.memory_gb
-                        + n.cost.per_million * (rt.served / elapsed_s) * MONTH_S / 1e6;
+                cost_month += self.node_cost(i, elapsed_s);
                 NodeSnap {
                     busy_us,
                     servers: f64::from(rt.lane_servers) * f64::from(n.spec.lanes),
@@ -1032,6 +1034,13 @@ impl Engine {
     fn on_svc_done(&mut self, r: u32, node: u32, lane: u16) {
         let w = self.c.weight;
         self.nodes[node as usize].served += w;
+        let units = w * self.bill_units(node, self.reqs[r as usize].ty as usize);
+        let q = &self.reqs[r as usize];
+        if q.phase == Phase::Call && q.call_write {
+            self.nodes[node as usize].bill_w += units;
+        } else {
+            self.nodes[node as usize].bill_r += units;
+        }
         let phase = self.reqs[r as usize].phase;
         let holds = self.c.nodes[node as usize].spec.holds
             && matches!(phase, Phase::Entry | Phase::Consumer);
@@ -1497,9 +1506,12 @@ impl Engine {
         q.attempts += 1;
         if q.attempts <= self.c.nodes[b as usize].spec.max_retries {
             self.retried += w;
+            // The retry is one more receive.
+            self.nodes[b as usize].bill_r += w;
             self.enqueue_broker(r, b);
-        } else if self.c.dlq_of[b as usize].is_some() {
+        } else if let Some(d) = self.c.dlq_of[b as usize] {
             self.dead_lettered += w;
+            self.nodes[d as usize].bill_w += w;
             self.finish(r);
         } else {
             self.lost += w;
@@ -1550,6 +1562,7 @@ impl Engine {
         }
         let w = self.c.weight;
         self.nodes[b as usize].served += w;
+        self.nodes[b as usize].bill_w += w * self.bill_units(b, self.reqs[r as usize].ty as usize);
         let caller = self.reqs[r as usize].caller;
         if !self.reqs[r as usize].resp_sent {
             // The publish is acknowledged once the broker has stored it (its median publish
@@ -1610,6 +1623,9 @@ impl Engine {
             self.fail(r);
             return;
         }
+        // Each delivery is billed as a read (free on SNS).
+        let units = self.c.weight * self.bill_units(b, ty) * subs.len() as f64;
+        self.nodes[b as usize].bill_r += units;
         let g = self.groups.len() as u32;
         self.groups.push(Group {
             remaining: subs.len() as u32,
@@ -1813,10 +1829,12 @@ impl Engine {
         let retries = self.c.nodes[b as usize].spec.max_retries;
         if q.attempts <= retries {
             self.retried += w;
+            self.nodes[b as usize].bill_r += w;
             let backoff = 1_000_000u64 << (q.attempts - 1).min(5);
             self.push_req(self.now + backoff, Ev::Requeue { r }, r);
-        } else if self.c.dlq_of[b as usize].is_some() {
+        } else if let Some(d) = self.c.dlq_of[b as usize] {
             self.dead_lettered += w;
+            self.nodes[d as usize].bill_w += w;
             self.finish(r);
         } else {
             self.lost += w;
@@ -2123,11 +2141,7 @@ impl Engine {
             .map(|(i, (n, rt))| {
                 let secs = rt.util_series.len().max(1) as f64;
                 let utilisation = rt.util_series.iter().sum::<f64>() / secs;
-                let per_s = rt.served / dur;
-                let cost =
-                    n.cost.per_instance_month * self.mean_instances(i).max(1.0) * n.spec.cost_lanes
-                        + n.cost.per_gb_month * n.spec.memory_gb
-                        + n.cost.per_million * per_s * MONTH_S / 1e6;
+                let cost = self.node_cost(i, dur);
                 cost_total += cost;
                 NodeResult {
                     id: n.id.clone(),
@@ -2512,6 +2526,29 @@ impl Engine {
             .find(|&m| !self.nodes[m as usize].down);
         if let Some(m) = next {
             self.cluster_primary[cl as usize] = m;
+        }
+    }
+
+    /// A card's monthly cost, with its billed units spread over `secs` of traffic and
+    /// extrapolated to a month (ADR 0006).
+    fn node_cost(&self, i: usize, secs: f64) -> f64 {
+        let (n, rt) = (&self.c.nodes[i], &self.nodes[i]);
+        let c = &n.cost;
+        let per_month = MONTH_S / secs.max(1e-6) / 1e6 * n.spec.bill_ratio;
+        c.per_instance_month * self.mean_instances(i).max(1.0) * n.spec.cost_lanes
+            + c.per_lane_month * n.spec.bill_lanes
+            + c.per_gb_month * n.spec.memory_gb
+            + (c.per_million * rt.bill_r + c.per_million_write.unwrap_or(c.per_million) * rt.bill_w)
+                * per_month
+    }
+
+    /// Billing units one request of type `ty` counts at card `node`.
+    fn bill_units(&self, node: u32, ty: usize) -> f64 {
+        let unit = self.c.nodes[node as usize].cost.unit_kb;
+        if unit > 0.0 {
+            (self.c.types[ty].def.payload_kb / unit).max(1.0)
+        } else {
+            1.0
         }
     }
 

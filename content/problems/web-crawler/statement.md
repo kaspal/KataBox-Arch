@@ -11,7 +11,7 @@ You run a crawler that keeps a fresh copy of web pages for a search product. A f
 | Crawl rate | 800 URLs/s |
 | p95 completion time | 4 s or less |
 | Availability | 99.9% or more |
-| Budget | $2,500 per month |
+| Budget | $7,500 per month |
 
 ## The traffic
 

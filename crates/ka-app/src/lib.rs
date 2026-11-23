@@ -2,8 +2,10 @@
 //! (which paths the UI may touch, which settings it may write, what a valid design is)
 //! lives here and in `ka-core`, with tests.
 
+pub mod compose;
 pub mod decide;
 pub mod error;
+pub mod frames;
 pub mod guide;
 pub mod kbarch;
 pub mod live;
@@ -17,7 +19,7 @@ pub mod sandbox;
 pub mod settings;
 pub mod window;
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
@@ -42,13 +44,64 @@ pub const MAX_EXPORT_BYTES: usize = 256 * 1024 * 1024;
 pub enum ExportFormat {
     Svg,
     Png,
+    /// Animated export (M7b.2).
+    Webm,
+    Gif,
+    /// The print-ready Guide (M7b.3).
+    Html,
+}
+
+/// Decode `%XX` escapes (the UI sends the suggested file name URI-encoded in a header).
+pub fn percent_decode(s: &str) -> String {
+    let b = s.as_bytes();
+    let mut out = Vec::with_capacity(b.len());
+    let mut i = 0;
+    while i < b.len() {
+        let hex = |c: u8| (c as char).to_digit(16);
+        if b[i] == b'%'
+            && i + 2 < b.len()
+            && let (Some(h), Some(l)) = (hex(b[i + 1]), hex(b[i + 2]))
+        {
+            out.push((h * 16 + l) as u8);
+            i += 3;
+        } else {
+            out.push(b[i]);
+            i += 1;
+        }
+    }
+    String::from_utf8_lossy(&out).into_owned()
 }
 
 impl ExportFormat {
+    pub fn from_id(id: &str) -> Option<ExportFormat> {
+        Some(match id {
+            "svg" => ExportFormat::Svg,
+            "png" => ExportFormat::Png,
+            "webm" => ExportFormat::Webm,
+            "gif" => ExportFormat::Gif,
+            "html" => ExportFormat::Html,
+            _ => return None,
+        })
+    }
+
+    /// The Save dialog's filter name.
+    pub fn filter_name(self) -> &'static str {
+        match self {
+            ExportFormat::Svg => "SVG image",
+            ExportFormat::Png => "PNG image",
+            ExportFormat::Webm => "WebM video",
+            ExportFormat::Gif => "GIF animation",
+            ExportFormat::Html => "HTML page",
+        }
+    }
+
     pub fn extension(self) -> &'static str {
         match self {
             ExportFormat::Svg => "svg",
             ExportFormat::Png => "png",
+            ExportFormat::Webm => "webm",
+            ExportFormat::Gif => "gif",
+            ExportFormat::Html => "html",
         }
     }
 }
@@ -104,7 +157,16 @@ pub struct App {
     /// The live run, if one is playing (one at a time), and the id of the next.
     live: Mutex<Option<(u32, live::LiveRun)>>,
     next_run: std::sync::atomic::AtomicU32,
+    /// An export's frames are being computed (one at a time).
+    exporting: std::sync::atomic::AtomicBool,
+    /// PDF paths picked in the Save dialog, by one-shot token (M7b.3): the UI holds the
+    /// token, never the path.
+    pdf_paths: Mutex<HashMap<u32, (PathBuf, std::time::Instant)>>,
+    next_pdf: std::sync::atomic::AtomicU32,
 }
+
+/// How long a picked PDF path waits for its print (M7b.3).
+pub const PDF_TOKEN_TTL: std::time::Duration = std::time::Duration::from_secs(120);
 
 fn path_string(path: &Path) -> String {
     path.to_string_lossy().into_owned()
@@ -131,6 +193,9 @@ impl App {
             session_paths: Mutex::new(HashSet::new()),
             live: Mutex::new(None),
             next_run: std::sync::atomic::AtomicU32::new(1),
+            exporting: std::sync::atomic::AtomicBool::new(false),
+            pdf_paths: Mutex::new(HashMap::new()),
+            next_pdf: std::sync::atomic::AtomicU32::new(1),
         })
     }
 
@@ -295,6 +360,61 @@ impl App {
         };
         std::fs::write(&path, bytes).map_err(|e| AppError::new(AppErrorCode::Io, e.to_string()))?;
         Ok(path_string(&path))
+    }
+
+    /// Import a docker-compose file the user picked in the Open dialog (M7b.1) as a new,
+    /// unsaved design named after the file.
+    pub fn import_compose(&self, path: &std::path::Path) -> Result<compose::ComposeImport> {
+        use std::io::Read;
+        let file = std::fs::File::open(path)?;
+        let mut bytes = Vec::new();
+        file.take(compose::MAX_BYTES as u64 + 1)
+            .read_to_end(&mut bytes)?;
+        let text = String::from_utf8(bytes).map_err(|_| {
+            AppError::new(AppErrorCode::ComposeInvalid, "the file isn't UTF-8 text")
+        })?;
+        let text = text.strip_prefix('\u{feff}').unwrap_or(&text);
+        let name = path
+            .file_stem()
+            .map(|s| s.to_string_lossy().into_owned())
+            .unwrap_or_else(|| "docker-compose".into());
+        compose::import(text, &name, &self.registry)
+    }
+
+    /// Remember a PDF path the user picked in the Save dialog; the UI gets a one-shot token.
+    pub fn remember_pdf_path(&self, path: PathBuf) -> u32 {
+        let path = if path
+            .extension()
+            .is_some_and(|e| e.eq_ignore_ascii_case("pdf"))
+        {
+            path
+        } else {
+            path.with_extension("pdf")
+        };
+        let token = self
+            .next_pdf
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let mut paths = self.pdf_paths.lock().unwrap_or_else(|e| e.into_inner());
+        let now = std::time::Instant::now();
+        paths.retain(|_, (_, at)| now.duration_since(*at) < PDF_TOKEN_TTL);
+        paths.insert(token, (path, now));
+        token
+    }
+
+    /// The path behind a PDF token, once: unknown, used or expired tokens are refused.
+    pub fn take_pdf_path(&self, token: u32) -> Result<PathBuf> {
+        self.take_pdf_path_at(token, std::time::Instant::now())
+    }
+
+    fn take_pdf_path_at(&self, token: u32, now: std::time::Instant) -> Result<PathBuf> {
+        let mut paths = self.pdf_paths.lock().unwrap_or_else(|e| e.into_inner());
+        match paths.remove(&token) {
+            Some((path, at)) if now.duration_since(at) < PDF_TOKEN_TTL => Ok(path),
+            _ => Err(AppError::new(
+                AppErrorCode::PdfToken,
+                "that PDF request has expired or was already used",
+            )),
+        }
     }
 
     /// Export a design as a Mermaid diagram to a path the user picked in the Save dialog
@@ -490,6 +610,55 @@ mod tests {
             .write_export(dir.join("big"), ExportFormat::Png, &huge)
             .unwrap_err();
         assert_eq!(e.code, AppErrorCode::FileTooLarge);
+        let webm = app
+            .write_export(dir.join("run"), ExportFormat::Webm, &[26, 69])
+            .unwrap();
+        assert!(webm.ends_with("run.webm"), "{webm}");
         app.close().await;
+    }
+
+    #[tokio::test]
+    async fn pdf_tokens_are_one_shot_and_expire() {
+        let dir = temp_dir("pdf-tokens");
+        let app = App::open(AppPaths {
+            user_db: dir.join("user.db"),
+            dev_data: false,
+            content_db: None,
+            packs_dir: None,
+        })
+        .await
+        .unwrap();
+        let a = app.remember_pdf_path(dir.join("guide"));
+        let b = app.remember_pdf_path(dir.join("cache.PDF"));
+        assert_ne!(a, b);
+        assert!(app.take_pdf_path(a).unwrap().ends_with("guide.pdf"));
+        assert_eq!(
+            app.take_pdf_path(a).unwrap_err().code,
+            AppErrorCode::PdfToken
+        );
+        let later = std::time::Instant::now() + PDF_TOKEN_TTL;
+        assert_eq!(
+            app.take_pdf_path_at(b, later).unwrap_err().code,
+            AppErrorCode::PdfToken
+        );
+        assert_eq!(
+            app.take_pdf_path(999).unwrap_err().code,
+            AppErrorCode::PdfToken
+        );
+        app.close().await;
+    }
+
+    #[test]
+    fn export_headers_decode() {
+        for id in ["svg", "png", "webm", "gif", "html"] {
+            assert_eq!(ExportFormat::from_id(id).unwrap().extension(), id);
+        }
+        assert_eq!(ExportFormat::from_id("exe"), None);
+        assert_eq!(
+            percent_decode("Caf%C3%A9%20%26%20co.webm"),
+            "Café & co.webm"
+        );
+        assert_eq!(percent_decode("100%"), "100%");
+        assert_eq!(percent_decode("%zz"), "%zz");
     }
 }

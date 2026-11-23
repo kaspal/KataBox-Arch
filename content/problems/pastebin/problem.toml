@@ -13,7 +13,7 @@ peak_rps = 2000
 read_ratio = 0.85
 p95_ms = 150
 availability = 0.999
-budget_usd = 4000
+budget_usd = 8000
 
 [[request_types]]
 id = "read"

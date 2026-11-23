@@ -63,7 +63,18 @@
     "no_path": "No request can get through this design. Connect a client to a service.",
     "content_missing": "The problem catalogue is missing from this installation. Reinstall the app.",
     "pack_refused": "This pack failed its safety and content checks, so nothing was installed.",
-    "pack_version": "This pack can't replace the installed one: it is older, or the same version with different contents."
+    "pack_version": "This pack can't replace the installed one: it is older, or the same version with different contents.",
+    "compose_too_large": "This docker-compose file is larger than 1 MB, so it wasn't imported.",
+    "compose_too_complex": "This docker-compose file is too complex to import (too many parts, aliases or levels).",
+    "compose_too_many_services": "This docker-compose file has more than 200 services, so it wasn't imported.",
+    "compose_unsupported": "This docker-compose file uses YAML the import doesn't read, such as anchors or aliases as keys.",
+    "compose_invalid": "This isn't a docker-compose file the import can read: the YAML is invalid or it has no services.",
+    "export_hidden_refused": "A hidden test can only be exported from its Results, within the part Replay shows.",
+    "export_busy": "An animation is already being prepared. Wait for it to finish.",
+    "pdf_token": "That print request has expired. Try again.",
+    "pdf_unsupported": "This system's web view can't print to PDF.",
+    "pdf_failed": "Printing to PDF failed.",
+    "pdf_timeout": "Printing to PDF took too long."
   },
   "files": {
     "unsaved": {
@@ -391,7 +402,8 @@
       "retention_h": "Retention",
       "retention_days": "Retention",
       "interval_s": "Interval",
-      "sample_rate": "Sample rate"
+      "sample_rate": "Sample rate",
+      "query_ratio": "Share of requests that are DNS queries"
     },
     "choice": {
       "round_robin": "Round robin",
@@ -463,16 +475,17 @@
     "p99": "p99 latency",
     "throughput": "Throughput",
     "errorRate": "Error rate",
-    "cost": "Cost",
+    "cost": "Monthly cost",
     "perMonth": "/month",
-    "lastSecond": "Latency, throughput and errors cover the last simulated second; cost is per month at the traffic so far.",
+    "lastSecond": "Latency, throughput and errors cover the last simulated second. Cost is per month at this run's average load, at list prices: no free tiers, discounts or data transfer.",
     "busiest": "Busiest components",
     "down": "down",
     "sampled": "Simulating {{pct}}% of requests; counts are scaled back up.",
     "p95Trend": "p95 latency per second",
     "stale": "Stale reads",
     "availability": "Availability",
-    "retried": "Retries"
+    "retried": "Retries",
+    "costTest": "The cost is for the test “{{name}}”."
   },
   "breaking": {
     "title": "Breaking point",
@@ -540,7 +553,8 @@
     "hint": "Hint {{n}}",
     "showHint": "Show hint {{n}}",
     "editorial": "Editorial",
-    "compare": "Compare"
+    "compare": "Compare",
+    "testAvailability": "availability ≥ {{a}}"
   },
   "results": {
     "title": "Results",
@@ -567,7 +581,10 @@
     },
     "stuck": "Stuck?",
     "retried_one": "{{n}} attempt failed and was retried: not an error, since the message was still delivered or kept.",
-    "retried_other": "{{n}} attempts failed and were retried: not errors, since the messages were still delivered or kept."
+    "retried_other": "{{n}} attempts failed and were retried: not errors, since the messages were still delivered or kept.",
+    "costNote": "Monthly cost at the load of “{{test}}”, at list prices: no free tiers, discounts or data transfer.",
+    "lost": "{{n}} messages lost (limit {{limit}})",
+    "exportReplay": "Export replay"
   },
   "compare": {
     "open": "Compare with reference",
@@ -666,12 +683,16 @@
     "costField": {
       "per_instance_month": "Price per instance",
       "per_gb_month": "Price per GB",
-      "per_million": "Price per million requests"
+      "per_million": "Price per million requests or reads",
+      "per_lane_month": "Price per shard or partition",
+      "per_million_write": "Price per million writes or messages"
     },
     "costUnit": {
       "per_instance_month": "{{v}} a month",
       "per_gb_month": "{{v}} per GB a month",
-      "per_million": "{{v}} per million"
+      "per_million": "{{v}} per million",
+      "per_lane_month": "{{v}} a month each",
+      "per_million_write": "{{v}} per million"
     },
     "conceptCard": "Concept card",
     "playConcept_one": "Play the concept card ({{count}} step)",
@@ -783,7 +804,8 @@
       "cited": "Source: {{host}}",
       "needed": "Source to be checked (suggested: {{host}})",
       "arithmetic": "Arithmetic",
-      "simulator": "The simulator's own figure"
+      "simulator": "The simulator's own figure",
+      "ruleOfThumb": "A rule of thumb"
     }
   },
   "packs": {
@@ -828,7 +850,9 @@
     "saveMermaid": "Save as Mermaid…",
     "copied": "Mermaid diagram copied.",
     "saveSvg": "Save as SVG image…",
-    "savePng": "Save as PNG image…"
+    "savePng": "Save as PNG image…",
+    "saveWebm": "Save animation (WebM)…",
+    "webmUnsupported": "This system's web view can't record video."
   },
   "katabox": {
     "title": "Related in KataBox",
@@ -849,5 +873,53 @@
       "completion": "p99 completion",
       "mixed": "p99 (answers and completions)"
     }
+  },
+  "compose": {
+    "import": "Import docker-compose…",
+    "title": "Imported from docker-compose",
+    "summary": "{{cards}} cards and {{edges}} connections. Check the guesses below, then save the design.",
+    "mapped_one": "{{count}} service recognised by its image",
+    "mapped_other": "{{count}} services recognised by their images",
+    "guessed_one": "{{count}} service drawn as an App Server",
+    "guessed_other": "{{count}} services drawn as App Servers",
+    "guessedHint": "Their images aren't ones the import knows, so they became App Servers. Change the kind in the Inspector if one is something else.",
+    "noImage": "built from source",
+    "clamped_one": "{{count}} service had more replicas than a card allows (64)",
+    "clamped_other": "{{count}} services had more replicas than a card allows (64)",
+    "skipped_one": "{{count}} dependency not drawn",
+    "skipped_other": "{{count}} dependencies not drawn",
+    "unknownService": "No service with that name is in the file.",
+    "done": "Done"
+  },
+  "animation": {
+    "title": "Save an animation",
+    "sandbox": "Sandbox",
+    "start": "Start (s)",
+    "length": "Length (s, at most {{max}})",
+    "realTime": "The video records in real time: a 30-second clip takes about 30 seconds. Keep this window open.",
+    "record": "Record",
+    "preparing": "Preparing the frames…",
+    "recording": "Recording frame {{done}} of {{total}}…",
+    "progress": "Recording progress",
+    "saving": "Saving…",
+    "saved": "Animation saved.",
+    "cancelled": "Recording cancelled.",
+    "hidden": "Recording stopped because the window was hidden.",
+    "hud": "{{label}} · {{t}} s · p95 {{p95}} ms · {{rps}} req/s · errors {{errors}}"
+  },
+  "print": {
+    "menu": "Print",
+    "savePdf": "Save as PDF…",
+    "saveHtml": "Save print-ready HTML…",
+    "preparingPdf": "Preparing PDF…",
+    "preparingHtml": "Preparing the page…",
+    "pdfSaved": "PDF saved.",
+    "htmlSaved": "Print-ready page saved.",
+    "failed": "The page couldn't be prepared for printing.",
+    "pdfFailedTitle": "The PDF couldn't be made",
+    "pdfFailedBody": "You can save a print-ready HTML page instead, and print it to PDF from a browser.",
+    "formula": "Rule of thumb",
+    "pathItems": "What the path covers",
+    "wholeGuide": "Print the Guide"
   }
 }

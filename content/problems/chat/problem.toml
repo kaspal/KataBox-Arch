@@ -12,7 +12,7 @@ tags = ["websockets", "pub-sub", "availability"]
 peak_rps = 4000
 p95_ms = 150
 availability = 0.999
-budget_usd = 12000
+budget_usd = 800
 
 [[request_types]]
 id = "message"

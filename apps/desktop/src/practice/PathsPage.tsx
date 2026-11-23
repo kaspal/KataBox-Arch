@@ -1,6 +1,7 @@
 // /paths: learning paths (M5.4). Five ordered tracks through the Guide, concept cards,
 // patterns, problems and drills, with progress from what you've already done. Following a
 // path makes Home's "Recommended next" its next unfinished item.
+import { PrintMenu } from "@/print/PrintMenu";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -122,6 +123,8 @@ function PathCard({ path, active, onFollow }: { path: PathView; active: boolean;
           </h2>
           <p className="max-w-2xl text-sm text-muted-foreground">{es ? path.blurb_es : path.blurb}</p>
         </div>
+        <div className="flex items-center gap-2">
+        <PrintMenu what={`path:${path.id}`} name={es ? path.title_es : path.title} />
         {active ? (
           <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-green" data-testid="path-following">
             <Flag aria-hidden className="size-4" />
@@ -132,6 +135,7 @@ function PathCard({ path, active, onFollow }: { path: PathView; active: boolean;
             {t("paths.follow")}
           </Button>
         )}
+        </div>
       </div>
       <div className="space-y-1">
         <div

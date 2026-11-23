@@ -12,7 +12,7 @@ You run an online shop. Most visitors browse: they open product pages, compare, 
 | Reads | 80% of requests |
 | p95 latency | 800 ms or less |
 | Availability | 99.9% or more |
-| Budget | $4,000 per month |
+| Budget | $6,500 per month |
 | Lost messages | None |
 
 Latency is measured until the shopper gets an answer.

@@ -201,10 +201,22 @@ Designs are saved as `.kbarch` files. The file actions are in the toolbar, in th
 - The file name sits next to the design name; a dot marks unsaved changes.
 - If you close the window or open another design with unsaved changes, the app asks **Save your changes?** with **Save**, **Don't save** and **Cancel**.
 
+**Import docker-compose…** (toolbar or command palette) turns a `docker-compose.yml` into a new, unsaved design:
+
+- Services become cards by their image: PostgreSQL, MySQL/MariaDB, Redis/Valkey, Memcached, NGINX, HAProxy, Kafka/Redpanda, RabbitMQ, Elasticsearch, OpenSearch, MongoDB and Cassandra/Scylla. Anything else becomes an App Server, and the summary says which ones were guessed.
+- `deploy.replicas` sets the card's instances (at most 64; a larger number is clamped and listed).
+- `depends_on` and `links` become connections, with a protocol the wiring rules allow. A dependency the rules don't allow, or one on a service that isn't in the file, is listed instead of drawn.
+- Files over 1 MB, with more than 200 services, or with YAML built to blow up (too many aliases or levels) are refused.
+
 The **Export** menu in the toolbar turns the design into:
 
 - **Copy as Mermaid** and **Save as Mermaid…**: a Mermaid diagram you can paste into Markdown documents.
 - **Save as SVG image…** and **Save as PNG image…**: a picture of the design.
+- **Save animation (WebM)…**: a video of the run, with moving requests, each card's load and a line with the time,
+  p95, throughput and errors. Pick a start and a length (up to 60 s); it records in real time, so keep the window open.
+  It shows the Sandbox's traffic, or the problem test Run is playing.
+- In **Results**, a failed test has **Export replay** next to Replay: the same video of the part Replay shows, hidden
+  tests included (nothing before Replay's start is ever shown).
 
 ## Learning: the Guide, patterns and glossary
 
@@ -217,6 +229,8 @@ An entry covers **What it does**, **Use it when**, **Skip it when**, **In the si
 Each entry ends with a **Quick check** of three questions. A missed question comes back for review (see Review).
 
 You can reach the Guide from the canvas too: **Open in Guide** in the Library's About panel, and **Learn more** in the inspector.
+
+**Print** (on the Guide, on each entry and pattern, and on each learning path) saves a paper copy: **Save as PDF…** (Windows) or **Save print-ready HTML…** (everywhere; open it in a browser to print it). The whole Guide prints one entry per page, then the glossary; a pattern includes its template's picture; a path lists what it covers, with its Guide entries and patterns. If a PDF can't be made, the app offers the HTML instead.
 
 ### Patterns
 

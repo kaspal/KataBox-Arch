@@ -1,0 +1,55 @@
+# Every image mapping, replicas (one clamped), merge keys with anchors, depends_on as a
+# list and as a map, links, a dependency that can't be drawn and one on a missing service.
+version: "3.9"
+
+x-app: &app
+  build: .
+  depends_on: [db, cache]
+
+x-unused: &unused
+  image: busybox
+
+services:
+  web:
+    image: docker.io/library/nginx:1.27-alpine
+    depends_on:
+      api:
+        condition: service_healthy
+  api:
+    <<: *app
+    deploy:
+      replicas: 3
+  worker:
+    <<: [*app]
+    image: ghcr.io/acme/worker@sha256:0123456789abcdef
+    links: ["queue:mq"]
+    deploy:
+      replicas: 100
+  db:
+    image: postgres:16
+    depends_on: [cache]
+  replica:
+    image: mariadb
+  cache:
+    image: valkey/valkey:8
+  sessions:
+    image: memcached
+  lb:
+    image: haproxy:3.0
+  events:
+    image: bitnami/kafka:3.7
+  stream2:
+    image: redpanda
+  queue:
+    image: rabbitmq:3-management
+  search:
+    image: elasticsearch:8.15.0
+  search2:
+    image: opensearchproject/opensearch
+  docs:
+    image: mongo:7
+  wide:
+    image: scylladb/scylla
+  ledger:
+    image: cassandra
+    depends_on: [ghost]

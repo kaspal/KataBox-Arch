@@ -11,7 +11,7 @@ Te encargas de contar los clics de una red de anuncios. Cada vez que alguien hac
 | Tráfico pico | 10 000 peticiones/s |
 | Latencia p95 hasta completar | 30 s o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 8000 $ al mes |
+| Presupuesto | 2000 $ al mes |
 | Mensajes perdidos | Ninguno |
 
 ## El tráfico

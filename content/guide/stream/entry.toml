@@ -74,13 +74,18 @@ note_es = "Lo que tarda el broker en guardar una publicación antes de confirmar
 
 [[sim]]
 cost = "per_instance_month"
-note = "A fixed monthly price for the stream."
-note_es = "Un precio mensual fijo por el stream."
+note = "Kafka is a fixed monthly price per broker, and a stream card is one broker. Its partitions are free."
+note_es = "Kafka tiene un precio mensual fijo por broker, y una tarjeta de stream es un broker. Sus particiones son gratis."
 
 [[sim]]
-cost = "per_million"
-note = "Plus a price for every million events written."
-note_es = "Más un precio por cada millón de eventos escritos."
+cost = "per_lane_month"
+note = "Kinesis bills each shard, one per partition, so on Kinesis more partitions cost more."
+note_es = "Kinesis cobra cada shard, uno por partición, así que en Kinesis más particiones cuestan más."
+
+[[sim]]
+cost = "per_million_write"
+note = "Kafka has no fee per event. Kinesis adds a small price per write unit. Storage is not modelled."
+note_es = "Kafka no cobra por evento. Kinesis suma un precio pequeño por unidad de escritura. El almacenamiento no se modela."
 
 [flavours_compared]
 flavours = ["kafka", "kinesis"]

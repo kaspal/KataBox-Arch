@@ -212,3 +212,40 @@
 .hc [role="tab"][data-state="active"] {
   box-shadow: inset 0 0 0 2px var(--ring);
 }
+
+/* The print layout (M7b.3): paper colours whatever the theme, one section per page, and
+   nothing clipped by the app's scroll containers when printed. */
+.print-doc {
+  --foreground: #1f2421;
+  --muted-foreground: #4a4f49;
+  --muted: #eeeae0;
+  --border: #d9d5ca;
+  --card: #ffffff;
+  --background: #ffffff;
+  color: #1f2421;
+  color-scheme: light;
+}
+@media print {
+  @page {
+    margin: 15mm;
+  }
+  html,
+  body,
+  #root,
+  main {
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+  [data-print-overlay] {
+    display: none !important;
+  }
+  .print-section + .print-section {
+    break-before: page;
+  }
+  .print-doc table,
+  .print-doc figure,
+  .print-doc dl > div {
+    break-inside: avoid;
+  }
+}

@@ -130,7 +130,10 @@ export function BriefPanel({ brief }: { brief: ProblemBrief }) {
                   {t("brief.hidden")}
                 </span>
               ) : (
-                <span className="text-xs text-muted-foreground">{t("brief.seconds", { s: x.duration_s })}</span>
+                <span className="text-xs text-muted-foreground">
+                  {t("brief.seconds", { s: x.duration_s })}
+                  {x.availability != null && ` · ${t("brief.testAvailability", { a: pct.format(x.availability) })}`}
+                </span>
               )}
             </li>
           ))}

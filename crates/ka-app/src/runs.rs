@@ -65,7 +65,7 @@ pub enum RunControl {
     Stop,
 }
 
-fn sim_error(e: SimError) -> AppError {
+pub(crate) fn sim_error(e: SimError) -> AppError {
     match e {
         SimError::NoPath { .. } => AppError::new(AppErrorCode::NoPath, e.to_string()),
         SimError::BadScenario(_) => AppError::new(AppErrorCode::Internal, e.to_string()),

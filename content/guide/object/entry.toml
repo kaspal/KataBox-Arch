@@ -72,8 +72,13 @@ note_es = "Cuánto más lentas son las peticiones más lentas que la mediana."
 
 [[sim]]
 cost = "per_million"
-note = "Priced per request only, a blend of reads and writes. Storage space is not billed in this model."
-note_es = "Se cobra solo por petición, una mezcla de lecturas y escrituras. El espacio ocupado no se cobra en este modelo."
+note = "Each read (GET) is billed. Storage space is not billed in this model."
+note_es = "Se cobra cada lectura (GET). El espacio ocupado no se cobra en este modelo."
+
+[[sim]]
+cost = "per_million_write"
+note = "Each write (PUT) costs far more than a read, so write-heavy designs pay mostly for writes."
+note_es = "Cada escritura (PUT) cuesta mucho más que una lectura, así que los diseños con muchas escrituras pagan sobre todo por ellas."
 
 [flavours_compared]
 flavours = ["s3", "gcs"]

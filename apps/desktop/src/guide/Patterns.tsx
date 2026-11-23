@@ -1,6 +1,7 @@
 // /patterns and /patterns/$id: the pattern library. Each pattern has a Guide-style page and a
 // template; "Insert into the Sandbox" adds the template to the design being edited, centred
 // in the view with fresh ids, as one undo step.
+import { PrintMenu } from "@/print/PrintMenu";
 import { QuizBlock } from "@/practice/QuizBlock";
 import { RelatedInKatabox } from "@/guide/RelatedInKatabox";
 import { useTranslation } from "react-i18next";
@@ -137,6 +138,7 @@ function Pattern({ page, registry }: { page: PatternPageData; registry: Registry
             <Plus aria-hidden className="size-4" />
             {t("patterns.insert")}
           </Button>
+          <PrintMenu what={`pattern:${e.id}`} name={title} />
         </div>
       </header>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">

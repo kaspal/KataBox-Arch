@@ -10,6 +10,10 @@
 //!   the canvas would silently do nothing. Dropping a `.kbarch` file onto the window to
 //!   open it would need this revisited (backlog).
 
+// The one place the app calls COM (WebView2's PrintToPdf, M7b.3 / review A8): `unsafe` is
+// allowed in this module only, each block with its SAFETY note. Flagged for sign-off.
+#[allow(unsafe_code)]
+mod pdf;
 mod window_state;
 
 use std::path::PathBuf;
@@ -157,6 +161,35 @@ async fn katabox_links(
     state.app()?.katabox_links(&target).await
 }
 
+// --- docker-compose import (M7b.1) -------------------------------------------------------
+
+/// Show the Open dialog for a docker-compose file and import it as a new, unsaved design
+/// (capped at 1 MiB, so it's read here). `None` when cancelled.
+#[tauri::command]
+#[specta::specta]
+async fn import_compose_dialog(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Res<Option<ka_app::compose::ComposeImport>> {
+    let svc = state.app()?;
+    use tauri_plugin_dialog::DialogExt;
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .add_filter("docker-compose", &["yml", "yaml"])
+            .blocking_pick_file()
+    })
+    .await
+    .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    let Some(path) = picked else {
+        return Ok(None);
+    };
+    let path = path
+        .into_path()
+        .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    svc.import_compose(&path).map(Some)
+}
+
 // --- Mermaid export (M6.6) ---------------------------------------------------------------
 
 /// A design as Mermaid text (for Copy). `names`: kind, protocol and group names in the
@@ -197,29 +230,45 @@ async fn save_mermaid(
     Ok(Some(svc.export_mermaid(path, &design, &names)?))
 }
 
-/// Show the Save dialog and write an image export the UI rendered (M7.3). `None` when
+/// Show the Save dialog and write an export the UI rendered (M7.3, M7b.2/3): the bytes come
+/// as a raw request body (no JSON array), the format and suggested name in the `ka-format`
+/// and `ka-name` headers. Not typed by specta: `lib/api.ts` calls it by hand. `None` when
 /// cancelled.
 #[tauri::command]
-#[specta::specta]
 async fn save_export(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
-    format: ka_app::ExportFormat,
-    data: Vec<u8>,
-    suggested_name: String,
+    request: tauri::ipc::Request<'_>,
 ) -> Res<Option<String>> {
     let svc = state.app()?;
+    let tauri::ipc::InvokeBody::Raw(data) = request.body() else {
+        return Err(AppError::new(
+            AppErrorCode::InvalidInput,
+            "an export needs a raw body",
+        ));
+    };
     if data.len() > ka_app::MAX_EXPORT_BYTES {
         return Err(AppError::new(
             AppErrorCode::FileTooLarge,
             "export too large",
         ));
     }
-    use tauri_plugin_dialog::DialogExt;
-    let (name, ext) = match format {
-        ka_app::ExportFormat::Svg => ("SVG image", "svg"),
-        ka_app::ExportFormat::Png => ("PNG image", "png"),
+    let header = |k: &str| {
+        request
+            .headers()
+            .get(k)
+            .and_then(|v| v.to_str().ok())
+            .map(str::to_owned)
     };
+    let format = header("ka-format")
+        .and_then(|f| ka_app::ExportFormat::from_id(&f))
+        .ok_or_else(|| AppError::new(AppErrorCode::InvalidInput, "unknown export format"))?;
+    let suggested_name = header("ka-name")
+        .map(|n| ka_app::percent_decode(&n))
+        .unwrap_or_else(|| format!("export.{}", format.extension()));
+    let data = data.clone();
+    use tauri_plugin_dialog::DialogExt;
+    let (name, ext) = (format.filter_name(), format.extension());
     let picked = tauri::async_runtime::spawn_blocking(move || {
         app.dialog()
             .file()
@@ -237,6 +286,18 @@ async fn save_export(
         .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
     Ok(Some(svc.write_export(path, format, &data)?))
 }
+
+/// The packed frames of a run for an animated export (M7b.2), as a raw response:
+/// `ka_app::frames::pack`. Not typed by specta: `lib/api.ts` calls it by hand.
+#[tauri::command]
+async fn run_frames(
+    state: State<'_, AppState>,
+    request: ka_app::frames::FramesRequest,
+) -> Res<tauri::ipc::Response> {
+    let bytes = state.app()?.run_frames(request).await?;
+    Ok(tauri::ipc::Response::new(bytes))
+}
+
 // --- Problem packs (M6.4) ---------------------------------------------------------------
 
 /// Show the Open dialog for a `.kbpack`, then open and check it (nothing is installed
@@ -633,6 +694,47 @@ async fn progress(state: State<'_, AppState>, today: String) -> Res<Progress> {
 
 // --- Window ---------------------------------------------------------------------------
 
+// --- Printable Guide (M7b.3) ---------------------------------------------------------------
+
+/// Show the Save dialog for a PDF; the path stays in Rust under a one-shot token (expires
+/// after two minutes). `None` when cancelled.
+#[tauri::command]
+#[specta::specta]
+async fn pick_pdf_path(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    suggested_name: String,
+) -> Res<Option<u32>> {
+    let svc = state.app()?;
+    use tauri_plugin_dialog::DialogExt;
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .add_filter("PDF", &["pdf"])
+            .set_file_name(suggested_name)
+            .blocking_save_file()
+    })
+    .await
+    .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    let Some(path) = picked else {
+        return Ok(None);
+    };
+    let path = path
+        .into_path()
+        .map_err(|e| AppError::new(AppErrorCode::Internal, e.to_string()))?;
+    Ok(Some(svc.remember_pdf_path(path)))
+}
+
+/// Print the page the main webview shows (the `/print` page, once it says it's ready) to
+/// the path behind `token`. Returns the path written.
+#[tauri::command]
+#[specta::specta]
+async fn print_pdf(window: WebviewWindow, state: State<'_, AppState>, token: u32) -> Res<String> {
+    let path = state.app()?.take_pdf_path(token)?;
+    pdf::print(&window, path.clone()).await?;
+    Ok(path.to_string_lossy().into_owned())
+}
+
 /// The window title (the webview has no `setTitle` permission).
 #[tauri::command]
 #[specta::specta]
@@ -728,8 +830,10 @@ fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         set_dirty,
         confirm_close,
         katabox_links,
+        import_compose_dialog,
+        pick_pdf_path,
+        print_pdf,
         mermaid_text,
-        save_export,
         save_mermaid,
         preview_pack,
         apply_pack,
@@ -844,24 +948,32 @@ pub fn run_app() {
     // tauri.updater.conf.json's key and endpoint) registers the plugin.
     #[cfg(feature = "updater")]
     let app = app.plugin(tauri_plugin_updater::Builder::new().build());
-    app.invoke_handler(builder.invoke_handler())
-        .setup(|app| {
-            let state = open_app(app.handle());
-            if let Err(e) = &state {
-                eprintln!("KataBox Arch could not start: {e}");
-            }
-            app.manage(AppState(state));
-            app.manage(CloseGuard::default());
-            // The main window starts hidden: place it where it was, then show it.
-            app.manage(window_state::Saved::default());
-            if let Some(window) = app.get_webview_window("main") {
-                window_state::restore(&window);
-                window_state::watch(&window);
-                guard_close(&window);
-            }
-            Ok(())
-        })
-        .build(tauri::generate_context!())
-        .expect("error while building KataBox Arch")
-        .run(|_, _| {});
+    // Typed commands go through tauri-specta; the two raw-bytes commands (an export's body,
+    // the frames of an animation) can't be typed, so they're routed apart.
+    let typed = builder.invoke_handler();
+    let raw: Box<dyn Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync> =
+        Box::new(tauri::generate_handler![save_export, run_frames]);
+    app.invoke_handler(move |invoke| match invoke.message.command() {
+        "save_export" | "run_frames" => raw(invoke),
+        _ => typed(invoke),
+    })
+    .setup(|app| {
+        let state = open_app(app.handle());
+        if let Err(e) = &state {
+            eprintln!("KataBox Arch could not start: {e}");
+        }
+        app.manage(AppState(state));
+        app.manage(CloseGuard::default());
+        // The main window starts hidden: place it where it was, then show it.
+        app.manage(window_state::Saved::default());
+        if let Some(window) = app.get_webview_window("main") {
+            window_state::restore(&window);
+            window_state::watch(&window);
+            guard_close(&window);
+        }
+        Ok(())
+    })
+    .build(tauri::generate_context!())
+    .expect("error while building KataBox Arch")
+    .run(|_, _| {});
 }

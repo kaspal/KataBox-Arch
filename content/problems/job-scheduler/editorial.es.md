@@ -8,7 +8,7 @@ Con 100 tareas/s y unos 100 ms cada una, el trabajo constante mantiene ocupados 
 
 El Scheduler publica en una Queue SQS con un max depth de 1 000 000. La consumen Workers Celery dentro de un Autoscaling group con un mínimo de 2, un máximo de 24, una utilización objetivo del 60 % y un retardo de escalado de 10 segundos. Cada Worker escribe su resultado en PostgreSQL, que maneja sin esfuerzo 100 escrituras pequeñas por segundo.
 
-Cuesta unos 759 $ al mes. En una hora normal, el tiempo de finalización p95 ronda los 0,3 s. Cuando todo el grupo de workers cae durante 20 segundos, las tareas se acumulan en la Queue, no se pierde ninguna y el p95 sube a unos 19 s mientras se vacía la acumulación. A medianoche, cuando llegan 10 veces más tareas durante 10 segundos, la Queue absorbe la ráfaga, el grupo escala y el p95 llega a unos 24 s. Las dos pruebas ocultas admiten un p95 de hasta 40 s.
+Cuesta unos 928 $ al mes. En una hora normal, el tiempo de finalización p95 ronda los 0,3 s. Cuando todo el grupo de workers cae durante 20 segundos, las tareas se acumulan en la Queue, no se pierde ninguna y el p95 sube a unos 19 s mientras se vacía la acumulación. A medianoche, cuando llegan 10 veces más tareas durante 10 segundos, la Queue absorbe la ráfaga, el grupo escala y el p95 llega a unos 24 s. Las dos pruebas ocultas admiten un p95 de hasta 40 s.
 
 ## Por qué falla el primer intento
 

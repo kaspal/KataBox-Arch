@@ -2,8 +2,10 @@
 // (not a screenshot of the DOM), in the current theme's colours. PNG rasterises the same
 // SVG on a canvas (a data: image, which the CSP already allows), so both formats match.
 import type { Design, Registry } from "@/bindings";
+import { NODE_DOWN, NODE_OVERLOADED, type Frame } from "@/solve/run/frames";
+import { forEachMark, MARK_CROSS, MARK_RING, COLOR_DANGER, pushFrame, spacingGapMs, routeLength, type Ring } from "@/solve/run/PacketLayer";
 import { assignSlots } from "@/solve/geometry/slots";
-import { routeEdge, toPath, bezierPoint, type Rect } from "@/solve/geometry/routeEdge";
+import { routeEdge, toPath, bezierPoint, type Rect, type Route } from "@/solve/geometry/routeEdge";
 import { chipFits } from "@/solve/edges/CurvedEdge";
 import { GLYPHS } from "@/solve/glyphs";
 import { kindSpec } from "@/solve/registry";
@@ -11,9 +13,9 @@ import { CARD_H, CARD_W } from "@/solve/store";
 
 /** The colours an export uses, read from the theme's CSS variables. */
 export type Palette = Record<
-  "canvas" | "card" | "foreground" | "muted" | "border" | "note" | "noteInk" | "noteBorder" | "chip",
+  "canvas" | "card" | "foreground" | "muted" | "border" | "note" | "noteInk" | "noteBorder" | "chip" | "danger" | "warning",
   string
-> & { category: Record<string, { tile: string; glyph: string }> };
+> & { category: Record<string, { tile: string; glyph: string }>; req: string[] };
 
 const CATEGORIES = ["edge", "compute", "data", "async", "ops"] as const;
 
@@ -37,6 +39,9 @@ export function readPalette(root: Element = document.documentElement): Palette {
     noteInk: v("--note-foreground", "#26302b"),
     noteBorder: v("--note-border", "#d8c98f"),
     chip: v("--muted", "#ece8dc"),
+    danger: v("--destructive", "#9c2f27"),
+    warning: v("--amber-base", "#c98535"),
+    req: [1, 2, 3, 4, 5, 6].map((i) => v(`--req-${i}`, "#2f6fb5")),
     category,
   };
 }
@@ -63,11 +68,10 @@ export type SceneNames = {
 const PAD = 40;
 const FONT = "Inter, 'Segoe UI', system-ui, sans-serif";
 
-/** The design as an SVG document (deterministic for the same design, names and palette). */
-export function designSvg(design: Design, registry: Registry, names: SceneNames, palette: Palette): string {
-  const rects = new Map<string, Rect>(design.nodes.map((n) => [n.id, { x: n.position.x, y: n.position.y, w: CARD_W, h: CARD_H }]));
+/** The design's bounds with the export margin, in flow coordinates (whole pixels). */
+export function sceneBounds(design: Design): { x: number; y: number; w: number; h: number } {
   const boxes: Rect[] = [
-    ...rects.values(),
+    ...design.nodes.map((n) => ({ x: n.position.x, y: n.position.y, w: CARD_W, h: CARD_H })),
     ...design.groups.map((g) => ({ x: g.position.x, y: g.position.y, w: g.size.w, h: g.size.h })),
     ...design.notes.map((n) => ({ x: n.position.x, y: n.position.y, w: n.size.w, h: n.size.h })),
   ];
@@ -75,8 +79,13 @@ export function designSvg(design: Design, registry: Registry, names: SceneNames,
   const minY = boxes.length ? Math.min(...boxes.map((b) => b.y)) - PAD : 0;
   const maxX = boxes.length ? Math.max(...boxes.map((b) => b.x + b.w)) + PAD : 400;
   const maxY = boxes.length ? Math.max(...boxes.map((b) => b.y + b.h)) + PAD : 300;
-  const w = Math.round(maxX - minX);
-  const h = Math.round(maxY - minY);
+  return { x: Math.round(minX), y: Math.round(minY), w: Math.round(maxX - minX), h: Math.round(maxY - minY) };
+}
+
+/** The design as an SVG document (deterministic for the same design, names and palette). */
+export function designSvg(design: Design, registry: Registry, names: SceneNames, palette: Palette): string {
+  const rects = new Map<string, Rect>(design.nodes.map((n) => [n.id, { x: n.position.x, y: n.position.y, w: CARD_W, h: CARD_H }]));
+  const { x: minX, y: minY, w, h } = sceneBounds(design);
   const out: string[] = [];
   out.push(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="${Math.round(minX)} ${Math.round(minY)} ${w} ${h}" font-family="${esc(FONT)}">`,
@@ -171,4 +180,166 @@ export async function svgToPng(svg: string, scale = 2): Promise<Uint8Array> {
   const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/png"));
   if (!blob) throw new Error("PNG encoding failed");
   return new Uint8Array(await blob.arrayBuffer());
+}
+
+// --- Animated export (M7b.2): one frame's moving parts as a display list ------------------
+
+/** Where a run's frames draw: card rects by frame node index, routes by frame edge index. */
+export type SceneLayout = {
+  bounds: { x: number; y: number; w: number; h: number };
+  cards: (Rect | null)[];
+  routes: (Route | null)[];
+};
+
+/** The layout for frames whose node and edge indices are `nodeIds` and `edgeIds`. */
+export function sceneLayout(design: Design, nodeIds: readonly string[], edgeIds: readonly string[]): SceneLayout {
+  const rects = new Map<string, Rect>(design.nodes.map((n) => [n.id, { x: n.position.x, y: n.position.y, w: CARD_W, h: CARD_H }]));
+  const slots = assignSlots(design.edges, rects);
+  const byId = new Map(design.edges.map((e) => [e.id, e]));
+  return {
+    bounds: sceneBounds(design),
+    cards: nodeIds.map((id) => rects.get(id) ?? null),
+    routes: edgeIds.map((id) => {
+      const e = byId.get(id);
+      const a = e && rects.get(e.from);
+      const b = e && rects.get(e.to);
+      return e && a && b ? routeEdge(a, b, slots.get(e.id)) : null;
+    }),
+  };
+}
+
+/** Prepare a packet ring for a layout: the same spacing per connection as the live canvas. */
+export function prepareRing(ring: Ring, layout: SceneLayout) {
+  layout.routes.forEach((r, i) => {
+    ring.gapMs[i] = r ? spacingGapMs(routeLength(r)) : 0;
+  });
+}
+
+/** One drawing operation, in flow coordinates (the `hud` line is drawn in pixels). */
+export type Op =
+  | { t: "dot"; x: number; y: number; r: number; a: number; c: string }
+  | { t: "ring"; x: number; y: number; r: number; a: number; c: string }
+  | { t: "cross"; x: number; y: number; k: number; a: number; c: string }
+  | { t: "pill"; x: number; y: number; text: string; fill: string; stroke: string; ink: string }
+  | { t: "hud"; text: string };
+
+/** Words the frame overlay needs, in the user's language. */
+export type FrameWords = {
+  stat: (util: number, queue: number) => string;
+  down: string;
+  hud: (f: Frame) => string;
+};
+
+const r1 = (n: number) => Math.round(n * 10) / 10;
+
+/**
+ * Frame `i`'s display list: push its packets into `ring` at `clock` (the export's own clock,
+ * `i * 1000 / fps`, never the screen's), then list every mark, every card's state pill and
+ * the HUD line. Deterministic for the same frames, layout, palette and words.
+ */
+export function frameOps(
+  layout: SceneLayout,
+  frame: Frame,
+  ring: Ring,
+  clock: number,
+  frameMs: number,
+  palette: Palette,
+  words: FrameWords,
+): Op[] {
+  pushFrame(ring, frame, clock, frameMs);
+  const ops: Op[] = [];
+  forEachMark(ring, layout.routes, clock, (kind, x, y, size, alpha, color) => {
+    const c = color === COLOR_DANGER ? palette.danger : palette.req[color % palette.req.length]!;
+    const a = Math.round(alpha * 100) / 100;
+    if (kind === MARK_CROSS) ops.push({ t: "cross", x: r1(x), y: r1(y), k: r1(size), a, c });
+    else if (kind === MARK_RING) ops.push({ t: "ring", x: r1(x), y: r1(y), r: r1(size), a, c });
+    else ops.push({ t: "dot", x: r1(x), y: r1(y), r: r1(size), a, c });
+  });
+  layout.cards.forEach((rect, i) => {
+    if (!rect || i >= frame.util.length) return;
+    const flags = frame.nodeFlags[i] ?? 0;
+    const down = (flags & NODE_DOWN) !== 0;
+    const over = (flags & NODE_OVERLOADED) !== 0;
+    // Idle cards (clients, unused stores) get no pill: it would only say 0%.
+    if (!down && frame.util[i] === 0 && frame.queue[i] === 0) return;
+    ops.push({
+      t: "pill",
+      // On the card's top-right corner: clear of the connections and their chips.
+      x: rect.x + rect.w - 34,
+      y: rect.y,
+      text: down ? words.down : words.stat(frame.util[i]!, frame.queue[i]!),
+      fill: palette.card,
+      stroke: down ? palette.danger : over ? palette.warning : palette.border,
+      ink: down ? palette.danger : palette.foreground,
+    });
+  });
+  ops.push({ t: "hud", text: words.hud(frame) });
+  return ops;
+}
+
+/** The HUD band's height under the scene (pixels). */
+export const HUD_H = 36;
+
+/** Paint a display list: `scale` maps flow coordinates to pixels; the HUD sits at the bottom. */
+export function paintOps(ctx: CanvasRenderingContext2D, ops: readonly Op[], layout: SceneLayout, scale: number, palette: Palette, offsetX = 0) {
+  const { x: bx, y: by } = layout.bounds;
+  ctx.setTransform(scale, 0, 0, scale, offsetX - bx * scale, -by * scale);
+  for (const op of ops) {
+    if (op.t === "hud") continue;
+    ctx.globalAlpha = "a" in op ? op.a : 1;
+    if (op.t === "dot") {
+      ctx.fillStyle = op.c;
+      ctx.beginPath();
+      ctx.arc(op.x, op.y, op.r, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (op.t === "ring") {
+      ctx.strokeStyle = op.c;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(op.x, op.y, op.r, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (op.t === "cross") {
+      ctx.strokeStyle = op.c;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(op.x - op.k, op.y - op.k);
+      ctx.lineTo(op.x + op.k, op.y + op.k);
+      ctx.moveTo(op.x + op.k, op.y - op.k);
+      ctx.lineTo(op.x - op.k, op.y + op.k);
+      ctx.stroke();
+    } else {
+      ctx.font = `600 11px ${FONT}`;
+      const w = Math.max(40, ctx.measureText(op.text).width + 16);
+      ctx.fillStyle = op.fill;
+      ctx.strokeStyle = op.stroke;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(op.x - w / 2, op.y - 9, w, 18, 9);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = op.ink;
+      ctx.textAlign = "center";
+      ctx.fillText(op.text, op.x, op.y + 4);
+    }
+  }
+  ctx.globalAlpha = 1;
+  const hud = ops.find((o) => o.t === "hud");
+  if (hud && hud.t === "hud") {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const height = ctx.canvas.height;
+    ctx.fillStyle = palette.card;
+    ctx.fillRect(0, height - HUD_H, ctx.canvas.width, HUD_H);
+    ctx.fillStyle = palette.foreground;
+    ctx.font = `500 14px ${FONT}`;
+    ctx.textAlign = "left";
+    ctx.fillText(hud.text, 16, height - HUD_H / 2 + 5);
+  }
+}
+
+/** Load an SVG document as an image (a data: URL, which the CSP already allows). */
+export async function svgImage(svg: string): Promise<HTMLImageElement> {
+  const img = new Image();
+  img.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
+  await img.decode();
+  return img;
 }

@@ -10,7 +10,7 @@ La capacidad es fácil. Lo difícil es que una Región entera puede fallar a la 
 
 ## El diseño de referencia
 
-DNS Route 53, con un TTL de 30 s, reparte a los clientes entre tres Regiones: us-east, eu-west y ap-south. Cada una tiene un AWS ALB, un App Server Go con 2 instancias y un miembro PostgreSQL. El primario está en us-east, y los miembros de eu-west y ap-south son réplicas conectadas a él con enlaces Replicate. Cuesta unos 7886 $ al mes, de los que DNS son unos 6341 $, con un p95 de unos 155 ms.
+DNS Route 53, con un TTL de 30 s, reparte a los clientes entre tres Regiones: us-east, eu-west y ap-south. Cada una tiene un AWS ALB, un App Server Go con 2 instancias y un miembro PostgreSQL. El primario está en us-east, y los miembros de eu-west y ap-south son réplicas conectadas a él con enlaces Replicate. Cuesta unos 1608 $ al mes, de los que DNS son unos 62 $, con un p95 de unos 155 ms.
 
 En un día normal, cerca del 8 % de las lecturas son obsoletas, porque las réplicas van 50 ms por detrás; el problema solo juzga la obsolescencia durante el aislamiento.
 
@@ -20,13 +20,13 @@ En un día normal, cerca del 8 % de las lecturas son obsoletas, porque las répl
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual es una sola Región, us-east, con dos Zonas de disponibilidad, cada una con un App Server Go de 3 instancias y un miembro PostgreSQL: el primario en una y su réplica en la otra. Cuesta unos 7486 $ al mes y supera «Un día normal» con un p95 de unos 32 ms.
+Un primer intento habitual es una sola Región, us-east, con dos Zonas de disponibilidad, cada una con un App Server Go de 3 instancias y un miembro PostgreSQL: el primario en una y su réplica en la otra. Cuesta unos 1208 $ al mes y supera «Un día normal» con un p95 de unos 32 ms.
 
 Cuando se apaga su Región no queda nada: cerca de un 75 % de errores, todas las peticiones desde el segundo 30. El aislamiento es igual de malo. Los clientes y el DNS están fuera de la Región, así que durante 20 de 60 segundos no entra ninguna petición: cerca de un 33 % de errores. Las zonas te protegen de que falle un centro de datos, no de que falle una Región.
 
 ## Lo que el simulador deja fuera
 
-El simulador no guarda en caché las respuestas de DNS: cada petición cuenta como una consulta de DNS, y cada consulta se factura. Los clientes reales guardan la respuesta durante el TTL, así que hacen muchas menos consultas, pero también siguen yendo a una Región caída hasta que el TTL se agota. No se simula escribir en todas las Regiones a la vez (varios primarios con resolución de conflictos), y los datos que viajan entre Regiones no se facturan.
+El simulador no guarda en caché las respuestas de DNS al enrutar: cada petición sigue la respuesta del momento. Los clientes reales guardan la respuesta durante el TTL, así que hacen muchas menos consultas, pero también siguen yendo a una Región caída hasta que el TTL se agota. La factura sí tiene en cuenta esa caché: solo alrededor de 1 petición de cada 100 se cobra como consulta. No se simula escribir en todas las Regiones a la vez (varios primarios con resolución de conflictos), y los datos que viajan entre Regiones no se facturan.
 
 ## Para probar
 

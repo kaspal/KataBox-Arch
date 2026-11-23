@@ -11,7 +11,7 @@ Tienes una plataforma que avisa a tus clientes cuando pasa algo: se paga un pedi
 | Tráfico pico | 2000 eventos/s |
 | Latencia p95 hasta completar | 5 s o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 5000 $ al mes |
+| Presupuesto | 10 000 $ al mes |
 | Mensajes perdidos | Ninguno |
 
 ## El tráfico

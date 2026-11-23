@@ -11,7 +11,7 @@ You run a file sync service. People keep folders on their phones and laptops, an
 | Peak traffic | 2,000 requests/s |
 | p95 completion latency | 5 s or less |
 | Availability | 99.9% or more |
-| Budget | $4,000 per month |
+| Budget | $6,000 per month |
 | Lost messages | None |
 
 ## The traffic

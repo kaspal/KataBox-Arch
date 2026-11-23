@@ -12,7 +12,7 @@ Llevas el núcleo de una bolsa de valores. Las pasarelas de los brókeres te env
 | Latencia p95 hasta completar | 30 ms o menos |
 | Latencia p99 hasta completar | 50 ms o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 9000 $ al mes |
+| Presupuesto | 2800 $ al mes |
 | Mensajes perdidos | Ninguno |
 
 ## El tráfico

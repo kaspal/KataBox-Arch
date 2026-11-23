@@ -8,7 +8,7 @@ Con una cola en medio, la Upload API responde rápido y los trabajos esperan su 
 
 ## El diseño de referencia
 
-Un Load Balancer (AWS ALB) envía las subidas a la Upload API, con 2 instancias Go. Esta escribe el original en S3 y publica un trabajo en una Queue SQS con sus valores por defecto. Dos tarjetas de Workers Celery consumen esa cola: Thumbnailers A y Thumbnailers B, con 12 instancias cada una y la concurrencia por defecto de 8, así que 96 huecos por tarjeta y 192 en total. Cuesta unos 3786 $ al mes, peticiones a S3 y SQS incluidas, con un p95 de cerca de 0,7 s en un día normal.
+Un Load Balancer (AWS ALB) envía las subidas a la Upload API, con 2 instancias Go. Esta escribe el original en S3 y publica un trabajo en una Queue SQS con sus valores por defecto. Dos tarjetas de Workers Celery consumen esa cola: Thumbnailers A y Thumbnailers B, con 12 instancias cada una y la concurrencia por defecto de 8, así que 96 huecos por tarjeta y 192 en total. Cuesta unos 10 717 $ al mes, peticiones a S3 y SQS incluidas, la mayor parte por las escrituras en S3 a 5 $ por millón, con un p95 de cerca de 0,7 s en un día normal.
 
 «Una avalancha de subidas» manda 3 veces el tráfico durante 10 segundos, a partir del segundo 20, y admite un p95 de 20 s. 900 trabajos por segundo necesitan unos 225 huecos, algo más de los 192 que hay, así que se forma una cola corta que se vacía pocos segundos después de la avalancha. El p95 queda en unos 4 s.
 
@@ -16,7 +16,7 @@ Un Load Balancer (AWS ALB) envía las subidas a la Upload API, con 2 instancias 
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual es una sola tarjeta de Workers, Thumbnailers, con 16 instancias: 128 huecos, más de los 75 que pide el pico, por unos 3226 $ al mes. Supera «Un día normal», y también la avalancha, con un p95 de unos 11 s, todavía por debajo del límite.
+Un primer intento habitual es una sola tarjeta de Workers, Thumbnailers, con 16 instancias: 128 huecos, más de los 75 que pide el pico, por unos 10 157 $ al mes. Supera «Un día normal», y también la avalancha, con un p95 de unos 11 s, todavía por debajo del límite.
 
 Donde falla es en la caída. Esa única tarjeta es la primera tarjeta de Workers, así que el fallo detiene todas las miniaturas durante 30 segundos. No se pierde ningún mensaje, porque el préstamo devuelve cada trabajo, pero se acumulan unos 9000 trabajos en la cola. Cuando la tarjeta vuelve, solo le sobran unos 50 huecos por encima de la carga que sigue entrando para vaciarla, y eso lleva bastante más de medio minuto. El p95 llega a unos 28 s, por encima del límite de 20 s.
 

@@ -201,10 +201,23 @@ Los diseños se guardan como archivos `.kbarch`. Las acciones de archivo están 
 - El nombre del archivo aparece junto al nombre del diseño; un punto indica cambios sin guardar.
 - Si cierras la ventana o abres otro diseño con cambios sin guardar, la app pregunta **¿Guardar los cambios?** con **Guardar**, **No guardar** y **Cancelar**.
 
+**Importar docker-compose…** (barra de herramientas o paleta de comandos) convierte un `docker-compose.yml` en un diseño nuevo sin guardar:
+
+- Los servicios se convierten en tarjetas según su imagen: PostgreSQL, MySQL/MariaDB, Redis/Valkey, Memcached, NGINX, HAProxy, Kafka/Redpanda, RabbitMQ, Elasticsearch, OpenSearch, MongoDB y Cassandra/Scylla. Cualquier otra cosa se convierte en un App Server, y el resumen dice cuáles se han supuesto.
+- `deploy.replicas` fija las instancias de la tarjeta (como mucho 64; un número mayor se recorta y se indica).
+- `depends_on` y `links` se convierten en conexiones, con un protocolo que permitan las reglas de conexión. Una dependencia que las reglas no permiten, o una hacia un servicio que no está en el archivo, se lista en vez de dibujarse.
+- Se rechazan los archivos de más de 1 MB, con más de 200 servicios o con YAML hecho para crecer sin límite (demasiados alias o niveles).
+
 El menú **Exportar** de la barra de herramientas convierte el diseño en:
 
 - **Copiar como Mermaid** y **Guardar como Mermaid…**: un diagrama Mermaid que puedes pegar en documentos Markdown.
 - **Guardar como imagen SVG…** y **Guardar como imagen PNG…**: una imagen del diseño.
+- **Guardar animación (WebM)…**: un vídeo de la ejecución, con las peticiones en movimiento, la carga de cada tarjeta y
+  una línea con el tiempo, el p95, el rendimiento y los errores. Elige un inicio y una duración (hasta 60 s); se graba en
+  tiempo real, así que mantén la ventana abierta. Muestra el tráfico del Sandbox, o la prueba que esté reproduciendo
+  Ejecutar.
+- En **Resultados**, una prueba fallida tiene **Exportar repetición** junto a Repetir: el mismo vídeo de la parte que
+  muestra la repetición, también en pruebas ocultas (nunca se muestra nada antes de donde empieza la repetición).
 
 ## Aprender: la Guía, los patrones y el glosario
 
@@ -217,6 +230,8 @@ Una entrada cubre **Qué hace**, **Úsalo cuando**, **Evítalo cuando**, **En el
 Cada entrada termina con una **Comprobación rápida** de tres preguntas. Una pregunta fallada vuelve para repasarla (ver Repaso).
 
 También llegas a la Guía desde el lienzo: **Abrir en la guía** en el panel Acerca de de la Biblioteca y **Saber más** en el inspector.
+
+**Imprimir** (en la Guía, en cada entrada y patrón, y en cada ruta de aprendizaje) guarda una copia en papel: **Guardar como PDF…** (Windows) o **Guardar página lista para imprimir…** (en todas partes; ábrela en un navegador para imprimirla). La Guía entera se imprime con una entrada por página y luego el glosario; un patrón incluye la imagen de su plantilla; una ruta lista lo que cubre, con sus entradas de la Guía y sus patrones. Si no se puede crear un PDF, la app ofrece el HTML en su lugar.
 
 ### Patrones
 

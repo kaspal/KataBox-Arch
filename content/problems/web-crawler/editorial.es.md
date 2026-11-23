@@ -8,7 +8,7 @@ Con 800 URLs/s, casi todo el tiempo se va en un paso: la descarga. Tarda unos 25
 
 Un Scheduler (Airflow) publica URLs en una Queue SQS. 6 Crawler Workers con 64 hilos cada uno las toman de la Queue. Antes de descargar, cada Worker consulta una Cache Redis de URLs vistas (4 GB, TTL de un día). Un acierto significa «ya vista, sáltala», y el trabajo termina ahí. Un fallo registra la URL, descarga la página y la escribe en Cassandra con 8 particiones.
 
-Cuesta unos 1 672 $ al mes. Su p95 ronda los 0,4 s en un rastreo normal. Con duplicados, la mayoría de las URLs se saltan y el p95 baja a unos 0,06 s. Con servidores lentos llega a unos 1,7 s.
+Cuesta unos 5 026 $ al mes. Su p95 ronda los 0,4 s en un rastreo normal. Con duplicados, la mayoría de las URLs se saltan y el p95 baja a unos 0,06 s. Con servidores lentos llega a unos 1,7 s.
 
 ## Por qué falla el primer intento
 

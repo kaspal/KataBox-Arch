@@ -13,7 +13,13 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
 - **Problem packs:** import a `.kbpack` with a preview (author as stated, SHA-256, problems); every pack is checked
   (files, text and a judged run of every design) before it installs; a badge and a source filter on Problems;
   uninstall in Settings keeps your history. `ka-pack pack` builds packs.
-- **Export:** copy or save a design as a Mermaid diagram; save it as an SVG or PNG image.
+- **Export:** copy or save a design as a Mermaid diagram; save it as an SVG or PNG image; save a run as a WebM video
+  (up to 60 s, in real time), including a failed test's replay from Results.
+- **Printable Guide:** print the whole Guide (then the glossary), an entry, a pattern (with its template's picture)
+  or a learning path, as a PDF (Windows) or as a self-contained print-ready HTML page.
+- **docker-compose import:** a `docker-compose.yml` becomes a new design, with services mapped by image,
+  `depends_on`/`links` as connections the wiring rules allow, and a summary of what was guessed, clamped or left out.
+  Oversized and alias-bomb files are refused.
 - **Related in KataBox** on Guide entries, patterns and problems.
 - **Results and briefs show p99 limits** where a test has one.
 - **Accessibility:** cards and connections have full names, the side panel's tabs follow the ARIA pattern, and run
@@ -111,6 +117,14 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
     English and Spanish.
 
 ### Changed
+- **Prices are list prices** (us-east-1, on demand) for DNS, SQS, RabbitMQ, Kafka (MSK), Kinesis, SNS, Google
+  Pub/Sub, Redis Pub/Sub, S3, GCS, DynamoDB, Cassandra and MongoDB, each cited in `docs/calibration.md`: reads and
+  writes are priced apart, shards and partitions where the product bills them, and DNS only for the queries that
+  aren't cached (`query_ratio`). Problem budgets moved with their references; every verdict stays the same except
+  Web Crawler's first-try design, which now fits the budget on the normal day (it still fails the hidden tests).
+- **The live cost matches Results** once a run ends, and both say which test's load and which prices they use. Test
+  results show each test's availability limit and any lost messages; the brief shows a test's own availability limit.
+- The Guide shows prices per shard and per write where a product has them, and says how the simulator bills it.
 - Design files are format version 2. Version 1 files still open: an Autoscaling card becomes a
   frame around what it scaled, and two retired properties (SQL read replicas, CDN hit rate) are
   dropped.

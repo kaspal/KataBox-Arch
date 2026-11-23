@@ -41,6 +41,30 @@ pub enum AppErrorCode {
     /// A pack can't replace the installed one: an older version, or the same version with
     /// different contents.
     PackVersion,
+    /// A docker-compose file is larger than the import cap.
+    ComposeTooLarge,
+    /// A docker-compose file has too many parts, aliases or levels (the caps against
+    /// alias bombs).
+    ComposeTooComplex,
+    /// A docker-compose file has more services than the import cap.
+    ComposeTooManyServices,
+    /// A docker-compose file uses YAML the import doesn't read (keys that are anchors,
+    /// aliases or structures).
+    ComposeUnsupported,
+    /// A docker-compose file isn't valid YAML or has no services.
+    ComposeInvalid,
+    /// An export of a hidden test asked for more than Results shows (review A7).
+    ExportHiddenRefused,
+    /// An export is already being prepared.
+    ExportBusy,
+    /// A PDF request's token is unknown, used or expired (M7b.3).
+    PdfToken,
+    /// This system's web view can't print to PDF (an old WebView2, or Linux for now).
+    PdfUnsupported,
+    /// Printing to PDF failed (the message has the system's error).
+    PdfFailed,
+    /// Printing to PDF took too long.
+    PdfTimeout,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, thiserror::Error)]

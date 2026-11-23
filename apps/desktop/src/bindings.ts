@@ -488,23 +488,47 @@ async kataboxLinks(target: string) : Promise<Result<KataboxLink[], AppError>> {
 }
 },
 /**
+ * Show the Open dialog for a docker-compose file and import it as a new, unsaved design
+ * (capped at 1 MiB, so it's read here). `None` when cancelled.
+ */
+async importComposeDialog() : Promise<Result<ComposeImport | null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("import_compose_dialog") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Show the Save dialog for a PDF; the path stays in Rust under a one-shot token (expires
+ * after two minutes). `None` when cancelled.
+ */
+async pickPdfPath(suggestedName: string) : Promise<Result<number | null, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("pick_pdf_path", { suggestedName }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Print the page the main webview shows (the `/print` page, once it says it's ready) to
+ * the path behind `token`. Returns the path written.
+ */
+async printPdf(token: number) : Promise<Result<string, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("print_pdf", { token }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * A design as Mermaid text (for Copy). `names`: kind, protocol and group names in the
  * user's language.
  */
 async mermaidText(design: Design, names: Partial<{ [key in string]: string }>) : Promise<string> {
     return await TAURI_INVOKE("mermaid_text", { design, names });
-},
-/**
- * Show the Save dialog and write an image export the UI rendered (M7.3). `None` when
- * cancelled.
- */
-async saveExport(format: ExportFormat, data: number[], suggestedName: string) : Promise<Result<string | null, AppError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("save_export", { format, data, suggestedName }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
 },
 /**
  * Show the Save dialog and write the design as a `.mmd` file. `None` when cancelled.
@@ -649,7 +673,53 @@ export type AppErrorCode =
  * A pack can't replace the installed one: an older version, or the same version with
  * different contents.
  */
-"pack_version"
+"pack_version" | 
+/**
+ * A docker-compose file is larger than the import cap.
+ */
+"compose_too_large" | 
+/**
+ * A docker-compose file has too many parts, aliases or levels (the caps against
+ * alias bombs).
+ */
+"compose_too_complex" | 
+/**
+ * A docker-compose file has more services than the import cap.
+ */
+"compose_too_many_services" | 
+/**
+ * A docker-compose file uses YAML the import doesn't read (keys that are anchors,
+ * aliases or structures).
+ */
+"compose_unsupported" | 
+/**
+ * A docker-compose file isn't valid YAML or has no services.
+ */
+"compose_invalid" | 
+/**
+ * An export of a hidden test asked for more than Results shows (review A7).
+ */
+"export_hidden_refused" | 
+/**
+ * An export is already being prepared.
+ */
+"export_busy" | 
+/**
+ * A PDF request's token is unknown, used or expired (M7b.3).
+ */
+"pdf_token" | 
+/**
+ * This system's web view can't print to PDF (an old WebView2, or Linux for now).
+ */
+"pdf_unsupported" | 
+/**
+ * Printing to PDF failed (the message has the system's error).
+ */
+"pdf_failed" | 
+/**
+ * Printing to PDF took too long.
+ */
+"pdf_timeout"
 export type AppInfo = { version: string; dev_data: boolean }
 export type Bottleneck = { node: string; kind: ComponentKind; from_s: number; utilisation: number; reason: BottleneckReason }
 /**
@@ -825,11 +895,52 @@ cells: string[]; cells_es: string[] }
  */
 export type ComponentKind = "client" | "dns" | "cdn" | "waf" | "lb" | "gateway" | "ratelimit" | "app" | "micro" | "worker" | "serverless" | "autoscale" | "sql" | "nosql" | "cache" | "object" | "search" | "queue" | "stream" | "pubsub" | "dlq" | "scheduler" | "metrics" | "logs" | "tracing"
 /**
- * A flavour's monthly price: per instance (or per card), per GB of cache memory, and per
- * million requests through it. Teaching figures, loosely shaped like public list prices
- * (ADR 0006); the judge compares designs with each other, never with a real bill.
+ * What the import did, for the summary dialog.
  */
-export type Cost = { per_instance_month: number; per_gb_month: number; per_million: number }
+export type ComposeImport = { design: Design; 
+/**
+ * Services mapped by their image, with the card they became.
+ */
+mapped: MappedService[]; 
+/**
+ * Services with no known image: drawn as App Servers.
+ */
+guessed: MappedService[]; 
+/**
+ * Services whose `deploy.replicas` was above the card's range and was clamped.
+ */
+clamped: string[]; 
+/**
+ * Dependencies that weren't drawn, and why.
+ */
+skipped_edges: SkippedEdge[] }
+/**
+ * A flavour's monthly price (ADR 0006): per instance (or per card), per shard or partition,
+ * per GB of cache memory, and per million requests through it, reads and writes apart.
+ * List prices (us-east-1, on demand, read 2026-11-22; `docs/calibration.md` cites each) with
+ * no free tiers, discounts or data transfer; the judge compares designs with each other.
+ */
+export type Cost = { per_instance_month: number; 
+/**
+ * Per lane (a stream's partitions as shards, a NoSQL card's partitions as nodes), for
+ * products billed that way. SQL and Search scale `per_instance_month` by their shards
+ * over the default instead (M5.0's cost per shard).
+ */
+per_lane_month: number; per_gb_month: number; 
+/**
+ * Per million requests served; for stores and brokers, the reads (GET, read units,
+ * deliveries, the receive of a retried message).
+ */
+per_million: number; 
+/**
+ * Per million writes (PUT, write units, publishes, messages); None bills them as reads.
+ */
+per_million_write: number | null; 
+/**
+ * Billing unit size: a request counts `max(1, payload_kb / unit_kb)` units; 0 counts
+ * every request as one.
+ */
+unit_kb: number }
 export type DecideFlow = { id: string; number: number; title: string; title_es: string; intro: string; intro_es: string; 
 /**
  * The first question's id.
@@ -884,10 +995,6 @@ solution: string; solution_es: string; inputs: Partial<{ [key in string]: number
  * One drill's record: how many checks, and whether any was within its band.
  */
 export type EstimateStatus = { problem_id: string; drill_id: string; tries: number; done: boolean }
-/**
- * What an image export is (M7.3).
- */
-export type ExportFormat = "svg" | "png"
 export type ExternalBrief = { name: string; median_ms: number; p99_ms: number; rate_limit: number | null }
 /**
  * Why the first card failed.
@@ -1077,6 +1184,7 @@ max_label: number;
  * Characters, for a note's text.
  */
 max_note: number }
+export type MappedService = { service: string; image: string | null; kind: ComponentKind; flavour: Flavour }
 /**
  * Canvas items that are not components.
  */
@@ -1536,6 +1644,16 @@ export type SimRow = (
  */
 note: string; note_es: string }
 export type Size = { w: number; h: number }
+export type SkipReason = 
+/**
+ * The dependency names no service in the file.
+ */
+{ type: "unknown_service" } | 
+/**
+ * The wiring table doesn't allow these two kinds to connect.
+ */
+{ type: "not_allowed"; wiring: WiringReason }
+export type SkippedEdge = { from: string; to: string; reason: SkipReason }
 /**
  * A vendor page a flavour's figures were (or should be) checked against.
  */
@@ -1598,7 +1716,12 @@ export type SubmitResult = { submission_id: number; judgement: Judgement;
  * The problem was solved by this submission for the first time.
  */
 first_solve: boolean; best_score: number }
-export type TestBrief = { id: string; name: string; name_es: string; hidden: boolean; duration_s: number }
+export type TestBrief = { id: string; name: string; name_es: string; hidden: boolean; duration_s: number; 
+/**
+ * The test's own availability limit, when it differs from the problem's (visible
+ * tests only; a hidden test's limits show in Results after its verdict).
+ */
+availability: number | null }
 /**
  * The result of one test. Hidden tests carry the same numbers, but never their traffic or
  * chaos: the definition stays in Rust.

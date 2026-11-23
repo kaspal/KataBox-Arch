@@ -11,7 +11,7 @@ You run a counting service for websites. Every time someone opens a page, the si
 | Peak traffic | 3,000 requests/s |
 | p95 completion latency | 3 s or less |
 | Availability | 99.9% or more |
-| Budget | $3,500 per month |
+| Budget | $1,700 per month |
 | Lost messages | None |
 
 ## The traffic

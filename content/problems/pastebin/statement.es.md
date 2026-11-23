@@ -12,7 +12,7 @@ La gente pega un bloque de texto, desde un comando de una línea hasta un archiv
 | Lecturas | 85 % de las peticiones |
 | Latencia p95 | 150 ms o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 4 000 $ al mes |
+| Presupuesto | 8000 $ al mes |
 
 ## El tráfico
 

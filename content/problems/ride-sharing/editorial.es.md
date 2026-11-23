@@ -8,7 +8,7 @@ Con 15 000 peticiones/s, unas 14 700 son envíos de ubicación y unas 300 son pe
 
 Un Network Load Balancer reparte el tráfico entre 8 App Servers Go. Los envíos se escriben en Cassandra con 16 particiones, unas 160 000 escrituras por segundo de capacidad. Las peticiones de viaje leen una Cache Redis de 2 GB que guarda el índice de conductores cercanos.
 
-Cuesta unos 20 182 $ al mes, la mayor parte en el precio por petición del NoSQL. El p95 ronda los 23 ms en un día normal. El aumento en toda la ciudad, que triplica el tráfico durante 25 segundos, deja cada partición muy por debajo de su límite. En el estadio, las claves de los conductores se concentran mucho (Zipf 1,3), así que una partición recibe mucho más de lo que le toca. Con 16 particiones, la caliente se mantiene bajo su límite y los errores quedan por debajo del 0,1 %.
+Cuesta unos 4621 $ al mes, la mayor parte por los nodos de Cassandra: 16 particiones a 250 $ por nodo son 4000 $. El p95 ronda los 23 ms en un día normal. El aumento en toda la ciudad, que triplica el tráfico durante 25 segundos, deja cada partición muy por debajo de su límite. En el estadio, las claves de los conductores se concentran mucho (Zipf 1,3), así que una partición recibe mucho más de lo que le toca. Con 16 particiones, la caliente se mantiene bajo su límite y los errores quedan por debajo del 0,1 %.
 
 ## Por qué falla el primer intento
 
@@ -18,4 +18,4 @@ Un primer intento habitual usa los mismos App Servers, pero escribe cada envío 
 
 - Baja Cassandra a 4 particiones y ejecuta la prueba visible. Después busca la partición caliente.
 - Reduce los App Servers a la mitad y comprueba si el aumento sigue pasando.
-- Compara el coste mensual de más particiones con el coste de las propias peticiones. ¿Cuál mueve la factura?
+- Cambia el almacén a DynamoDB, que cobra cada escritura en vez de cada partición, y compara el coste mensual. ¿Qué mueve la factura, las particiones o las peticiones?

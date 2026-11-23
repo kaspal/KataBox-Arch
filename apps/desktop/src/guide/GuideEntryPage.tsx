@@ -2,6 +2,7 @@
 // or skip it, how the simulator models it (numbers read from the registry, one column per
 // flavour), the flavours compared, pitfalls, trade-offs, practice, related kinds, an
 // interview tip and the vendor sources. `?section=sim` scrolls to "In the simulator".
+import { PrintMenu } from "@/print/PrintMenu";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
@@ -138,6 +139,7 @@ function Entry({ page, registry }: { page: GuidePage; registry: Registry }) {
             {page.read ? <Check aria-hidden className="size-4" /> : <Circle aria-hidden className="size-4" />}
             {page.read ? t("guide.markedRead") : t("guide.markRead")}
           </Button>
+          <PrintMenu what={`entry:${e.kind}`} name={name} />
         </div>
       </header>
 

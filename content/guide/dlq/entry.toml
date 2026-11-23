@@ -54,9 +54,9 @@ interview_tip = "Say how many retries happen before a message is dead-lettered, 
 interview_tip_es = "Di cuántos reintentos hay antes de apartar un mensaje, a quién se avisa y cómo se reprocesan los mensajes."
 
 [[sim]]
-cost = "per_million"
+cost = "per_million_write"
 note = "Priced only by volume, per million messages. A DLQ that stays empty costs next to nothing."
-note_es = "Se cobra solo por volumen, por millón de mensajes. Una DLQ que sigue vacía apenas cuesta nada."
+note_es = "Se cobra solo por volumen, por millón de mensajes. Una DLQ que sigue vacía casi no cuesta nada."
 
 [[pitfalls]]
 title = "No DLQ behind the retries"

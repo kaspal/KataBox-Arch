@@ -14,7 +14,7 @@ Casi todos los visitantes solo leen. Abren la página de inicio, se desplazan, m
 | Archivos estáticos | 99 % de las solicitudes |
 | Latencia p95 | 60 ms o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 4 000 $/mes o menos |
+| Presupuesto | 4000 $/mes o menos |
 
 ## El tráfico
 
