@@ -84,6 +84,36 @@ pub fn check_problem(p: &ProblemDir, registry: &Registry) -> (Vec<Issue>, Judgem
             ));
         }
     }
+    // M8.5: the challenge proof passes every test within the challenge's budget.
+    if let Some(design) = &p.challenge {
+        let ratio = p
+            .challenge_ratio()
+            .unwrap_or(crate::problems::CHALLENGE_DEFAULT);
+        let file = format!("{}/challenge.kbarch", p.dir);
+        if !(0.05..=crate::problems::CHALLENGE_MAX).contains(&ratio) {
+            issues.push(issue(
+                format!("{}/problem.toml", p.dir),
+                format!(
+                    "challenge_ratio {ratio} must be between 0.05 and {}",
+                    crate::problems::CHALLENGE_MAX
+                ),
+            ));
+        }
+        let mut def = p.def.clone();
+        def.nfr.budget_usd = (reference.cost_month * ratio * 100.0).round() / 100.0;
+        let j = judge(&def, design, registry, reference.cost_month);
+        if j.verdict != Verdict::Accepted {
+            issues.push(issue(
+                file,
+                format!(
+                    "must be Accepted on every test within ${:.0} ({:.0}% of the reference): {}",
+                    def.nfr.budget_usd,
+                    ratio * 100.0,
+                    summary(&j)
+                ),
+            ));
+        }
+    }
     let naive = judge(&p.def, &p.naive, registry, reference.cost_month);
     if naive.verdict == Verdict::InvalidDesign {
         issues.push(issue(

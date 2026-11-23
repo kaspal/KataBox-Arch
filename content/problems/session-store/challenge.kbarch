@@ -1,0 +1,135 @@
+{
+  "schema_version": 4,
+  "id": "session-store-challenge",
+  "name": "Session Store (reference)",
+  "problem_id": "session-store",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Browsers",
+      "position": {
+        "x": 260,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "Load balancer",
+      "position": {
+        "x": 260,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app_a",
+      "kind": "app",
+      "flavour": "nodejs",
+      "label": "Web A",
+      "position": {
+        "x": 130,
+        "y": 340
+      },
+      "props": {
+        "instances": 3
+      },
+      "group_id": null
+    },
+    {
+      "id": "app_b",
+      "kind": "app",
+      "flavour": "nodejs",
+      "label": "Web B",
+      "position": {
+        "x": 390,
+        "y": 340
+      },
+      "props": {
+        "instances": 5
+      },
+      "group_id": null
+    },
+    {
+      "id": "redis",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "Sessions",
+      "position": {
+        "x": 130,
+        "y": 510
+      },
+      "props": {
+        "memory_gb": 0.5,
+        "ttl_s": 86400
+      },
+      "group_id": null
+    },
+    {
+      "id": "redis_r",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "Sessions replica",
+      "position": {
+        "x": 390,
+        "y": 510
+      },
+      "props": {
+        "memory_gb": 0.5,
+        "ttl_s": 86400
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "app_a",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "lb",
+      "to": "app_b",
+      "protocol": "http"
+    },
+    {
+      "id": "e3",
+      "from": "app_a",
+      "to": "redis",
+      "protocol": "query"
+    },
+    {
+      "id": "e4",
+      "from": "app_b",
+      "to": "redis",
+      "protocol": "query"
+    },
+    {
+      "id": "e5",
+      "from": "redis",
+      "to": "redis_r",
+      "protocol": "replicate"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

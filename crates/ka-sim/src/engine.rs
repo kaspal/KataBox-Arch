@@ -209,6 +209,10 @@ struct Req {
     call_login: bool,
     extra_us: u64,
     call_tries: u32,
+    /// S8d: the cache-aside miss found an expired copy within `serve_stale_s` (used if the
+    /// origin fails), and this request leads a coalesced miss (`stampede_guard`).
+    stale_copy: bool,
+    leads: bool,
 }
 
 /// S4: no job.
@@ -335,6 +339,9 @@ struct CacheRt {
     flushed_at: Option<u64>,
     /// S3: questions a semantic cache has seen since it was last emptied (its fill).
     seen: f64,
+    /// S8d `stampede_guard`: misses in flight per (type, key), with the requests waiting on
+    /// them.
+    inflight: BTreeMap<(u16, u64), Vec<u32>>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -670,6 +677,7 @@ impl Engine {
                         fills: vec![Vec::new(); c.types.len()],
                         flushed_at: None,
                         seen: 0.0,
+                        inflight: BTreeMap::new(),
                     })
                 })
                 .collect(),
@@ -1101,6 +1109,8 @@ impl Engine {
             call_login: false,
             extra_us: 0,
             call_tries: 0,
+            stale_copy: false,
+            leads: false,
         };
         if let Some(i) = self.free.pop() {
             self.reqs[i as usize] = req;
@@ -1570,6 +1580,99 @@ impl Engine {
             }
         }
         (us as u64).max(1) + self.nodes[node as usize].add_us
+    }
+
+    /// Does a data-store step follow the request's current step in its segment?
+    fn store_step_follows(&self, r: u32) -> bool {
+        let q = &self.reqs[r as usize];
+        let seg = &self.c.types[q.ty as usize].route.segments[q.seg as usize];
+        seg.calls
+            .iter()
+            .skip(q.step as usize + 1)
+            .any(|s| s.alts.iter().any(|a| a.role == Role::Datastore))
+    }
+
+    /// S8d `serve_stale_s`: does the cache hold an expired copy of this key, filled within
+    /// its TTL plus the stale window? (Tracked keys by their fill time; colder keys by the
+    /// chance they were requested within that window.)
+    fn stale_copy(&mut self, node: u32, ty: usize, key: u64) -> bool {
+        if key > self.capacity_keys(node, ty) {
+            return false;
+        }
+        let window =
+            self.ttl_us(node).min(3_600_000_000) + self.c.nodes[node as usize].spec.serve_stale_us;
+        let now = self.now as i64;
+        let tracked = self.tracked_len(node, ty);
+        if key <= tracked {
+            let cache = self.caches[node as usize].as_ref().expect("cache state");
+            let fills = &cache.fills[ty];
+            return !fills.is_empty() && {
+                let f = fills[(key - 1) as usize];
+                f != i64::MIN && now - f < window as i64
+            };
+        }
+        let t = &self.c.types[ty];
+        let pmf = if t.skew > 0.0 {
+            detmath::powf(key as f64, -t.skew) / t.harmonic
+        } else {
+            1.0 / t.def.key_space as f64
+        };
+        let mut w = window;
+        if let Some(at) = self.caches[node as usize]
+            .as_ref()
+            .and_then(|c| c.flushed_at)
+        {
+            w = w.min(self.now.saturating_sub(at));
+        }
+        let p = 1.0 - detmath::exp(-t.rate * pmf * w as f64 / 1e6);
+        self.rng_misc.uniform() < p
+    }
+
+    /// S8d `stampede_guard`: the first miss for a key goes to the origin; later misses for it
+    /// wait for that answer. Returns true when `r` waits.
+    fn coalesce(&mut self, r: u32, node: u32, ty: u16, key: u64) -> bool {
+        let cache = self.caches[node as usize].as_mut().expect("cache state");
+        match cache.inflight.get_mut(&(ty, key)) {
+            Some(waiting) => {
+                waiting.push(r);
+                self.reqs[r as usize].pending += 1;
+                true
+            }
+            None => {
+                cache.inflight.insert((ty, key), Vec::new());
+                self.reqs[r as usize].leads = true;
+                false
+            }
+        }
+    }
+
+    /// S8d: the leading miss for a key ended. Filled: the waiting requests are answered from
+    /// the cache. Failed: they go to the origin themselves.
+    fn wake_coalesced(&mut self, r: u32, node: u32, filled: bool) {
+        if !std::mem::take(&mut self.reqs[r as usize].leads) || node == NONE {
+            return;
+        }
+        let (ty, key) = (self.reqs[r as usize].ty, self.reqs[r as usize].key);
+        let waiting = self.caches[node as usize]
+            .as_mut()
+            .and_then(|c| c.inflight.remove(&(ty, key)))
+            .unwrap_or_default();
+        let w = self.c.weight;
+        for x in waiting {
+            self.reqs[x as usize].pending -= 1;
+            if self.reqs[x as usize].dead {
+                self.maybe_free(x);
+                continue;
+            }
+            if filled {
+                self.reads += w;
+                let q = &mut self.reqs[x as usize];
+                q.hit_end = true;
+                q.fill_cache = NONE;
+            }
+            let call = self.reqs[x as usize].call_gen;
+            self.push_req(self.now, Ev::CallBack { r: x, call }, x);
+        }
     }
 
     /// S3: a semantic cache answers a near-repeat once it has seen the question: hit
@@ -2065,6 +2168,17 @@ impl Engine {
     /// Anything else fails the request, as before M8.
     fn call_failed(&mut self, r: u32) {
         self.end_call(r, false);
+        // S8d stale-if-error: the origin failed, but the cache still holds an expired copy.
+        if std::mem::take(&mut self.reqs[r as usize].stale_copy) && !self.reqs[r as usize].dead {
+            let w = self.c.weight;
+            self.reads += w;
+            self.stale_reads += w;
+            let fc = std::mem::replace(&mut self.reqs[r as usize].fill_cache, NONE);
+            self.wake_coalesced(r, fc, false);
+            self.reqs[r as usize].hit_end = true;
+            self.run_calls(r);
+            return;
+        }
         // M8: a service mesh retries the failed call (same step) up to its `mesh_retries`.
         let caller = self.reqs[r as usize].caller;
         if !self.reqs[r as usize].dead
@@ -2265,6 +2379,15 @@ impl Engine {
                     self.mark(r, caller, node, true);
                 } else {
                     self.reqs[r as usize].fill_cache = node;
+                    if self.c.nodes[node as usize].spec.serve_stale_us > 0 {
+                        self.reqs[r as usize].stale_copy = self.stale_copy(node, ty, key);
+                    }
+                    if self.c.nodes[node as usize].spec.stampede_guard
+                        && self.coalesce(r, node, ty as u16, key)
+                    {
+                        // Waits for the miss already in flight for this key.
+                        return;
+                    }
                 }
             }
             Role::Cache => {
@@ -2286,6 +2409,7 @@ impl Engine {
                 if fill_cache != NONE {
                     self.fill(fill_cache, ty, key);
                     self.reqs[r as usize].fill_cache = NONE;
+                    self.wake_coalesced(r, fill_cache, true);
                 }
             }
             _ => {}
@@ -2307,8 +2431,23 @@ impl Engine {
             self.maybe_free(r);
             return;
         }
+        let from_provider =
+            self.reqs[r as usize].call_key & EXT_KEY != 0 && self.reqs[r as usize].call_key != NONE;
         self.end_call(r, true);
         self.reqs[r as usize].call_tries = 0;
+        if !self.reqs[r as usize].call_aside {
+            // The origin answered: no need for an expired copy.
+            self.reqs[r as usize].stale_copy = false;
+        }
+        let fc = self.reqs[r as usize].fill_cache;
+        if from_provider && fc != NONE && !self.store_step_follows(r) {
+            // M8: a cache in front of a provider is filled by the provider's answer (when no
+            // data store follows to fill it, the behaviour before M8).
+            let (ty, key) = (self.reqs[r as usize].ty as usize, self.reqs[r as usize].key);
+            self.fill(fc, ty, key);
+            self.reqs[r as usize].fill_cache = NONE;
+            self.wake_coalesced(r, fc, true);
+        }
         let caller = self.reqs[r as usize].caller;
         if caller != NONE && self.nodes[caller as usize].down {
             // The caller died while waiting: a synchronous request is lost with it; a
@@ -2837,6 +2976,10 @@ impl Engine {
     fn fail(&mut self, r: u32) {
         let w = self.c.weight;
         self.end_call(r, false);
+        if self.reqs[r as usize].leads {
+            let fc = self.reqs[r as usize].fill_cache;
+            self.wake_coalesced(r, fc, false);
+        }
         if self.reqs[r as usize].job != NO_JOB && !self.reqs[r as usize].dead {
             self.job_task_failed(r);
             return;

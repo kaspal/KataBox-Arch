@@ -967,9 +967,10 @@ fn flavour_cost(flavour: Flavour) -> Option<Cost> {
         F::AuroraPostgresql => node(300.0),
         // Spanner: one node ($0.90/h × 730).
         F::Spanner => node(657.0),
+        // Service Bus Standard: about $0.80 per million operations, three per message.
         F::AzureServiceBus => Cost {
-            per_million: 0.05,
-            per_million_write: Some(0.05),
+            per_million: 0.8,
+            per_million_write: Some(2.4),
             ..Cost::default()
         },
         // Amazon MQ mq.m5.large ($0.288/h × 730).
@@ -1008,8 +1009,13 @@ fn flavour_cost(flavour: Flavour) -> Option<Cost> {
         },
         F::Minio => node(70.0),
         F::EnvoyLb | F::Traefik => node(70.0),
-        // Global Accelerator: $0.025 per hour, data transfer not modelled.
-        F::GlobalAccelerator => node(18.0),
+        // Global Accelerator: $0.025 per hour, plus its data-transfer premium as a price per
+        // request (about 100 KB at $0.015/GB; a placeholder).
+        F::GlobalAccelerator => Cost {
+            per_instance_month: 18.0,
+            per_million: 1.5,
+            ..Cost::default()
+        },
         F::Akamai => per_call(1.2),
         // API Management Standard unit.
         F::AzureApim => node(686.0),
@@ -1747,6 +1753,10 @@ pub fn registry() -> Registry {
                 // S3: `semantic` answers near-repeat questions (an embedding lookup); its hit
                 // rate comes from the traffic, never from the design.
                 choice("mode", &["exact", "semantic"], "exact"),
+                // S8d: answer from an expired copy (up to this long after its TTL) when the
+                // origin fails; and coalesce concurrent misses for one key.
+                int("serve_stale_s", 0.0, 86_400.0, 0.0, Unit::S),
+                boolean("stampede_guard", false),
             ],
         ),
         kind(

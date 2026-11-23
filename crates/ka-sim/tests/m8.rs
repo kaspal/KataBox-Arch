@@ -1888,3 +1888,87 @@ fn m8_a_live_encoder_adds_segments_to_glass_to_glass_latency() {
         lat(&sfu)
     );
 }
+
+// --- S8d: stale-if-error, request coalescing, provider-filled caches -------------------------
+
+/// client → app → cache-aside → a weather provider limited to 200 calls/s; the provider is
+/// down from 20 s to 40 s.
+fn weather(cache: &[(&str, f64)], guard: bool) -> (Design, Scenario) {
+    let mut c = node("cache", K::Cache, Flavour::Redis, cache);
+    set(&mut c, "stampede_guard", PropValue::Bool(guard));
+    let d = design(
+        vec![
+            node("client", K::Client, Flavour::Web, &[]),
+            node("app", K::App, Flavour::Go, &[("instances", 4.0)]),
+            c,
+        ],
+        vec![
+            edge("client", "app", Protocol::Http),
+            edge("app", "cache", Protocol::Query),
+        ],
+    );
+    let mut t = rtype("forecast", 1.0, &["compute", "cache?", "external:weather"]);
+    t.key_space = 20_000;
+    t.key_skew = Some(ka_core::scenario::KeySkew { zipf: 1.1 });
+    let mut s = scenario(2000.0, 60.0, vec![t]);
+    s.externals = vec![ka_core::scenario::External {
+        name: "weather".into(),
+        median_ms: 150.0,
+        p99_ms: 600.0,
+        rate_limit: Some(200.0),
+    }];
+    s.chaos = vec![chaos(
+        serde_json::json!({ "external": { "name": "weather", "at": 20, "for": 20, "down": true } }),
+    )];
+    (d, s)
+}
+
+#[test]
+fn s8d_a_cache_in_front_of_a_provider_fills_from_its_answers() {
+    let (d, mut s) = weather(&[("ttl_s", 600.0)], false);
+    s.chaos.clear();
+    let r = run(&d, &s, 141);
+    assert!(
+        r.error_rate < 0.01,
+        "warm hot keys keep the provider under its limit: {}",
+        r.error_rate
+    );
+}
+
+#[test]
+fn s8d_serve_stale_answers_from_expired_copies_when_the_provider_is_down() {
+    let (d, s) = weather(&[("ttl_s", 30.0)], false);
+    let plain = run(&d, &s, 142);
+    // Stale-if-error goes with failing fast: a short call timeout, then the expired copy.
+    let (mut d, s) = weather(&[("ttl_s", 30.0), ("serve_stale_s", 3600.0)], false);
+    set(&mut d.nodes[1], "call_timeout_ms", PropValue::Number(300.0));
+    let stale = run(&d, &s, 142);
+    assert!(
+        stale.errors < plain.errors / 3.0,
+        "{} vs {}",
+        stale.errors,
+        plain.errors
+    );
+    assert!(stale.stale_reads > 0.0);
+}
+
+#[test]
+fn s8d_a_stampede_guard_coalesces_misses_after_a_flush() {
+    let make = |guard: bool| {
+        let (d, mut s) = weather(&[("ttl_s", 600.0)], guard);
+        s.chaos = vec![chaos(
+            serde_json::json!({ "flush": { "id": "cache", "at": 20 } }),
+        )];
+        (d, s)
+    };
+    let (d, s) = make(false);
+    let herd = run(&d, &s, 143);
+    let (d, s) = make(true);
+    let guarded = run(&d, &s, 143);
+    assert!(
+        guarded.errors < herd.errors,
+        "{} vs {}",
+        guarded.errors,
+        herd.errors
+    );
+}

@@ -35,8 +35,23 @@ pub struct ProblemDir {
     pub editorial_es: String,
     pub reference: Design,
     pub naive: Design,
+    /// M8.5: the "same SLO, half the cost" proof, when the problem has a challenge.
+    pub challenge: Option<Design>,
     /// Every file's text, for the unfinished-template check.
     texts: Vec<(String, String)>,
+}
+
+/// M8.5: the challenge's budget as a share of the reference's cost (0.5 unless the problem
+/// proves a higher one), and the share above which there is no challenge (review ★17).
+pub const CHALLENGE_DEFAULT: f64 = 0.5;
+pub const CHALLENGE_MAX: f64 = 0.80;
+
+impl ProblemDir {
+    pub fn challenge_ratio(&self) -> Option<f64> {
+        self.challenge
+            .as_ref()
+            .map(|_| self.def.challenge_ratio.unwrap_or(CHALLENGE_DEFAULT))
+    }
 }
 
 /// `## 1`, `## 2`, `## 3` sections, in order.
@@ -157,7 +172,17 @@ fn load_one(dir: &Path, rel: &str, registry: &Registry) -> Result<ProblemDir, Ve
     if !issues.is_empty() {
         return Err(issues);
     }
+    let challenge = match std::fs::read_to_string(dir.join("challenge.kbarch")) {
+        Ok(t) => Some(ka_app::kbarch::parse(t.as_bytes(), registry).map_err(|e| {
+            vec![issue(
+                format!("{rel}/challenge.kbarch"),
+                format!("{:?}: {}", e.code, e.message),
+            )]
+        })?),
+        Err(_) => None,
+    };
     Ok(ProblemDir {
+        challenge,
         dir: rel.into(),
         statement_en: text("statement.md"),
         statement_es: text("statement.es.md"),
@@ -241,11 +266,24 @@ pub fn validate_problems(problems: &[ProblemDir], registry: &Registry) -> Vec<Is
         // Request types.
         let mut type_ids = BTreeSet::new();
         let mut share = 0.0;
+        let mut requests = 0;
         for t in &d.request_types {
             if !type_ids.insert(t.id.as_str()) {
                 bad("problem.toml", format!("request type {:?} twice", t.id));
             }
-            share += t.share;
+            // M8: connection and job types take no share of the request rate.
+            if t.kind == ka_core::scenario::TypeKind::Request {
+                share += t.share;
+                requests += 1;
+            } else if t.share != 0.0 {
+                bad(
+                    "problem.toml",
+                    format!(
+                        "request type {:?} is a {:?} type: its share must be 0",
+                        t.id, t.kind
+                    ),
+                );
+            }
             if t.name.is_some() != t.name_es.is_some() {
                 bad(
                     "problem.toml",
@@ -271,7 +309,7 @@ pub fn validate_problems(problems: &[ProblemDir], registry: &Registry) -> Vec<Is
         }
         if d.request_types.is_empty() {
             bad("problem.toml", "no request types".into());
-        } else if (share - 1.0).abs() > 1e-6 {
+        } else if requests > 0 && (share - 1.0).abs() > 1e-6 {
             bad(
                 "problem.toml",
                 format!("request type shares add up to {share}, not 1"),
@@ -400,8 +438,7 @@ impl ProblemDir {
             ref_cost: run.cost_month,
             ref_p95_ms: run.latency.p95_ms,
             track: d.track.id().into(),
-            // M8.5 sets this from the problem's `challenge.kbarch`.
-            challenge_ratio: None,
+            challenge_ratio: self.challenge_ratio(),
         })
     }
 }

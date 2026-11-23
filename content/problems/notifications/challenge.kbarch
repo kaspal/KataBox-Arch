@@ -1,0 +1,109 @@
+{
+  "schema_version": 4,
+  "id": "notifications-challenge",
+  "name": "Notification System (reference)",
+  "problem_id": "notifications",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "Product services",
+      "position": {
+        "x": 130,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Notify API",
+      "position": {
+        "x": 130,
+        "y": 170
+      },
+      "props": {
+        "instances": 1
+      },
+      "group_id": null
+    },
+    {
+      "id": "queue",
+      "kind": "queue",
+      "flavour": "rabbitmq",
+      "label": "Outbox",
+      "position": {
+        "x": 0,
+        "y": 340
+      },
+      "props": {
+        "max_retries": 10
+      },
+      "group_id": null
+    },
+    {
+      "id": "dlq",
+      "kind": "dlq",
+      "flavour": "generic",
+      "label": "Dead letters",
+      "position": {
+        "x": 260,
+        "y": 340
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "senders",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Senders",
+      "position": {
+        "x": 130,
+        "y": 510
+      },
+      "props": {
+        "concurrency": 32,
+        "instances": 14,
+        "service_ms": 5
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "api",
+      "to": "queue",
+      "protocol": "publish"
+    },
+    {
+      "id": "e2",
+      "from": "queue",
+      "to": "senders",
+      "protocol": "consume"
+    },
+    {
+      "id": "e3",
+      "from": "queue",
+      "to": "dlq",
+      "protocol": "publish"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

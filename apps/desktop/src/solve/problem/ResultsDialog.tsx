@@ -205,6 +205,11 @@ export function ResultsDialog({
                 {t("results.costNote", { test: j.tests[0] ? (es ? j.tests[0].name_es : j.tests[0].name) : "" })}
               </p>
               <p className="text-xs text-muted-foreground">{t("results.best", { score: result.best_score })}</p>
+              {mode?.brief.summary.challenge && j.verdict === "accepted" && (
+                <p className="text-xs" data-testid="challenge-vs-target">
+                  {t("challenge.vsTarget")}: {usd.format(j.cost_month)} / {usd.format(mode.brief.summary.challenge.target_cost)}
+                </p>
+              )}
             </section>
             <ul className="space-y-2">
               {j.tests.map((x) => (

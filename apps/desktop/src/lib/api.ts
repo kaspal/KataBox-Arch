@@ -44,6 +44,7 @@ import {
   type RunInfo,
   type RunResult,
   type SandboxPreset,
+  Judgement,
   KataboxLink,
   PackInfo,
   PackPreview,
@@ -136,6 +137,8 @@ export const api = {
   /** Judge on every test and record the submission (`localDay`: the user's YYYY-MM-DD). */
   submitDesign: (id: string, design: Design, localDay: string): Promise<SubmitResult> =>
     call(commands.submitDesign(id, design, localDay)),
+  /** M8.5: a "same SLO, half the cost" try; opens once the problem is solved. */
+  submitChallenge: (id: string, design: Design): Promise<Judgement> => call(commands.submitChallenge(id, design)),
   submissions: (id: string): Promise<SubmissionSummary[]> => call(commands.submissions(id)),
   progress: (today: string): Promise<Progress> => call(commands.progress(today)),
   /** The Component Guide index: one-liners and read marks, in registry order. */

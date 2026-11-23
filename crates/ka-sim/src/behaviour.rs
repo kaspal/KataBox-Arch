@@ -178,6 +178,10 @@ pub struct NodeSpec {
     pub series_limit: f64,
     pub transcode: bool,
     pub segment_s: f64,
+    /// S8d caches: serve an expired copy when the origin fails (window after the TTL), and
+    /// coalesce concurrent misses for one key.
+    pub serve_stale_us: u64,
+    pub stampede_guard: bool,
 }
 
 /// The value of `key` for `node`: the card's prop, else its flavour override, else the
@@ -420,5 +424,10 @@ pub fn node_spec(registry: &Registry, node: &Node) -> NodeSpec {
         series_limit: n("series_limit").unwrap_or(f64::INFINITY),
         transcode: text(registry, node, "mode").as_deref() == Some("transcode"),
         segment_s: n("segment_s").unwrap_or(2.0).max(0.0),
+        serve_stale_us: (n("serve_stale_s").unwrap_or(0.0).max(0.0) * 1e6) as u64,
+        stampede_guard: matches!(
+            prop(registry, node, "stampede_guard"),
+            Some(PropValue::Bool(true))
+        ),
     }
 }

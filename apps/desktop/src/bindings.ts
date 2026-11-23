@@ -193,6 +193,18 @@ async submitDesign(id: string, design: Design, localDay: string) : Promise<Resul
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * M8.5: judge a "same SLO, half the cost" try (the problem's tests, the challenge budget)
+ * and record it. Open once the problem is solved.
+ */
+async submitChallenge(id: string, design: Design) : Promise<Result<Judgement, AppError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("submit_challenge", { id, design }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async submissions(id: string) : Promise<Result<SubmissionSummary[], AppError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("submissions", { id }) };
@@ -705,6 +717,11 @@ export type AppErrorCode =
  */
 "export_busy" | 
 /**
+ * M8.5: the "half the cost" challenge opens once the problem is solved (or the problem
+ * has none).
+ */
+"challenge_locked" | 
+/**
  * A PDF request's token is unknown, used or expired (M7b.3).
  */
 "pdf_token" | 
@@ -844,6 +861,11 @@ export type Category =
  * Ops (ink)
  */
 "ops"
+/**
+ * M8.5: a problem's challenge: its budget (a share of the reference's cost, and dollars),
+ * and the user's best pass and tries.
+ */
+export type ChallengeState = { ratio: number; target_cost: number; best_cost: number | null; solved: boolean; attempts: number }
 /**
  * Something going wrong at time `at` (seconds), optionally for `for` seconds.
  */
@@ -1531,13 +1553,25 @@ best_cost: number | null;
 /**
  * The name of the pack it came from (M6.4); None for built-in problems.
  */
-pack: string | null }
+pack: string | null; 
+/**
+ * `core`, `ai` or `de` (M8).
+ */
+track: string; 
+/**
+ * The "same SLO, half the cost" challenge, when the problem has one (M8.5).
+ */
+challenge: ChallengeState | null }
 export type ProblemTest = { problem_id: string; test_id: string }
 export type Progress = { easy: DifficultyCount; medium: DifficultyCount; hard: DifficultyCount; streak: number; 
 /**
  * The next unsolved problem in catalogue order, and the most recently attempted one.
  */
-recommended: string | null; continue_with: string | null }
+recommended: string | null; continue_with: string | null; 
+/**
+ * M8.5: challenges solved, and how many problems have one.
+ */
+challenges_solved: number; challenges_total: number }
 export type PropOverride = { key: string; value: PropValue }
 export type PropSpec = { key: string; ty: PropType; default: PropValue; unit: Unit; 
 /**

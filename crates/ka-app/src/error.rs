@@ -57,6 +57,9 @@ pub enum AppErrorCode {
     ExportHiddenRefused,
     /// An export is already being prepared.
     ExportBusy,
+    /// M8.5: the "half the cost" challenge opens once the problem is solved (or the problem
+    /// has none).
+    ChallengeLocked,
     /// A PDF request's token is unknown, used or expired (M7b.3).
     PdfToken,
     /// This system's web view can't print to PDF (an old WebView2, or Linux for now).

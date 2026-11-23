@@ -78,6 +78,7 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `lb.cost.instance@envoy_lb` | 70 | $/instance-month | source: needed (suggested: https://www.envoyproxy.io/docs/envoy/latest/); teaching price shaped like the list price |
 | `lb.cost.instance@traefik` | 70 | $/instance-month | source: needed (suggested: https://doc.traefik.io/traefik/); teaching price shaped like the list price |
 | `lb.cost.instance@global_accelerator` | 18 | $/instance-month | source: needed (suggested: https://aws.amazon.com/global-accelerator/pricing/); teaching price shaped like the list price |
+| `lb.cost.million@global_accelerator` | 1.5 | $/million requests | source: needed (suggested: https://aws.amazon.com/global-accelerator/pricing/); teaching price shaped like the list price |
 
 ### `gateway`
 
@@ -284,8 +285,8 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `queue.cost.million_write@rabbitmq` | 0 | $/million messages | self-hosted: no per-request fee |
 | `queue.servers_per_instance@sqs_fifo` | 300 | in parallel per instance | source: needed (suggested: https://aws.amazon.com/sqs/pricing/); vendor figure, ballpark |
 | `queue.service_ms@sqs_fifo` | 20 | ms | source: needed (suggested: https://aws.amazon.com/sqs/pricing/); vendor figure, ballpark |
-| `queue.cost.million@azure_service_bus` | 0.05 | $/million requests | source: needed (suggested: https://azure.microsoft.com/en-us/pricing/details/service-bus/); teaching price shaped like the list price |
-| `queue.cost.million_write@azure_service_bus` | 0.05 | $/million writes | source: needed (suggested: https://azure.microsoft.com/en-us/pricing/details/service-bus/); teaching price shaped like the list price |
+| `queue.cost.million@azure_service_bus` | 0.8 | $/million requests | source: needed (suggested: https://azure.microsoft.com/en-us/pricing/details/service-bus/); teaching price shaped like the list price |
+| `queue.cost.million_write@azure_service_bus` | 2.4 | $/million writes | source: needed (suggested: https://azure.microsoft.com/en-us/pricing/details/service-bus/); teaching price shaped like the list price |
 | `queue.cost.instance@amazon_mq` | 210 | $/instance-month | source: needed (suggested: https://aws.amazon.com/amazon-mq/pricing/); teaching price shaped like the list price |
 | `queue.cost.million@amazon_mq` | 0 | $/million requests | billed another way (see the other rows for this flavour) |
 | `queue.cost.million_write@amazon_mq` | 0 | $/million writes | billed another way (see the other rows for this flavour) |

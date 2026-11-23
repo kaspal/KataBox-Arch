@@ -144,5 +144,12 @@ The arguments are parsed by hand, as in KataBox.
   AI and data engineering problems use `set = 1`.
 - **`challenge_ratio`** (optional): the "same SLO, half the cost" budget as a share of the reference's cost, when
   0.5 isn't reachable.
+- **`challenge.kbarch`** (optional): the proof that the challenge is feasible. `validate --run` judges it on every
+  test with a budget of `challenge_ratio` (0.5 by default, at most 0.80) times the reference's first-test cost; it
+  must be Accepted. Without the file the problem has no challenge. `ka-pack challenge [--write]` searches proofs:
+  from the reference it keeps any move (fewer instances, shards, partitions or memory; a flavour whose price is
+  cited; a card removed; a smaller autoscaling range) that lowers the cost while every test stays Accepted, and
+  writes the proof and the ratio rounded up to the next 5% (none above 80%). It never swaps to a flavour with a
+  placeholder price, so a proof doesn't lean on figures the citations will change.
 - **`content.db` schema 3:** `problems.track` and `problems.challenge_ratio` (NULL = no challenge). The catalogue is
   ordered core, AI, data engineering, then set and number. Outage replays are `docs` rows of kind `outage`.

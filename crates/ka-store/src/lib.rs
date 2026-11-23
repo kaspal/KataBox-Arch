@@ -6,6 +6,7 @@
 //! Times are UTC: `INTEGER` milliseconds since the Unix epoch.
 //! sqlx is used with runtime queries only, so building needs no `DATABASE_URL`.
 
+pub mod challenges;
 pub mod content;
 #[cfg(test)]
 mod migration_tests;
@@ -14,6 +15,7 @@ pub mod practice;
 pub mod progress;
 pub mod user;
 
+pub use challenges::ChallengeResult;
 pub use content::{
     CONTENT_SCHEMA, ConceptRow, ContentData, ContentDb, DocRow, GuideRow, JsonRow, PatternRow,
     ProblemRow, SampleRow, write_content,

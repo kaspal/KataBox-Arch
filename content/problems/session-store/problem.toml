@@ -8,6 +8,7 @@ teaches = "Keep sessions out of the app servers, in a replicated store that surv
 teaches_es = "Guardar las sesiones fuera de los servidores de aplicación, en un almacén replicado que sobrevive a una conmutación"
 tags = ["caching", "replication", "failover", "stateless"]
 
+challenge_ratio = 0.6
 [nfr]
 peak_rps = 20000
 p95_ms = 50

@@ -8,6 +8,7 @@ teaches = "Serve search from a search engine fed by change data capture, with a 
 teaches_es = "Servir la búsqueda desde un motor de búsqueda alimentado por captura de cambios, con una caché para las consultas más populares"
 tags = ["search", "cdc", "streams", "caching"]
 
+challenge_ratio = 0.75
 [nfr]
 peak_rps = 5000
 read_ratio = 0.95

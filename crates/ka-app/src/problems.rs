@@ -29,6 +29,22 @@ pub struct ProblemSummary {
     pub best_cost: Option<f64>,
     /// The name of the pack it came from (M6.4); None for built-in problems.
     pub pack: Option<String>,
+    /// `core`, `ai` or `de` (M8).
+    pub track: String,
+    /// The "same SLO, half the cost" challenge, when the problem has one (M8.5).
+    pub challenge: Option<ChallengeState>,
+}
+
+/// M8.5: a problem's challenge: its budget (a share of the reference's cost, and dollars),
+/// and the user's best pass and tries.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+pub struct ChallengeState {
+    pub ratio: f64,
+    pub target_cost: f64,
+    pub best_cost: Option<f64>,
+    pub solved: bool,
+    pub attempts: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -154,6 +170,9 @@ pub struct Progress {
     /// The next unsolved problem in catalogue order, and the most recently attempted one.
     pub recommended: Option<String>,
     pub continue_with: Option<String>,
+    /// M8.5: challenges solved, and how many problems have one.
+    pub challenges_solved: i64,
+    pub challenges_total: i64,
 }
 
 fn store(e: ka_store::StoreError) -> AppError {
@@ -212,6 +231,7 @@ impl App {
         def: &ProblemDef,
         status: Option<&ka_store::ProblemStatus>,
         best_cost: Option<f64>,
+        challenge: Option<&ka_store::ChallengeResult>,
     ) -> ProblemSummary {
         ProblemSummary {
             id: row.id.clone(),
@@ -227,7 +247,42 @@ impl App {
             best_score: status.map(|s| s.best_score),
             best_cost,
             pack: None,
+            track: row.track.clone(),
+            challenge: row.challenge_ratio.map(|ratio| ChallengeState {
+                ratio,
+                target_cost: (row.ref_cost * ratio * 100.0).round() / 100.0,
+                best_cost: challenge.and_then(|c| c.best_cost),
+                solved: challenge.is_some_and(|c| c.solved_at.is_some()),
+                attempts: challenge.map_or(0, |c| c.attempts),
+            }),
         }
+    }
+
+    /// M8.5: a challenge is judged like the problem, with its budget; it opens once the
+    /// problem is solved.
+    pub async fn challenge_for_judging(&self, id: &str) -> Result<(ProblemDef, f64)> {
+        let row = self.problem_row(id).await?;
+        let locked = || AppError::new(AppErrorCode::ChallengeLocked, format!("challenge of {id}"));
+        let ratio = row.challenge_ratio.ok_or_else(locked)?;
+        let solved = self
+            .user
+            .problem_statuses()
+            .await
+            .map_err(store)?
+            .iter()
+            .any(|s| s.problem_id == id && s.status == "solved");
+        if !solved {
+            return Err(locked());
+        }
+        let mut def: ProblemDef = serde_json::from_str(&row.def).map_err(bad_content)?;
+        def.nfr.budget_usd = (row.ref_cost * ratio * 100.0).round() / 100.0;
+        Ok((def, row.ref_cost))
+    }
+
+    /// M8.5: store a challenge try (its cost counts when it passed every test in budget).
+    pub async fn record_challenge(&self, id: &str, judgement: &Judgement) -> Result<()> {
+        let passed = (judgement.verdict == Verdict::Accepted).then_some(judgement.cost_month);
+        self.user.record_challenge(id, passed).await.map_err(store)
     }
 
     async fn best_cost(&self, id: &str) -> Result<Option<f64>> {
@@ -258,6 +313,7 @@ impl App {
             rows.push((Some(name), row));
         }
         let statuses = self.user.problem_statuses().await.map_err(store)?;
+        let challenges = self.user.challenge_results().await.map_err(store)?;
         let mut out = Vec::new();
         for (pack, row) in &rows {
             let def: ProblemDef = serde_json::from_str(&row.def).map_err(bad_content)?;
@@ -267,7 +323,8 @@ impl App {
             } else {
                 None
             };
-            let mut s = Self::summary(row, &def, status, best);
+            let challenge = challenges.iter().find(|c| c.problem_id == row.id);
+            let mut s = Self::summary(row, &def, status, best, challenge);
             s.pack = pack.clone();
             out.push(s);
         }
@@ -299,7 +356,18 @@ impl App {
             None
         };
         Ok(ProblemBrief {
-            summary: Self::summary(&row, &def, status, self.best_cost(id).await?),
+            summary: Self::summary(
+                &row,
+                &def,
+                status,
+                self.best_cost(id).await?,
+                self.user
+                    .challenge_results()
+                    .await
+                    .map_err(store)?
+                    .iter()
+                    .find(|c| c.problem_id == id),
+            ),
             nfr: def.nfr.clone(),
             p99_ms: def.pass.p99_ms,
             judged_on: LatencyMeasure::of(&def),
@@ -468,6 +536,11 @@ impl App {
                 .find(|s| s.status.as_deref() != Some("solved"))
                 .map(|s| s.id.clone()),
             continue_with: None,
+            challenges_solved: all
+                .iter()
+                .filter(|s| s.challenge.as_ref().is_some_and(|c| c.solved))
+                .count() as i64,
+            challenges_total: all.iter().filter(|s| s.challenge.is_some()).count() as i64,
         };
         for s in &all {
             let c = match s.difficulty {
@@ -579,6 +652,10 @@ error_rate = 0.001
     }
 
     async fn app() -> App {
+        app_with(None).await
+    }
+
+    async fn app_with(challenge_ratio: Option<f64>) -> App {
         let dir = temp_dir("problems");
         let def: ProblemDef = toml::from_str(PROBLEM).unwrap();
         let r = ka_core::registry();
@@ -605,7 +682,7 @@ error_rate = 0.001
             ref_cost: 500.0,
             ref_p95_ms: 30.0,
             track: "core".into(),
-            challenge_ratio: None,
+            challenge_ratio,
         };
         let content = dir.join("content.db");
         ka_store::write_content(
@@ -632,6 +709,39 @@ error_rate = 0.001
         })
         .await
         .unwrap()
+    }
+
+    /// M8.5: the challenge is locked until the problem is solved, then judged against its
+    /// budget (a share of the reference's cost) and recorded with its best pass.
+    #[tokio::test]
+    async fn the_cost_challenge_opens_once_solved() {
+        let plain = app().await;
+        assert!(plain.list_problems().await.unwrap()[0].challenge.is_none());
+        let app = app_with(Some(0.5)).await;
+        let c = app.list_problems().await.unwrap()[0]
+            .challenge
+            .clone()
+            .unwrap();
+        assert_eq!((c.ratio, c.target_cost, c.solved), (0.5, 250.0, false));
+        let locked = app.challenge_for_judging("demo").await.unwrap_err();
+        assert_eq!(locked.code, AppErrorCode::ChallengeLocked);
+        let (def, ref_cost) = app.problem_for_judging("demo").await.unwrap();
+        let j = judge_design(&def, &design(), app.registry(), ref_cost);
+        app.record_submission(&design(), j, "2026-11-22")
+            .await
+            .unwrap();
+        let (cdef, _) = app.challenge_for_judging("demo").await.unwrap();
+        assert_eq!(cdef.nfr.budget_usd, 250.0);
+        let cj = judge_design(&cdef, &design(), app.registry(), ref_cost);
+        app.record_challenge("demo", &cj).await.unwrap();
+        let c = app.list_problems().await.unwrap()[0]
+            .challenge
+            .clone()
+            .unwrap();
+        assert_eq!(c.attempts, 1);
+        assert_eq!(c.solved, cj.verdict == Verdict::Accepted);
+        let p = app.progress("2026-11-22").await.unwrap();
+        assert_eq!(p.challenges_total, 1);
     }
 
     #[tokio::test]

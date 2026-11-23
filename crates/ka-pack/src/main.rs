@@ -23,7 +23,8 @@ const USAGE: &str = "usage:
   ka-pack build --out FILE [--content DIR]
   ka-pack pack HEAD.toml --problems a,b --out FILE.kbpack [--content DIR]
   ka-pack try --problems a,b         judge the designs only (tuning drafts; not a check)
-  ka-pack migrate [--content DIR]   rewrite every .kbarch in the current format";
+  ka-pack migrate [--content DIR]   rewrite every .kbarch in the current format
+  ka-pack challenge [--problems a,b] [--write] [--evals N]   search half-cost proofs (M8.5)";
 
 struct Args {
     content: PathBuf,
@@ -86,6 +87,55 @@ fn main() -> ExitCode {
     };
     let registry = ka_core::registry();
     match cmd.as_str() {
+        // M8.5: search each problem's "same SLO, half the cost" proof in parallel.
+        "challenge" => {
+            let write = args.rest.iter().any(|a| a == "--write" || a == "write");
+            let cap: usize = args
+                .rest
+                .iter()
+                .find_map(|a| a.strip_prefix("evals=").and_then(|v| v.parse().ok()))
+                .unwrap_or(400);
+            let mut problems = match load_problems(&args.content, &registry) {
+                Ok(p) => p,
+                Err(issues) => return report(&issues),
+            };
+            if let Some(only) = &args.problems {
+                problems.retain(|p| only.contains(&p.def.id));
+            }
+            let found: Vec<Option<ka_pack::challenge::Found>> = std::thread::scope(|s| {
+                let handles: Vec<_> = problems
+                    .iter()
+                    .map(|p| {
+                        let r = &registry;
+                        s.spawn(move || ka_pack::challenge::search(p, r, cap))
+                    })
+                    .collect();
+                handles
+                    .into_iter()
+                    .map(|h| h.join().ok().flatten())
+                    .collect()
+            });
+            for (p, f) in problems.iter().zip(&found) {
+                let Some(f) = f else {
+                    println!("{}: the reference isn't Accepted; skipped", p.def.id);
+                    continue;
+                };
+                println!(
+                    "{}: ${:.0} -> ${:.0} ({:.0}%), {} evaluations, ratio {}",
+                    f.id,
+                    f.ref_cost,
+                    f.cost,
+                    f.cost / f.ref_cost.max(1e-9) * 100.0,
+                    f.evals,
+                    f.ratio()
+                        .map_or("none (over 80%)".into(), |r| r.to_string())
+                );
+                if write && let Err(e) = ka_pack::challenge::write(&args.content, p, f, &registry) {
+                    eprintln!("{}: {e}", p.def.id);
+                }
+            }
+            ExitCode::SUCCESS
+        }
         "new" => {
             let Some(id) = args.rest.first() else {
                 eprintln!("{USAGE}");

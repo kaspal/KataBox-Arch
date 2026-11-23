@@ -1,0 +1,112 @@
+{
+  "schema_version": 4,
+  "id": "web-crawler-challenge",
+  "name": "Web Crawler (reference)",
+  "problem_id": "web-crawler",
+  "nodes": [
+    {
+      "id": "sched",
+      "kind": "scheduler",
+      "flavour": "airflow",
+      "label": "Frontier",
+      "position": {
+        "x": 130,
+        "y": 0
+      },
+      "props": {
+        "interval_s": 1
+      },
+      "group_id": null
+    },
+    {
+      "id": "queue",
+      "kind": "queue",
+      "flavour": "rabbitmq",
+      "label": "URLs to crawl",
+      "position": {
+        "x": 130,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "crawlers",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Crawlers",
+      "position": {
+        "x": 130,
+        "y": 340
+      },
+      "props": {
+        "concurrency": 64,
+        "instances": 3,
+        "service_ms": 20
+      },
+      "group_id": null
+    },
+    {
+      "id": "seen",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "Seen URLs",
+      "position": {
+        "x": 0,
+        "y": 510
+      },
+      "props": {
+        "memory_gb": 2,
+        "ttl_s": 86400
+      },
+      "group_id": null
+    },
+    {
+      "id": "pages",
+      "kind": "nosql",
+      "flavour": "dynamodb",
+      "label": "Pages",
+      "position": {
+        "x": 260,
+        "y": 510
+      },
+      "props": {
+        "partitions": 1
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "sched",
+      "to": "queue",
+      "protocol": "publish"
+    },
+    {
+      "id": "e1",
+      "from": "queue",
+      "to": "crawlers",
+      "protocol": "consume"
+    },
+    {
+      "id": "e2",
+      "from": "crawlers",
+      "to": "seen",
+      "protocol": "query"
+    },
+    {
+      "id": "e3",
+      "from": "crawlers",
+      "to": "pages",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

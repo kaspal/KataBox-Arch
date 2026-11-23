@@ -74,7 +74,8 @@
     "pdf_token": "That print request has expired. Try again.",
     "pdf_unsupported": "This system's web view can't print to PDF.",
     "pdf_failed": "Printing to PDF failed.",
-    "pdf_timeout": "Printing to PDF took too long."
+    "pdf_timeout": "Printing to PDF took too long.",
+    "challenge_locked": "The cost challenge opens once the problem is solved."
   },
   "files": {
     "unsaved": {
@@ -220,7 +221,14 @@
     "modelHint": "A simulator knob no vendor publishes; the Guide and docs/calibration.md say why this value.",
     "ruleOfThumb": "rule of thumb",
     "ruleOfThumbHint": "A rule of thumb rather than a measured figure.",
-    "bindingHint": "the provider's name in the brief"
+    "bindingHint": "the provider's name in the brief",
+    "regionTag": "Residency tag (e.g. eu)",
+    "mesh": "Service mesh",
+    "meshFlavour": {
+      "none": "None",
+      "istio": "Istio",
+      "linkerd": "Linkerd"
+    }
   },
   "home": {
     "eyebrow": "Your system design desk",
@@ -617,7 +625,9 @@
       "reconnect_jitter_s": "Reconnect jitter",
       "reconnect_backoff_s": "Reconnect backoff",
       "dedup": "Idempotent writes (dedup)",
-      "binding": "Provider"
+      "binding": "Provider",
+      "serve_stale_s": "Serve stale on error for",
+      "stampede_guard": "Coalesce misses (stampede guard)"
     },
     "choice": {
       "round_robin": "Round robin",
@@ -777,7 +787,14 @@
       "builtin": "Built-in",
       "packs": "Packs"
     },
-    "fromPack": "From the pack {{name}}"
+    "fromPack": "From the pack {{name}}",
+    "tracks": "Tracks",
+    "track": {
+      "core": "Core",
+      "ai": "AI systems",
+      "de": "Data engineering"
+    },
+    "solvedOf": "solved"
   },
   "brief": {
     "teaches": "Teaches: {{what}}",
@@ -1175,5 +1192,25 @@
     "formula": "Rule of thumb",
     "pathItems": "What the path covers",
     "wholeGuide": "Print the Guide"
+  },
+  "challenge": {
+    "half": "Half the cost",
+    "minus": "−{{pct}}% cost",
+    "solved": "challenge solved",
+    "filter": "Cost challenge",
+    "banner": "Same SLO, {{label}}: pass every test within {{target}} a month ({{pct}}% of the reference's cost).",
+    "locked": "Solve the problem to open its cost challenge.",
+    "submit": "Submit as the cost challenge",
+    "best": "Your best: {{cost}}",
+    "passed": "Challenge passed at {{cost}} (target {{target}}).",
+    "failed": "Not yet: {{cost}} against a target of {{target}}, or a test failed.",
+    "vsTarget": "Cost against the challenge target"
+  },
+  "progress": {
+    "empty": "Nothing to count yet",
+    "emptyBody": "Solve a problem and it shows up here.",
+    "challenges": "Cost challenges: {{solved}} of {{total}}",
+    "streak_one": "{{count}}-day streak",
+    "streak_other": "{{count}}-day streak"
   }
 }

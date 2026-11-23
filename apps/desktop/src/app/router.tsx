@@ -12,7 +12,7 @@ import {
 } from "@tanstack/react-router";
 import { Shell } from "@/app/Shell";
 import { Home } from "@/pages/Home";
-import { Progress } from "@/pages/Placeholders";
+import { Progress } from "@/pages/ProgressPage";
 import { ProblemsPage } from "@/pages/Problems";
 import { Settings } from "@/pages/Settings";
 

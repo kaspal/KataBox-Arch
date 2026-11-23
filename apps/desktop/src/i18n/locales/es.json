@@ -74,7 +74,8 @@
     "pdf_token": "Esa petición de impresión ha caducado. Inténtalo de nuevo.",
     "pdf_unsupported": "La vista web de este sistema no puede imprimir a PDF.",
     "pdf_failed": "No se pudo imprimir a PDF.",
-    "pdf_timeout": "La impresión a PDF tardó demasiado."
+    "pdf_timeout": "La impresión a PDF tardó demasiado.",
+    "challenge_locked": "El reto de coste se abre cuando el problema está resuelto."
   },
   "files": {
     "unsaved": {
@@ -220,7 +221,14 @@
     "modelHint": "Un parámetro del simulador que ningún proveedor publica; la Guía y docs/calibration.md explican el valor.",
     "ruleOfThumb": "regla práctica",
     "ruleOfThumbHint": "Una regla práctica, no una cifra medida.",
-    "bindingHint": "el nombre del proveedor en el enunciado"
+    "bindingHint": "el nombre del proveedor en el enunciado",
+    "regionTag": "Etiqueta de residencia (p. ej. eu)",
+    "mesh": "Malla de servicios",
+    "meshFlavour": {
+      "none": "Ninguna",
+      "istio": "Istio",
+      "linkerd": "Linkerd"
+    }
   },
   "home": {
     "eyebrow": "Tu mesa de diseño de sistemas",
@@ -617,7 +625,9 @@
       "reconnect_jitter_s": "Variación al reconectar",
       "reconnect_backoff_s": "Espera al reconectar",
       "dedup": "Escrituras idempotentes (dedup)",
-      "binding": "Proveedor"
+      "binding": "Proveedor",
+      "serve_stale_s": "Servir caducado ante error durante",
+      "stampede_guard": "Agrupar fallos (protección de estampida)"
     },
     "choice": {
       "round_robin": "Round robin",
@@ -777,7 +787,14 @@
       "builtin": "Incluidos",
       "packs": "Paquetes"
     },
-    "fromPack": "Del paquete {{name}}"
+    "fromPack": "Del paquete {{name}}",
+    "tracks": "Itinerarios",
+    "track": {
+      "core": "Básico",
+      "ai": "Sistemas de IA",
+      "de": "Ingeniería de datos"
+    },
+    "solvedOf": "resueltos"
   },
   "brief": {
     "teaches": "Enseña: {{what}}",
@@ -1175,5 +1192,25 @@
     "formula": "Regla práctica",
     "pathItems": "Lo que cubre la ruta",
     "wholeGuide": "Imprimir la Guía"
+  },
+  "challenge": {
+    "half": "La mitad de coste",
+    "minus": "−{{pct}}% de coste",
+    "solved": "reto resuelto",
+    "filter": "Reto de coste",
+    "banner": "Mismo SLO, {{label}}: supera todas las pruebas con {{target}} al mes ({{pct}}% del coste de la referencia).",
+    "locked": "Resuelve el problema para abrir su reto de coste.",
+    "submit": "Enviar como reto de coste",
+    "best": "Tu mejor: {{cost}}",
+    "passed": "Reto superado con {{cost}} (objetivo {{target}}).",
+    "failed": "Aún no: {{cost}} frente a un objetivo de {{target}}, o falló una prueba.",
+    "vsTarget": "Coste frente al objetivo del reto"
+  },
+  "progress": {
+    "empty": "Aún no hay nada que contar",
+    "emptyBody": "Resuelve un problema y aparecerá aquí.",
+    "challenges": "Retos de coste: {{solved}} de {{total}}",
+    "streak_one": "Racha de {{count}} día",
+    "streak_other": "Racha de {{count}} días"
   }
 }

@@ -1,0 +1,164 @@
+{
+  "schema_version": 4,
+  "id": "file-sync-challenge",
+  "name": "Cloud File Sync (reference)",
+  "problem_id": "file-sync",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "mobile",
+      "label": "Devices",
+      "position": {
+        "x": 390,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_nlb",
+      "label": "Load balancer",
+      "position": {
+        "x": 390,
+        "y": 170
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "Sync API",
+      "position": {
+        "x": 390,
+        "y": 340
+      },
+      "props": {
+        "instances": 1
+      },
+      "group_id": null
+    },
+    {
+      "id": "dedup",
+      "kind": "cache",
+      "flavour": "redis",
+      "label": "Chunk index",
+      "position": {
+        "x": 130,
+        "y": 510
+      },
+      "props": {
+        "memory_gb": 0.5,
+        "ttl_s": 86400
+      },
+      "group_id": null
+    },
+    {
+      "id": "blobs",
+      "kind": "object",
+      "flavour": "s3",
+      "label": "Chunks",
+      "position": {
+        "x": 390,
+        "y": 578
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "meta",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "File metadata",
+      "position": {
+        "x": 650,
+        "y": 510
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "queue",
+      "kind": "queue",
+      "flavour": "rabbitmq",
+      "label": "Change notices",
+      "position": {
+        "x": 390,
+        "y": 782
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "notifier",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "Notifier",
+      "position": {
+        "x": 390,
+        "y": 952
+      },
+      "props": {
+        "concurrency": 32,
+        "instances": 1,
+        "service_ms": 5
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e1",
+      "from": "lb",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e2",
+      "from": "api",
+      "to": "dedup",
+      "protocol": "query"
+    },
+    {
+      "id": "e3",
+      "from": "api",
+      "to": "blobs",
+      "protocol": "query"
+    },
+    {
+      "id": "e4",
+      "from": "api",
+      "to": "meta",
+      "protocol": "query"
+    },
+    {
+      "id": "e6",
+      "from": "api",
+      "to": "queue",
+      "protocol": "publish"
+    },
+    {
+      "id": "e7",
+      "from": "queue",
+      "to": "notifier",
+      "protocol": "consume"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 80,
+    "y": 80,
+    "zoom": 1
+  }
+}

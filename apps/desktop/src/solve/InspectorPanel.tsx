@@ -338,7 +338,58 @@ function GroupInspector({ registry, group }: { registry: Registry; group: Group 
       ) : (
         <p className="text-xs text-muted-foreground">{t("inspector.zoneHint")}</p>
       )}
+      {group.kind !== "autoscale" && <ZoneSettings registry={registry} group={group} />}
       <DeleteButton ids={[group.id]} />
+    </div>
+  );
+}
+
+/** M8 (.kbarch v4): a Region's residency tag, and a Region or AZ's service mesh. */
+function ZoneSettings({ registry, group }: { registry: Registry; group: Group }) {
+  const { t } = useTranslation();
+  const updateGroup = useEditor((s) => s.updateGroup);
+  const meshId = useId();
+  const mesh = group.mesh ?? null;
+  return (
+    <div className="space-y-3 border-t pt-4" data-testid="zone-settings">
+      {group.kind === "region" && (
+        <TextField
+          label={t("inspector.regionTag")}
+          value={group.region_tag ?? ""}
+          max={8}
+          onCommit={(v) => {
+            const tag = v.trim().toLowerCase().replace(/[^a-z]/g, "");
+            updateGroup(group.id, { region_tag: tag.length >= 2 ? tag : null });
+          }}
+        />
+      )}
+      <Field label={t("inspector.mesh")} htmlFor={meshId}>
+        <Select
+          value={mesh?.flavour ?? "none"}
+          onValueChange={(f) => updateGroup(group.id, { mesh: f === "none" ? null : { flavour: f as "istio" | "linkerd", props: mesh?.props ?? {} } })}
+        >
+          <SelectTrigger id={meshId} className="w-full bg-card">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(["none", "istio", "linkerd"] as const).map((f) => (
+              <SelectItem key={f} value={f}>
+                {t(`inspector.meshFlavour.${f}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+      {mesh &&
+        registry.mesh_props.map((spec) => (
+          <PropField
+            key={spec.key}
+            spec={spec}
+            value={mesh.props[spec.key]}
+            fallback={spec.default}
+            onChange={(v) => updateGroup(group.id, { mesh: { ...mesh, props: { ...mesh.props, [spec.key]: v } } })}
+          />
+        ))}
     </div>
   );
 }

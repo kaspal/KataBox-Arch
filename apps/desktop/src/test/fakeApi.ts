@@ -183,6 +183,7 @@ export function createFakeApi(opts: FakeOptions = {}) {
       draft = structuredClone(d);
       return null;
     }),
+    submitChallenge: vi.fn(async (id: string) => fakeJudgement(id, opts.verdict ?? "accepted")),
     submitDesign: vi.fn(async (id: string): Promise<SubmitResult> => {
       const judgement = fakeJudgement(id, opts.verdict ?? "accepted");
       const solved = judgement.verdict === "accepted";
@@ -303,6 +304,8 @@ export function createFakeApi(opts: FakeOptions = {}) {
       streak: problemState.status ? 1 : 0,
       recommended: problemState.status === "solved" ? null : FAKE_BRIEF.summary.id,
       continue_with: problemState.status === "attempted" ? FAKE_BRIEF.summary.id : null,
+      challenges_solved: 0,
+      challenges_total: 0,
     })),
     findBreakingPoint: vi.fn(async (design: Design) => {
       if (opts.runError) throw err(opts.runError);

@@ -8,6 +8,7 @@ teaches = "Skip chunks you already have, store the rest in object storage, and t
 teaches_es = "Saltarse los bloques que ya tienes, guardar el resto en almacenamiento de objetos y avisar a los demás dispositivos a través de una cola"
 tags = ["object-storage", "dedup", "caching", "queues"]
 
+challenge_ratio = 0.6
 [nfr]
 peak_rps = 2000
 p95_ms = 5000

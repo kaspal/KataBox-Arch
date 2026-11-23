@@ -437,6 +437,15 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
   spans Regions, pay a cross-region round trip (70 ms); Aurora replicates in about 20 ms; SQS FIFO is capped at
   300 messages a second per action; Dragonfly and Hazelcast are multi-threaded; Redpanda publishes faster than
   Kafka; Cloudflare Workers start cold in 5 ms. The others share their kind's behaviour.
+- **Cache primitives for incidents (S8d).**
+  - A cache in front of a provider (`cache?` then `external:<name>`, with no data store after it in the segment)
+    is filled by the provider's answer. Before M8 such a cache was never filled; routes with a store after the
+    provider keep filling at the store, as before.
+  - `serve_stale_s` (stale-if-error): on a cache-aside miss whose key has an expired copy filled within the TTL
+    plus this window, a failed origin call (error, timeout, 429) answers from that copy, counted as a stale read.
+    The request still waits for the failure, so it goes with a short call timeout.
+  - `stampede_guard` (request coalescing): while a miss for a key is in flight, later misses for the same key wait
+    for its answer and are served from the fill; if it fails, they go to the origin themselves.
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE

@@ -12792,8 +12792,8 @@
               "per_gb_month": 0.0,
               "per_instance_month": 18.0,
               "per_lane_month": 0.0,
-              "per_million": 0.0,
-              "per_million_write": 0.0,
+              "per_million": 1.5,
+              "per_million_write": null,
               "unit_kb": 0.0
             },
             "flavour": "global_accelerator",
@@ -16472,6 +16472,27 @@
               "type": "choice"
             },
             "unit": "none"
+          },
+          {
+            "calibration": null,
+            "default": 0,
+            "key": "serve_stale_s",
+            "ty": {
+              "max": 86400.0,
+              "min": 0.0,
+              "step": 1.0,
+              "type": "int"
+            },
+            "unit": "s"
+          },
+          {
+            "calibration": null,
+            "default": false,
+            "key": "stampede_guard",
+            "ty": {
+              "type": "bool"
+            },
+            "unit": "none"
           }
         ]
       },
@@ -18151,8 +18172,8 @@
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
-              "per_million": 0.05,
-              "per_million_write": 0.05,
+              "per_million": 0.8,
+              "per_million_write": 2.4,
               "unit_kb": 0.0
             },
             "flavour": "azure_service_bus",
