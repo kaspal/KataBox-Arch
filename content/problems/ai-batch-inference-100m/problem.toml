@@ -17,7 +17,7 @@ tags = ["batch-inference", "spot", "checkpoints", "deadlines", "capacity"]
 peak_rps = 0
 p95_ms = 1000
 availability = 0.999
-budget_usd = 4200
+budget_usd = 5300
 
 [[request_types]]
 id = "score"

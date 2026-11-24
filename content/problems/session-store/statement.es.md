@@ -12,7 +12,7 @@ Llevas la capa web de un sitio con mucho tráfico donde casi todo el mundo manti
 | Lecturas | 90 % de las peticiones |
 | Latencia p95 | 50 ms o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 1500 $ al mes |
+| Presupuesto | 1400 $ al mes |
 
 ## El tráfico
 

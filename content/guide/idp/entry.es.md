@@ -4,4 +4,4 @@ Aquí hay dos operaciones muy distintas. Un **inicio de sesión** es raro y lent
 
 Así que el diseño habitual es: mandar los inicios de sesión al proveedor, verificar los tokens en local y asegurarse de que un pico de inicios de sesión quede por debajo del límite del proveedor.
 
-**Cómo lo factura el simulador.** Auth0, Cognito y Okta cobran 5 $ por millón de inicios de sesión, en lugar de su precio por usuario activo al mes (precio didáctico; fuente por confirmar). Keycloak es propio, a 70 $ al mes por servidor, sin coste por inicio de sesión. Las comprobaciones locales de token no cuestan nada.
+**Cómo lo factura el simulador.** Auth0, Cognito y Okta cobran 3000 $ por millón de inicios de sesión, en lugar de su precio por usuario activo al mes: Cognito Essentials cuesta 0,015 $ por usuario activo al mes, y el simulador supone cinco inicios de sesión por usuario al mes. Keycloak es propio, a 70 $ al mes por servidor (un nodo de clase m5.large), sin coste por inicio de sesión. Las comprobaciones locales de token no cuestan nada (precios de lista, us-east-1, consultados el 2026-11-23).

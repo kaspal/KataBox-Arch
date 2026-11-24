@@ -11,7 +11,7 @@ Tienes el servicio que ejecuta el trabajo en segundo plano de todos los demás. 
 | Tráfico pico | 100 tareas/s |
 | Tiempo de finalización p95 | 10 s o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 3100 $ al mes |
+| Presupuesto | 2800 $ al mes |
 | Tareas perdidas | ninguna |
 
 Aquí la latencia se mide hasta que la tarea ha terminado y su resultado está guardado, no hasta que se entrega.

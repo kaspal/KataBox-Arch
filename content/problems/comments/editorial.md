@@ -8,13 +8,13 @@ The viral test changes the shape, not just the size. Traffic triples to 18,000 r
 
 ## The reference design
 
-An AWS ALB spreads the traffic over 4 Go App Servers. They read from a Redis Cache of 4 GB with a TTL of 300 s, and on a miss they read Cassandra with 1 partition. A new comment is written to Cassandra, then the App Server refreshes that thread's entry in the cache. This costs about $627 per month: $280 for the App Servers, $250 for Cassandra, $72 for Redis and $25 for the ALB. A normal evening has a p95 of about 18.6 ms, no errors and 0.09% stale reads. Cassandra is only about 4% busy: it sees the misses and the comments, not the reads.
+An AWS ALB spreads the traffic over 4 Go App Servers. They read from a Redis Cache of 4 GB with a TTL of 300 s, and on a miss they read Cassandra with 1 partition. A new comment is written to Cassandra, then the App Server refreshes that thread's entry in the cache. This costs about $604 per month: $280 for the App Servers, $250 for Cassandra, $49 for Redis and $25 for the ALB. A normal evening has a p95 of about 18.6 ms, no errors and 0.09% stale reads. Cassandra is only about 4% busy: it sees the misses and the comments, not the reads.
 
 "One thread goes viral" triples the traffic from 15 seconds in, for 30 seconds, with a Zipf popularity of 1.4. Redis answers the hot thread from memory, so the p95 stays at about 18.6 ms with no errors. Stale reads rise to 6.65%: the hot thread gets new comments every second, and a read can land between the write to Cassandra and the cache refresh. That is fine here; a comment that shows up a moment late does no harm.
 
 "The cache is flushed on a busy evening" doubles the traffic with a Zipf popularity of 1.2 and empties the cache 20 seconds in. The hot threads miss once and are back in the cache within milliseconds, and Cassandra, normally 4% busy, has room for the cold misses that follow. The p95 is about 19.0 ms, with no errors.
 
-For the cost challenge, a proof design comes in at 79% of the reference's cost, under the 80% target. It keeps the same shape, with fewer App Servers and a much smaller cache.
+There is no cost challenge for this problem. The best cheaper design found still cost about 82% of the reference, over the 80% target: the Redis Cache that carries the lesson is already a small part of the bill.
 
 ## Why the first try breaks
 

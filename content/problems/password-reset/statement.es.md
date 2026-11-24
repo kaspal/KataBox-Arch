@@ -12,7 +12,7 @@ Llevas el flujo de «¿Olvidaste tu contraseña?» de un gran servicio web. Un u
 | Latencia p95 | 1000 ms o menos |
 | Disponibilidad | 99,9 % o más |
 | Errores | 1 % o menos |
-| Presupuesto | 1300 $ al mes |
+| Presupuesto | 1200 $ al mes |
 | Mensajes perdidos | Ninguno |
 
 ## El tráfico

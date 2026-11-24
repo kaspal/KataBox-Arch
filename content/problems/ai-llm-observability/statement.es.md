@@ -12,7 +12,7 @@ Tienes un asistente de escritura: la gente chatea con él, y tu backend envía c
 | Latencia p95 (la respuesta entera) | 12 s o menos |
 | Disponibilidad | 99 % o más |
 | Errores | 1 % o menos |
-| Presupuesto | 160 000 $ al mes |
+| Presupuesto | 110 000 $ al mes |
 
 ## El tráfico
 

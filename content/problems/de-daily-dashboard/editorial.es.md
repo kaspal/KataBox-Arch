@@ -10,15 +10,15 @@ Pero la avalancha no son 200 preguntas distintas por segundo. Son los mismos 400
 
 ## El diseño de referencia
 
-Un AWS ALB envía el tráfico a 2 Servidores de aplicaciones Go. Estos leen los recuadros de una Caché Redis con un TTL de 600 s y "Agrupar fallos (protección de estampida)" activado; en un fallo consultan un Almacén de datos Snowflake con sus valores por defecto (1 clúster, Concurrencia por instancia 8, Caché de resultados activada, Suspensión automática tras 60 s). En una hora normal cuesta unos 1053 $ al mes: 852 $ el almacén, 140 $ los Servidores de aplicaciones, 36 $ Redis y 25 $ el ALB. El almacén se cobra solo por los segundos que funciona, y con la caché delante pasa largos ratos parado. El p95 es de unos 18,6 ms, sin errores.
+Un AWS ALB envía el tráfico a 2 Servidores de aplicaciones Go. Estos leen los recuadros de una Caché Redis con un TTL de 600 s y "Agrupar fallos (protección de estampida)" activado; en un fallo consultan un Almacén de datos Snowflake con sus valores por defecto (1 clúster, Concurrencia por instancia 8, Caché de resultados activada, Suspensión automática tras 60 s). En una hora normal cuesta unos 1041 $ al mes: 852 $ el almacén, 140 $ los Servidores de aplicaciones, 24 $ Redis y 25 $ el ALB. El almacén se cobra solo por los segundos que funciona, y con la caché delante pasa largos ratos parado. El p95 es de unos 18,6 ms, sin errores.
 
-"Las 9 de la mañana: cachés vacías y luego diez veces el tráfico durante 40 s" empieza con Redis vacío y multiplica el tráfico por diez a partir del segundo 5. Las primeras cargas de cada recuadro fallan juntas; la protección de estampida lanza una consulta por recuadro, la Caché de resultados responde el 60 % de ellas en unos 30 ms, y las demás esperan los 8 huecos durante unos segundos. Algunos segundos de ese arranque tienen un p95 de más de 2 s, pero el p95 de la prueba es de unos 42,8 ms, sin errores. El almacén funciona más, así que esta prueba cobra unos 1661 $.
+"Las 9 de la mañana: cachés vacías y luego diez veces el tráfico durante 40 s" empieza con Redis vacío y multiplica el tráfico por diez a partir del segundo 5. Las primeras cargas de cada recuadro fallan juntas; la protección de estampida lanza una consulta por recuadro, la Caché de resultados responde el 60 % de ellas en unos 30 ms, y las demás esperan los 8 huecos durante unos segundos. Algunos segundos de ese arranque tienen un p95 de más de 2 s, pero el p95 de la prueba es de unos 42,8 ms, sin errores. El almacén funciona más, así que esta prueba cobra unos 1649 $.
 
 "El almacén de datos se ralentiza" añade 3 s a cada consulta que recorre datos, desde el segundo 20 y durante 40 segundos. Solo los pocos fallos de caché llegan al almacén, y su Caché de resultados responde algunos sin recorrer nada. El p95 es de unos 20,2 ms, sin errores.
 
 Cada pieza hace falta. Sin la protección de estampida, el arranque en frío lanza una consulta por cada carga de un recuadro que falta, y la avalancha falla con alrededor de un 2,5 % de errores. Con la Caché de resultados apagada, todas esas consultas recorren datos, y la avalancha falla con alrededor de un 23 % de errores.
 
-El reto de coste no encontró nada por debajo del 80 % del coste de la referencia (su mejor prueba se quedó en el 91 %), así que este problema no tiene reto de coste: el almacén es casi toda la factura, y un clúster es lo mínimo que puedes tener.
+El reto de coste no encontró nada por debajo del 80 % del coste de la referencia (su mejor prueba se quedó en el 92 %), así que este problema no tiene reto de coste: el almacén es casi toda la factura, y un clúster es lo mínimo que puedes tener.
 
 ## Por qué falla el primer intento
 

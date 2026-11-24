@@ -15,7 +15,7 @@ challenge_ratio = 0.7
 peak_rps = 5000
 p95_ms = 45000
 availability = 0.999
-budget_usd = 2200
+budget_usd = 2100
 
 [[request_types]]
 id = "web"

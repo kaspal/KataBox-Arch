@@ -12,7 +12,7 @@ Tienes el servicio de códigos promocionales de una tienda online. Al pagar, el 
 | Latencia p95 | 100 ms o menos |
 | Disponibilidad | 99,9 % o más |
 | Tasa de errores | 1 % o menos |
-| Presupuesto | 1300 $ al mes |
+| Presupuesto | 1000 $ al mes |
 
 ## El tráfico
 

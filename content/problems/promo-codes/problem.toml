@@ -12,7 +12,7 @@ tags = ["caching", "races", "failover", "read-heavy"]
 peak_rps = 2000
 p95_ms = 100
 availability = 0.999
-budget_usd = 1300
+budget_usd = 1000
 
 [[request_types]]
 id = "validate"

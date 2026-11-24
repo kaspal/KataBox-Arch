@@ -12,7 +12,7 @@ Las pruebas ocultas atacan cada límite por turno. "Los móviles recuperan la co
 
 ## El diseño de referencia
 
-Un AWS ALB envía el tráfico a 4 Servidores de aplicaciones Go. Estos publican los eventos en un Stream Apache Kafka con 32 Particiones y leen el panel de una Base de datos de series temporales TimescaleDB. Un Procesador de streams Apache Flink de 8 instancias con una Concurrencia por instancia de 4 (32 huecos, uno por partición) consume el Stream: Ventana Fija (tumbling), Duración de la ventana 30 s, Retraso de la marca de agua 5 s, Retraso permitido 180 s. Está conectado a la Base de datos de series temporales con una conexión Query. Cuesta unos 1278 $ al mes: 560 $ el Procesador de streams, 280 $ los Servidores de aplicaciones, 260 $ TimescaleDB, 153 $ Kafka y 25 $ el ALB.
+Un AWS ALB envía el tráfico a 4 Servidores de aplicaciones Go. Estos publican los eventos en un Stream Apache Kafka con 32 Particiones y leen el panel de una Base de datos de series temporales TimescaleDB. Un Procesador de streams Apache Flink de 8 instancias con una Concurrencia por instancia de 4 (32 huecos, uno por partición) consume el Stream: Ventana Fija (tumbling), Duración de la ventana 30 s, Retraso de la marca de agua 5 s, Retraso permitido 180 s. Está conectado a la Base de datos de series temporales con una conexión Query. Cuesta unos 1202 $ al mes: 560 $ el Procesador de streams, 280 $ los Servidores de aplicaciones, 184 $ TimescaleDB, 153 $ Kafka y 25 $ el ALB.
 
 En un día normal el procesador está ocupado en torno al 19 % y el tiempo hasta un evento contado es de unos 33,2 s en el p95, sin errores. Menos del 0,03 % de los eventos en ventanas son tardíos.
 
@@ -22,11 +22,11 @@ La marca de agua se queda en 5 s. Una marca de agua más larga también atrapar�
 
 En el día de lanzamiento, 15 000 eventos por segundo llegan a 32 huecos que pueden con unos 25 600 por segundo: ocupados en torno al 59 % en el pico. No hay errores, y el p95 se mantiene en unos 33,2 s.
 
-Para el reto de coste, un diseño de prueba se queda en el 67 % del coste de la referencia, por debajo del objetivo del 70 %. Mantiene las 32 Particiones y los mismos ajustes de ventana, con 2 Servidores de aplicaciones y 4 instancias de Flink (16 huecos): en el pico del lanzamiento trabajan por encima de su capacidad, pero la cola que acumulan en 40 s es lo bastante pequeña para vaciarse sin errores y dentro del objetivo de 45 s.
+Para el reto de coste, un diseño de prueba se queda en el 65 % del coste de la referencia, por debajo del objetivo del 70 %. Mantiene las 32 Particiones y los mismos ajustes de ventana, con 2 Servidores de aplicaciones y 4 instancias de Flink (16 huecos): en el pico del lanzamiento trabajan por encima de su capacidad, pero la cola que acumulan en 40 s es lo bastante pequeña para vaciarse sin errores y dentro del objetivo de 45 s.
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual usa el mismo borde y los mismos Servidores de aplicaciones, un Stream Kafka con 12 Particiones y un Procesador de streams Flink de 3 instancias con una Concurrencia por instancia de 4 (12 huecos), con la misma ventana fija de 30 s y la marca de agua de 5 s, pero con el Retraso permitido por defecto, 0. Cuesta unos 928 $ y supera "Un día normal": el procesador está ocupado en torno al 52 %, el p95 es de unos 33,2 s y entre el 0,1 % y el 0,2 % de los eventos son tardíos, todos móviles.
+Un primer intento habitual usa el mismo borde y los mismos Servidores de aplicaciones, un Stream Kafka con 12 Particiones y un Procesador de streams Flink de 3 instancias con una Concurrencia por instancia de 4 (12 huecos), con la misma ventana fija de 30 s y la marca de agua de 5 s, pero con el Retraso permitido por defecto, 0. Cuesta unos 852 $ y supera "Un día normal": el procesador está ocupado en torno al 52 %, el p95 es de unos 33,2 s y entre el 0,1 % y el 0,2 % de los eventos son tardíos, todos móviles.
 
 Cuando los móviles recuperan la conexión, los eventos móviles pasan a ser cerca del 29 % del tráfico. Cada evento móvil que llega después del final de su ventana más 5 s se queda fuera de los recuentos: entre el 2 % y el 4 % de todos los eventos en ventanas son tardíos, por encima del límite del 1 %, y la prueba falla por incumplir el SLO. Al procesador le sobra capacidad; simplemente, las ventanas se cierran demasiado pronto para estos eventos.
 

@@ -8,13 +8,12 @@ teaches = "Queue-based load levelling for a burst; cache the browsing"
 teaches_es = "Nivelar la carga con una cola ante una ráfaga; cachear la navegación"
 tags = ["queues", "cdn", "bursts", "external-providers"]
 
-challenge_ratio = 0.8
 [nfr]
 peak_rps = 2000
 read_ratio = 0.9
 p95_ms = 100
 availability = 0.999
-budget_usd = 9000
+budget_usd = 11000
 
 [[externals]]
 name = "payment"

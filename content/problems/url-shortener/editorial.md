@@ -8,7 +8,7 @@ At 12,000 requests/s with 95% reads, about 11,400 requests/s are redirects and a
 
 A Load Balancer (NGINX) spreads traffic over 8 Go App Servers. Each App Server checks a Redis Cache of 8 GB first. A hit ends the request; a miss reads PostgreSQL and fills the cache. 8 GB holds about 8 million 1 KB entries, far more than the hot set. PostgreSQL runs as a primary and one replica joined by a Replicate edge, with a failover time of 10 seconds. Reads spread over both members; writes go to the primary.
 
-This costs about $1,429 per month and has a p95 near 22 ms on a normal day. It absorbs the viral spike. When the primary dies, about 1.1% of requests fail while the failover runs, then the replica is promoted and traffic recovers.
+This costs about $1,203 per month and has a p95 near 22 ms on a normal day. It absorbs the viral spike. When the primary dies, about 1.1% of requests fail while the failover runs, then the replica is promoted and traffic recovers.
 
 ## Why the first try breaks
 

@@ -12,7 +12,7 @@ Gestionas un motor de respuestas web. Alguien escribe una pregunta y, en lugar d
 | Latencia p95 | 10 000 ms o menos |
 | Disponibilidad | 99 % o más |
 | Errores | 1 % o menos |
-| Presupuesto | 5 000 000 $ al mes |
+| Presupuesto | 3 300 000 $ al mes |
 
 ## El tráfico
 

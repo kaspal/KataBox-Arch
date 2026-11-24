@@ -15,7 +15,7 @@ Cada equipo ha acordado una cuota de 55 000 tokens por minuto. Uno de los equipo
 | Tiempo hasta el primer token p95 | 1500 ms o menos |
 | Disponibilidad | 99,9 % o más |
 | Errores | 1 % o menos |
-| Presupuesto | 80 000 $ al mes |
+| Presupuesto | 54 000 $ al mes |
 
 ## El tráfico
 

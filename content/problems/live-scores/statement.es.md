@@ -13,7 +13,7 @@ Tienes una app de resultados en directo. En un día de partido, millones de afic
 | Tasa de errores | 1 % o menos |
 | Disponibilidad | 99,9 % o más |
 | Aficionados conectados | 95 % o más en cada segundo |
-| Presupuesto | 2000 $ al mes |
+| Presupuesto | 1800 $ al mes |
 
 ## El tráfico
 

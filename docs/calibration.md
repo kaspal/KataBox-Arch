@@ -58,7 +58,7 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `cdn.service_ms` | 2 | ms | model: no published processing time for a hit; an edge cache hit near the user; context: https://aws.amazon.com/premiumsupport/knowledge-center/cloudfront-troubleshoot-latency/ |
 | `cdn.p99_ratio` | 4 | × median | model: tail multiplier |
 | `cdn.queue_per_server` | 4 | slots per server | model: backlog slots |
-| `cdn.cost.million` | 0.75 | $/million requests | source: needed; ballpark; the source says US HTTPS requests $0.0100 per 10,000 = $1.00/M (0.75 was the HTTP price) — https://aws.amazon.com/cloudfront/pricing/pay-as-you-go |
+| `cdn.cost.million` | 1 | $/million requests | https://aws.amazon.com/cloudfront/pricing/pay-as-you-go — US HTTPS requests $0.0100 per 10,000 = $1.00/M (0.75 was the HTTP price) |
 | `cdn.cost.million@akamai` | 1.2 | $/million requests | model: Akamai publishes no list prices; context: https://blog.blazingcdn.com/en-us/what-is-the-price-per-gb-of-akamai-cdn |
 
 ### `waf`
@@ -121,14 +121,14 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | Id | Value | Unit | Source |
 |---|---|---|---|
 | `app.concurrency` | 64 | in parallel per instance | model: defaults vary by runtime (Puma 3–5 threads, gunicorn 2×cores+1, async runtimes far more); requests a typical instance works on at once (threads and CPU together); context: https://docs.gunicorn.org/en/21.0.1/design.html |
-| `app.concurrency@django` | 9 | in parallel per instance | source: needed; gunicorn suggests (2 × cores) + 1 workers: 9 on 4 vCPUs; ballpark; the source says "(2 x $num_cores) + 1" on the 2-vCPU m5.large the cost row prices — https://docs.gunicorn.org/en/21.0.1/design.html |
+| `app.concurrency@django` | 5 | in parallel per instance | https://docs.gunicorn.org/en/21.0.1/design.html — "(2 x $num_cores) + 1" on the 2-vCPU m5.large the cost row prices |
 | `app.service_ms` | 10 | ms | model: benchmark-shaped ballpark; TechEmpower publishes rps, not per-request time; in-process work of a simple JSON endpoint, without downstream calls; context: https://www.techempower.com/benchmarks/ |
 | `app.service_ms@go` | 5 | ms | model: relative to the base value; a compiled, lighter runtime; context: https://www.techempower.com/benchmarks/ |
 | `app.service_ms@django` | 20 | ms | model: relative to the base value; a heavier framework on an interpreter; context: https://www.techempower.com/benchmarks/ |
 | `app.p99_ratio` | 4 | × median | model: tail multiplier |
 | `app.queue_per_server` | 8 | slots per server | model: backlog slots |
 | `app.cost.instance` | 70 | $/instance-month | https://calculator.holori.com/aws/ec2/m5.large/us-east-1 — m5.large "$0.0960/hr … ~$70.08/month" (list price via holori) |
-| `app.concurrency@rails` | 5 | in parallel per instance | source: needed; ballpark; the source says Default Puma threads "set to 3" — https://guides.rubyonrails.org/tuning_performance_for_deployment.html |
+| `app.concurrency@rails` | 3 | in parallel per instance | https://guides.rubyonrails.org/tuning_performance_for_deployment.html — Default Puma threads "set to 3" |
 | `app.service_ms@aspnet_core` | 6 | ms | model: no vendor per-request figure |
 | `app.service_ms@rails` | 25 | ms | model: no vendor per-request figure |
 
@@ -155,7 +155,7 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `worker.concurrency@bullmq` | 10 | in parallel per instance | https://docs.bullmq.io/guide/workers/concurrency — the default is 1; 10 is a configured value |
 | `worker.concurrency@temporal_worker` | 100 | in parallel per instance | https://docs.temporal.io/develop/ruby/activities/basics — Default tuner "defaults to 100 activities at a time" (other SDKs differ) |
 | `worker.concurrency@ffmpeg` | 2 | in parallel per instance | model: sizing assumption for a 2-vCPU instance |
-| `worker.concurrency@mediaconvert` | 1000 | in parallel per instance | source: needed; ballpark; the source says Concurrent jobs per on-demand queue, us-east-1: 500 (default 200) — https://docs.aws.amazon.com/general/latest/gr/mediaconvert.html |
+| `worker.concurrency@mediaconvert` | 500 | in parallel per instance | https://docs.aws.amazon.com/general/latest/gr/mediaconvert.html — Concurrent jobs per on-demand queue, us-east-1: 500 (default 200) |
 | `worker.service_ms@ffmpeg` | 10000 | ms | model: depends on the input and preset |
 | `worker.service_ms@mediaconvert` | 10000 | ms | model: no published job duration |
 | `worker.cost.instance@mediaconvert` | 0 | $/instance-month | billed another way (see the other rows for this flavour) |
@@ -172,7 +172,7 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `serverless.service_ms` | 20 | ms | model: workload-dependent; a small handler |
 | `serverless.p99_ratio` | 4 | × median | model: tail multiplier |
 | `serverless.queue_per_server` | 0 | slots per server | https://docs.aws.amazon.com/lambda/latest/dg/lambda-concurrency.html — Synchronous invocations over the limit get a throttling error (429); "Lambda does not queue throttled requests" (web-functions scaling page); invocations over the limit are throttled, not queued |
-| `serverless.cost.million` | 0.5 | $/million requests | source: needed; the request price plus ~20 ms of duration at 512 MB; ballpark; the source says $0.20 per 1M requests + 0.512 GB × 0.020 s × $0.0000166667/GB-s × 10⁶ ≈ $0.17 (x86) — https://aws.amazon.com/lambda/pricing/ |
+| `serverless.cost.million` | 0.37 | $/million requests | https://aws.amazon.com/lambda/pricing/ — $0.20 per 1M requests + 0.512 GB × 0.020 s × $0.0000166667/GB-s × 10⁶ ≈ $0.17 (x86) |
 | `serverless.cold_start_ms@cloudflare_workers` | 5 | ms | https://blog.cloudflare.com/cloud-computing-without-containers/ — "Isolates start in 5 milliseconds" |
 | `serverless.service_ms@cloudflare_workers` | 10 | ms | model: no published service time; context: https://developers.cloudflare.com/workers/platform/pricing/ |
 | `serverless.cost.million@cloudflare_workers` | 0.3 | $/million requests | https://developers.cloudflare.com/workers/platform/pricing/ — "+$0.30 per additional million" requests (+ CPU ms) |
@@ -189,16 +189,16 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `sql.failover_s` | 30 | s | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/multi-az-db-clusters-concepts-failover.html — RDS Multi-AZ DB clusters: "Failover times are typically under 35 seconds"; single-standby instances take 60–120 s (https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZ.Failover.html). 30 s matches the cluster case (checked 2026-11-22) |
 | `sql.p99_ratio` | 5 | × median | model: tail multiplier |
 | `sql.queue_per_server` | 4 | slots per server | model: backlog slots |
-| `sql.cost.instance` | 350 | $/instance-month | source: needed; ballpark; the source says db.m5.xlarge PostgreSQL, us-east-1, on-demand ≈ $260/month (list price via bytebase) — https://www.bytebase.com/dbcost/rds/instance/db.m5.xlarge/ |
+| `sql.cost.instance` | 260 | $/instance-month | https://www.bytebase.com/dbcost/rds/instance/db.m5.xlarge/ — db.m5.xlarge PostgreSQL, us-east-1, on-demand ≈ $260/month (list price via bytebase) |
 | `sql.max_connections` | 1700 | connections | https://aws.amazon.com/premiumsupport/knowledge-center/rds-mysql-max-connections/ — LEAST(DBInstanceClassMemory/9531392, 5000); 16 GiB gives ≤ 1802, less the memory RDS reserves |
-| `sql.max_connections@mysql` | 1365 | connections | source: needed; RDS MySQL default DBInstanceClassMemory/12582880 on db.m5.xlarge; ballpark; the source says DBInstanceClassMemory/12582880 ≤ 1365, with the same reserve — https://aws.amazon.com/premiumsupport/knowledge-center/rds-mysql-max-connections/ |
-| `sql.service_ms@cockroachdb` | 12 | ms | source: needed; ballpark; the source says "single-row writes in 2 ms within a single availability zone"; +Raft across AZs — https://cockroachlabs.com/docs/v24.2/performance |
-| `sql.service_ms@spanner` | 12 | ms | source: needed; ballpark; the source says "single-digit millisecond latency" (regional) — https://cloud.google.com/blog/products/databases/benchmarking-spanner-for-key-value-workloads |
+| `sql.max_connections@mysql` | 1365 | connections | https://aws.amazon.com/premiumsupport/knowledge-center/rds-mysql-max-connections/ — DBInstanceClassMemory/12582880 ≤ 1365, with the same reserve |
+| `sql.service_ms@cockroachdb` | 2 | ms | https://cockroachlabs.com/docs/v24.2/performance — "single-row writes in 2 ms within a single availability zone"; +Raft across AZs |
+| `sql.service_ms@spanner` | 5 | ms | https://cloud.google.com/blog/products/databases/benchmarking-spanner-for-key-value-workloads — "single-digit millisecond latency" (regional) |
 | `sql.service_ms@postgis` | 10 | ms | model: workload-dependent; context: indexed ST_DWithin ~2–26 ms |
 | `sql.service_ms@citus` | 5.5 | ms | model: coordinator hop, no published figure |
 | `sql.replication_lag_ms@aurora_postgresql` | 20 | ms | https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Replication.html — "usually much less than 100 milliseconds"; "10s of milliseconds" (AWS knowledge center) |
-| `sql.cost.instance@cockroachdb` | 438 | $/instance-month | source: needed; ballpark; the source says $0.162/vCPU-h (Mission Critical) × 4 × 730 — https://cockroachlabs.com/pricing |
-| `sql.cost.instance@aurora_postgresql` | 300 | $/instance-month | source: needed; ballpark; the source says db.r6g.large Aurora PostgreSQL "$190/month" (via bytebase) — https://www.bytebase.com/dbcost/aurora/instance/db.r6g.large/ |
+| `sql.cost.instance@cockroachdb` | 473 | $/instance-month | https://cockroachlabs.com/pricing — $0.162/vCPU-h (Mission Critical) × 4 × 730 |
+| `sql.cost.instance@aurora_postgresql` | 190 | $/instance-month | https://www.bytebase.com/dbcost/aurora/instance/db.r6g.large/ — db.r6g.large Aurora PostgreSQL "$190/month" (via bytebase) |
 | `sql.cost.instance@spanner` | 657 | $/instance-month | https://cloud.google.com/spanner/docs/cuds — "$0.9 per node per hour" (us-central1, Standard) |
 
 ### `nosql`
@@ -239,9 +239,9 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `cache.servers_per_instance` | 1 | in parallel per instance | https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/benchmarks/ — "Redis is, mostly, a single-threaded server from the POV of commands execution" |
 | `cache.p99_ratio` | 3 | × median | model: tail multiplier |
 | `cache.queue_per_server` | 512 | slots per server | model: pipelining backlog; clients pipeline many commands on one connection |
-| `cache.failover_s` | 15 | s | source: needed; replica promotion in a managed Redis; ballpark; the source says "Writes can resume as soon as the promotion process is complete, typically just a few seconds" — https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/AutoFailover.html |
+| `cache.failover_s` | 5 | s | https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/AutoFailover.html — "Writes can resume as soon as the promotion process is complete, typically just a few seconds" |
 | `cache.servers_per_instance@memcached` | 4 | in parallel per instance | https://manpages.debian.org/unstable/memcached/memcached.1.en.html — "-t … Number of threads to use … The default is 4" |
-| `cache.cost.gb` | 18 | $/GB-month | source: needed; ballpark; the source says cache.r7g.large 13.07 GiB at $0.219/h → $159.87/month ÷ 13.07 ≈ $12.2/GB-month (list price via vantage) — https://instances.vantage.sh/aws/elasticache/cache.r7g.large |
+| `cache.cost.gb` | 12.2 | $/GB-month | https://instances.vantage.sh/aws/elasticache/cache.r7g.large — cache.r7g.large 13.07 GiB at $0.219/h → $159.87/month ÷ 13.07 ≈ $12.2/GB-month (list price via vantage) |
 | `cache.servers_per_instance@dragonfly` | 8 | in parallel per instance | https://dragonflydb.io/blog/2024-new-year-new-number — One thread per shard and core; 8 = an 8-vCPU node |
 | `cache.servers_per_instance@hazelcast` | 8 | in parallel per instance | model: partition threads scale with cores |
 
@@ -271,10 +271,10 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `search.servers_per_instance` | 13 | in parallel per shard | https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-threadpool.html — search pool size "int((# of allocated processors * 3) / 2) + 1"; 13 at 8 processors (checked 2026-11-22) |
 | `search.p99_ratio` | 4 | × median | model: tail multiplier |
 | `search.queue_per_server` | 77 | slots per server | source: needed; the search queue of 1,000 spread over 13 threads; ballpark; the source says Elasticsearch 9: search `queue_size` is "1000 * size" (per thread). The old 1000 ÷ 13 ≈ 77 only held for 8.x — https://www.elastic.co/docs/reference/elasticsearch/configuration-reference/thread-pool-settings |
-| `search.failover_s` | 10 | s | source: needed; a replica shard is promoted when a node leaves; ballpark; the source says An unresponsive node is removed after 3 failed 10 s checks, then replicas are promoted (a clean disconnect is immediate); model the unresponsive case — https://www.elastic.co/guide/en/elasticsearch/reference/8.7/cluster-fault-detection.html |
+| `search.failover_s` | 30 | s | https://www.elastic.co/guide/en/elasticsearch/reference/8.7/cluster-fault-detection.html — An unresponsive node is removed after 3 failed 10 s checks, then replicas are promoted (a clean disconnect is immediate); model the unresponsive case |
 | `search.cost.instance` | 250 | $/instance-month | https://bigdataboutique.com/blog/opensearch-and-elasticsearch-pricing-guide — r6g.xlarge.search, 4 vCPUs, 32 GiB, $0.335/h ≈ $245/month (list price via bigdataboutique) |
 | `search.service_ms@meilisearch` | 5 | ms | https://github.com/meilisearch/meilisearch — "less than 50 milliseconds" |
-| `search.cost.instance@meilisearch` | 150 | $/instance-month | source: needed; ballpark; the source says Cloud Pro "$300/mo" (via aiproductivity) — https://aiproductivity.ai/pricing/meilisearch/ |
+| `search.cost.instance@meilisearch` | 300 | $/instance-month | https://aiproductivity.ai/pricing/meilisearch/ — Cloud Pro "$300/mo" (via aiproductivity) |
 
 ### `queue`
 
@@ -285,7 +285,7 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `queue.service_ms` | 2 | ms | https://www.cloudamqp.com/blog/publishing-throughput-asynchronous-vs-synchronous.html — Synchronous publish with confirms: "400-500 messages a second" per publisher ≈ 2–2.5 ms; a RabbitMQ publish with confirms |
 | `queue.p99_ratio` | 3 | × median | model: tail multiplier |
 | `queue.queue_per_server` | 4 | slots per server | model: backlog slots |
-| `queue.service_ms@sqs` | 10 | ms | source: needed; an SQS send over HTTPS; ballpark; the source says "if the latency from an Amazon EC2-based client to Amazon SQS in the same region averages 20 ms" — https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/throughput.html |
+| `queue.service_ms@sqs` | 20 | ms | https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/throughput.html — "if the latency from an Amazon EC2-based client to Amazon SQS in the same region averages 20 ms" |
 | `queue.cost.million` | 0.4 | $/million retried receives | https://aws.amazon.com/sqs/pricing/ — every action is a request, $0.40 per million (https://aws.amazon.com/about-aws/whats-new/2016/11/amazon-sqs-introduces-fifo-queues-with-exactly-once-processing-and-lower-prices-for-standard-queues); a retry is one more receive; batching is not modelled (list price, us-east-1, read 2026-11-22) |
 | `queue.cost.million_write` | 1.2 | $/million messages | https://aws.amazon.com/sqs/pricing/ — three requests per message (send, receive, delete) at $0.40 per million; no free tier (list price, us-east-1, read 2026-11-22) |
 | `queue.cost.instance@rabbitmq` | 70 | $/node-month | https://aws.amazon.com/ec2/pricing/on-demand/ — self-hosted on m5.large at $0.096/h × 730; managed Amazon MQ mq.m5.large would be $0.288/h ≈ $210 (https://aws.amazon.com/amazon-mq/pricing/) (list price, us-east-1, read 2026-11-22) |
@@ -310,13 +310,13 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `stream.service_ms` | 3 | ms | https://www.confluent.io/blog/kafka-fastest-messaging-system/ — p99 end-to-end "5 ms (200 MB/s load)"; the throughput test used `acks=all`; a Kafka produce with `acks=all` |
 | `stream.p99_ratio` | 3 | × median | model: tail multiplier |
 | `stream.queue_per_server` | 4 | slots per server | model: backlog slots |
-| `stream.service_ms@kinesis` | 15 | ms | source: needed; a Kinesis PutRecord; ballpark; the source says "P50 manages to stay right around the 35 ms mark" (third-party measurement; AWS publishes no figure) — https://brandur.org/kinesis-in-production |
+| `stream.service_ms@kinesis` | 35 | ms | https://brandur.org/kinesis-in-production — "P50 manages to stay right around the 35 ms mark" (third-party measurement; AWS publishes no figure) |
 | `stream.cost.instance` | 153 | $/broker-month | https://aws.amazon.com/msk/pricing/ — kafka.m5.large at $0.21/h × 730; no per-request fee, partitions free; storage ($0.10/GB-month) is not modelled (list price, us-east-1, read 2026-11-22) |
 | `stream.cost.instance@kinesis` | 0 | $/broker-month | Kinesis bills shards, not brokers |
 | `stream.cost.lane@kinesis` | 10.95 | $/shard-month (one per partition) | https://aws.amazon.com/kinesis/data-streams/pricing/ — $0.015 per shard-hour × 730 (list price, us-east-1, read 2026-11-22) |
 | `stream.cost.million_write@kinesis` | 0.014 | $/million PUT payload units | https://aws.amazon.com/kinesis/data-streams/pricing/ — $0.014 per million PUT payload units of 25 KB (list price, us-east-1, read 2026-11-22) |
 | `stream.cost.unit_kb@kinesis` | 25 | KB per billed unit | https://aws.amazon.com/kinesis/data-streams/pricing/ — a PUT payload unit is 25 KB |
-| `stream.service_ms@redpanda` | 1 | ms | source: needed; ballpark; the source says acks=all average 2.09 ms — https://computingforgeeks.com/kafka-vs-redpanda-benchmarks/ |
+| `stream.service_ms@redpanda` | 2 | ms | https://computingforgeeks.com/kafka-vs-redpanda-benchmarks/ — acks=all average 2.09 ms |
 | `stream.cost.instance@azure_event_hubs` | 0 | $/instance-month | billed another way (see the other rows for this flavour) |
 | `stream.cost.lane@azure_event_hubs` | 21.9 | $/shard-month | https://www.pump.co/blog/azure-event-hub — "$0.03/hour per throughput unit" (via pump.co) |
 | `stream.cost.million_write@azure_event_hubs` | 0.028 | $/million writes | https://www.pump.co/blog/azure-event-hub — "$0.028 per million ingress events" |
@@ -357,7 +357,8 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | Id | Value | Unit | Source |
 |---|---|---|---|
 | `scheduler.cost.instance` | 20 | $/instance-month | https://calculator.holori.com/aws/ec2/t3.small/us-east-1 — t3.small $0.0208/h ≈ $15.18/month + storage ≈ $20 (context: Amazon MWAA mw1.small $0.49/h) |
-| `scheduler.cost.instance@temporal` | 200 | $/instance-month | source: needed; ballpark; the source says "Starting at $50 per million actions" (Temporal Cloud usage price, no minimum) — https://temporal.io/pricing |
+| `scheduler.cost.instance@temporal` | 0 | $/instance-month | https://temporal.io/pricing — "Starting at $50 per million actions" (Temporal Cloud usage price, no minimum): billed by usage, no instance |
+| `scheduler.cost.million@temporal` | 50 | $/million requests | https://temporal.io/pricing — "Starting at $50 per million actions" (Temporal Cloud usage price, no minimum) |
 | `scheduler.cost.instance@dagster` | 100 | $/instance-month | https://dagster.io/blog/dagster-cloud-pricing-philosophy — "Starter is $100/month plus $0.035 per credit" |
 | `scheduler.cost.instance@k8s_cronjob` | 0 | $/instance-month | billed another way (see the other rows for this flavour) |
 
@@ -408,7 +409,7 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `idp.service_ms` | 5 | ms | model: abstraction |
 | `idp.p99_ratio` | 4 | × median | model: tail multiplier of the service time |
 | `idp.queue_per_server` | 8 | waiting per server | model: backlog slots before drops |
-| `idp.cost.million` | 5 | $/million requests | source: needed; ballpark; the source says Cognito Essentials $0.015/MAU; at an assumed 5 logins per MAU a month, $3,000 per million logins — https://builder.aws.com/content/3KlTXfJhkIuYFkyPkM2P16amtXC/sign-in-for-10000-users-at-dollar0-with-amazon-cognito |
+| `idp.cost.million` | 3000 | $/million requests | https://builder.aws.com/content/3KlTXfJhkIuYFkyPkM2P16amtXC/sign-in-for-10000-users-at-dollar0-with-amazon-cognito — Cognito Essentials $0.015/MAU; at an assumed 5 logins per MAU a month, $3,000 per million logins |
 | `idp.cost.instance@keycloak` | 70 | $/instance-month | https://calculator.holori.com/aws/ec2/m5.large/us-east-1 — ≈ $70.08 |
 | `idp.cost.million@keycloak` | 0 | $/million requests | billed another way (see the other rows for this flavour) |
 
@@ -416,20 +417,22 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 
 | Id | Value | Unit | Source |
 |---|---|---|---|
-| `external.cost.million@twilio` | 7900 | $/million requests | source: needed; ballpark; the source says "starts at $0.0083" per outbound SMS — https://www.twilio.com/en-us/sms/pricing/us |
+| `external.cost.million@twilio` | 8300 | $/million requests | https://www.twilio.com/en-us/sms/pricing/us — "starts at $0.0083" per outbound SMS |
 | `external.cost.million@sendgrid` | 900 | $/million requests | https://sendgrid.com/en-us/pricing — Pro $89.95 for 100,000 emails |
 
 ### `infer`
 
 | Id | Value | Unit | Source |
 |---|---|---|---|
-| `infer.ttft_ms` | 600 | ms to first token | source: needed; time to first token of a hosted model; ballpark; the source says Sonnet 5.5 low effort ≈ 1.05–1.18 s to first token (third-party measurement) — https://artificialanalysis.ai/models/claude-sonnet-5-5 |
-| `infer.ttft_ms@openai_api` | 500 | ms to first token | source: needed; time to first token of a hosted model; ballpark; the source says "TTFT of 0.89s" (third-party measurement) — https://artificialanalysis.ai/models/gpt-6-sol-non-reasoning |
-| `infer.ttft_ms@gemini_api` | 500 | ms to first token | source: needed; ballpark; the source says Gemini 3.1 Pro always reasons; its measured 14.8 s includes thinking; 1000 would match the other non-reasoning first-token figures (0.9–1.1 s) (third-party measurement) — https://artificialanalysis.ai/models/gemini-3-1-pro-preview |
+| `infer.ttft_ms` | 1100 | ms to first token | https://artificialanalysis.ai/models/claude-sonnet-5-5 — Sonnet 5.5 low effort ≈ 1.05–1.18 s to first token (third-party measurement) |
+| `infer.ttft_ms@openai_api` | 890 | ms to first token | https://artificialanalysis.ai/models/gpt-6-sol-non-reasoning — "TTFT of 0.89s" (third-party measurement) |
+| `infer.ttft_ms@gemini_api` | 1000 | ms to first token | https://artificialanalysis.ai/models/gemini-3-1-pro-preview — Gemini 3.1 Pro always reasons; its measured 14.8 s includes thinking; 1000 would match the other non-reasoning first-token figures (0.9–1.1 s) (third-party measurement) |
 | `infer.ttft_ms@vllm` | 200 | ms to first token | https://docs.vllm.ai/en/v0.13.0/benchmarking/cli/; https://www.truefoundry.com/blog/vllm-benchmark — Median 74 ms (light load); p50 388 ms at 16 users on one A10; time to first token of a hosted model |
 | `infer.ttft_ms@triton` | 5 | ms to first token | model: one forward pass of a small classifier |
-| `infer.tokens_per_s` | 80 | tokens/s per request | source: needed; output speed of one stream; ballpark; the source says Sonnet 5.5: 96–103 t/s (third-party measurement) — https://artificialanalysis.ai/leaderboards/models |
-| `infer.tokens_per_s@openai_api` | 90 | tokens/s per request | source: needed; output speed of one stream; ballpark; the source says GPT-6.2 Sol 62–67 t/s (third-party measurement) — https://artificialanalysis.ai/models/gpt-6-2-sol-high |
+| `infer.tokens_per_s` | 100 | tokens/s per request | https://artificialanalysis.ai/leaderboards/models — Sonnet 5.5: 96–103 t/s (third-party measurement) |
+| `infer.tokens_per_s@vllm` | 80 | tokens/s per request | source: needed; one stream on a self-hosted GPU (the old default, kept when the hosted figure was cited in H1) |
+| `infer.tokens_per_s@triton` | 80 | tokens/s per request | source: needed; one stream on a self-hosted GPU (the old default, kept when the hosted figure was cited in H1) |
+| `infer.tokens_per_s@openai_api` | 65 | tokens/s per request | https://artificialanalysis.ai/models/gpt-6-2-sol-high — GPT-6.2 Sol 62–67 t/s (third-party measurement) |
 | `infer.tokens_per_s@gemini_api` | 120 | tokens/s per request | https://artificialanalysis.ai/models/gemini-3-1-pro-preview/providers — 122.5–127.5 t/s (third-party measurement); output speed of one stream |
 | `infer.prefill_tps` | 5000 | prompt tokens/s | model: depends on the GPU, model and batch; prompt processing speed |
 | `infer.rpm` | 4000 | requests/min | https://platform.claude.com/docs/en/api/rate-limits — Start tier, Sonnet 5.5: 4,000 RPM; a hosted account tier's request limit |
@@ -438,12 +441,9 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `infer.service_ms` | 300 | ms | model: abstraction |
 | `infer.p99_ratio` | 3 | × median | model: tail multiplier of the service time |
 | `infer.queue_per_server` | 64 | waiting per server | model: backlog slots before drops |
-| `infer.cost.meter.tokens_in` | 3 | $/million input tokens | source: needed; ballpark; the source says Sonnet 5.5: $2 input per MTok — https://platform.claude.com/docs/en/about-claude/pricing |
-| `infer.cost.meter.tokens_out` | 15 | $/million output tokens | source: needed; ballpark; the source says Sonnet 5.5: $10 output per MTok — https://platform.claude.com/docs/en/about-claude/pricing |
-| `infer.cost.meter.tokens_in@openai_api` | 2.5 | $/million input tokens | source: needed; ballpark; the source says GPT-6.2 Sol $2.00 input — https://developers.openai.com/api/docs/pricing |
-| `infer.cost.meter.tokens_out@openai_api` | 10 | $/million output tokens | https://developers.openai.com/api/docs/pricing — GPT-6.2 Sol $10.00 output |
-| `infer.cost.meter.tokens_in@gemini_api` | 1.25 | $/million input tokens | source: needed; ballpark; the source says Gemini 3.1 Pro "$2.00" (≤200k prompt) — https://ai.google.dev/gemini-api/docs/pricing |
-| `infer.cost.meter.tokens_out@gemini_api` | 10 | $/million output tokens | source: needed; ballpark; the source says "$12.00" output — https://ai.google.dev/gemini-api/docs/pricing |
+| `infer.cost.meter.tokens_in` | 2 | $/million input tokens | https://platform.claude.com/docs/en/about-claude/pricing — Sonnet 5.5: $2 input per MTok |
+| `infer.cost.meter.tokens_out` | 10 | $/million output tokens | https://platform.claude.com/docs/en/about-claude/pricing — Sonnet 5.5: $10 output per MTok |
+| `infer.cost.meter.tokens_out@gemini_api` | 12 | $/million output tokens | https://ai.google.dev/gemini-api/docs/pricing — "$12.00" output |
 | `infer.cost.instance@vllm` | 734 | $/instance-month | https://calculator.holori.com/aws/ec2/g5.xlarge — g5.xlarge "$1.0060/hr ~$734.38/month" |
 | `infer.cost.meter.tokens_in@vllm` | 0 | $/million input tokens | billed another way (see the other rows for this flavour) |
 | `infer.cost.meter.tokens_out@vllm` | 0 | $/million output tokens | billed another way (see the other rows for this flavour) |
@@ -460,7 +460,7 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `batch.service_ms` | 1000 | ms | model: abstraction |
 | `batch.p99_ratio` | 3 | × median | model: tail multiplier of the service time |
 | `batch.queue_per_server` | 64 | waiting per server | model: backlog slots before drops |
-| `batch.cost.instance` | 140 | $/instance-month | source: needed; ballpark; the source says (m5.xlarge $0.192 + EMR $0.048)/h × 730 — https://www.doit.com/compute/spot/us-east-1/m5.xlarge; https://cloudburn.io/tools/amazon-emr-pricing-calculator |
+| `batch.cost.instance` | 175 | $/instance-month | https://www.doit.com/compute/spot/us-east-1/m5.xlarge; https://cloudburn.io/tools/amazon-emr-pricing-calculator — (m5.xlarge $0.192 + EMR $0.048)/h × 730 |
 
 ### `media`
 
@@ -515,9 +515,9 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `warehouse.cost.instance` | 1460 | $/instance-month | https://docs.snowflake.com/user-guide/warehouses-overview; https://www.owox.com/blog/articles/snowflake-pricing-cost-control — X-Small 1 credit/h × $2 (Standard, AWS us-east-1) × 730 |
 | `warehouse.cost.instance@bigquery` | 0 | $/instance-month | billed another way (see the other rows for this flavour) |
 | `warehouse.cost.meter.tb_scanned@bigquery` | 6.25 | $/TB scanned | https://cloud.google.com/bigquery/pricing — "$6.25 / 1 tebibyte" |
-| `warehouse.cost.instance@redshift` | 182 | $/instance-month | source: needed; ballpark; the source says ra3.large $0.543/h (via vantage) — https://instances.vantage.sh/aws/redshift/ra3.large |
+| `warehouse.cost.instance@redshift` | 396 | $/instance-month | https://instances.vantage.sh/aws/redshift/ra3.large — ra3.large $0.543/h (via vantage) |
 | `warehouse.cost.instance@clickhouse` | 250 | $/instance-month | https://clickhouse.com/pricing — Basic ≈ $160/month; Scale from $499 |
-| `warehouse.cost.instance@databricks_sql` | 1000 | $/instance-month | source: needed; ballpark; the source says Serverless SQL 2X-Small 4 DBU/h × $0.70 × 730 — https://learn.microsoft.com/en-us/azure/databricks/resources/pricing |
+| `warehouse.cost.instance@databricks_sql` | 2044 | $/instance-month | https://learn.microsoft.com/en-us/azure/databricks/resources/pricing — Serverless SQL 2X-Small 4 DBU/h × $0.70 × 730 |
 
 ### `lakehouse`
 
@@ -533,16 +533,16 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 
 | Id | Value | Unit | Source |
 |---|---|---|---|
-| `tsdb.points_per_s` | 500000 | points/s per instance | source: needed; points written per second on one node; ballpark; the source says Moderate tier "< 250,000" writes/s with "< 1,000,000" series — https://docs.influxdata.com/influxdb/v1/guides/hardware_sizing/ |
+| `tsdb.points_per_s` | 250000 | points/s per instance | https://docs.influxdata.com/influxdb/v1/guides/hardware_sizing/ — Moderate tier "< 250,000" writes/s with "< 1,000,000" series |
 | `tsdb.series_limit` | 1000000 | series per instance | https://docs.influxdata.com/influxdb/v1/guides/hardware_sizing/ — Moderate tier series "< 1,000,000"; active series one node holds in memory |
 | `tsdb.service_ms` | 1 | ms | model: abstraction |
 | `tsdb.servers_per_instance` | 64 | in parallel per instance | model: abstraction |
 | `tsdb.p99_ratio` | 4 | × median | model: tail multiplier of the service time |
 | `tsdb.queue_per_server` | 8 | waiting per server | model: backlog slots before drops |
 | `tsdb.failover_s` | 30 | s | model: open-source InfluxDB has no HA; modelled |
-| `tsdb.cost.instance` | 260 | $/instance-month | source: needed; ballpark; the source says r5.xlarge $0.252/h × 730 (via doit) — https://www.doit.com/compute/spot/us-east-1/r5.large |
+| `tsdb.cost.instance` | 184 | $/instance-month | https://www.doit.com/compute/spot/us-east-1/r5.large — r5.xlarge $0.252/h × 730 (via doit) |
 | `tsdb.cost.instance@timestream` | 0 | $/instance-month | billed another way (see the other rows for this flavour) |
-| `tsdb.cost.million@timestream` | 0.01 | $/million requests | source: needed; ballpark; the source says $0.518/TCU-hour; at an assumed ~150 queries/s per TCU, about $1 per million queries — https://aws.amazon.com/timestream/pricing |
+| `tsdb.cost.million@timestream` | 1 | $/million requests | https://aws.amazon.com/timestream/pricing — $0.518/TCU-hour; at an assumed ~150 queries/s per TCU, about $1 per million queries |
 | `tsdb.cost.million_write@timestream` | 0.5 | $/million writes | https://aws.amazon.com/timestream/pricing — "$0.50/million writes of 1KiB" |
 
 ### `dbproxy`
@@ -566,8 +566,8 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 | `graph.servers_per_instance` | 32 | in parallel per instance | model: abstraction |
 | `graph.p99_ratio` | 5 | × median | model: tail multiplier of the service time |
 | `graph.queue_per_server` | 4 | waiting per server | model: backlog slots before drops |
-| `graph.cost.instance` | 260 | $/instance-month | source: needed; ballpark; the source says r5.xlarge ≈ $184 — https://www.doit.com/compute/spot/us-east-1/r5.large |
-| `graph.cost.instance@neptune` | 350 | $/instance-month | source: needed; ballpark; the source says db.r6g.large $0.3287/h (via usage.ai) — https://www.usage.ai/blogs/aws/database-savings-plans/neptune-pricing/ |
+| `graph.cost.instance` | 184 | $/instance-month | https://www.doit.com/compute/spot/us-east-1/r5.large — r5.xlarge ≈ $184 |
+| `graph.cost.instance@neptune` | 240 | $/instance-month | https://www.usage.ai/blogs/aws/database-savings-plans/neptune-pricing/ — db.r6g.large $0.3287/h (via usage.ai) |
 
 ### `streamproc`
 
@@ -586,7 +586,7 @@ Every behaviour figure the simulator uses, with its value, unit and source (ADR 
 |---|---|---|---|
 | `mqtt.max_connections` | 1000000 | connections per instance | https://docs.emqx.com/en/enterprise/v4.0/tutorial/tune.html — "1.3 million on an 8-core, 32G" server |
 | `mqtt.conn_memory_kb` | 8 | KB per connection | https://www.emqx.com/en/blog/emqx-single-node-supports-5m-connections — 48.7 GB for 5M connections ≈ 10 KB |
-| `mqtt.msgs_per_s` | 100000 | messages/s per instance | source: needed; ballpark; the source says 4 vCPU / 8 GiB QoS 0: "60K" TPS — https://docs.emqx.com/en/emqx/latest/performance/performance-reference.html |
+| `mqtt.msgs_per_s` | 60000 | messages/s per instance | https://docs.emqx.com/en/emqx/latest/performance/performance-reference.html — 4 vCPU / 8 GiB QoS 0: "60K" TPS |
 | `mqtt.service_ms` | 2 | ms | https://docs.emqx.com/en/emqx/latest/performance/performance-reference.html — QoS 0 average "2.079" ms |
 | `mqtt.servers_per_instance` | 10000 | in parallel per instance | model: effectively unlimited; the card's own limits (connections, pools) bind first |
 | `mqtt.p99_ratio` | 3 | × median | model: tail multiplier of the service time |

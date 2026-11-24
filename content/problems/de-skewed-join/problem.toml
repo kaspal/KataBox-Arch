@@ -20,7 +20,7 @@ challenge_ratio = 0.6
 peak_rps = 0
 p95_ms = 1000
 availability = 0.999
-budget_usd = 1650
+budget_usd = 1880
 
 [[request_types]]
 id = "join"

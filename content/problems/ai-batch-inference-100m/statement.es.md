@@ -15,9 +15,9 @@ El equipo quiere el clúster en instancias spot, porque son mucho más baratas. 
 | Trabajo | 100 tareas de 300 segundos-ejecutor cada una, que empiezan en 0 s |
 | Plazo | el trabajo entero termina en 600 s o menos desde que empieza |
 | Errores | 0,1 % o menos |
-| Presupuesto | 4200 $ al mes |
+| Presupuesto | 5300 $ al mes |
 
-El coste mensual es lo que costaría el clúster si funcionara todo el mes, la misma regla que en todos los demás problemas. Un nodo de Cómputo por lotes cuesta 140 $ al mes bajo demanda; la parte de sus ejecutores que marca la "Proporción spot" corre en capacidad spot al 35 % de ese precio, así que un nodo con "Proporción spot" al 100 % cuesta 49 $ al mes. Los precios son los precios didácticos del registro.
+El coste mensual es lo que costaría el clúster si funcionara todo el mes, la misma regla que en todos los demás problemas. Un nodo de Cómputo por lotes cuesta 175 $ al mes bajo demanda; la parte de sus ejecutores que marca la "Proporción spot" corre en capacidad spot al 35 % de ese precio, así que un nodo con "Proporción spot" al 100 % cuesta 61,25 $ al mes. Los precios son los precios didácticos del registro.
 
 ## El tráfico
 

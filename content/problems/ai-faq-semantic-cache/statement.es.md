@@ -12,7 +12,7 @@ El centro de ayuda de tu empresa estrena un chatbot. Un cliente escribe una preg
 | Latencia p95 | 5000 ms o menos |
 | Disponibilidad | 99 % o más |
 | Errores | 1 % o menos |
-| Presupuesto | 80 000 $ al mes |
+| Presupuesto | 53 000 $ al mes |
 
 ## El tráfico
 

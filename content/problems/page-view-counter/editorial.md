@@ -8,7 +8,7 @@ Each partition hands out one message at a time, so the partition count caps how 
 
 ## The reference design
 
-The Collector, 2 Go instances behind a Load Balancer, publishes each view to a Kafka stream with 48 partitions. 8 Celery Counter instances consume it; at Celery's default concurrency of 8 that is 64 slots, enough to keep all 48 partitions busy. The Counters write to PostgreSQL. For the dashboard, the Collector reads a Redis Cache first, with a TTL of 10 seconds, and fills it from PostgreSQL on a miss. This costs about $1,264 per month, and on a normal day views are counted with a p95 of about 32 ms.
+The Collector, 2 Go instances behind a Load Balancer, publishes each view to a Kafka stream with 48 partitions. 8 Celery Counter instances consume it; at Celery's default concurrency of 8 that is 64 slots, enough to keep all 48 partitions busy. The Counters write to PostgreSQL. For the dashboard, the Collector reads a Redis Cache first, with a TTL of 10 seconds, and fills it from PostgreSQL on a miss. This costs about $1,162 per month, and on a normal day views are counted with a p95 of about 32 ms.
 
 "The homepage goes viral" doubles the traffic for 15 seconds, from 20 seconds in, and allows a p95 of 10 seconds. About 5,940 views a second arrive, at the edge of what 48 partitions can count, so a backlog builds and then drains: the p95 is about 5.5 s. "Consumers slow down" adds 10 ms to every message on every Worker card for 20 seconds, from 15 seconds in, with the same 10 s limit. At about 19 ms a view, 48 partitions count only about 2,500 a second, a little less than what arrives. The small backlog clears once the Workers recover: the p95 is about 4.4 s.
 

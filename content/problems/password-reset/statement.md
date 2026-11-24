@@ -12,7 +12,7 @@ You run the "Forgot your password?" flow for a large web service. A user types t
 | p95 latency | 1,000 ms or less |
 | Availability | 99.9% or more |
 | Errors | 1% or less |
-| Budget | $1,300 per month |
+| Budget | $1,200 per month |
 | Lost messages | None |
 
 ## The traffic

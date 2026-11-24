@@ -309,7 +309,12 @@ fn the_caller_rule_writes_then_publishes() {
             node_with("app", K::App, Flavour::Go, &[]),
             node_with("db", K::Sql, Flavour::Postgresql, &[]),
             node_with("queue", K::Queue, Flavour::Sqs, &[]),
-            node_with("worker", K::Worker, Flavour::Celery, &[("service_ms", 5.0)]),
+            node_with(
+                "worker",
+                K::Worker,
+                Flavour::Celery,
+                &[("service_ms", 50.0)],
+            ),
             node_with("cache", K::Cache, Flavour::Redis, &[]),
         ],
         vec![
@@ -343,7 +348,9 @@ fn the_caller_rule_writes_then_publishes() {
     let comp = r.completion.unwrap();
     assert!(
         comp.p50_ms > r.response.p50_ms,
-        "completion includes the async work"
+        "completion includes the async work: {} vs {}",
+        comp.p50_ms,
+        r.response.p50_ms
     );
 }
 

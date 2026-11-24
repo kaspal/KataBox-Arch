@@ -9,11 +9,11 @@ You run an online shop, and you are adding a support chatbot to its help page. A
 | Goal | Target |
 | --- | --- |
 | Peak traffic | 5 messages/s |
-| Time to first token, p95 | 1.5 s or less |
+| Time to first token, p95 | 2 s or less |
 | p95 latency (the whole answer) | 12 s or less |
 | Availability | 99% or more |
 | Errors | 1% or less |
-| Budget | $150,000 per month |
+| Budget | $100,000 per month |
 
 ## The traffic
 

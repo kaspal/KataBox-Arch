@@ -14,7 +14,7 @@ requires = ["infer", "gateway"]
 peak_rps = 8
 p95_ms = 5000
 availability = 0.999
-budget_usd = 80000
+budget_usd = 54000
 
 [[model_limits]]
 flavour = "claude_api"

@@ -19,7 +19,7 @@ Change data capture is what makes this possible in the first place. An export th
 
 An AWS ALB sends the traffic to 2 Go App Servers, which write each change to PostgreSQL. PostgreSQL is wired with a Publish edge (change data capture) to an Apache Kafka Stream with 24 partitions. Apache Flink, 2 instances with a concurrency of 12 (24 slots), consumes the Stream and writes each change into Snowflake, with 3 instances (24 writes at once). The three caps are equal at 24 writes in flight.
 
-This costs about $5,188 per month: $4,380 for Snowflake ($1,460 per instance), $350 for PostgreSQL, $153 for Kafka, $140 for Flink, $140 for the App Servers and $25 for the ALB. The warehouse is almost all of it.
+This costs about $5,378 per month: $4,380 for Snowflake ($1,460 per instance), $260 for PostgreSQL, $153 for Kafka, $420 for Flink, $140 for the App Servers and $25 for the ALB. The warehouse is almost all of it.
 
 On a normal day the p95 freshness is about 0.70 s, and the Stream Processor is about 17% busy: 4 writes in flight out of 24.
 
@@ -27,11 +27,11 @@ On a normal day the p95 freshness is about 0.70 s, and the Stream Processor is a
 
 "The warehouse slows down: every write takes 1.5 s longer for 30 s" makes each write about 1.84 s from 20 seconds in. 24 writes in flight still move about 24 / 1.84 ≈ 13 changes a second, just over the 12 that arrive. The p95 rises to about 2.4 s, the shop's writes don't notice, and no change is lost.
 
-For the cost challenge, a proof design comes in at 69% of the reference's cost ($3,588), under the 70% target. It keeps 24 partitions but runs 1 App Server, 1 Flink instance with a concurrency of 12 and 2 Snowflake instances. During the slowdown it moves fewer changes than arrive, and the Stream holds the difference; the backlog clears fast enough afterwards to stay under 15 s at p95.
+For the cost challenge, a proof design comes in at 68% of the reference's cost ($3,638), under the 70% target. It keeps 24 partitions but runs 1 App Server, 1 Flink instance with a concurrency of 12 and 2 Snowflake instances. During the slowdown it moves fewer changes than arrive, and the Stream holds the difference; the backlog clears fast enough afterwards to stay under 15 s at p95.
 
 ## Why the first try breaks
 
-A common first try has the same cards with their defaults: Kafka with 6 partitions, Flink with 2 instances of 4 slots (8), and Snowflake with 1 instance (8 writes). It costs about $2,268 and passes "A normal day" with a p95 of about 0.80 s. The partitions are the smallest cap: 6 writes in flight move about 6 / 0.34 ≈ 18 changes a second, and a normal day needs 12.
+A common first try has the same cards with their defaults: Kafka with 6 partitions, Flink with 2 instances of 4 slots (8), and Snowflake with 1 instance (8 writes). It costs about $2,178 and passes "A normal day" with a p95 of about 0.80 s. The partitions are the smallest cap: 6 writes in flight move about 6 / 0.34 ≈ 18 changes a second, and a normal day needs 12.
 
 The flash sale needs 36 a second. For 30 seconds about 18 more changes arrive each second than are written, so about 540 pile up in the Stream, and once the sale ends they clear at only the 6 a second the pipeline has to spare. The p95 freshness reaches about 23.7 s, over the 15 s limit.
 

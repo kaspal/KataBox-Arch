@@ -15,7 +15,7 @@ Each team has agreed to a share of 55,000 tokens a minute. One of the teams some
 | p95 time to first token | 1,500 ms or less |
 | Availability | 99.9% or more |
 | Errors | 1% or less |
-| Budget | $80,000 per month |
+| Budget | $54,000 per month |
 
 ## The traffic
 

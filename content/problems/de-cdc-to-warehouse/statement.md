@@ -15,7 +15,7 @@ The analysts accept a warehouse that is a few minutes behind, about 5 minutes. T
 | Availability | 99.9% or more |
 | Errors | 0.1% or less |
 | Lost changes | 0 |
-| Budget | $8,000 per month |
+| Budget | $7,900 per month |
 
 ## The traffic
 

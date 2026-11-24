@@ -8,4 +8,4 @@ Un error de límite es un "ahora no", no un "nunca". Deja que el documento esper
 
 ## 3
 
-Haz que los App Servers (2 instancias Go) publiquen cada documento en una Cola Amazon SQS con Reintentos máximos en 10, para que una llamada rechazada vuelva tras 1 s, 2 s, 4 s y así sucesivamente. Un Worker Celery con 2 instancias y una concurrencia de 12 la consume, llaman a la tarjeta API de OpenAI (Tipo de modelo Embeddings, 3000 peticiones y 600 000 tokens por minuto) y escriben el vector en una Base de datos vectorial pgvector.
+Haz que los App Servers (2 instancias Go) publiquen cada documento en una Cola Amazon SQS con Reintentos máximos en 10, para que una llamada rechazada vuelva tras 1 s, 2 s, 4 s y así sucesivamente. Un Worker Celery con 3 instancias y una concurrencia de 12 la consume, llaman a la tarjeta API de OpenAI (Tipo de modelo Embeddings, 3000 peticiones y 600 000 tokens por minuto) y escriben el vector en una Base de datos vectorial pgvector.

@@ -12,7 +12,7 @@ Tienes un buscador web. La gente escribe una consulta y espera una página de re
 | Latencia p95 | 200 ms o menos |
 | Disponibilidad | 99,9 % o más |
 | Tasa de errores | 0,1 % o menos |
-| Presupuesto | 3200 $ al mes |
+| Presupuesto | 3100 $ al mes |
 
 ## El tráfico
 

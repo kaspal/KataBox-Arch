@@ -15,7 +15,7 @@ Un error en el job ha calculado mal los tiempos de entrega durante un mes. En un
 | Disponibilidad | 99,9 % o más |
 | Errores | 0,1 % o menos |
 | Eventos perdidos | ninguno |
-| Presupuesto | 2200 $ al mes |
+| Presupuesto | 2000 $ al mes |
 
 ## El tráfico
 

@@ -8,7 +8,7 @@ The other 30% are routes: 1,200 a second. Each one walks 6 hops of the road grap
 
 ## The reference design
 
-The Client loads tiles from a CloudFront CDN with a TTL of 86,400 s (one day), in front of Amazon S3. Routes go through an AWS ALB to Go App Servers, the routers, with 5 instances, the Call timeout set to 150 ms and the Circuit breaker at errors set to 50%. They query a Neo4j Graph Database with 3 instances. This costs about $6,803 per month: $5,528 for CloudFront, billed per request at 2,800 tile fetches a second, $780 for Neo4j, $350 for the routers, $121 for S3 and $25 for the ALB.
+The Client loads tiles from a CloudFront CDN with a TTL of 86,400 s (one day), in front of Amazon S3. Routes go through an AWS ALB to Go App Servers, the routers, with 5 instances, the Call timeout set to 150 ms and the Circuit breaker at errors set to 50%. They query a Neo4j Graph Database with 3 instances. This costs about $8,418 per month: $7,370 for CloudFront, billed per request at 2,800 tile fetches a second, $552 for Neo4j, $350 for the routers, $121 for S3 and $25 for the ALB.
 
 "A normal afternoon" has a p95 of about 96 ms with no errors, and the routers are about 23% busy.
 
@@ -20,7 +20,7 @@ There is no cost challenge for this problem. The best cheaper design found still
 
 ## Why the first try breaks
 
-A common first try is the same design with 3 routers, no call timeout and no circuit breaker. It costs about $6,663 per month. It is Accepted on "A normal afternoon", with the routers about 39% busy, and it passes "Rush hour" with a p95 of about 102 ms.
+A common first try is the same design with 3 routers, no call timeout and no circuit breaker. It costs about $8,278 per month. It is Accepted on "A normal afternoon", with the routers about 39% busy, and it passes "Rush hour" with a p95 of about 102 ms.
 
 When the feed goes down, about 12.3% of requests fail. Every route still waits for the dead feed, about 1 s before the call fails, and holds a router slot the whole time. The slots run out, new routes queue behind them, and many fail. The feed was optional on paper, but the routers treated it as required.
 

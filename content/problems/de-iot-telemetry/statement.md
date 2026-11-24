@@ -13,7 +13,7 @@ You run the backend for 25,000 smart energy meters. Each meter keeps an MQTT con
 | Error rate | 1% or less |
 | Availability | 99.9% or more |
 | Connected meters | 95% or more in every second |
-| Budget | $3,000 per month |
+| Budget | $2,600 per month |
 
 ## The traffic
 

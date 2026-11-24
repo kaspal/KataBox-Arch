@@ -10,15 +10,15 @@ But the rush is not 200 different questions a second. It is the same 400 tiles, 
 
 ## The reference design
 
-An AWS ALB sends the traffic to 2 Go App Servers. They read tiles from a Redis Cache with a TTL of 600 s and "Coalesce misses (stampede guard)" on; on a miss they query one Snowflake Data Warehouse with its defaults (1 cluster, Concurrency per instance 8, Result cache on, Auto-suspend after 60 s). On a normal hour it costs about $1,053 per month: $852 for the warehouse, $140 for the App Servers, $36 for Redis and $25 for the ALB. The warehouse is billed only for the seconds it runs, and with the cache in front it sits idle for long stretches. The p95 is about 18.6 ms, with no errors.
+An AWS ALB sends the traffic to 2 Go App Servers. They read tiles from a Redis Cache with a TTL of 600 s and "Coalesce misses (stampede guard)" on; on a miss they query one Snowflake Data Warehouse with its defaults (1 cluster, Concurrency per instance 8, Result cache on, Auto-suspend after 60 s). On a normal hour it costs about $1,041 per month: $852 for the warehouse, $140 for the App Servers, $24 for Redis and $25 for the ALB. The warehouse is billed only for the seconds it runs, and with the cache in front it sits idle for long stretches. The p95 is about 18.6 ms, with no errors.
 
-"9 a.m.: empty caches, then ten times the traffic for 40 s" starts with an empty Redis and multiplies the traffic by ten from 5 seconds in. The first loads of each tile miss together; the stampede guard sends one query per tile, the Result cache answers 60% of those in about 30 ms, and the others queue for the 8 slots for a few seconds. A few seconds of that start have a p95 over 2 s, but the test's p95 is about 42.8 ms, with no errors. The warehouse runs more, so this test bills about $1,661.
+"9 a.m.: empty caches, then ten times the traffic for 40 s" starts with an empty Redis and multiplies the traffic by ten from 5 seconds in. The first loads of each tile miss together; the stampede guard sends one query per tile, the Result cache answers 60% of those in about 30 ms, and the others queue for the 8 slots for a few seconds. A few seconds of that start have a p95 over 2 s, but the test's p95 is about 42.8 ms, with no errors. The warehouse runs more, so this test bills about $1,649.
 
 "The warehouse slows down" adds 3 s to every query that scans, from 20 seconds in, for 40 seconds. Only the few cache misses reach the warehouse, and its Result cache answers some of those without scanning. The p95 is about 20.2 ms, with no errors.
 
 Each piece is needed. Without the stampede guard, the cold start sends a query for every load of a missing tile, and the rush fails with about 2.5% errors. With the Result cache off, every one of those queries scans, and the rush fails with about 23% errors.
 
-The cost challenge found nothing under 80% of the reference's cost (its best proof came in at 91%), so this problem has no cost challenge: the warehouse is most of the bill, and one cluster is the least you can run.
+The cost challenge found nothing under 80% of the reference's cost (its best proof came in at 92%), so this problem has no cost challenge: the warehouse is most of the bill, and one cluster is the least you can run.
 
 ## Why the first try breaks
 

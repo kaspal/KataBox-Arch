@@ -8,7 +8,7 @@ Con 10 000 peticiones/s y un 97 % de lecturas, unas 9 700 peticiones/s abren un 
 
 Un Load Balancer reparte el tráfico entre 6 App Servers Go. Una lectura consulta primero una Cache Redis de feeds de 16 GB. Un acierto termina la petición; un fallo lee de PostgreSQL, que funciona con una principal y una réplica, y llena la caché. Un post se escribe en la principal y se publica en un Stream Kafka con 32 particiones, y el App Server queda libre. 4 Workers de fan-out (Celery) consumen el Stream y escriben el post en el feed de cada seguidor dentro de la Cache.
 
-Cuesta unos 1 866 $ al mes y su p95 ronda los 23 ms en un día normal. Supera las dos pruebas ocultas. Los feeds ya están hechos cuando llegan los lectores, y una ráfaga de posts solo mantiene a los Workers más ocupados durante un rato, sin frenar el camino de lectura.
+Cuesta unos 1593 $ al mes y su p95 ronda los 23 ms en un día normal. Supera las dos pruebas ocultas. Los feeds ya están hechos cuando llegan los lectores, y una ráfaga de posts solo mantiene a los Workers más ocupados durante un rato, sin frenar el camino de lectura.
 
 ## Por qué falla el primer intento
 

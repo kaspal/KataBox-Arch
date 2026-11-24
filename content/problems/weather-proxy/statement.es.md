@@ -12,7 +12,7 @@ Tienes una app del tiempo. Cada vez que alguien la abre, la app pide a tu backen
 | Latencia p95 | 100 ms o menos |
 | Disponibilidad | 99,9 % o más |
 | Errores | 1 % o menos |
-| Presupuesto | 1000 $ al mes |
+| Presupuesto | 970 $ al mes |
 
 ## El tráfico
 

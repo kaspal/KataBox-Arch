@@ -10,17 +10,17 @@ Así que las preguntas son: ¿dónde esperan las lecturas cuando llegan más rá
 
 ## El diseño de referencia
 
-Los contadores mantienen sus conexiones MQTT en un Broker IoT EMQX con las 2 instancias por defecto. Las lecturas entran por un Servidor de aplicaciones Go (2 instancias), que publica cada una en un Stream Apache Kafka con 192 particiones. Seis Workers Celery (concurrencia 32 por instancia, tiempo de servicio 2 ms) consumen el stream y escriben en una Base de datos de series temporales InfluxDB con 3 instancias de 4000 puntos por segundo cada una. Cuesta unos 1633 $ al mes: 780 $ la base de datos, 420 $ los workers, 153 $ Kafka y 140 $ cada uno el broker y los Servidores de aplicaciones. Un día normal tiene un p95 de unos 56 ms desde la lectura hasta la base de datos, y ningún error.
+Los contadores mantienen sus conexiones MQTT en un Broker IoT EMQX con las 2 instancias por defecto. Las lecturas entran por un Servidor de aplicaciones Go (2 instancias), que publica cada una en un Stream Apache Kafka con 192 particiones. Seis Workers Celery (concurrencia 32 por instancia, tiempo de servicio 2 ms) consumen el stream y escriben en una Base de datos de series temporales InfluxDB con 3 instancias de 4000 puntos por segundo cada una. Cuesta unos 1405 $ al mes: 552 $ la base de datos, 420 $ los workers, 153 $ Kafka y 140 $ cada uno el broker y los Servidores de aplicaciones. Un día normal tiene un p95 de unos 56 ms desde la lectura hasta la base de datos, y ningún error.
 
 El stream hace el trabajo en «La flota se reconecta tras un corte de red». El Servidor de aplicaciones solo publica, así que responde rápido haga lo que haga la base de datos. Los workers sacan lecturas del stream tan rápido como les dejan sus huecos, y ese ritmo queda por debajo de lo que escriben los tres nodos, así que no se rechaza nada: las lecturas de más esperan en Kafka, y los workers se ponen al día unos segundos después de que acabe la ráfaga. Mientras esperan, la frescura empeora. Esta prueba permite un p95 de 10 s, y el diseño consigue unos 4,8 s, con el peor segundo en unos 5,2 s y ningún error.
 
 «Una actualización de firmware multiplica las series por 10» es donde importa el presupuesto de series. Con 3 instancias, cada nodo lleva 2 500 000 / 3 ≈ 833 000 series durante la explosión, todavía por debajo de su límite de 1 000 000. Las escrituras mantienen su velocidad normal, y el p95 se queda en unos 56 ms sin errores. Planificar las series por nodo con margen para una sorpresa de diez veces es lo que decide aquí el número de instancias, más que los puntos por segundo.
 
-La búsqueda del reto de coste no encontró ningún diseño por debajo del 80 % del coste de la referencia (lo mejor que alcanzó fue un 87 %), así que este problema no tiene reto de coste.
+La búsqueda del reto de coste no encontró ningún diseño por debajo del 80 % del coste de la referencia (lo mejor que alcanzó fue un 85 %), así que este problema no tiene reto de coste.
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual tiene el mismo Broker IoT y los mismos Servidores de aplicaciones, con el Servidor de aplicaciones escribiendo directamente en un nodo InfluxDB de 4000 puntos por segundo: sin stream y sin workers. Cuesta unos 540 $ y supera «Un día normal» con un p95 de unos 52 ms; la base de datos va ocupada a un 75 %.
+Un primer intento habitual tiene el mismo Broker IoT y los mismos Servidores de aplicaciones, con el Servidor de aplicaciones escribiendo directamente en un nodo InfluxDB de 4000 puntos por segundo: sin stream y sin workers. Cuesta unos 464 $ y supera «Un día normal» con un p95 de unos 52 ms; la base de datos va ocupada a un 75 %.
 
 Cuando la flota se reconecta, llegan 10 000 lecturas por segundo a un nodo que escribe 4000. Su cola se llena en un momento y rechaza el resto: fallan unas dos terceras partes de las lecturas durante la ráfaga, un 44,2 % en toda la prueba. Añadir nodos a la base de datos sin un stream tampoco lo arregla. Con 3 nodos y sin stream, los Servidores de aplicaciones esperan ellos mismos cada escritura, sus huecos se llenan y sigue fallando un 34,2 % de las lecturas.
 

@@ -16,7 +16,7 @@ La app web envía sus eventos en uno o dos segundos. La app móvil es distinta: 
 | Errores | 0,1 % o menos |
 | Eventos tardíos | 1 % o menos de los eventos contados en ventanas |
 | Eventos perdidos | ninguno |
-| Presupuesto | 2200 $ al mes |
+| Presupuesto | 2100 $ al mes |
 
 ## El tráfico
 

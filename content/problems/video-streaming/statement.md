@@ -12,7 +12,7 @@ You run a video service. Viewers press play and the player fetches the video in 
 | Segment plays | 99% of requests |
 | p95 latency | 80 ms or less |
 | Availability | 99.9% or more |
-| Budget | $17,000 per month |
+| Budget | $22,000 per month |
 
 ## The traffic
 

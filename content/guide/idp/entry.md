@@ -4,4 +4,4 @@ There are two very different operations here. A **login** is rare and slow, and 
 
 So the usual design is: send logins to the provider, verify tokens locally, and make sure a login surge stays under the provider's rate limit.
 
-**How the simulator bills this.** Auth0, Cognito and Okta bill $5 per million logins, a stand-in for their price per monthly active user (teaching price; source to be confirmed). Keycloak is self-hosted at $70 a month per server, with no fee per login. Local token checks cost nothing.
+**How the simulator bills this.** Auth0, Cognito and Okta bill $3,000 per million logins, a stand-in for their price per monthly active user: Cognito Essentials costs $0.015 per monthly active user, and the simulator assumes five logins per user a month. Keycloak is self-hosted at $70 a month per server (an m5.large-class node), with no fee per login. Local token checks cost nothing (list prices, us-east-1, read 2026-11-23).

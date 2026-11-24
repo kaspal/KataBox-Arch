@@ -12,7 +12,7 @@ You run the promo-code service for an online shop. At checkout, a shopper types 
 | p95 latency | 100 ms or less |
 | Availability | 99.9% or more |
 | Error rate | 1% or less |
-| Budget | $1,300 per month |
+| Budget | $1,000 per month |
 
 ## The traffic
 

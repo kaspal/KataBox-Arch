@@ -12,7 +12,7 @@ The export only reads, and it can live with data a few milliseconds old. Those r
 
 ## The reference design
 
-An AWS ALB sends the app's traffic to 2 Go App Servers, wired with Query to a PostgreSQL SQL Database: the primary. An Airflow Scheduler publishes the export's pages to a RabbitMQ Queue. A Celery Worker with 4 instances, a concurrency per instance of 64 and a service time of 2 ms consumes them and is wired with Query to a second PostgreSQL SQL Database, which the primary feeds with Replicate. "Read from" stays on "Primary and replicas". This costs about $1,235 per month: $350 for each database, $280 for the Workers, $140 for the App Servers, $70 for the Queue, $25 for the ALB and $20 for the Scheduler.
+An AWS ALB sends the app's traffic to 2 Go App Servers, wired with Query to a PostgreSQL SQL Database: the primary. An Airflow Scheduler publishes the export's pages to a RabbitMQ Queue. A Celery Worker with 4 instances, a concurrency per instance of 64 and a service time of 2 ms consumes them and is wired with Query to a second PostgreSQL SQL Database, which the primary feeds with Replicate. "Read from" stays on "Primary and replicas". This costs about $1,055 per month: $260 for each database, $280 for the Workers, $140 for the App Servers, $70 for the Queue, $25 for the ALB and $20 for the Scheduler.
 
 The two databases form one cluster. Writes go to the primary; reads spread over the primary and the replica. In "A night with the export running" the primary is 24% busy and the replica 23%, where a lone primary would be 47% busy. The p95 is about 104 ms, which is mostly the export pages' own read time, with no errors. About 0.09% of the reads are stale: an app read that reached the replica within its replication lag of 50 ms after the order was updated.
 
@@ -20,11 +20,11 @@ In "The export carries 3× the data" each database takes about half of the expor
 
 "A replica fails during the export" kills the replica 20 seconds in, for 40 seconds, in a run of 90 seconds. This test allows 3% errors and 97% availability. For about two seconds, until the health checks notice, reads still go to the dead replica and fail: 0.67% of the requests over the whole run. Then the primary takes every read. At the normal export rate one database can do that, as the first try shows. Export pages caught by the failure are tried again from the Queue, which costs them a few seconds. The p95 is about 106 ms.
 
-There is no cost challenge for this problem. The search for a cheaper design that passes every test got no lower than 83% of the reference's cost, and it can't drop either database: one card can't carry the tripled export together with the app.
+For the cost challenge, a proof design comes in at 78% of the reference's cost ($825), under the 80% target. It keeps both databases but runs 1 App Server, 2 Worker instances and a Temporal Scheduler instead of Airflow, which is billed per action and costs almost nothing at this rate. It can't drop either database: one card can't carry the tripled export together with the app.
 
 ## Why the first try breaks
 
-A common first try is the same design with one PostgreSQL SQL Database: the App Servers and the export Workers both read the primary. It costs about $885 and passes "A night with the export running" with a p95 of about 104 ms and the primary 47% busy.
+A common first try is the same design with one PostgreSQL SQL Database: the App Servers and the export Workers both read the primary. It costs about $795 and passes "A night with the export running" with a p95 of about 104 ms and the primary 47% busy.
 
 In "The export carries 3× the data" the primary runs out of connections within the first seconds. The export pages pile up in the Queue faster than the database can read them, so their wait grows every second, and the p95 reaches about 11.8 seconds. The app suffers with it: its reads and updates wait in the same line as the export pages, the App Servers' slots fill up with requests waiting on the database, and from about 3 seconds in, around 10% of all requests fail. Over the whole test that is 9.87% errors, every one of them a shopper's request.
 

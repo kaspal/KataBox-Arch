@@ -11,11 +11,11 @@ A router in front of your services already labels each question easy or hard and
 | Goal | Target |
 | --- | --- |
 | Peak traffic | 10 questions/s |
-| Time to first token, p95 | 2 s or less |
+| Time to first token, p95 | 2.5 s or less |
 | p95 latency (the whole answer) | 30 s or less |
 | Availability | 99.9% or more |
 | Errors | 1% or less |
-| Budget | $320,000 per month |
+| Budget | $220,000 per month |
 
 ## The traffic
 
@@ -26,7 +26,7 @@ The router's labels come with the traffic: easy questions always reach App Serve
 
 Two models are available:
 
-- **The large model**: a Claude API card. It is billed per token and writes about 80 tokens a second (the card's default). Your account's tier allows 4,000 requests and 1,500,000 tokens a minute, and the provider will not raise it this quarter: the simulator applies them to every Claude API card (the Inspector shows them, read-only). A call past the limit is refused with an HTTP 429.
+- **The large model**: a Claude API card. It is billed per token and writes about 100 tokens a second (the card's default). Your account's tier allows 4,000 requests and 1,500,000 tokens a minute, and the provider will not raise it this quarter: the simulator applies them to every Claude API card (the Inspector shows them, read-only). A call past the limit is refused with an HTTP 429.
 - **The small model**: an open-weights model you run yourself on a vLLM on GPU card. Each GPU instance is billed by the month, whatever it serves, and works on several answers at once (its Batch slots per GPU). The small model is fast: set its Output speed to 150 tokens a second.
 
 A hard answer takes many seconds to stream, so the help window (the Client card) waits up to 60 s for it: set the Client's Timeout to 60,000 ms.

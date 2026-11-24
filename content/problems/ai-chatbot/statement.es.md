@@ -9,11 +9,11 @@ Tienes una tienda online y vas a añadir un chatbot de soporte a su página de a
 | Objetivo | Valor |
 | --- | --- |
 | Tráfico pico | 5 mensajes/s |
-| Tiempo hasta el primer token, p95 | 1,5 s o menos |
+| Tiempo hasta el primer token, p95 | 2 s o menos |
 | Latencia p95 (la respuesta entera) | 12 s o menos |
 | Disponibilidad | 99 % o más |
 | Errores | 1 % o menos |
-| Presupuesto | 150 000 $ al mes |
+| Presupuesto | 100 000 $ al mes |
 
 ## El tráfico
 

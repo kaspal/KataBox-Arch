@@ -8,7 +8,7 @@ El otro 30 % son rutas: 1200 por segundo. Cada una recorre 6 saltos del grafo de
 
 ## El diseño de referencia
 
-El Cliente carga los mosaicos de una CDN CloudFront con un TTL de 86 400 s (un día), delante de Amazon S3. Las rutas pasan por un AWS ALB hacia Servidores de aplicaciones Go, los routers, con 5 instancias, el Tiempo límite de llamada en 150 ms y el Cortocircuito con errores al 50 %. Consultan una Base de datos de grafos Neo4j con 3 instancias. Cuesta unos 6803 $ al mes: 5528 $ de CloudFront, que cobra por petición con 2800 mosaicos por segundo, 780 $ de Neo4j, 350 $ de los routers, 121 $ de S3 y 25 $ del ALB.
+El Cliente carga los mosaicos de una CDN CloudFront con un TTL de 86 400 s (un día), delante de Amazon S3. Las rutas pasan por un AWS ALB hacia Servidores de aplicaciones Go, los routers, con 5 instancias, el Tiempo límite de llamada en 150 ms y el Cortocircuito con errores al 50 %. Consultan una Base de datos de grafos Neo4j con 3 instancias. Cuesta unos 8418 $ al mes: 7370 $ de CloudFront, que cobra por petición con 2800 mosaicos por segundo, 552 $ de Neo4j, 350 $ de los routers, 121 $ de S3 y 25 $ del ALB.
 
 «Una tarde normal» tiene un p95 de unos 96 ms sin errores, y los routers están ocupados en torno a un 23 %.
 
@@ -20,7 +20,7 @@ Este problema no tiene reto de coste. El mejor diseño más barato que se encont
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual es el mismo diseño con 3 routers, sin tiempo límite de llamada y sin cortocircuito. Cuesta unos 6663 $ al mes. Sale Aceptado en «Una tarde normal», con los routers ocupados en torno a un 39 %, y supera «Hora punta» con un p95 de unos 102 ms.
+Un primer intento habitual es el mismo diseño con 3 routers, sin tiempo límite de llamada y sin cortocircuito. Cuesta unos 8278 $ al mes. Sale Aceptado en «Una tarde normal», con los routers ocupados en torno a un 39 %, y supera «Hora punta» con un p95 de unos 102 ms.
 
 Cuando cae el feed, falla en torno al 12,3 % de las peticiones. Cada ruta sigue esperando al feed caído, alrededor de 1 s hasta que la llamada falla, y ocupa un hueco del router todo ese tiempo. Los huecos se acaban, las rutas nuevas hacen cola detrás y muchas fallan. El feed era opcional sobre el papel, pero los routers lo trataban como obligatorio.
 

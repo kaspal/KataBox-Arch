@@ -14,7 +14,7 @@ Your company takes in data from hundreds of partners. Each partner's server uplo
 | Errors | 0.1% or less |
 | Files lost | none |
 | Files dead-lettered | none |
-| Budget | $4,500 per month |
+| Budget | $4,200 per month |
 
 ## The traffic
 

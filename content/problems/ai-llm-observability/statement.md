@@ -12,7 +12,7 @@ You run a writing assistant: people chat with it, and your backend sends each me
 | p95 latency (the whole answer) | 12 s or less |
 | Availability | 99% or more |
 | Errors | 1% or less |
-| Budget | $160,000 per month |
+| Budget | $110,000 per month |
 
 ## The traffic
 

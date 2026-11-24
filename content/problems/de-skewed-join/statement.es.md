@@ -17,9 +17,9 @@ El clúster usa instancias spot, porque son mucho más baratas. La nube puede re
 | Trabajo | 2700 segundos-ejecutor en 2000 tareas sesgadas, que empiezan en 0 s |
 | Plazo | el trabajo entero termina en 480 s desde que empieza |
 | Errores | 0,1 % o menos |
-| Presupuesto | 1650 $ al mes |
+| Presupuesto | 1880 $ al mes |
 
-El coste mensual es lo que costarían las tarjetas si funcionaran todo el mes, la misma regla que en todos los demás problemas (un nodo de Cómputo por lotes cuesta 140 $ al mes bajo demanda, y la parte de sus ejecutores que marca la "Proporción spot" corre en capacidad spot al 35 % de ese precio, así que un nodo al 100 % cuesta 49 $; Snowflake solo cobra mientras está despierto). Los precios son los precios didácticos del registro.
+El coste mensual es lo que costarían las tarjetas si funcionaran todo el mes, la misma regla que en todos los demás problemas (un nodo de Cómputo por lotes cuesta 175 $ al mes bajo demanda, y la parte de sus ejecutores que marca la "Proporción spot" corre en capacidad spot al 35 % de ese precio, así que un nodo al 100 % cuesta 61,25 $; Snowflake solo cobra mientras está despierto). Los precios son los precios didácticos del registro.
 
 ## El tráfico
 

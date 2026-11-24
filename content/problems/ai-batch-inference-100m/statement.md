@@ -15,9 +15,9 @@ The team wants the cluster on spot instances, because they are much cheaper. The
 | Job | 100 tasks of 300 executor-seconds each, starting at 0 s |
 | Deadline | the whole job finishes within 600 s of its start |
 | Errors | 0.1% or less |
-| Budget | $4,200 per month |
+| Budget | $5,300 per month |
 
-The monthly cost is what the cluster would cost if it ran all month, the same rule as every other problem. A Batch Compute node costs $140 a month on demand; the share of its executors set by "Spot share" runs on spot capacity at 35% of that price, so a node at "Spot share" 100% costs $49 a month. Prices are the registry's teaching prices.
+The monthly cost is what the cluster would cost if it ran all month, the same rule as every other problem. A Batch Compute node costs $175 a month on demand; the share of its executors set by "Spot share" runs on spot capacity at 35% of that price, so a node at "Spot share" 100% costs $61.25 a month. Prices are the registry's teaching prices.
 
 ## The traffic
 

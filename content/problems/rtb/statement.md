@@ -13,7 +13,7 @@ You run an ad exchange's auction service. Each time a web page or an app has a f
 | p99 latency | 150 ms or less |
 | Error rate | 0.1% or less |
 | Availability | 99.9% or more |
-| Budget | $1,300 per month |
+| Budget | $1,200 per month |
 
 ## The traffic
 

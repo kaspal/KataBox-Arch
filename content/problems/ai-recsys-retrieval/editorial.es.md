@@ -15,7 +15,7 @@ Hay dos cosas que pueden romper la búsqueda, y cada prueba oculta comprueba una
 
 Un AWS ALB envía las peticiones a 4 App Servers en Go. Primero preguntan a una Caché Redis con 4 GB de memoria y un TTL de 300 s; en 4 GB caben unos 2 millones de listas de 2 KB. Si falla, buscan en una Base de datos vectorial Qdrant con 2 shards y 5 millones de vectores, y después reordenan en NVIDIA Triton, 1 instancia con el tipo de modelo «Clasificador».
 
-Cuesta unos 1631 $ al mes: 734 $ por la GPU de Triton, 520 $ por la tarjeta Qdrant (2 shards a 260 $), 280 $ por los App Servers, 72 $ por la Caché Redis y 25 $ por el ALB.
+Cuesta unos 1608 $ al mes: 734 $ por la GPU de Triton, 520 $ por la tarjeta Qdrant (2 shards a 260 $), 280 $ por los App Servers, 49 $ por la Caché Redis y 25 $ por el ALB.
 
 En un día normal la tarjeta Qdrant está ocupada cerca del 23 % del tiempo, los App Servers cerca del 9 % y la GPU cerca del 14 %. El p95 es de unos 62 ms y no hay errores.
 
@@ -26,9 +26,9 @@ Cuando un artículo se hace viral, la caché responde casi todas las peticiones 
 Cada mitad cubre una prueba, y cada una por separado falla la otra:
 
 - Shards sin caché: un Qdrant con 4 shards y sin Redis (2079 $) pasa la rebaja, pero cuando el artículo se hace viral su shard se desborda y falla cerca del 10,2 % de las peticiones. Incluso 16 shards (5199 $, por encima del presupuesto) siguen fallando cerca del 4,4 %: el shard del artículo viral sigue siendo un solo shard.
-- Una caché sin shards: un Qdrant con 1 shard más la Caché Redis (1371 $) pasa la prueba viral, pero la cola larga de la rebaja falla en la caché y fallan cerca del 41,5 % de las peticiones.
+- Una caché sin shards: un Qdrant con 1 shard más la Caché Redis (1348 $) pasa la prueba viral, pero la cola larga de la rebaja falla en la caché y fallan cerca del 41,5 % de las peticiones.
 
-Para el reto de coste, la búsqueda de pruebas no encontró nada por debajo del 88 % del coste de la referencia (1428 $): la única GPU es casi la mitad de la factura y no se puede partir, y la búsqueda y la caché ya son pequeñas. Este problema no tiene reto de coste.
+Para el reto de coste, la búsqueda de pruebas no encontró nada por debajo del 89 % del coste de la referencia (1431 $): la única GPU es casi la mitad de la factura y no se puede partir, y la búsqueda y la caché ya son pequeñas. Este problema no tiene reto de coste.
 
 ## Por qué falla el primer intento
 

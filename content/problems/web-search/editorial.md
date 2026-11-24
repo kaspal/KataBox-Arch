@@ -8,19 +8,19 @@ The hidden tests push on two different weak spots. When everyone searches the sa
 
 ## The reference design
 
-An AWS ALB sends requests to 8 Go App Servers. Searches go cache-aside through a Redis Cache with 8 GB of memory and a TTL of 300 s, in front of an Elasticsearch card, "search-a", with 6 shards. "search-a" is wired with Replicate to a second Elasticsearch card, "search-b", also with 6 shards. Searches spread over both cards; index writes go to the primary. This costs about $2,229 per month: $750 for each Elasticsearch card, $560 for the App Servers, $144 for Redis and $25 for the ALB. In "A normal day" the p95 is about 38 ms, with no errors.
+An AWS ALB sends requests to 8 Go App Servers. Searches go cache-aside through a Redis Cache with 8 GB of memory and a TTL of 300 s, in front of an Elasticsearch card, "search-a", with 6 shards. "search-a" is wired with Replicate to a second Elasticsearch card, "search-b", also with 6 shards. Searches spread over both cards; index writes go to the primary. This costs about $2,183 per month: $750 for each Elasticsearch card, $560 for the App Servers, $98 for Redis and $25 for the ALB. In "A normal day" the p95 is about 38 ms, with no errors.
 
 The cache is not optional at this load. Tuning showed why: without a cache, even 10 shards and 8 App Servers failed a normal day. The most popular query lives on one shard, that shard saturates, and the App Servers fill up waiting on it. With the cache, the popular queries are answered from Redis and never reach Elasticsearch.
 
-"A search node dies" kills the search cluster's primary at 20 seconds, for good. This test allows 3% errors and 97% availability. The reference ends at about 0.98% errors. The errors are the index writes refused until the replica is promoted, and the searches that were in flight on the primary when it died. The searches keep working on the replica.
+"A search node dies" kills the search cluster's primary at 20 seconds, for good. This test allows 3% errors and 97% availability. The reference ends at about 2.7% errors. The errors are the index writes refused until the replica is promoted, and the searches that were in flight on the primary when it died. The searches keep working on the replica.
 
 "Everyone searches the same thing" triples the traffic from 15 seconds in, for 30 seconds, with a popularity of Zipf 1.5, so one query takes a large share. The cache answers the trending query: the p95 is about 26 ms, with about 0.04% errors. The price is freshness: a cached result can be a few minutes old, which is fine for search.
 
-There is no cost challenge here. The best cheaper design found cost 89% of the reference, not cheap enough to make one. The second Elasticsearch card is a large part of the bill, and it is the price of the lesson.
+There is no cost challenge here. The best cheaper design found cost 91% of the reference, not cheap enough to make one. The second Elasticsearch card is a large part of the bill, and it is the price of the lesson.
 
 ## Why the first try breaks
 
-A common first try is the same design without the replica: one Elasticsearch card with 6 shards. It costs about $1,479 per month and is Accepted on "A normal day", with a p95 of about 39 ms. It passes "Everyone searches the same thing" too, because the cache takes the trending query.
+A common first try is the same design without the replica: one Elasticsearch card with 6 shards. It costs about $1,433 per month and is Accepted on "A normal day", with a p95 of about 39 ms. It passes "Everyone searches the same thing" too, because the cache takes the trending query.
 
 "A search node dies" breaks it. From 20 seconds on there is no index left: every index write fails, and so does every search that needs the index. The run ends at about 13% errors, far over the 3% the test allows.
 

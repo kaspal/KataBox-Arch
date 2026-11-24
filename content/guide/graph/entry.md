@@ -4,4 +4,4 @@ Following one link is cheap, because the database keeps each node's links next t
 
 Reads can be spread over replicas, which are separate cards joined by Replicate edges. Writes always go to the leader, and while a new leader is chosen after a failure, writes fail. A graph database is the right tool when the question is about relationships; for lookups by key or reports over many rows, SQL, a key-value store or a warehouse fits better.
 
-**How the simulator bills this.** Neo4j and JanusGraph run on your own servers at $260 per instance a month, the price of a memory-rich node. Amazon Neptune is a managed instance at $350 a month (teaching price; source to be confirmed). There is no fee per query, and storage is not billed separately.
+**How the simulator bills this.** Neo4j and JanusGraph run on your own servers at $184 per instance a month, the price of a memory-rich r5.xlarge-class node ($0.252 an hour for 730 hours). Amazon Neptune is a managed db.r6g.large instance at $240 a month ($0.3287 an hour). There is no fee per query, and storage is not billed separately (list prices, us-east-1, read 2026-11-23).

@@ -8,9 +8,9 @@ The hidden tests change both halves. "A partner sends a month of giant files" mu
 
 ## The reference design
 
-The partner server calls 2 Go App Servers. They write each file to Amazon S3, publish a message to an Amazon SQS Queue and read PostgreSQL for status checks. The queue has "Maximum retries" set to 8: the waits add up to 1 + 2 + 4 + 8 + 16 + 32 + 32 + 32 = 127 seconds, far longer than a failover. A Dead-Letter Queue is wired from the queue with Publish. 16 Celery Workers with a concurrency of 8 (128 slots) consume the queue, read the file from S3 and write PostgreSQL. PostgreSQL is wired with Replicate to a second PostgreSQL, with the default failover time of 30 s. This costs about $2,652 per month: $1,120 for the Workers, $566 for S3, $126 for SQS, $140 for the App Servers and $350 for each PostgreSQL. A normal day has a p95 of about 489 ms, with no errors and no lost files.
+The partner server calls 2 Go App Servers. They write each file to Amazon S3, publish a message to an Amazon SQS Queue and read PostgreSQL for status checks. The queue has "Maximum retries" set to 8: the waits add up to 1 + 2 + 4 + 8 + 16 + 32 + 32 + 32 = 127 seconds, far longer than a failover. A Dead-Letter Queue is wired from the queue with Publish. 16 Celery Workers with a concurrency of 8 (128 slots) consume the queue, read the file from S3 and write PostgreSQL. PostgreSQL is wired with Replicate to a second PostgreSQL, with the default failover time of 30 s. This costs about $2,472 per month: $1,120 for the Workers, $566 for S3, $126 for SQS, $140 for the App Servers and $260 for each PostgreSQL. A normal day has a p95 of about 489 ms, with no errors and no lost files.
 
-During the giant files, the Workers are about 87% busy and the p95 is about 7.2 s, mostly the giant files' own work. The month costs more at that rate ($3,006), since S3 and SQS charge per request.
+During the giant files, the Workers are about 87% busy and the p95 is about 7.2 s, mostly the giant files' own work. The month costs more at that rate ($2,826), since S3 and SQS charge per request.
 
 "The database's primary dies" allows a p95 of 45 s, 2% errors and 98% availability. For about 2 seconds, until the health checks notice, status reads still go to the dead primary and some fail; then the replica serves them. Writes fail until the replica is promoted, about 30 seconds after the crash. Each failed file goes back to the queue and is tried again: the first ones to fail, at 20 s, get through on their retry at 51 s, about 31 s late. The p95 is about 31.9 s, with 0.149% errors and no lost files. The Dead-Letter Queue stays empty: remove it and run the test again, and still nothing is lost.
 
@@ -18,7 +18,7 @@ There is no cost challenge for this problem: the search found a design at 90% of
 
 ## Why the first try breaks
 
-A common first try is the same path with 3 Celery Workers (24 slots), the queue's default of 3 retries, no Dead-Letter Queue and one PostgreSQL. It costs about $1,392 per month and passes "A normal day" with the same p95 of about 489 ms; its Workers are 57% busy.
+A common first try is the same path with 3 Celery Workers (24 slots), the queue's default of 3 retries, no Dead-Letter Queue and one PostgreSQL. It costs about $1,302 per month and passes "A normal day" with the same p95 of about 489 ms; its Workers are 57% busy.
 
 With the giant files, 24 slots face about 108 slots of work. The Workers are 99% busy, the queue grows all minute, and the p95 climbs past a minute.
 

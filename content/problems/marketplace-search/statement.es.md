@@ -12,7 +12,7 @@ Gestionas el buscador de un marketplace. Los compradores escriben lo que quieren
 | Lecturas | 95 % de las peticiones |
 | Latencia p95 (las actualizaciones, hasta completar) | 200 ms o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 2500 $ al mes |
+| Presupuesto | 2400 $ al mes |
 | Mensajes perdidos | Ninguno |
 
 ## El tráfico

@@ -12,7 +12,7 @@ Your online shop is adding a support agent. A customer asks something about an o
 | p95 completion latency | 25 s or less |
 | Availability | 99% or more |
 | Errors | 1% or less |
-| Budget | $150,000 per month |
+| Budget | $100,000 per month |
 | Lost tasks | None |
 
 ## The traffic

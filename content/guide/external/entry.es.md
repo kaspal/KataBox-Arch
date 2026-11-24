@@ -4,4 +4,4 @@ En el simulador, una tarjeta externa representa un proveedor que declara el prob
 
 El movimiento de diseño clave es sacar a los proveedores lentos o poco fiables del camino del usuario. Una llamada hecha mientras el usuario espera falla cuando falla el proveedor. Una llamada hecha por un worker desde una cola puede esperar y reintentar.
 
-**Cómo lo factura el simulador.** La API genérica y Stripe no cuestan nada por llamada (Stripe en realidad cobra una parte de cada pago, que no se modela). Twilio cobra 7.900 $ por millón de SMS, unos 0,0079 $ cada uno, y SendGrid 900 $ por millón de correos, unos 0,0009 $ cada uno. Son precios didácticos; fuente por confirmar.
+**Cómo lo factura el simulador.** La API genérica y Stripe no cuestan nada por llamada (Stripe en realidad cobra una parte de cada pago, que no se modela). Twilio cobra 8.300 $ por millón de SMS, 0,0083 $ cada uno, y SendGrid 900 $ por millón de correos, unos 0,0009 $ cada uno. Son precios de lista de la tarifa de SMS de EE. UU. de Twilio y del plan Pro de SendGrid (consultados el 2026-11-23).

@@ -13,7 +13,7 @@ Tienes una web de directos. Los streamers emiten en directo y los espectadores l
 | Tasa de errores | 1 % o menos |
 | Disponibilidad | 99,9 % o más |
 | Espectadores conectados al chat | 95 % o más en cada segundo |
-| Presupuesto | 15 000 $ al mes |
+| Presupuesto | 19 000 $ al mes |
 
 ## El tráfico
 

@@ -214,10 +214,10 @@ id = "app-django-rps"
 group = "servers"
 label = "One Django instance"
 label_es = "Una instancia de Django"
-value = 450
+value = 250
 unit = "rps"
-note = "In the simulator: 9 worker processes at about 20 ms each. Fewer, slower workers per instance than the others."
-note_es = "En el simulador: 9 procesos worker a unos 20 ms cada uno. Menos workers, y más lentos, por instancia que los demás."
+note = "In the simulator: 5 worker processes at about 20 ms each, gunicorn's (2 × cores) + 1 on a 2-vCPU machine. Fewer, slower workers per instance than the others."
+note_es = "En el simulador: 5 procesos worker a unos 20 ms cada uno, los (2 × núcleos) + 1 de gunicorn en una máquina de 2 vCPU. Menos workers, y más lentos, por instancia que los demás."
 source = "simulator"
 
 [[figure]]
@@ -379,11 +379,11 @@ id = "llm-output-tps"
 group = "servers"
 label = "LLM output tokens a second, per stream"
 label_es = "Tokens de salida de un LLM por segundo, por flujo"
-value = 80
+value = 100
 unit = "count"
-note = "A hosted model writes its answer at roughly 80 tokens a second for each request. A 500-token answer takes about six seconds after the first token."
-note_es = "Un modelo alojado escribe su respuesta a unos 80 tokens por segundo en cada petición. Una respuesta de 500 tokens tarda unos seis segundos tras el primer token."
-# cited: https://artificialanalysis.ai/leaderboards/models: 62–145 t/s across current mid models (third-party measurement); 80 is within the measured range
+note = "A hosted model writes its answer at roughly 100 tokens a second for each request. A 500-token answer takes about five seconds after the first token."
+note_es = "Un modelo alojado escribe su respuesta a unos 100 tokens por segundo en cada petición. Una respuesta de 500 tokens tarda unos cinco segundos tras el primer token."
+# cited: https://artificialanalysis.ai/leaderboards/models: Sonnet 5.5 96–103 t/s; 62–145 t/s across current mid models (third-party measurement)
 source = "https://artificialanalysis.ai/leaderboards/models"
 
 [[figure]]
@@ -391,12 +391,12 @@ id = "llm-ttft"
 group = "servers"
 label = "Time to first token of a hosted model"
 label_es = "Tiempo hasta el primer token de un modelo alojado"
-value = 0.6
+value = 1.1
 unit = "s"
-note = "About half a second before the first token arrives, more with a long prompt. Streaming hides the rest of the answer behind it."
-note_es = "Alrededor de medio segundo antes de que llegue el primer token, más con un prompt largo. El streaming oculta tras él el resto de la respuesta."
-# ballpark; the source says 0.89–1.05 s for non-reasoning models; reasoning modes take seconds (third-party measurement): https://artificialanalysis.ai/models/gpt-6-sol-non-reasoning
-source = "needed: https://artificialanalysis.ai/models/gpt-6-sol-non-reasoning"
+note = "About a second before the first token arrives, more with a long prompt. Streaming hides the rest of the answer behind it."
+note_es = "Alrededor de un segundo antes de que llegue el primer token, más con un prompt largo. El streaming oculta tras él el resto de la respuesta."
+# cited: https://artificialanalysis.ai/models/claude-sonnet-5-5: Sonnet 5.5 about 1.05–1.18 s to first token; 0.89 s for GPT-6 Sol non-reasoning; reasoning modes take seconds (third-party measurement)
+source = "https://artificialanalysis.ai/models/claude-sonnet-5-5"
 
 [[figure]]
 id = "gpu-hour-price"

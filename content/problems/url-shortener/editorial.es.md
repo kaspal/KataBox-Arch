@@ -8,7 +8,7 @@ Con 12 000 peticiones/s y un 95 % de lecturas, unas 11 400 peticiones/s son redi
 
 Un Load Balancer (NGINX) reparte el tráfico entre 8 App Servers Go. Cada App Server consulta primero una Cache Redis de 8 GB. Un acierto termina la petición; un fallo lee de PostgreSQL y llena la caché. En 8 GB caben unos 8 millones de entradas de 1 KB, mucho más que el conjunto caliente. PostgreSQL funciona con una principal y una réplica unidas por una arista Replicate, con un tiempo de failover de 10 segundos. Las lecturas se reparten entre ambas; las escrituras van a la principal.
 
-Cuesta unos 1 429 $ al mes y su p95 ronda los 22 ms en un día normal. Aguanta el pico viral. Cuando la principal se cae, alrededor del 1,1 % de las peticiones falla mientras dura el failover; luego la réplica asciende y el tráfico se recupera.
+Cuesta unos 1203 $ al mes y su p95 ronda los 22 ms en un día normal. Aguanta el pico viral. Cuando la principal se cae, alrededor del 1,1 % de las peticiones falla mientras dura el failover; luego la réplica asciende y el tráfico se recupera.
 
 ## Por qué falla el primer intento
 

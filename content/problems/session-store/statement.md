@@ -12,7 +12,7 @@ You run the web tier of a busy site where most people stay signed in. Every page
 | Reads | 90% of requests |
 | p95 latency | 50 ms or less |
 | Availability | 99.9% or more |
-| Budget | $1,500 per month |
+| Budget | $1,400 per month |
 
 ## The traffic
 

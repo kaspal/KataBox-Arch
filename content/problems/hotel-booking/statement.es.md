@@ -12,7 +12,7 @@ Tienes una web de reservas de hotel. Los viajeros buscan hoteles en una ciudad p
 | Latencia p95 | 200 ms o menos |
 | Disponibilidad | 99,9 % o más |
 | Tasa de errores | 1 % o menos |
-| Presupuesto | 2000 $ al mes |
+| Presupuesto | 1800 $ al mes |
 
 ## El tráfico
 

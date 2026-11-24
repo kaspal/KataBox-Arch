@@ -13,7 +13,7 @@ You run the support assistant inside a shopping app. A customer types a question
 | p95 time to first token | 1,500 ms or less |
 | Availability | 99% or more |
 | Errors | 1% or less |
-| Budget | $250,000 per month |
+| Budget | $190,000 per month |
 
 ## The traffic
 

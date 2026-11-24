@@ -6,7 +6,7 @@ En el pico, las 50 claves de clientes envían unas 2 970 peticiones/s entre toda
 
 ## El diseño de referencia
 
-Un Rate Limiter (Envoy) en el borde, con un límite de 200 peticiones/s por clave y una ráfaga de 400. Detrás hay 2 App Servers Go y una base de datos PostgreSQL. El diseño completo cuesta unos 520 $ al mes.
+Un Rate Limiter (Envoy) en el borde, con un límite de 200 peticiones/s por clave y una ráfaga de 400. Detrás hay 2 App Servers Go y una base de datos PostgreSQL. El diseño completo cuesta unos 430 $ al mes.
 
 Como el Rate Limiter mantiene una cubeta de tokens por clave, la inundación solo vacía la cubeta de la clave abusiva. Sus llamadas extra se descartan en el borde, lo que el juez cuenta como un éxito, y los App Servers nunca las ven. Las otras 50 cubetas siguen llenas.
 

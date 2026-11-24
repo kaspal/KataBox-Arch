@@ -4,7 +4,7 @@ Find the critical path. The job ends when its last task ends, and the biggest ta
 
 ## 2
 
-Adding nodes or turning on "Speculative execution" doesn't make the biggest task any smaller: one task runs on one executor, and a copy of a huge task is just as huge. "Checkpoints" save part of a stopped task's work, but the hot task still needs most of its 330 s after the executors return. What shrinks it is "Salting (split hot tasks)": split the biggest tasks into enough pieces that each one is a few dozen seconds, and the job's length becomes the total work divided by the executors. From then on more nodes do shorten the job, and spot nodes are cheap: $49 a month each at "Spot share" 100%.
+Adding nodes or turning on "Speculative execution" doesn't make the biggest task any smaller: one task runs on one executor, and a copy of a huge task is just as huge. "Checkpoints" save part of a stopped task's work, but the hot task still needs most of its 330 s after the executors return. What shrinks it is "Salting (split hot tasks)": split the biggest tasks into enough pieces that each one is a few dozen seconds, and the job's length becomes the total work divided by the executors. From then on more nodes do shorten the job, and spot nodes are cheap: about $61 a month each at "Spot share" 100%.
 
 ## 3
 

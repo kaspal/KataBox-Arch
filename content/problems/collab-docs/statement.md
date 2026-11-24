@@ -11,7 +11,7 @@ You run a document editor where several people can work on the same page at once
 | Peak traffic | 6,000 messages/s |
 | p95 completion latency | 150 ms or less |
 | Availability | 99.9% or more |
-| Budget | $1,600 per month |
+| Budget | $1,400 per month |
 
 ## The traffic
 

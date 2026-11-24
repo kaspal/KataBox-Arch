@@ -25,7 +25,7 @@
   "retried": 0.0,
   "stale_reads": 278.4000000000002,
   "stale_rate": 0.0008095979229617605,
-  "cost_month": 1181.0,
+  "cost_month": 989.4,
   "per_type": [
     {
       "id": "redirect",
@@ -488,7 +488,7 @@
       "max_queue": 12.0,
       "drops": 0.0,
       "served": 343874.4000003441,
-      "cost_month": 36.0,
+      "cost_month": 24.4,
       "util_series": [
         0.126509,
         0.124019,
@@ -593,7 +593,7 @@
       "max_queue": 0.0,
       "drops": 0.0,
       "served": 39297.60000001214,
-      "cost_month": 350.0,
+      "cost_month": 260.0,
       "util_series": [
         0.08275285714285714,
         0.0843785238095238,
@@ -698,7 +698,7 @@
       "max_queue": 0.0,
       "drops": 0.0,
       "served": 21141.600000001134,
-      "cost_month": 350.0,
+      "cost_month": 260.0,
       "util_series": [
         0.04936597619047619,
         0.04109371428571429,

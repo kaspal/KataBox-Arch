@@ -10,7 +10,7 @@ Una SQL Database paga por ese tamaño. Un resultado más grande tarda más, aqu�
 
 Un Load Balancer reparte el tráfico entre cuatro App Servers en Go. Estos leen y escriben en un Cache Redis usado como almacén, sin TTL, así que Redis responde cada lectura por sí mismo y nada caduca. Redis ejecuta cada comando en unos 0,01 ms en un solo hilo, unas 100 000 operaciones por segundo, muy por encima de lo que pide este juego.
 
-Una conexión Replicate une el primario con una réplica, lo que forma un clúster con un tiempo de conmutación por error de 2 s. Cuatro App Servers dejan margen para que el tráfico se duplique. El diseño cuesta unos 341 $ al mes.
+Una conexión Replicate une el primario con una réplica, lo que forma un clúster con un tiempo de conmutación por error de 2 s. Cuatro App Servers dejan margen para que el tráfico se duplique. El diseño cuesta unos 329 $ al mes.
 
 ## Por qué falla el primer intento
 

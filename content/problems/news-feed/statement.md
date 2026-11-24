@@ -12,7 +12,7 @@ You run the home feed of a social app. People open it many times a day and expec
 | Reads | 97% of requests |
 | p95 latency | 100 ms or less |
 | Availability | 99.9% or more |
-| Budget | $3,500 per month |
+| Budget | $3,000 per month |
 
 ## The traffic
 

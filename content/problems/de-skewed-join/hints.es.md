@@ -4,7 +4,7 @@ Busca el camino crítico. El trabajo termina cuando termina su última tarea, y 
 
 ## 2
 
-Añadir nodos o activar la "Ejecución especulativa" no hace más pequeña la tarea más grande: una tarea corre en un solo ejecutor, y una copia de una tarea enorme es igual de enorme. Los "Checkpoints" salvan parte del trabajo de una tarea parada, pero la tarea caliente sigue necesitando casi todos sus 330 s cuando vuelven los ejecutores. Lo que la encoge es el "Salting (dividir tareas calientes)": divide las tareas más grandes en suficientes piezas para que cada una sean unas decenas de segundos, y la duración del trabajo pasa a ser el trabajo total dividido entre los ejecutores. A partir de ahí más nodos sí acortan el trabajo, y los nodos spot son baratos: 49 $ al mes cada uno con la "Proporción spot" al 100 %.
+Añadir nodos o activar la "Ejecución especulativa" no hace más pequeña la tarea más grande: una tarea corre en un solo ejecutor, y una copia de una tarea enorme es igual de enorme. Los "Checkpoints" salvan parte del trabajo de una tarea parada, pero la tarea caliente sigue necesitando casi todos sus 330 s cuando vuelven los ejecutores. Lo que la encoge es el "Salting (dividir tareas calientes)": divide las tareas más grandes en suficientes piezas para que cada una sean unas decenas de segundos, y la duración del trabajo pasa a ser el trabajo total dividido entre los ejecutores. A partir de ahí más nodos sí acortan el trabajo, y los nodos spot son baratos: unos 61 $ al mes cada uno con la "Proporción spot" al 100 %.
 
 ## 3
 

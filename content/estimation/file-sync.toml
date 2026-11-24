@@ -19,8 +19,8 @@ prompt_es = "Sin un índice de bloques, cada una de las {chunks_per_s} subidas d
 inputs = { chunks_per_s = 1_700, seconds_per_month = 2_592_000 }
 formula = "chunks_per_s * seconds_per_month"
 unit = "count"
-solution = "{chunks_per_s} × {seconds_per_month} s ≈ {answer} requests, about 4.4 billion. At $5 per million writes (PUTs) that is about $22,000 a month for S3 alone, and SQS adds about $5,300 more for the change notices, at $1.20 per million messages: far past the $6,000 budget. If about 96% of uploads end at the index, S3 sees only about 4% of them: under $900."
-solution_es = "{chunks_per_s} × {seconds_per_month} s ≈ {answer} peticiones, unos 4400 millones. A 5 $ por millón de escrituras (PUT) son unos 22 000 $ al mes solo de S3, y SQS añade unos 5300 $ más por los avisos de cambio, a 1,20 $ por millón de mensajes: muy por encima del presupuesto de 6000 $. Si cerca del 96 % de las subidas terminan en el índice, a S3 solo llega un 4 %: menos de 900 $."
+solution = "{chunks_per_s} × {seconds_per_month} s ≈ {answer} requests, about 4.4 billion. At $5 per million writes (PUTs) that is about $22,000 a month for S3 alone, and SQS adds about $5,300 more for the change notices, at $1.20 per million messages: far past the $5,500 budget. If about 96% of uploads end at the index, S3 sees only about 4% of them: under $900."
+solution_es = "{chunks_per_s} × {seconds_per_month} s ≈ {answer} peticiones, unos 4400 millones. A 5 $ por millón de escrituras (PUT) son unos 22 000 $ al mes solo de S3, y SQS añade unos 5300 $ más por los avisos de cambio, a 1,20 $ por millón de mensajes: muy por encima del presupuesto de 5500 $. Si cerca del 96 % de las subidas terminan en el índice, a S3 solo llega un 4 %: menos de 900 $."
 
 [[drill]]
 id = "index-size"
@@ -30,5 +30,5 @@ prompt_es = "Un índice de bloques guarda una entrada por cada uno de los {chunk
 inputs = { chunks = 2_000_000, entry_kb = 0.1 }
 formula = "chunks * entry_kb / 1000"
 unit = "MB"
-solution = "{chunks} × {entry_kb} KB = 200,000 KB, ÷ 1,000 ≈ {answer}. The index never holds the 128 KB chunks themselves, only their names, so a 1 GB Redis Cache at about $18 a month holds every entry with room to spare."
-solution_es = "{chunks} × {entry_kb} KB = 200 000 KB, ÷ 1000 ≈ {answer}. El índice nunca guarda los bloques de 128 KB, solo sus nombres, así que una Cache Redis de 1 GB, por unos 18 $ al mes, guarda todas las entradas con margen."
+solution = "{chunks} × {entry_kb} KB = 200,000 KB, ÷ 1,000 ≈ {answer}. The index never holds the 128 KB chunks themselves, only their names, so a 1 GB Redis Cache at about $12 a month holds every entry with room to spare."
+solution_es = "{chunks} × {entry_kb} KB = 200 000 KB, ÷ 1000 ≈ {answer}. El índice nunca guarda los bloques de 128 KB, solo sus nombres, así que una Cache Redis de 1 GB, por unos 12 $ al mes, guarda todas las entradas con margen."

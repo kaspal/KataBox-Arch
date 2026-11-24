@@ -12,7 +12,7 @@ You run a web answer engine. Someone types a question, and instead of ten links 
 | p95 latency | 10,000 ms or less |
 | Availability | 99% or more |
 | Errors | 1% or less |
-| Budget | $5,000,000 per month |
+| Budget | $3,300,000 per month |
 
 ## The traffic
 

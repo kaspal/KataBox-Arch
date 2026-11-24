@@ -8,7 +8,7 @@ Cada una de las 6 000 peticiones/s es una lectura, y están muy desequilibradas.
 
 Un Load Balancer reparte el tráfico entre 3 App Servers Go. Cada App Server consulta primero una Cache Redis llamada «prefixes» (2 GB, TTL de una hora). Un acierto termina la petición. Un fallo pregunta a Elasticsearch, con 4 shards, y llena la caché.
 
-Cuesta unos 771 $ al mes y su p95 ronda los 18 ms en todas las pruebas. Casi todos los prefijos se responden desde la caché, así que el índice solo ve un hilo fino de prefijos raros, repartido de forma pareja entre sus shards.
+Cuesta unos 759 $ al mes y su p95 ronda los 18 ms en todas las pruebas. Casi todos los prefijos se responden desde la caché, así que el índice solo ve un hilo fino de prefijos raros, repartido de forma pareja entre sus shards.
 
 ## Por qué falla el primer intento
 

@@ -13,7 +13,7 @@ tags = ["ml-inference", "embeddings", "queues", "rate-limits"]
 peak_rps = 5
 p95_ms = 30000
 availability = 0.999
-budget_usd = 35000
+budget_usd = 28000
 
 [[model_limits]]
 flavour = "openai_api"

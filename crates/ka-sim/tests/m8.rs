@@ -1014,8 +1014,8 @@ fn s2_time_is_ttft_plus_output_over_speed() {
     let (d, s) = llm(m, 5.0);
     let r = run(&d, &s, 61);
     let ttft = r.ttft.expect("ttft").p50_ms;
-    // 600 ms + 800 tokens at 5,000/s ≈ 760 ms; the answer at 80 tokens/s ≈ 3.75 s more.
-    assert!((650.0..1000.0).contains(&ttft), "{ttft}");
+    // 1,100 ms + 800 tokens at 5,000/s ≈ 1,260 ms; the answer at 100 tokens/s ≈ 3 s more.
+    assert!((1150.0..1500.0).contains(&ttft), "{ttft}");
     assert!(
         r.latency.p50_ms > 3500.0 && r.latency.p50_ms < 6000.0,
         "{}",

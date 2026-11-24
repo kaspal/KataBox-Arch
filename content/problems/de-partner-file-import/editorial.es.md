@@ -8,9 +8,9 @@ Las pruebas ocultas cambian las dos mitades. «Un socio envía un mes de fichero
 
 ## El diseño de referencia
 
-El servidor del socio llama a 2 App Servers Go. Estos escriben cada fichero en Amazon S3, publican un mensaje en una Cola Amazon SQS y leen PostgreSQL para las consultas de estado. La cola tiene «Reintentos máximos» en 8: las esperas suman 1 + 2 + 4 + 8 + 16 + 32 + 32 + 32 = 127 segundos, mucho más que un failover. Una Cola de mensajes fallidos está conectada a la cola con Publicar. 16 Workers Celery con concurrencia 8 (128 huecos) consumen la cola, leen el fichero de S3 y escriben en PostgreSQL. PostgreSQL está conectada con Replicar a una segunda PostgreSQL, con el tiempo de failover por defecto de 30 s. Esto cuesta unos 2652 $ al mes: 1120 $ de Workers, 566 $ de S3, 126 $ de SQS, 140 $ de App Servers y 350 $ por cada PostgreSQL. Un día normal tiene un p95 de unos 489 ms, sin errores y sin ficheros perdidos.
+El servidor del socio llama a 2 App Servers Go. Estos escriben cada fichero en Amazon S3, publican un mensaje en una Cola Amazon SQS y leen PostgreSQL para las consultas de estado. La cola tiene «Reintentos máximos» en 8: las esperas suman 1 + 2 + 4 + 8 + 16 + 32 + 32 + 32 = 127 segundos, mucho más que un failover. Una Cola de mensajes fallidos está conectada a la cola con Publicar. 16 Workers Celery con concurrencia 8 (128 huecos) consumen la cola, leen el fichero de S3 y escriben en PostgreSQL. PostgreSQL está conectada con Replicar a una segunda PostgreSQL, con el tiempo de failover por defecto de 30 s. Esto cuesta unos 2472 $ al mes: 1120 $ de Workers, 566 $ de S3, 126 $ de SQS, 140 $ de App Servers y 260 $ por cada PostgreSQL. Un día normal tiene un p95 de unos 489 ms, sin errores y sin ficheros perdidos.
 
-Con los ficheros gigantes, los Workers están ocupados un 87 % y el p95 es de unos 7,2 s, sobre todo por el propio trabajo de los ficheros gigantes. El mes sale más caro a ese ritmo (3006 $), porque S3 y SQS cobran por petición.
+Con los ficheros gigantes, los Workers están ocupados un 87 % y el p95 es de unos 7,2 s, sobre todo por el propio trabajo de los ficheros gigantes. El mes sale más caro a ese ritmo (2826 $), porque S3 y SQS cobran por petición.
 
 «Se cae la primaria de la base de datos» permite un p95 de 45 s, un 2 % de errores y un 98 % de disponibilidad. Durante unos 2 segundos, hasta que los chequeos de salud lo notan, las lecturas de estado siguen yendo a la primaria caída y algunas fallan; después las sirve la réplica. Las escrituras fallan hasta que la réplica se promueve, unos 30 segundos después de la caída. Cada fichero que falla vuelve a la cola y se intenta de nuevo: los primeros en fallar, a los 20 s, pasan en su reintento de los 51 s, unos 31 s tarde. El p95 es de unos 31,9 s, con un 0,149 % de errores y ningún fichero perdido. La Cola de mensajes fallidos se queda vacía: quítala y vuelve a ejecutar la prueba, y tampoco se pierde nada.
 
@@ -18,7 +18,7 @@ Este problema no tiene reto de coste: la búsqueda encontró un diseño al 90 % 
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual es el mismo camino con 3 Workers Celery (24 huecos), los 3 reintentos por defecto de la cola, sin Cola de mensajes fallidos y con una sola PostgreSQL. Cuesta unos 1392 $ al mes y supera «Un día normal» con el mismo p95 de unos 489 ms; sus Workers están ocupados un 57 %.
+Un primer intento habitual es el mismo camino con 3 Workers Celery (24 huecos), los 3 reintentos por defecto de la cola, sin Cola de mensajes fallidos y con una sola PostgreSQL. Cuesta unos 1302 $ al mes y supera «Un día normal» con el mismo p95 de unos 489 ms; sus Workers están ocupados un 57 %.
 
 Con los ficheros gigantes, 24 huecos se enfrentan a unos 108 huecos de trabajo. Los Workers están ocupados un 99 %, la cola crece durante todo el minuto y el p95 pasa del minuto.
 

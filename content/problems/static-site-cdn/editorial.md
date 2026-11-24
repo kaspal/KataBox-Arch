@@ -12,13 +12,13 @@ The Client talks only to a CDN (CloudFront) with a TTL of one day. Behind it, Ob
 
 The CDN also forwards the contact form to a Load Balancer, one Go App Server and PostgreSQL. At this volume, one App Server is plenty.
 
-The design costs about $3,417 per month. Almost all of it is CDN requests, priced at $0.75 per million in this model. The p95 is about 7 ms.
+The design costs about $4,318 per month. Almost all of it is CDN requests, priced at $1.00 per million in this model. The p95 is about 7 ms.
 
 Wire the Client to the CDN alone. If you also connect it to the Load Balancer, the traffic splits and half the file requests skip the CDN.
 
 ## Why the first try breaks
 
-A common first design is Client, Load Balancer, two Go App Servers that serve the files themselves, and PostgreSQL. It costs about $515 and passes a normal day with a p95 near 17 ms.
+A common first design is Client, Load Balancer, two Go App Servers that serve the files themselves, and PostgreSQL. It costs about $425 and passes a normal day with a p95 near 17 ms.
 
 The hidden test "The origin slows down" adds 300 ms to every App Server and Object Storage request from 10 s to 50 s. Now every file request holds an app thread for 300 ms. The threads run out, requests queue, and about 47% of them fail. With the CDN in front, the same test changes nothing visible, because hits never reach the origin.
 

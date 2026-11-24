@@ -19,7 +19,7 @@ La captura de cambios es lo que lo hace posible. Una exportación que lee la tab
 
 Un AWS ALB envía el tráfico a 2 App Servers Go, que escriben cada cambio en PostgreSQL. PostgreSQL está conectado con una conexión Publish (captura de cambios) a un Stream Apache Kafka con 24 particiones. Apache Flink, 2 instancias con una concurrencia de 12 (24 huecos), consume el Stream y escribe cada cambio en Snowflake, con 3 instancias (24 escrituras a la vez). Los tres topes son iguales: 24 escrituras en curso.
 
-Cuesta unos 5188 $ al mes: 4380 $ de Snowflake (1460 $ por instancia), 350 $ de PostgreSQL, 153 $ de Kafka, 140 $ de Flink, 140 $ de los App Servers y 25 $ del ALB. El almacén es casi todo.
+Cuesta unos 5378 $ al mes: 4380 $ de Snowflake (1460 $ por instancia), 260 $ de PostgreSQL, 153 $ de Kafka, 420 $ de Flink, 140 $ de los App Servers y 25 $ del ALB. El almacén es casi todo.
 
 En un día normal, el p95 de frescura es de unos 0,70 s, y el procesador de streams está ocupado un 17 % más o menos: 4 escrituras en curso de 24.
 
@@ -27,11 +27,11 @@ En un día normal, el p95 de frescura es de unos 0,70 s, y el procesador de stre
 
 "El almacén de datos se ralentiza: cada escritura tarda 1,5 s más durante 30 s" hace que cada escritura tarde unos 1,84 s a partir del segundo 20. 24 escrituras en curso siguen moviendo unos 24 / 1,84 ≈ 13 cambios por segundo, justo por encima de los 12 que llegan. El p95 sube a unos 2,4 s, las escrituras de la tienda no lo notan y no se pierde ningún cambio.
 
-Para el reto de coste, un diseño de prueba se queda en el 69 % del coste de la referencia (3588 $), por debajo del objetivo del 70 %. Mantiene 24 particiones, pero usa 1 App Server, 1 instancia de Flink con una concurrencia de 12 y 2 instancias de Snowflake. Durante la ralentización mueve menos cambios de los que llegan, y el Stream guarda la diferencia; después la cola se vacía lo bastante rápido para quedarse por debajo de 15 s en el p95.
+Para el reto de coste, un diseño de prueba se queda en el 68 % del coste de la referencia (3638 $), por debajo del objetivo del 70 %. Mantiene 24 particiones, pero usa 1 App Server, 1 instancia de Flink con una concurrencia de 12 y 2 instancias de Snowflake. Durante la ralentización mueve menos cambios de los que llegan, y el Stream guarda la diferencia; después la cola se vacía lo bastante rápido para quedarse por debajo de 15 s en el p95.
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual tiene las mismas tarjetas con sus valores por defecto: Kafka con 6 particiones, Flink con 2 instancias de 4 huecos (8) y Snowflake con 1 instancia (8 escrituras). Cuesta unos 2268 $ y supera "Un día normal" con un p95 de unos 0,80 s. Las particiones son el tope más pequeño: 6 escrituras en curso mueven unos 6 / 0,34 ≈ 18 cambios por segundo, y un día normal necesita 12.
+Un primer intento habitual tiene las mismas tarjetas con sus valores por defecto: Kafka con 6 particiones, Flink con 2 instancias de 4 huecos (8) y Snowflake con 1 instancia (8 escrituras). Cuesta unos 2178 $ y supera "Un día normal" con un p95 de unos 0,80 s. Las particiones son el tope más pequeño: 6 escrituras en curso mueven unos 6 / 0,34 ≈ 18 cambios por segundo, y un día normal necesita 12.
 
 La venta flash necesita 36 por segundo. Durante 30 segundos llegan unos 18 cambios por segundo más de los que se escriben, así que se acumulan unos 540 en el Stream, y cuando acaba la venta se vacían solo a los 6 por segundo que le sobran a la tubería. El p95 de frescura llega a unos 23,7 s, por encima del límite de 15 s.
 

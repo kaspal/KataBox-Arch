@@ -13,7 +13,7 @@ Llevas el backend de 25 000 contadores de energía inteligentes. Cada contador m
 | Errores | 1 % o menos |
 | Disponibilidad | 99,9 % o más |
 | Contadores conectados | 95 % o más en cada segundo |
-| Presupuesto | 3000 $ al mes |
+| Presupuesto | 2600 $ al mes |
 
 ## El tráfico
 

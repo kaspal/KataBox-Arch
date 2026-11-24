@@ -12,7 +12,7 @@ tags = ["search", "replication", "caching", "hot-keys"]
 peak_rps = 8000
 p95_ms = 200
 availability = 0.999
-budget_usd = 3200
+budget_usd = 3100
 
 [[request_types]]
 id = "query"

@@ -8,7 +8,7 @@ Las pruebas ocultas hacen otras preguntas. Mientras el proveedor está caído du
 
 ## El diseño de referencia
 
-Un Client pasa por un AWS ALB hasta 2 Go App Servers. Estos guardan los tokens en PostgreSQL con las Escrituras condicionales activadas, así que el canje es una sola sentencia: `UPDATE … SET used = true WHERE token = ? AND used = false`. El que pierde una carrera se rechaza limpiamente, con «este enlace ya se usó». Para una petición de restablecimiento, el App Server publica el correo en una cola RabbitMQ con Reintentos máximos en 10, y 4 instancias Celery de Mailer con concurrencia 32 la consumen y llaman al proveedor. Cuesta unos 865 $ al mes: PostgreSQL 350 $, los Mailers 280 $, los App Servers 140 $, RabbitMQ 70 $ y el ALB 25 $. En un día normal el p95 hasta completar es de unos 608 ms, sin errores.
+Un Client pasa por un AWS ALB hasta 2 Go App Servers. Estos guardan los tokens en PostgreSQL con las Escrituras condicionales activadas, así que el canje es una sola sentencia: `UPDATE … SET used = true WHERE token = ? AND used = false`. El que pierde una carrera se rechaza limpiamente, con «este enlace ya se usó». Para una petición de restablecimiento, el App Server publica el correo en una cola RabbitMQ con Reintentos máximos en 10, y 4 instancias Celery de Mailer con concurrencia 32 la consumen y llaman al proveedor. Cuesta unos 775 $ al mes: PostgreSQL 260 $, los Mailers 280 $, los App Servers 140 $, RabbitMQ 70 $ y el ALB 25 $. En un día normal el p95 hasta completar es de unos 608 ms, sin errores.
 
 «El proveedor de correo cae durante 30 s» quita el proveedor a partir del segundo 20, en una ejecución de 120 segundos, y admite un p95 de 60 segundos. Los correos rechazados esperan en la cola y se reintentan tras 1, 2, 4, 8, 16, 32, 32, 32, 32 y 32 segundos: 191 segundos de esperas en total, mucho más que la caída. Salen cuando el proveedor vuelve: el p95 queda en unos 29,5 s, sin errores y sin perder ningún restablecimiento.
 
@@ -18,7 +18,7 @@ Este problema no tiene reto de coste: la referencia ya es ajustada, y ningún di
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual usa el mismo borde y 2 Go App Servers que envían ellos mismos el correo, en línea, sin cola (una tarjeta de worker Celery queda en el lienzo, sin conectar), y PostgreSQL sin escrituras condicionales. Cuesta unos 655 $ y supera «Un día normal» con un p95 de unos 452 ms, más rápido que la referencia porque no hay salto por la cola. Pero incluso en ese día normal, 7 tokens se usaron dos veces. La prueba no lo juzga, pero el fallo ya está ahí.
+Un primer intento habitual usa el mismo borde y 2 Go App Servers que envían ellos mismos el correo, en línea, sin cola (una tarjeta de worker Celery queda en el lienzo, sin conectar), y PostgreSQL sin escrituras condicionales. Cuesta unos 565 $ y supera «Un día normal» con un p95 de unos 452 ms, más rápido que la referencia porque no hay salto por la cola. Pero incluso en ese día normal, 7 tokens se usaron dos veces. La prueba no lo juzga, pero el fallo ya está ahí.
 
 Cuando el proveedor cae, un envío en línea no tiene dónde guardar el correo. La llamada del App Server falla, y la petición también: el 18,5 % de las peticiones de la prueba acaba en error, y 3532 correos de restablecimiento cuentan como perdidos: fallaron sin una cola que los guardara y nada los volverá a intentar. Cuando los escáneres de correo abren cada enlace, el App Server lee el token, ve «sin usar» y escribe, y otro canje hace lo mismo entre medias: 93 conflictos, y la prueba falla.
 

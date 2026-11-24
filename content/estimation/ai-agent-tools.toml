@@ -27,7 +27,7 @@ id = "bounded-refund"
 kind = "capacity"
 prompt = "A refund makes {model_calls} model calls of about {model_s} seconds each, plus about {tools_s} seconds of quick tool calls. The tracking call has a timeout of {timeout_s} seconds, and the agent goes on without it. What is the longest a refund takes when tracking hangs?"
 prompt_es = "Un reembolso hace {model_calls} llamadas al modelo de unos {model_s} segundos cada una, más unos {tools_s} segundos de llamadas rápidas a herramientas. La llamada de seguimiento tiene un tiempo límite de {timeout_s} segundos, y el agente sigue sin ella. ¿Cuánto tarda como mucho un reembolso cuando el seguimiento se cuelga?"
-inputs = { model_calls = 4, model_s = 2.2, tools_s = 0.3, timeout_s = 10 }
+inputs = { model_calls = 4, model_s = 2.4, tools_s = 0.3, timeout_s = 10 }
 formula = "model_calls * model_s + tools_s + timeout_s"
 unit = "s"
 solution = "{model_calls} × {model_s} s + {tools_s} s + {timeout_s} s ≈ {answer} s, under the 25 s goal however long tracking hangs. Without the timeout the same refund takes as long as the tool does."

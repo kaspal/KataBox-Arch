@@ -12,7 +12,7 @@ Tienes el feed principal de una red social. La gente lo abre muchas veces al dí
 | Lecturas | 97 % de las peticiones |
 | Latencia p95 | 100 ms o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 3500 $ al mes |
+| Presupuesto | 3000 $ al mes |
 
 ## El tráfico
 

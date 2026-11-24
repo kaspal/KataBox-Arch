@@ -12,7 +12,7 @@ The hidden tests take each limit in turn. "Phones come back online" multiplies t
 
 ## The reference design
 
-An AWS ALB sends the traffic to 4 Go App Servers. They publish events to an Apache Kafka Stream with 32 Partitions and read the dashboard from a TimescaleDB Time-Series Database. An Apache Flink Stream Processor of 8 instances with a Concurrency per instance of 4 (32 slots, one per partition) consumes the Stream: Window Tumbling, Window length 30 s, Watermark delay 5 s, Allowed lateness 180 s. It is wired to the Time-Series Database with a Query edge. This costs about $1,278 per month: $560 for the Stream Processor, $280 for the App Servers, $260 for TimescaleDB, $153 for Kafka and $25 for the ALB.
+An AWS ALB sends the traffic to 4 Go App Servers. They publish events to an Apache Kafka Stream with 32 Partitions and read the dashboard from a TimescaleDB Time-Series Database. An Apache Flink Stream Processor of 8 instances with a Concurrency per instance of 4 (32 slots, one per partition) consumes the Stream: Window Tumbling, Window length 30 s, Watermark delay 5 s, Allowed lateness 180 s. It is wired to the Time-Series Database with a Query edge. This costs about $1,202 per month: $560 for the Stream Processor, $280 for the App Servers, $184 for TimescaleDB, $153 for Kafka and $25 for the ALB.
 
 On a normal day the processor is about 19% busy and the time to a counted event is about 33.2 s at p95, with no errors. Fewer than 0.03% of the windowed events are late.
 
@@ -22,11 +22,11 @@ The watermark stays at 5 s. A longer watermark would also catch more stragglers,
 
 On launch day, 15,000 events a second meet 32 slots that can take about 25,600 a second: about 59% busy at the peak. There are no errors, and the p95 stays at about 33.2 s.
 
-For the cost challenge, a proof design comes in at 67% of the reference's cost, under the 70% target. It keeps the 32 Partitions and the same window settings, with 2 App Servers and 4 Flink instances (16 slots): at the launch peak they run over capacity, but the backlog they build in 40 s is small enough to clear without errors and within the 45 s target.
+For the cost challenge, a proof design comes in at 65% of the reference's cost, under the 70% target. It keeps the 32 Partitions and the same window settings, with 2 App Servers and 4 Flink instances (16 slots): at the launch peak they run over capacity, but the backlog they build in 40 s is small enough to clear without errors and within the 45 s target.
 
 ## Why the first try breaks
 
-A common first try uses the same edge and App Servers, a Kafka Stream with 12 Partitions, and a Flink Stream Processor of 3 instances with a Concurrency per instance of 4 (12 slots), with the same 30 s tumbling window and 5 s watermark but the default Allowed lateness of 0. It costs about $928 and passes "A normal day": the processor is about 52% busy, the p95 is about 33.2 s and between 0.1% and 0.2% of the events are late, all of them mobile.
+A common first try uses the same edge and App Servers, a Kafka Stream with 12 Partitions, and a Flink Stream Processor of 3 instances with a Concurrency per instance of 4 (12 slots), with the same 30 s tumbling window and 5 s watermark but the default Allowed lateness of 0. It costs about $852 and passes "A normal day": the processor is about 52% busy, the p95 is about 33.2 s and between 0.1% and 0.2% of the events are late, all of them mobile.
 
 When the phones come back online, mobile events become about 29% of the traffic. Every mobile event that arrives after its window's end plus 5 s is dropped from the counts: between 2% and 4% of all windowed events are late, over the 1% limit, and the test fails as an SLO breach. The processor has capacity to spare; the windows simply close too early for these events.
 

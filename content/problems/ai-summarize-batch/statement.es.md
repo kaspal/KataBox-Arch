@@ -16,7 +16,7 @@ Tu empresa guarda un gran archivo de documentos, y la página de búsqueda quier
 | Errores | 0,1 % o menos |
 | Documentos perdidos | ninguno |
 | Documentos en la Cola de mensajes fallidos | ninguno |
-| Presupuesto | 38 000 $ al mes |
+| Presupuesto | 25 000 $ al mes |
 
 El coste mensual es lo que costaría el ritmo de la ejecución si durara un mes entero, la misma regla que en todos los demás problemas. Los precios por token son los precios didácticos del registro.
 

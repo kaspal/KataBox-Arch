@@ -12,7 +12,7 @@ You run a web search engine. People type a query and expect a page of results in
 | p95 latency | 200 ms or less |
 | Availability | 99.9% or more |
 | Error rate | 0.1% or less |
-| Budget | $3,200 per month |
+| Budget | $3,100 per month |
 
 ## The traffic
 

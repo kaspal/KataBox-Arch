@@ -13,7 +13,7 @@ Tienes el servicio de subastas de un ad exchange. Cada vez que una página web o
 | Latencia p99 | 150 ms o menos |
 | Tasa de errores | 0,1 % o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 1300 $ al mes |
+| Presupuesto | 1200 $ al mes |
 
 ## El tráfico
 

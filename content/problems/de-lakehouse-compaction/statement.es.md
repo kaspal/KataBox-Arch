@@ -13,7 +13,7 @@ Los analistas de tu producto exploran el comportamiento de los usuarios en noteb
 | Disponibilidad | 99,9 % o más |
 | Errores | 1 % o menos |
 | Eventos perdidos | 0 |
-| Presupuesto | 35 500 $ al mes |
+| Presupuesto | 71 700 $ al mes |
 
 El p95 se calcula sobre todas las peticiones. La mayoría son consultas, así que en la práctica es la espera de los analistas.
 

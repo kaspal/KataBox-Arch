@@ -11,7 +11,7 @@ You run the service that runs everyone else's background work. Teams register jo
 | Peak traffic | 100 jobs/s |
 | p95 completion time | 10 s or less |
 | Availability | 99.9% or more |
-| Budget | $3,100 per month |
+| Budget | $2,800 per month |
 | Lost jobs | none |
 
 Latency here is measured until the job has finished and its result is stored, not until it is handed off.

@@ -4,4 +4,4 @@ It rarely is. A job is done only when its **last** task is done. If one key hold
 
 Clusters often run part of their nodes on cheaper, **interruptible** capacity (spot). When such a node is taken back, its tasks start again from zero, unless the job writes **checkpoints**, in which case they resume from the last one. The problem's deadline for the job is what you are graded on.
 
-**How the simulator bills this.** Every flavour bills $140 a month per node, an m5.xlarge-class machine ($0.192 an hour for 730 hours). The simulator doesn't apply a spot discount yet, so spot nodes cost the same as regular ones for now. These are teaching prices; source to be confirmed.
+**How the simulator bills this.** Every flavour bills $175 a month per node: an m5.xlarge-class machine ($0.192 an hour) plus the EMR fee ($0.048 an hour), for 730 hours. The share of executors on spot capacity (`spot_share`) costs 35% of that, a typical spot discount (a modelling choice), and only those executors are taken back when spot capacity is reclaimed. The node price is a list price (us-east-1, read 2026-11-23).

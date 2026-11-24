@@ -13,7 +13,7 @@ peak_rps = 12000
 read_ratio = 0.95
 p95_ms = 80
 availability = 0.999
-budget_usd = 2500
+budget_usd = 2100
 
 [[request_types]]
 id = "redirect"

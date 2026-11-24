@@ -13,7 +13,7 @@ You run the monitoring backend for a wind energy company: 1,500 turbines with 20
 | Error rate | 1% or less |
 | Availability | 99.9% or more |
 | Connected sensors | 95% or more in every second |
-| Budget | $8,000 per month |
+| Budget | $7,600 per month |
 
 ## The traffic
 

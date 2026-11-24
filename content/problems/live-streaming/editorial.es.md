@@ -12,7 +12,7 @@ Las pruebas ocultas aprietan cada lado. Una raid lo multiplica todo por cuatro d
 
 Los segmentos pasan por una CDN CloudFront con un TTL de 4 s hasta un bucket de Amazon S3. Los espectadores del chat se conectan desde el Cliente, con la Variación al reconectar en 10 s, a través de un AWS ALB a 2 tarjetas Gateway de WebSocket Socket.IO. Cada tarjeta tiene 2 instancias con Conexiones máximas 200 000, Mensajes por segundo 200 000 y Conexiones nuevas por segundo 20 000. Eso da 800 000 huecos de conexión para 200 000 espectadores y 800 000 mensajes por segundo para los 100 000 de una tarde normal. Los mensajes enviados van a 2 servidores de aplicaciones Go y a DynamoDB con 16 particiones.
 
-Cuesta 10 624 $ al mes. CloudFront es casi todo, 9403 $, porque se factura por petición, a 4750 descargas de segmentos por segundo. Después vienen DynamoDB 412 $, S3 365 $, 140 $ por cada tarjeta de gateway, los servidores de aplicaciones 140 $ y el ALB 25 $.
+Cuesta 13 759 $ al mes. CloudFront es casi todo, 12 537 $, porque se factura por petición, a 4750 descargas de segmentos por segundo. Después vienen DynamoDB 412 $, S3 365 $, 140 $ por cada tarjeta de gateway, los servidores de aplicaciones 140 $ y el ALB 25 $.
 
 «Una tarde normal» se supera sin errores y con un p95 de alrededor de 1 ms: casi todas las descargas son aciertos de la CDN.
 
@@ -24,7 +24,7 @@ Aquí no hay reto de coste. El mejor diseño más barato que se encontró costab
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual es el mismo diseño con una sola tarjeta de gateway para el chat (2 instancias con Conexiones máximas 150 000 y Mensajes por segundo 100 000 cada una) y sin variación al reconectar. Son 300 000 huecos y 200 000 mensajes por segundo. Cuesta 10 484 $ al mes, y «Una tarde normal» sale Aceptada: 100 000 mensajes por segundo caben en 200 000 por segundo de capacidad.
+Un primer intento habitual es el mismo diseño con una sola tarjeta de gateway para el chat (2 instancias con Conexiones máximas 150 000 y Mensajes por segundo 100 000 cada una) y sin variación al reconectar. Son 300 000 huecos y 200 000 mensajes por segundo. Cuesta 13 619 $ al mes, y «Una tarde normal» sale Aceptada: 100 000 mensajes por segundo caben en 200 000 por segundo de capacidad.
 
 «Una raid inunda un canal» falla con un p95 de 19 s. 400 000 mensajes por segundo se encuentran con 200 000 por segundo de capacidad, así que crece un atasco durante los 20 segundos de la raid, unos 4 000 000 de mensajes, y sigue vaciándose mucho después. El chat llega tarde a todos, no solo al canal de la raid. Las conexiones están bien; lo que no cabe son los mensajes.
 

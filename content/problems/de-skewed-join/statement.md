@@ -17,9 +17,9 @@ The cluster runs on spot instances, because they are much cheaper. The cloud can
 | Job | 2,700 executor-seconds in 2,000 skewed tasks, starting at 0 s |
 | Deadline | the whole job finishes within 480 s of its start |
 | Errors | 0.1% or less |
-| Budget | $1,650 per month |
+| Budget | $1,880 per month |
 
-The monthly cost is what the cards would cost if they ran all month, the same rule as every other problem (a Batch Compute node costs $140 a month on demand, and the share of its executors set by "Spot share" runs on spot capacity at 35% of that, so a node at 100% costs $49; Snowflake bills only while it is awake). Prices are the registry's teaching prices.
+The monthly cost is what the cards would cost if they ran all month, the same rule as every other problem (a Batch Compute node costs $175 a month on demand, and the share of its executors set by "Spot share" runs on spot capacity at 35% of that, so a node at 100% costs $61.25; Snowflake bills only while it is awake). Prices are the registry's teaching prices.
 
 ## The traffic
 

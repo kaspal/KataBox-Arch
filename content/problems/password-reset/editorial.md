@@ -8,7 +8,7 @@ The hidden tests ask other questions. While the provider is down for 30 seconds,
 
 ## The reference design
 
-A Client goes through an AWS ALB to 2 Go App Servers. They keep the tokens in PostgreSQL with Conditional writes turned on, so the redeem is one statement: `UPDATE … SET used = true WHERE token = ? AND used = false`. The loser of a race is refused cleanly, with "this link was already used". For a reset request, the App Server publishes the email to a RabbitMQ queue with Maximum retries set to 10, and 4 Celery Mailer instances with a concurrency of 32 consume it and call the provider. This costs about $865 per month: PostgreSQL $350, the Mailers $280, the App Servers $140, RabbitMQ $70 and the ALB $25. On a normal day the p95 completion is about 608 ms, with no errors.
+A Client goes through an AWS ALB to 2 Go App Servers. They keep the tokens in PostgreSQL with Conditional writes turned on, so the redeem is one statement: `UPDATE … SET used = true WHERE token = ? AND used = false`. The loser of a race is refused cleanly, with "this link was already used". For a reset request, the App Server publishes the email to a RabbitMQ queue with Maximum retries set to 10, and 4 Celery Mailer instances with a concurrency of 32 consume it and call the provider. This costs about $775 per month: PostgreSQL $260, the Mailers $280, the App Servers $140, RabbitMQ $70 and the ALB $25. On a normal day the p95 completion is about 608 ms, with no errors.
 
 "The email provider is down for 30 s" takes the provider away from 20 seconds in, in a run of 120 seconds, and allows a p95 of 60 seconds. The refused emails wait in the queue and are retried after 1, 2, 4, 8, 16, 32, 32, 32, 32 and 32 seconds: 191 seconds of waits in all, far longer than the outage. They go out once the provider is back: the p95 is about 29.5 s, with no errors and no lost resets.
 
@@ -18,7 +18,7 @@ There is no cost challenge for this problem: the reference is already lean, and 
 
 ## Why the first try breaks
 
-A common first try uses the same edge and 2 Go App Servers that send the email themselves, inline, with no queue (a Celery worker card sits on the canvas, unwired), and PostgreSQL without conditional writes. It costs about $655 and passes "A normal day" with a p95 of about 452 ms, faster than the reference because there is no queue hop. But even on that normal day, 7 tokens were used twice. The test does not judge it, but the bug is already there.
+A common first try uses the same edge and 2 Go App Servers that send the email themselves, inline, with no queue (a Celery worker card sits on the canvas, unwired), and PostgreSQL without conditional writes. It costs about $565 and passes "A normal day" with a p95 of about 452 ms, faster than the reference because there is no queue hop. But even on that normal day, 7 tokens were used twice. The test does not judge it, but the bug is already there.
 
 When the provider goes down, an inline send has nowhere to keep the email. The App Server's call fails, and so does the request: 18.5% of the run's requests end in an error, and 3,532 reset emails are counted as lost: they failed with no queue to keep them and nothing will ever retry them. When mail scanners open every link, the App Server reads the token, sees "unused" and writes, and a second redeem does the same in between: 93 conflicts, and the test fails.
 

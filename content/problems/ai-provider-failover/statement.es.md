@@ -13,7 +13,7 @@ Tienes el asistente de soporte dentro de una app de compras. Un cliente escribe 
 | Tiempo hasta el primer token p95 | 1500 ms o menos |
 | Disponibilidad | 99 % o más |
 | Errores | 1 % o menos |
-| Presupuesto | 250 000 $ al mes |
+| Presupuesto | 190 000 $ al mes |
 
 ## El tráfico
 

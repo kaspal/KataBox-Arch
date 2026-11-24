@@ -12,7 +12,7 @@ Te encargas de la comprobación de fraude de una red de pagos. Los servidores de
 | Latencia p95 | 60 ms o menos |
 | Disponibilidad | 99,9 % o más |
 | Tasa de errores | 0,5 % o menos |
-| Presupuesto | 4000 $ al mes |
+| Presupuesto | 3900 $ al mes |
 
 ## El tráfico
 

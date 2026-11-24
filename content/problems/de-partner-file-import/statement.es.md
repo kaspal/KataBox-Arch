@@ -14,7 +14,7 @@ Tu empresa recibe datos de cientos de socios. El servidor de cada socio sube fic
 | Errores | 0,1 % o menos |
 | Ficheros perdidos | ninguno |
 | Ficheros en la Cola de mensajes fallidos | ninguno |
-| Presupuesto | 4500 $ al mes |
+| Presupuesto | 4200 $ al mes |
 
 ## El tráfico
 

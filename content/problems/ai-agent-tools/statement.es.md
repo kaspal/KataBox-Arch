@@ -12,7 +12,7 @@ Tu tienda online va a añadir un agente de soporte. Un cliente pregunta algo sob
 | Latencia p95 hasta completar | 25 s o menos |
 | Disponibilidad | 99 % o más |
 | Errores | 1 % o menos |
-| Presupuesto | 150 000 $ al mes |
+| Presupuesto | 100 000 $ al mes |
 | Tareas perdidas | Ninguna |
 
 ## El tráfico

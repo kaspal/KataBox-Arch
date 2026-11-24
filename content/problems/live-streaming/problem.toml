@@ -12,7 +12,7 @@ tags = ["cdn", "websockets", "fan-out", "live-video"]
 peak_rps = 5000
 p95_ms = 300
 availability = 0.999
-budget_usd = 15000
+budget_usd = 19000
 
 [[request_types]]
 id = "segment"

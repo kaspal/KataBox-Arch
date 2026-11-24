@@ -10,19 +10,19 @@ El "Salting (dividir tareas calientes)" cambia la forma del trabajo. Con salting
 
 ## El diseño de referencia
 
-Una tarjeta de Cómputo por lotes Apache Spark en Amazon EMR con 10 instancias y 4 ejecutores por nodo (40 ejecutores), "Proporción spot" al 100 %, "Salting (dividir tareas calientes)" en 16 y "Checkpoints" activados, conectada con Query a una tarjeta de Almacenamiento de objetos Amazon S3 (los pedidos) y con Query a una tarjeta de Almacén de datos Snowflake (el informe). Cuesta unos 867 $ al mes: 490 $ por los 10 nodos spot (49 $ cada uno, menos de lo que costarían cuatro nodos bajo demanda), 3 $ por el Almacenamiento de objetos y 373 $ por Snowflake, que solo cobra mientras está despierto para recibir las escrituras.
+Una tarjeta de Cómputo por lotes Apache Spark en Amazon EMR con 10 instancias y 4 ejecutores por nodo (40 ejecutores), "Proporción spot" al 100 %, "Salting (dividir tareas calientes)" en 16 y "Checkpoints" activados, conectada con Query a una tarjeta de Almacenamiento de objetos Amazon S3 (los pedidos) y con Query a una tarjeta de Almacén de datos Snowflake (el informe). Cuesta unos 989 $ al mes: 612 $ por los 10 nodos spot (unos 61 $ cada uno, menos de lo que costarían cuatro nodos bajo demanda), 3 $ por el Almacenamiento de objetos y 373 $ por Snowflake, que solo cobra mientras está despierto para recibir las escrituras.
 
 "Una noche normal" termina en unos 120 s, con seis minutos de margen. "Te quitan todos los ejecutores spot durante dos horas, al principio de la noche" para todas las tareas en marcha a los 60 s y deja el clúster vacío hasta los 300 s; las tareas con salting son pequeñas, así que el trabajo sigue donde estaba y termina hacia los 365 s. "Te quitan todos los ejecutores spot durante 15 minutos, al final de la noche" llega a los 270 s, mucho después de que el trabajo terminara, y no cambia nada.
 
-¿Por qué 10 nodos y no 6? Cuando el salting ya ha igualado el trabajo, más ejecutores sí lo acortan, y los ejecutores spot son baratos. Con 6 nodos el diseño también pasa, por unos 783 $, pero termina la prueba temprana hacia los 415 s, un margen muy justo para un plazo de 480 s. Los cuatro nodos spot de más cuestan 196 $ al mes (el total solo sube unos 84 $, porque Snowflake vuelve a dormirse antes) y dejan la prueba temprana unos dos minutos por delante del plazo.
+¿Por qué 10 nodos y no 6? Cuando el salting ya ha igualado el trabajo, más ejecutores sí lo acortan, y los ejecutores spot son baratos. Con 6 nodos el diseño también pasa, por unos 857 $, pero termina la prueba temprana hacia los 415 s, un margen muy justo para un plazo de 480 s. Los cuatro nodos spot de más cuestan 245 $ al mes (el total solo sube unos 132 $, porque Snowflake vuelve a dormirse antes) y dejan la prueba temprana unos dos minutos por delante del plazo.
 
 Los "Checkpoints" cambian poco en la referencia (sin ellos termina la prueba temprana hacia los 380 s): una pieza de 21 s parada pierde como mucho 21 s. Son un seguro barato, y son lo que más necesita un trabajo sin salting, como muestra la siguiente sección.
 
-Para el reto de coste, un diseño de prueba se queda en el 58 % del coste de la referencia, por debajo del objetivo del 60 %. Mantiene el salting y los checkpoints en 5 nodos spot y escribe el informe en un Almacén de datos ClickHouse en lugar de Snowflake, unos 250 $ al mes aquí frente a 373 $. Lo que pierde es el margen: termina la interrupción temprana hacia los 450 s.
+Para el reto de coste, un diseño de prueba se queda en el 57 % del coste de la referencia, por debajo del objetivo del 60 %. Mantiene el salting y los checkpoints en 5 nodos spot y escribe el informe en un Almacén de datos ClickHouse en lugar de Snowflake, unos 250 $ al mes aquí frente a 373 $. Lo que pierde es el margen: termina la interrupción temprana hacia los 450 s.
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual ve una tarea que tarda mucho y recurre a los dos arreglos de siempre: "Ejecución especulativa" activada y nodos de sobra. Con 6 nodos todos en spot y especulación cuesta unos 1004 $ al mes (Snowflake se queda despierto más tiempo, mientras termina la tarea larga) y pasa "Una noche normal" en unos 415 s: la tarea caliente marca sola el tiempo, y el clúster está ocupado un 28 % de la prueba.
+Un primer intento habitual ve una tarea que tarda mucho y recurre a los dos arreglos de siempre: "Ejecución especulativa" activada y nodos de sobra. Con 6 nodos todos en spot y especulación cuesta unos 1078 $ al mes (Snowflake se queda despierto más tiempo, mientras termina la tarea larga) y pasa "Una noche normal" en unos 415 s: la tarea caliente marca sola el tiempo, y el clúster está ocupado un 28 % de la prueba.
 
 "Te quitan todos los ejecutores spot durante 15 minutos, al final de la noche" lo rompe. A los 270 s la tarea caliente lleva unos dos tercios de su ejecución, y vuelve a empezar desde cero cuando los ejecutores regresan a los 300 s. Necesita otra ejecución entera y termina hacia los 595 s, con un plazo de 480 s.
 
@@ -31,9 +31,9 @@ Un primer intento habitual ve una tarea que tarda mucho y recurre a los dos arre
 Ninguno de los arreglos habituales toca la causa:
 
 - **La especulación** copia una tarea que tarda mucho más que la típica, pero la copia tiene los mismos 330 s de trabajo. Solo ayuda con una ejecución lenta por azar: sin ella el primer intento termina la noche tranquila hacia los 435 s en lugar de 415 s, y falla las mismas pruebas ocultas.
-- **Más nodos** terminan antes las tareas pequeñas, pero no pueden dividir la grande. Con 12 nodos (y checkpoints) la noche tranquila termina hacia los 405 s, la interrupción temprana sigue hacia los 565 s, y la factura sube unos 263 $ al mes.
+- **Más nodos** terminan antes las tareas pequeñas, pero no pueden dividir la grande. Con 12 nodos (y checkpoints) la noche tranquila termina hacia los 405 s, la interrupción temprana sigue hacia los 565 s, y la factura sube unos 336 $ al mes.
 - **Los checkpoints** sin salting pasan por poco la interrupción tardía (unos 475 s: la tarea caliente conserva su marca del 60 %) pero siguen fallando la temprana (unos 535 s), porque la tarea tenía poco progreso que conservar.
-- **Salir del spot** funciona, pagando: el primer intento con la "Proporción spot" al 0 % nunca se interrumpe y pasa todas las pruebas, por unos 1550 $ al mes, un 79 % más que la referencia. Cada noche sigue esperando unos 415 s a un solo ejecutor, y una ejecución lenta de la tarea caliente puede no llegar al plazo en una noche tranquila.
+- **Salir del spot** funciona, pagando: el primer intento con la "Proporción spot" al 0 % nunca se interrumpe y pasa todas las pruebas, por unos 1760 $ al mes, un 78 % más que la referencia. Cada noche sigue esperando unos 415 s a un solo ejecutor, y una ejecución lenta de la tarea caliente puede no llegar al plazo en una noche tranquila.
 
 Solo el salting elimina la tarea gigante, y con ella las horas que el trabajo pasa esperando a un solo ejecutor.
 

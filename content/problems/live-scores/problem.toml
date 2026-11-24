@@ -12,7 +12,7 @@ tags = ["websockets", "connections", "fan-out", "reconnect-storms"]
 peak_rps = 2000
 p95_ms = 1000
 availability = 0.999
-budget_usd = 2000
+budget_usd = 1800
 
 [[request_types]]
 id = "fans"

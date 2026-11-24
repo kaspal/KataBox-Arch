@@ -10,11 +10,12 @@ teaches_es = "Lanzar una exportación pesada contra una réplica de lectura, no 
 tags = ["etl", "read-replicas", "batch", "scheduler"]
 requires = ["sql", "scheduler"]
 
+challenge_ratio = 0.8
 [nfr]
 peak_rps = 2000
 p95_ms = 300
 availability = 0.999
-budget_usd = 2000
+budget_usd = 1700
 
 [[request_types]]
 id = "view"

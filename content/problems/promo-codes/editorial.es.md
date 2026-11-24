@@ -8,7 +8,7 @@ Así que la carga se divide en tres problemas distintos. Las consultas son mucha
 
 ## El diseño de referencia
 
-Un AWS ALB reparte a los clientes entre 2 Go App Servers. Las consultas pasan en cache-aside por una Redis Cache con 0,5 GB de memoria y un TTL de 60 s. Los datos viven en PostgreSQL: una primaria con «Escrituras condicionales (comprobar y escribir en un paso)» activado y un Tiempo de failover de 10 s, conectada con una arista Replicate a una segunda PostgreSQL con los mismos ajustes. Cuesta unos 874 $ al mes: 350 $ cada PostgreSQL, 140 $ los App Servers, 25 $ el ALB y 9 $ Redis. En un día normal el p95 es de unos 22,3 ms, sin errores.
+Un AWS ALB reparte a los clientes entre 2 Go App Servers. Las consultas pasan en cache-aside por una Redis Cache con 0,5 GB de memoria y un TTL de 60 s. Los datos viven en PostgreSQL: una primaria con «Escrituras condicionales (comprobar y escribir en un paso)» activado y un Tiempo de failover de 10 s, conectada con una arista Replicate a una segunda PostgreSQL con los mismos ajustes. Cuesta unos 691 $ al mes: 260 $ cada PostgreSQL, 140 $ los App Servers, 25 $ el ALB y 6 $ Redis. En un día normal el p95 es de unos 22,3 ms, sin errores.
 
 Con escrituras condicionales, el canje es una sola sentencia: `UPDATE … SET uses_left = uses_left - 1 WHERE code = ? AND uses_left > 0`. La base de datos comprueba la cuenta y resta uno en el mismo paso, así que cuando dos canjes compiten por el último uso, uno gana y al otro se le dice «este código se ha agotado».
 
@@ -22,7 +22,7 @@ Este problema no tiene reto de coste. Ningún diseño más barato superó todas 
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual es el mismo edge y 2 Go App Servers, con una sola PostgreSQL, sin caché y sin escrituras condicionales. Cuesta unos 515 $ al mes y es Aceptado en «Un día normal», con un p95 de unos 29,9 ms. Pero ya canjea de más: en esa ejecución hay 594 conflictos; esa prueba simplemente no los evalúa.
+Un primer intento habitual es el mismo edge y 2 Go App Servers, con una sola PostgreSQL, sin caché y sin escrituras condicionales. Cuesta unos 425 $ al mes y es Aceptado en «Un día normal», con un p95 de unos 29,9 ms. Pero ya canjea de más: en esa ejecución hay 594 conflictos; esa prueba simplemente no los evalúa.
 
 En la prueba de la influencer se rompe de dos formas a la vez. Cada consulta va a la base de datos, y el App Server conserva su hueco mientras espera. En un día normal los 2 App Servers están ocupados en un 22 %; con 6 veces el tráfico harían falta cerca de un 130 %. Se llenan, falla cerca del 20,6 % de las peticiones y el p95 sube a unos 140 ms. Mientras tanto, los canjes de leer y después escribir compiten por el código popular: 3692 conflictos, cada uno un uso que la tienda nunca quiso regalar.
 

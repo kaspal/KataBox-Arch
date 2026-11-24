@@ -4,4 +4,4 @@ In the simulator, an external card stands for a provider the problem declares. T
 
 The key design move is keeping slow or unreliable providers off the user's path. A call made while the user waits fails when the provider fails. A call made by a worker from a queue can wait and retry.
 
-**How the simulator bills this.** The generic API and Stripe cost nothing per call (Stripe really charges a share of each payment, which isn't modelled). Twilio bills $7,900 per million SMS, about $0.0079 each, and SendGrid $900 per million emails, about $0.0009 each. These are teaching prices; source to be confirmed.
+**How the simulator bills this.** The generic API and Stripe cost nothing per call (Stripe really charges a share of each payment, which isn't modelled). Twilio bills $8,300 per million SMS, $0.0083 each, and SendGrid $900 per million emails, about $0.0009 each. These are list prices from Twilio's US SMS pricing and SendGrid's Pro plan (read 2026-11-23).

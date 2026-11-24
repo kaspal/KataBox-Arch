@@ -12,7 +12,7 @@ You run a feature-flag service. Other teams' services ask it, many times for eve
 | Reads | 99.9% of requests |
 | p95 latency | 30 ms or less |
 | Availability | 99.9% or more |
-| Budget | $2,500 per month |
+| Budget | $2,200 per month |
 | Stale reads | 5% or less |
 
 A read is stale when it returns a value older than the flag's latest flip.

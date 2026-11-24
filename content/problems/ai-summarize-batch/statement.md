@@ -16,7 +16,7 @@ Your company keeps a large archive of documents, and the search page wants a sho
 | Errors | 0.1% or less |
 | Lost documents | none |
 | Dead-lettered documents | none |
-| Budget | $38,000 per month |
+| Budget | $25,000 per month |
 
 The monthly cost is what the run's rate would cost if it went on for a whole month, the same rule as every other problem. Token prices are the registry's teaching prices.
 

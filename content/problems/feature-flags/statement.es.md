@@ -12,7 +12,7 @@ Tienes un servicio de feature flags. Los servicios de otros equipos le preguntan
 | Lecturas | 99,9 % de las peticiones |
 | Latencia p95 | 30 ms o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 2500 $ al mes |
+| Presupuesto | 2200 $ al mes |
 | Lecturas obsoletas | 5 % o menos |
 
 Una lectura es obsoleta cuando devuelve un valor anterior al último cambio del flag.

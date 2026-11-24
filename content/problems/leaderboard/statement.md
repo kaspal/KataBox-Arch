@@ -14,7 +14,7 @@ A few boards are hot: the main mode in the biggest regions draws most of the vie
 | Reads | 80% of requests |
 | p95 latency | 50 ms or less |
 | Availability | 99.9% or more |
-| Budget | $1,500/month or less |
+| Budget | $1,400/month or less |
 
 ## The traffic
 

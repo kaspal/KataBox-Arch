@@ -8,7 +8,7 @@ With two Regions and DNS spreading callers over them, each Region carries about 
 
 ## The reference design
 
-Route 53 DNS, with a TTL of 30 s, spreads callers over two Regions, us-east and eu-west. Each Region has its own AWS ALB, Go App Servers with 6 instances and a Redis Cache with 2 GB of memory and a TTL of 0, so the entries never expire. Each Cache holds the whole IP table, and each App Server reads only from the Cache in its own Region. This costs about $1,279 per month: $420 of App Servers per Region, about $317 for Route 53 (billed per query, and 30,000 queries a second add up), $25 for each ALB and $36 for each Redis Cache.
+Route 53 DNS, with a TTL of 30 s, spreads callers over two Regions, us-east and eu-west. Each Region has its own AWS ALB, Go App Servers with 6 instances and a Redis Cache with 2 GB of memory and a TTL of 0, so the entries never expire. Each Cache holds the whole IP table, and each App Server reads only from the Cache in its own Region. This costs about $1,256 per month: $420 of App Servers per Region, about $317 for Route 53 (billed per query, and 30,000 queries a second add up), $25 for each ALB and $24 for each Redis Cache.
 
 On "A normal day" the p95 is about 19.8 ms with no errors, and the App Servers are about 28% busy.
 
@@ -20,7 +20,7 @@ There is room to save. A design with 4 App Server instances per Region and 0.5 G
 
 ## Why the first try breaks
 
-A common first try is one Region, us-east, with an AWS ALB, Go App Servers with 4 instances and one Redis Cache. It costs about $341 per month and passes "A normal day" with a p95 of about 18.3 ms. But the App Servers are already about 85% busy.
+A common first try is one Region, us-east, with an AWS ALB, Go App Servers with 4 instances and one Redis Cache. It costs about $329 per month and passes "A normal day" with a p95 of about 18.3 ms. But the App Servers are already about 85% busy.
 
 In "The busiest hour of the week" the traffic doubles and there is no headroom left: the App Servers saturate and about 27.3% of requests fail. In "A Region goes dark" it is worse. From 30 seconds in every request fails, because there is nowhere else to go, and the run ends with about 74.9% errors.
 

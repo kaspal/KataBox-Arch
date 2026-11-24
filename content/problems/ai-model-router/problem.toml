@@ -14,7 +14,7 @@ requires = ["infer"]
 peak_rps = 10
 p95_ms = 30000
 availability = 0.999
-budget_usd = 320000
+budget_usd = 220000
 
 [[model_limits]]
 flavour = "claude_api"
@@ -64,4 +64,4 @@ type_multipliers = { easy = 3 }
 
 [pass]
 error_rate = 0.01
-ttft_p95_ms = 2000
+ttft_p95_ms = 2500

@@ -12,7 +12,7 @@ Your company's help centre gets a chatbot. A customer types a question in their 
 | p95 latency | 5,000 ms or less |
 | Availability | 99% or more |
 | Errors | 1% or less |
-| Budget | $80,000 per month |
+| Budget | $53,000 per month |
 
 ## The traffic
 

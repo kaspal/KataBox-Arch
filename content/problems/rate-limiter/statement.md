@@ -11,7 +11,7 @@ You run a public API with 50 paying customers. Each customer calls it with their
 | Peak traffic | 3,000 requests/s |
 | p95 latency | 100 ms or less |
 | Availability | 99.9% or more |
-| Budget | $1,500 per month |
+| Budget | $1,200 per month |
 
 ## The traffic
 
