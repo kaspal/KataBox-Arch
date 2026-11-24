@@ -230,6 +230,19 @@ function PropField({
   );
 }
 
+/** H2: a value the problem fixes (a hosted model's account limit): shown, not editable. */
+function PinnedField({ spec, value }: { spec: PropSpec; value: number }) {
+  const { t } = useTranslation();
+  const id = useId();
+  const unit = spec.unit === "none" || spec.unit === "count" ? "" : unitName(t, spec.unit);
+  const label = propName(t, spec.key);
+  return (
+    <Field label={unit ? `${label} (${unit})` : label} htmlFor={id} tag={{ text: t("inspector.pinned"), title: t("inspector.pinnedHint") }}>
+      <Input id={id} type="number" value={value} readOnly aria-readonly data-testid="prop-pinned" className="bg-muted font-mono" />
+    </Field>
+  );
+}
+
 function calibrationTag(t: TFunction, status: CalibrationStatus): { text: string; title: string } {
   switch (status) {
     case "cited":
@@ -263,6 +276,10 @@ function NodeInspector({ registry, node }: { registry: Registry; node: Node }) {
   const setFlavour = useEditor((s) => s.setFlavour);
   const flavourId = useId();
   const defaults = defaultProps(spec, node.flavour);
+  // H2: a problem pins its hosted models' account limits (the tier its statement names).
+  const problem = useProblemMode();
+  const limits = node.kind === "infer" ? problem?.brief.model_limits.find((l) => l.flavour === node.flavour) : undefined;
+  const pinned = (key: string): number | null | undefined => (key === "rpm" ? limits?.rpm : key === "tpm" ? limits?.tpm : undefined);
   return (
     <div className="space-y-4" data-testid="inspector-node">
       <div className="flex items-center gap-3">
@@ -304,16 +321,21 @@ function NodeInspector({ registry, node }: { registry: Registry; node: Node }) {
       </Field>
       <div className="space-y-3 border-t pt-4">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("inspector.props")}</h3>
-        {spec.props.map((p) => (
-          <PropField
-            key={p.key}
-            spec={p}
-            value={node.props[p.key]}
-            fallback={defaults[p.key]}
-            onChange={(v) => setProp(node.id, p.key, v)}
-            onReset={() => resetProp(node.id, p.key)}
-          />
-        ))}
+        {spec.props.map((p) => {
+          const fixed = pinned(p.key);
+          return fixed != null ? (
+            <PinnedField key={p.key} spec={p} value={fixed} />
+          ) : (
+            <PropField
+              key={p.key}
+              spec={p}
+              value={node.props[p.key]}
+              fallback={defaults[p.key]}
+              onChange={(v) => setProp(node.id, p.key, v)}
+              onReset={() => resetProp(node.id, p.key)}
+            />
+          );
+        })}
         {spec.props.some((p) => p.calibration) && <p className="text-xs text-muted-foreground">{t("inspector.calibrationNote")}</p>}
       </div>
       <DeleteButton ids={[node.id]} />

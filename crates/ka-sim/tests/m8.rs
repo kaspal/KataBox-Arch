@@ -1014,8 +1014,8 @@ fn s2_time_is_ttft_plus_output_over_speed() {
     let (d, s) = llm(m, 5.0);
     let r = run(&d, &s, 61);
     let ttft = r.ttft.expect("ttft").p50_ms;
-    // 600 ms + 800 tokens at 5,000/s ≈ 760 ms; the answer at 80 tokens/s ≈ 3.75 s more.
-    assert!((650.0..1000.0).contains(&ttft), "{ttft}");
+    // 1,100 ms + 800 tokens at 5,000/s ≈ 1,260 ms; the answer at 100 tokens/s ≈ 3 s more.
+    assert!((1150.0..1500.0).contains(&ttft), "{ttft}");
     assert!(
         r.latency.p50_ms > 3500.0 && r.latency.p50_ms < 6000.0,
         "{}",
@@ -1290,7 +1290,7 @@ fn s4_salting_fixes_skew_and_speculation_does_not() {
 fn s4_spot_interruptions_cost_less_with_checkpoints() {
     let make = |checkpoint: bool| {
         let (d, mut s) = job(
-            &[("instances", 4.0)],
+            &[("instances", 4.0), ("spot_share", 100.0)],
             &[("checkpoint", checkpoint)],
             1600.0,
             40,
@@ -2196,4 +2196,433 @@ fn a_late_answer_to_a_worker_that_gave_up_is_dropped() {
     d.nodes[i] = w;
     let r = run(&d, &s, 65);
     assert!(r.retried > 0.0, "long answers time out and are retried");
+}
+
+// --- H5: results don't depend on card names or step parity -----------------------------------
+
+/// app → search (one card), then → one of two NoSQL stores. With one round-robin counter per
+/// caller, the search call advanced it too, so (without overlapping requests) every store
+/// call landed on the same store.
+#[test]
+fn round_robin_spreads_each_step_on_its_own() {
+    let d = design(
+        vec![
+            node("client", K::Client, Flavour::Web, &[]),
+            node("app", K::App, Flavour::Go, &[("instances", 2.0)]),
+            node("idx", K::Search, Flavour::Elasticsearch, &[]),
+            node("n1", K::Nosql, Flavour::Dynamodb, &[]),
+            node("n2", K::Nosql, Flavour::Dynamodb, &[]),
+        ],
+        vec![
+            edge("client", "app", Protocol::Http),
+            edge("app", "idx", Protocol::Query),
+            edge("app", "n1", Protocol::Query),
+            edge("app", "n2", Protocol::Query),
+        ],
+    );
+    // Light load, so requests rarely overlap (overlaps scrambled the old parity at random).
+    let s = scenario(
+        5.0,
+        60.0,
+        vec![rtype(
+            "q",
+            1.0,
+            &["compute", "datastore:search", "datastore:nosql"],
+        )],
+    );
+    let r = run(&d, &s, 7);
+    let (a, b) = (served(&r, "n1"), served(&r, "n2"));
+    assert!(a > 0.0 && b > 0.0, "both stores serve: {a} / {b}");
+    assert!((a - b).abs() / (a + b) < 0.1, "an even spread: {a} / {b}");
+}
+
+/// A chaos `kind` selector hits the first matching card in the file (creation order), not
+/// the first by name: renaming cards can't move the failure.
+#[test]
+fn a_kind_selector_follows_file_order_not_names() {
+    let build = |first: &str, second: &str| {
+        design(
+            vec![
+                node("client", K::Client, Flavour::Web, &[]),
+                node("app", K::App, Flavour::Go, &[("instances", 2.0)]),
+                node(first, K::Nosql, Flavour::Dynamodb, &[]),
+                node(second, K::Nosql, Flavour::Dynamodb, &[]),
+            ],
+            vec![
+                edge("client", "app", Protocol::Http),
+                edge("app", first, Protocol::Query),
+                edge("app", second, Protocol::Query),
+            ],
+        )
+    };
+    let mut s = scenario(
+        100.0,
+        20.0,
+        vec![rtype("q", 1.0, &["compute", "datastore"])],
+    );
+    s.chaos = vec![chaos(serde_json::json!(
+        { "kill": { "target": { "kind": "nosql" }, "at": 2.0 } }
+    ))];
+    let named_a = run(&build("zeta", "alpha"), &s, 3);
+    let named_b = run(&build("alpha", "zeta"), &s, 3);
+    // The first card in the file is the one killed, whatever it is called.
+    assert!(served(&named_a, "zeta") < served(&named_a, "alpha"));
+    assert!(served(&named_b, "alpha") < served(&named_b, "zeta"));
+}
+
+// --- H4: quorum locks through the caller's side, re-election, stale leases, fencing ----------
+
+/// The split-brain fixture with the lock in a three-member etcd cluster, one member per AZ
+/// (az-a, az-b, az-c), joined by Replicate. The first member, the leader, is in `leader_az`.
+fn split_brain_3az(fencing: bool, leader_az: &str, election_ms: f64) -> (Design, Scenario) {
+    let (mut d, s) = split_brain(None, fencing);
+    let mut azs = vec![leader_az.to_owned()];
+    for z in ["az-a", "az-b", "az-c"] {
+        if z != leader_az {
+            azs.push(z.to_owned());
+        }
+    }
+    for (i, z) in azs.iter().enumerate() {
+        let id = format!("etcd-{i}");
+        d.nodes.push(in_group(
+            node(
+                &id,
+                K::Coord,
+                Flavour::Etcd,
+                &[("instances", 1.0), ("election_ms", election_ms)],
+            ),
+            z,
+        ));
+        d.edges.push(edge("app-a", &id, Protocol::Query));
+        d.edges.push(edge("app-b", &id, Protocol::Query));
+        if i > 0 {
+            d.edges.push(edge("etcd-0", &id, Protocol::Replicate));
+        }
+    }
+    d.groups.push(az("az-c"));
+    let mut s = s;
+    s.request_types[0].route = vec!["compute".into(), "lock".into(), "datastore:write".into()];
+    (d, s)
+}
+
+#[test]
+fn h4_the_majority_side_re_elects_and_keeps_writing() {
+    // The leader sits in az-b, which is cut off: az-a and az-c elect a new one and az-a's
+    // writes go on after `election_ms`; a longer election costs more failed writes.
+    let (d, s) = split_brain_3az(true, "az-b", 500.0);
+    let fast = run(&d, &s, 42);
+    let (d, s) = split_brain_3az(true, "az-b", 5_000.0);
+    let slow = run(&d, &s, 42);
+    assert_eq!(fast.conflicts, 0.0);
+    assert_eq!(slow.conflicts, 0.0);
+    assert!(
+        slow.errors > fast.errors,
+        "a slower election fails more writes"
+    );
+    // az-a (half the writes) keeps writing: well under the half of the split's writes.
+    let split_writes = 300.0 * 20.0;
+    assert!(fast.errors < 0.75 * split_writes, "errors {}", fast.errors);
+}
+
+#[test]
+fn h4_a_stale_lease_writes_into_the_split_unless_fencing_stops_it() {
+    // az-b is cut off from a majority, but its apps hold leases from before the split: for
+    // up to `lease_s` they act on them. Their writes reach az-b's self-promoted primary.
+    let (d, s) = split_brain_3az(false, "az-a", 1_000.0);
+    let unfenced = run(&d, &s, 42);
+    assert!(
+        unfenced.conflicts > 0.0,
+        "stale holders write into the split"
+    );
+    let (d, s) = split_brain_3az(true, "az-a", 1_000.0);
+    let fenced = run(&d, &s, 42);
+    assert_eq!(fenced.conflicts, 0.0, "fencing refuses the stale tokens");
+    assert!(fenced.errors > 0.0);
+}
+
+#[test]
+fn h4_a_cache_aside_cache_is_not_a_lock() {
+    // With a cache read in the route, a plain `lock` step can only be served by a
+    // coordination service: a design whose only candidate is the cache has no path.
+    let (d, mut s) = split_brain(Some(K::Cache), true);
+    s.request_types[0].route = vec![
+        "compute".into(),
+        "cache?".into(),
+        "lock".into(),
+        "datastore:write".into(),
+    ];
+    assert!(simulate(&d, &registry(), &s, 42, &SimOptions::default()).is_err());
+    // `lock:cache` says it on purpose.
+    s.request_types[0].route = vec![
+        "compute".into(),
+        "cache?".into(),
+        "lock:cache".into(),
+        "datastore:write".into(),
+    ];
+    assert!(simulate(&d, &registry(), &s, 42, &SimOptions::default()).is_ok());
+}
+
+// --- H2: AI-track honesty ------------------------------------------------------------------------
+
+/// A problem pins the account's limits: raising the card's own `tpm` doesn't help.
+#[test]
+fn h2_pinned_model_limits_override_the_card() {
+    let m = node(
+        "llm",
+        K::Infer,
+        Flavour::ClaudeApi,
+        &[("tpm", 10_000_000.0)],
+    );
+    let (d, mut s) = llm(m, 5.0);
+    assert_eq!(
+        run(&d, &s, 62).rate_limited,
+        0.0,
+        "the card's own limit is huge"
+    );
+    s.model_limits = vec![ka_core::scenario::ModelLimit {
+        flavour: Flavour::ClaudeApi,
+        rpm: None,
+        tpm: Some(100_000.0),
+    }];
+    let pinned = run(&d, &s, 62);
+    assert!(pinned.rate_limited > 0.0 && pinned.errors > 0.0);
+    // Another provider's cards are untouched.
+    let m = node(
+        "llm",
+        K::Infer,
+        Flavour::OpenaiApi,
+        &[("tpm", 10_000_000.0)],
+    );
+    let (d, _) = llm(m, 5.0);
+    assert_eq!(run(&d, &s, 62).rate_limited, 0.0);
+}
+
+/// The provider cuts the limits mid-run (`model_rate`), then restores them.
+#[test]
+fn h2_a_provider_rate_cut_hits_model_cards() {
+    let m = node("llm", K::Infer, Flavour::ClaudeApi, &[]);
+    let (mut d, mut s) = llm(m, 5.0);
+    // Long answers: the client waits for them.
+    d.nodes[0]
+        .props
+        .insert("timeout_ms".into(), PropValue::Number(60_000.0));
+    assert_eq!(run(&d, &s, 64).rate_limited, 0.0);
+    s.chaos = vec![chaos(serde_json::json!(
+        { "model_rate": { "kind": "infer", "all": true, "at": 10, "for": 30, "tpm": 50000 } }
+    ))];
+    let cut = run(&d, &s, 64);
+    assert!(cut.rate_limited > 0.0);
+    let bad: Vec<_> = cut.series.iter().filter(|x| x.errors > 0.0).collect();
+    assert!(!bad.is_empty());
+    assert!(
+        bad.iter().all(|x| x.t >= 10),
+        "nothing fails before the cut"
+    );
+}
+
+/// TTFT is a chat measure: embeddings and labels arrive whole, and a call the caller gave up
+/// on never showed its user a first token.
+#[test]
+fn h2_ttft_only_for_completed_chat_calls() {
+    let m = node("llm", K::Infer, Flavour::ClaudeApi, &[]);
+    let (d, s) = llm(m, 5.0);
+    assert!(run(&d, &s, 61).ttft.is_some());
+    let mut m = node("llm", K::Infer, Flavour::ClaudeApi, &[]);
+    m.props
+        .insert("model_type".into(), PropValue::Text("embed".into()));
+    let (d, s) = llm(m, 5.0);
+    assert!(
+        run(&d, &s, 61).ttft.is_none(),
+        "an embedding has no first token"
+    );
+    // A 1 s client timeout gives up on every ~4.5 s answer.
+    let (mut d, s) = llm(node("llm", K::Infer, Flavour::ClaudeApi, &[]), 5.0);
+    d.nodes[0]
+        .props
+        .insert("timeout_ms".into(), PropValue::Number(1000.0));
+    assert!(
+        run(&d, &s, 61).ttft.is_none(),
+        "abandoned calls record no TTFT"
+    );
+}
+
+/// Residency covers model calls: an EU request answered by a model outside the EU counts.
+#[test]
+fn h2_residency_covers_model_calls() {
+    let tagged = |tag: &str| {
+        let (mut d, mut s) = llm(node("llm", K::Infer, Flavour::ClaudeApi, &[]), 5.0);
+        let mut g = region("r");
+        g.region_tag = Some(tag.into());
+        d.groups = vec![g];
+        for n in &mut d.nodes {
+            n.group_id = Some("r".into());
+        }
+        s.request_types[0].residency = Some("eu".into());
+        run(&d, &s, 65).residency_violations
+    };
+    assert_eq!(tagged("eu"), 0.0);
+    assert!(tagged("us") > 0.0);
+}
+
+/// A rate limiter with `unit = tokens` debits each request's prompt + answer tokens.
+#[test]
+fn h2_a_token_rate_limiter_counts_tokens() {
+    let limited = |unit: &str| {
+        let mut rl = node(
+            "rl",
+            K::Ratelimit,
+            Flavour::Envoy,
+            &[("limit_rps", 3_000.0), ("burst", 3_000.0)],
+        );
+        rl.props.insert("unit".into(), PropValue::Text(unit.into()));
+        let d = design(
+            vec![
+                node(
+                    "client",
+                    K::Client,
+                    Flavour::Web,
+                    &[("timeout_ms", 60_000.0)],
+                ),
+                rl,
+                node("app", K::App, Flavour::Go, &[]),
+                node("llm", K::Infer, Flavour::ClaudeApi, &[]),
+            ],
+            vec![
+                edge("client", "rl", Protocol::Http),
+                edge("rl", "app", Protocol::Http),
+                edge("app", "llm", Protocol::Http),
+            ],
+        );
+        let mut t = chat_type(800.0, 300.0);
+        t.route = vec!["edge".into(), "compute".into(), "model".into()];
+        t.measure = ka_core::scenario::Measure::Response;
+        let s = scenario(5.0, 30.0, vec![t]);
+        run(&d, &s, 66).errors
+    };
+    // 5 requests/s is far under 3,000/s; ~5,500 tokens/s is over 3,000 tokens/s.
+    assert_eq!(limited("requests"), 0.0);
+    assert!(limited("tokens") > 0.0);
+}
+
+// --- H3: free lunches closed -----------------------------------------------------------------
+
+fn node_cost(r: &RunResult, id: &str) -> f64 {
+    r.nodes
+        .iter()
+        .find(|n| n.id == id)
+        .expect("node")
+        .cost_month
+}
+
+/// Spot executors cost 35% of on-demand, and only they are taken back by a spot event.
+#[test]
+fn h3_spot_share_is_priced_and_only_spot_executors_are_taken() {
+    let make = |spot: f64| {
+        let (d, mut s) = job(
+            &[("instances", 4.0), ("spot_share", spot)],
+            &[],
+            1600.0,
+            40,
+            0.0,
+            900.0,
+        );
+        s.chaos = vec![chaos(
+            serde_json::json!({ "spot": { "kind": "batch", "at": 30, "share": 0.5, "for": 60 } }),
+        )];
+        run(&d, &s, 83)
+    };
+    let (on_demand, half, all_spot) = (make(0.0), make(50.0), make(100.0));
+    assert_eq!(
+        on_demand.tasks_retried, 0.0,
+        "no spot capacity, nothing taken"
+    );
+    assert!(all_spot.tasks_retried > half.tasks_retried && half.tasks_retried > 0.0);
+    let c = |r: &RunResult| node_cost(r, "spark");
+    assert!(
+        (c(&all_spot) / c(&on_demand) - 0.35).abs() < 0.01,
+        "{}",
+        c(&all_spot) / c(&on_demand)
+    );
+    assert!((c(&half) / c(&on_demand) - 0.675).abs() < 0.01);
+}
+
+/// Slots per instance are part of the instance's size: above the cap they are billed.
+#[test]
+fn h3_slots_above_the_cap_are_billed() {
+    let batch_cost = |executors: f64| {
+        let (d, s) = job(
+            &[("instances", 2.0), ("executors", executors)],
+            &[],
+            400.0,
+            40,
+            0.0,
+            300.0,
+        );
+        node_cost(&run(&d, &s, 84), "spark")
+    };
+    assert!((batch_cost(8.0) / batch_cost(4.0) - 2.0).abs() < 0.01);
+    assert!(
+        (batch_cost(2.0) / batch_cost(4.0) - 1.0).abs() < 0.01,
+        "fewer slots don't shrink the machine"
+    );
+    // Worker threads mostly wait: up to 8× the default (Celery 8) fits the same machine.
+    let worker_cost = |threads: f64| {
+        let d = design(
+            vec![
+                node("client", K::Client, Flavour::Web, &[]),
+                node("app", K::App, Flavour::Go, &[]),
+                node("q", K::Queue, Flavour::Sqs, &[]),
+                node("w", K::Worker, Flavour::Celery, &[("concurrency", threads)]),
+            ],
+            vec![
+                edge("client", "app", Protocol::Http),
+                edge("app", "q", Protocol::Publish),
+                edge("q", "w", Protocol::Consume),
+            ],
+        );
+        let s = scenario(
+            10.0,
+            20.0,
+            vec![rtype("job", 1.0, &["compute", "broker", "worker"])],
+        );
+        node_cost(&run(&d, &s, 85), "w")
+    };
+    assert!((worker_cost(64.0) / worker_cost(8.0) - 1.0).abs() < 0.01);
+    assert!((worker_cost(128.0) / worker_cost(8.0) - 2.0).abs() < 0.01);
+}
+
+/// An exact cache in front of a model is filled by the model's answers: repeats hit it.
+#[test]
+fn h3_model_answers_fill_a_cache_aside_cache() {
+    let d = design(
+        vec![
+            node(
+                "client",
+                K::Client,
+                Flavour::Web,
+                &[("timeout_ms", 60_000.0)],
+            ),
+            node("app", K::App, Flavour::Go, &[]),
+            node("cache", K::Cache, Flavour::Redis, &[]),
+            node("llm", K::Infer, Flavour::ClaudeApi, &[]),
+        ],
+        vec![
+            edge("client", "app", Protocol::Http),
+            edge("app", "cache", Protocol::Query),
+            edge("app", "llm", Protocol::Http),
+        ],
+    );
+    let mut t = chat_type(200.0, 50.0);
+    t.route = vec!["compute".into(), "cache?".into(), "model".into()];
+    t.key_space = 50;
+    t.measure = ka_core::scenario::Measure::Response;
+    let mut s = scenario(20.0, 30.0, vec![t]);
+    s.cold_caches = true;
+    let r = run(&d, &s, 86);
+    // 600 questions over 50 keys: after the first answer per key, the cache answers.
+    assert!(
+        served(&r, "llm") < 200.0,
+        "the model answered {}",
+        served(&r, "llm")
+    );
 }

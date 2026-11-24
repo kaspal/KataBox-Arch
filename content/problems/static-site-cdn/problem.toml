@@ -13,7 +13,7 @@ peak_rps = 1500
 read_ratio = 0.99
 p95_ms = 60
 availability = 0.999
-budget_usd = 4000
+budget_usd = 5100
 
 [[request_types]]
 id = "asset"

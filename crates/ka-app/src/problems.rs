@@ -120,6 +120,8 @@ pub struct ProblemBrief {
     pub statement_es: String,
     pub request_types: Vec<RequestTypeBrief>,
     pub externals: Vec<ExternalBrief>,
+    /// H2: hosted model limits the problem pins (shown read-only on those cards).
+    pub model_limits: Vec<ka_core::scenario::ModelLimit>,
     pub tests: Vec<TestBrief>,
     /// Unlocked tiers (0–3) and their text.
     pub hints_unlocked: i64,
@@ -403,6 +405,7 @@ impl App {
                     rate_limit: x.rate_limit,
                 })
                 .collect(),
+            model_limits: def.model_limits.clone(),
             tests: def
                 .tests
                 .iter()

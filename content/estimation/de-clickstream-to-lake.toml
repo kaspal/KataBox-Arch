@@ -19,16 +19,16 @@ prompt_es = "Una consulta abre {files} archivos. Abrir uno tarda {open_ms} ms, y
 inputs = { files = 1024, open_ms = 20, readers = 8 }
 formula = "files * open_ms / readers / 1000"
 unit = "s"
-solution = "{files} × {open_ms} ms / {readers} = {answer} s. Reading the 2 GB itself at 4 Gbps takes 0.5 s, so the small files cost more than the data. With 8 compacted files, opening them takes 20 ms."
-solution_es = "{files} × {open_ms} ms / {readers} = {answer} s. Leer los 2 GB a 4 Gbps tarda 0,5 s, así que los archivos pequeños cuestan más que los datos. Con 8 archivos compactados, abrirlos tarda 20 ms."
+solution = "{files} × {open_ms} ms / {readers} = {answer} s. Reading the 2 GB itself at 2 Gbps takes 1 s, so the small files cost more than the data. With 8 compacted files, opening them takes 20 ms."
+solution_es = "{files} × {open_ms} ms / {readers} = {answer} s. Leer los 2 GB a 2 Gbps tarda 1 s, así que los archivos pequeños cuestan más que los datos. Con 8 archivos compactados, abrirlos tarda 20 ms."
 
 [[drill]]
 id = "launch-slots"
 kind = "servers"
 prompt = "On a launch day, {refreshes} chart refreshes arrive each second, and each one holds a warehouse slot for {scan_s} s while it scans small files. How many slots are busy at once?"
 prompt_es = "En un día de lanzamiento llegan {refreshes} refrescos de gráficos por segundo, y cada uno ocupa un hueco del almacén durante {scan_s} s mientras escanea archivos pequeños. ¿Cuántos huecos están ocupados a la vez?"
-inputs = { refreshes = 100, scan_s = 3.36 }
+inputs = { refreshes = 100, scan_s = 3.86 }
 formula = "refreshes * scan_s"
 unit = "count"
-solution = "{refreshes} × {scan_s} s = {answer} slots, against 128 in a warehouse of 4 instances with a concurrency of 32: the queue grows and refreshes time out. Compacted, a scan takes 0.82 s, and the same day needs about 82 slots."
-solution_es = "{refreshes} × {scan_s} s = {answer} huecos, frente a 128 en un almacén de 4 instancias con una concurrencia de 32: la cola crece y los refrescos agotan su tiempo. Compactado, un escaneo tarda 0,82 s, y el mismo día pide unos 82 huecos."
+solution = "{refreshes} × {scan_s} s = {answer} slots, against 160 in a warehouse of 5 instances with a concurrency of 32: the queue grows and refreshes time out. Compacted, a scan takes 1.32 s, and the same day needs about 132 slots."
+solution_es = "{refreshes} × {scan_s} s = {answer} huecos, frente a 160 en un almacén de 5 instancias con una concurrencia de 32: la cola crece y los refrescos agotan su tiempo. Compactado, un escaneo tarda 1,32 s, y el mismo día pide unos 132 huecos."

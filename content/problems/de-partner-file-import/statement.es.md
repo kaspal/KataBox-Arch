@@ -13,7 +13,8 @@ Tu empresa recibe datos de cientos de socios. El servidor de cada socio sube fic
 | Disponibilidad | 99,9 % o más |
 | Errores | 0,1 % o menos |
 | Ficheros perdidos | ninguno |
-| Presupuesto | 4500 $ al mes |
+| Ficheros en la Cola de mensajes fallidos | ninguno |
+| Presupuesto | 4200 $ al mes |
 
 ## El tráfico
 
@@ -21,7 +22,7 @@ Tu empresa recibe datos de cientos de socios. El servidor de cada socio sube fic
 - **Subir un fichero gigante** (2 %). El mismo camino, pero el fichero supone 25 veces el trabajo en cada paso después de la cola: analizarlo, volver a leerlo y escribir sus filas.
 - **Consultar el estado de una importación** (20 %). El servidor del socio llama a tus App Servers, que leen la fila de la importación en PostgreSQL.
 
-Cuando falla un paso de un Worker, la cola vuelve a intentar el mensaje tras 1, 2, 4, 8, 16 y luego 32 segundos, hasta sus «Reintentos máximos» (3 por defecto: 7 segundos de espera en total). Un mensaje que falla en todos los reintentos va a una Cola de mensajes fallidos si hay una conectada a la cola; si no, se pierde. Un fichero en una Cola de mensajes fallidos se guarda, pero no se carga: alguien tiene que reprocesarlo a mano. El juez solo cuenta los ficheros perdidos, así que no puede avisarte de los mensajes fallidos. Busca reintentos que duren más que un fallo por sí solos, para que la Cola de mensajes fallidos se quede vacía.
+Cuando falla un paso de un Worker, la cola vuelve a intentar el mensaje tras 1, 2, 4, 8, 16 y luego 32 segundos, hasta sus «Reintentos máximos» (3 por defecto: 7 segundos de espera en total). Un mensaje que falla en todos los reintentos va a una Cola de mensajes fallidos si hay una conectada a la cola; si no, se pierde. Un fichero en una Cola de mensajes fallidos se guarda, pero no se carga: alguien tiene que reprocesarlo a mano. El juez cuenta las dos cosas: no se puede perder ningún fichero, y ninguno puede acabar en la Cola de mensajes fallidos. Busca reintentos que duren más que un fallo por sí solos, para que la Cola de mensajes fallidos se quede vacía.
 
 Una tarjeta PostgreSQL conectada con Replicar a otra guarda una copia. Si la primaria cae, la réplica sigue sirviendo lecturas, y se promueve para aceptar escrituras tras el «Tiempo de failover» de la primaria (30 s por defecto). Una PostgreSQL sola que cae se lleva con ella todas las lecturas y escrituras.
 

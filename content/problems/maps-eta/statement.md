@@ -12,7 +12,7 @@ You run a maps app. People pan around the map, which loads it tile by tile, and 
 | p95 latency | 250 ms or less |
 | Availability | 99.9% or more |
 | Errors | 0.5% or less |
-| Budget | $9,000 per month |
+| Budget | $11,000 per month |
 
 ## The traffic
 

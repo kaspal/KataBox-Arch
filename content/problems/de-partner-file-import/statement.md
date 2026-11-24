@@ -13,7 +13,8 @@ Your company takes in data from hundreds of partners. Each partner's server uplo
 | Availability | 99.9% or more |
 | Errors | 0.1% or less |
 | Files lost | none |
-| Budget | $4,500 per month |
+| Files dead-lettered | none |
+| Budget | $4,200 per month |
 
 ## The traffic
 
@@ -21,7 +22,7 @@ Your company takes in data from hundreds of partners. Each partner's server uplo
 - **Upload a giant file** (2%). The same path, but the file is 25 times the work at every step after the queue: parsing, reading it back and writing its rows.
 - **Check an import's status** (20%). The partner server calls your App Servers, which read the import's row from PostgreSQL.
 
-When a Worker's step fails, the queue tries the message again after 1, 2, 4, 8, 16 and then 32 seconds, up to its "Maximum retries" (3 by default: 7 seconds of waiting in all). A message that fails every retry goes to a Dead-Letter Queue if one is wired to the queue; otherwise it is lost. A file in a Dead-Letter Queue is kept, not loaded: someone has to replay it by hand. The judge counts lost files only, so it cannot tell you about dead letters. Aim for retries that outlast a failure on their own, so the Dead-Letter Queue stays empty.
+When a Worker's step fails, the queue tries the message again after 1, 2, 4, 8, 16 and then 32 seconds, up to its "Maximum retries" (3 by default: 7 seconds of waiting in all). A message that fails every retry goes to a Dead-Letter Queue if one is wired to the queue; otherwise it is lost. A file in a Dead-Letter Queue is kept, not loaded: someone has to replay it by hand. The judge counts both: no file may be lost, and none may end up in the Dead-Letter Queue. Aim for retries that outlast a failure on their own, so the Dead-Letter Queue stays empty.
 
 A PostgreSQL card wired with Replicate to a second one keeps a copy. If the primary dies, the replica keeps serving reads, and it is promoted to take writes after the primary's "Failover time" (30 s by default). A lone PostgreSQL that dies takes all reads and writes with it.
 

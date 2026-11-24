@@ -16,7 +16,12 @@ tags = ["llm", "batch-api", "rate-limits", "queues", "deadlines", "scheduler"]
 peak_rps = 15
 p95_ms = 45000
 availability = 0.999
-budget_usd = 38000
+budget_usd = 25000
+
+[[model_limits]]
+flavour = "claude_api"
+rpm = 4000
+tpm = 400000
 
 [[request_types]]
 id = "summarise"
@@ -58,3 +63,4 @@ chaos = [{ latency = { kind = "infer", at = 0, for = 90, add_ms = 3000 } }]
 [pass]
 error_rate = 0.001
 lost = 0
+dead_lettered = 0

@@ -9,11 +9,12 @@ teaches = "Score sensor points with a classifier in the stream path instead of i
 teaches_es = "Puntuar los puntos de los sensores con un clasificador en el camino del stream en lugar de en línea al recibirlos, dimensionar el servidor del modelo para la ráfaga de una tormenta y presupuestar las series para que una explosión de cardinalidad no pare las alertas"
 tags = ["iot", "anomaly-detection", "ml-inference", "stream-processing", "time-series", "cardinality"]
 
+challenge_ratio = 0.8
 [nfr]
 peak_rps = 3000
 p95_ms = 1000
 availability = 0.999
-budget_usd = 8000
+budget_usd = 7600
 
 [[request_types]]
 id = "sensors"

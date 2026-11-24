@@ -8,7 +8,7 @@ Every one of the 6,000 requests/s is a read, and they are very uneven. With Zipf
 
 A Load Balancer spreads traffic over 3 Go App Servers. Each App Server checks a Redis Cache named "prefixes" (2 GB, TTL one hour) first. A hit ends the request. A miss asks Elasticsearch, with 4 shards, and fills the cache.
 
-This costs about $771 per month and has a p95 near 18 ms in every test. Almost every prefix is answered by the cache, so the index sees only a thin stream of rare prefixes, spread evenly over its shards.
+This costs about $759 per month and has a p95 near 18 ms in every test. Almost every prefix is answered by the cache, so the index sees only a thin stream of rare prefixes, spread evenly over its shards.
 
 ## Why the first try breaks
 

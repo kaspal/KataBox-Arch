@@ -13,7 +13,7 @@ connections = true
 peak_rps = 6000
 p95_ms = 150
 availability = 0.999
-budget_usd = 2200
+budget_usd = 1800
 
 [[request_types]]
 id = "view"

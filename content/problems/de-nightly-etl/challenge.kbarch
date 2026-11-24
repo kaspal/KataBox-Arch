@@ -1,0 +1,163 @@
+{
+  "schema_version": 4,
+  "id": "de-nightly-etl-challenge",
+  "name": "Nightly export reads a replica",
+  "problem_id": "de-nightly-etl",
+  "nodes": [
+    {
+      "id": "users",
+      "kind": "client",
+      "flavour": "web",
+      "label": "users",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "app",
+      "kind": "app",
+      "flavour": "go",
+      "label": "app",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 1
+      },
+      "group_id": null
+    },
+    {
+      "id": "cron",
+      "kind": "scheduler",
+      "flavour": "temporal",
+      "label": "cron",
+      "position": {
+        "x": 0,
+        "y": 112
+      },
+      "props": {
+        "interval_s": 86400
+      },
+      "group_id": null
+    },
+    {
+      "id": "exporter",
+      "kind": "worker",
+      "flavour": "celery",
+      "label": "exporter",
+      "position": {
+        "x": 608,
+        "y": 112
+      },
+      "props": {
+        "concurrency": 64,
+        "instances": 2,
+        "service_ms": 2
+      },
+      "group_id": null
+    },
+    {
+      "id": "primary",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "primary",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "replica",
+      "kind": "sql",
+      "flavour": "postgresql",
+      "label": "replica",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "pages",
+      "kind": "queue",
+      "flavour": "rabbitmq",
+      "label": "pages",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-users-lb-http",
+      "from": "users",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-app-http",
+      "from": "lb",
+      "to": "app",
+      "protocol": "http"
+    },
+    {
+      "id": "e-app-primary-query",
+      "from": "app",
+      "to": "primary",
+      "protocol": "query"
+    },
+    {
+      "id": "e-cron-pages-publish",
+      "from": "cron",
+      "to": "pages",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-pages-exporter-consume",
+      "from": "pages",
+      "to": "exporter",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-exporter-replica-query",
+      "from": "exporter",
+      "to": "replica",
+      "protocol": "query"
+    },
+    {
+      "id": "e-primary-replica-replicate",
+      "from": "primary",
+      "to": "replica",
+      "protocol": "replicate"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

@@ -15,7 +15,7 @@ Cada equipo ha acordado una cuota de 55 000 tokens por minuto. Uno de los equipo
 | Tiempo hasta el primer token p95 | 1500 ms o menos |
 | Disponibilidad | 99,9 % o más |
 | Errores | 1 % o menos |
-| Presupuesto | 80 000 $ al mes |
+| Presupuesto | 54 000 $ al mes |
 
 ## El tráfico
 
@@ -24,9 +24,9 @@ Cada equipo ha acordado una cuota de 55 000 tokens por minuto. Uno de los equipo
 
 Una petición típica envía unos 400 tokens de prompt (1000 en el p95) y recibe unos 60 tokens (120 en el p95); las largas suben un poco la media. Cada petición pasa por un Balanceador de carga y la API Gateway (y por cualquier Limitador de tasa que pongas en el camino), y luego un Servidor de aplicaciones llama a la tarjeta de Inferencia de modelos y espera la respuesta entera. En el simulador, una tarjeta de pasarela deja pasar las peticiones pero no puede llamar a un modelo, así que el Servidor de aplicaciones representa al proceso de la pasarela que hace la llamada al proveedor.
 
-El "Límite de peticiones por minuto" y el "Límite de tokens por minuto" de la tarjeta de Inferencia de modelos son los límites de tu cuenta con el proveedor: déjalos en sus valores por defecto (4000 y 400 000). Cambiar la propiedad no cambia el contrato.
+El "Límite de peticiones por minuto" y el "Límite de tokens por minuto" de la tarjeta de Inferencia de modelos son los límites de tu cuenta con el proveedor, 4000 y 400 000: el simulador los aplica a cada tarjeta de API de Claude (el Inspector los muestra, sin poder cambiarlos).
 
-Un Limitador de tasa guarda un token bucket por cada clave de API: su Límite son peticiones por segundo por clave, y su Ráfaga, cuántas puede enviar una clave de golpe. Cuenta peticiones, no tokens. Una petición que rechaza recibe un 429. Para los nueve equipos normales es un error; para el equipo que inunda, un rechazo es justo lo que debe pasar, así que cuenta como un éxito.
+Un Limitador de tasa guarda un token bucket por cada clave de API. Su Cuenta dice qué cuenta el bucket: Peticiones, o Tokens (prompt + respuesta). Con Tokens, cada petición saca del bucket sus tokens de prompt y de respuesta, el Límite son tokens por segundo por clave, y la Ráfaga, cuántos tokens puede gastar una clave de golpe. Una petición que rechaza recibe un 429. Para los nueve equipos normales es un error; para el equipo que inunda, un rechazo es justo lo que debe pasar, así que cuenta como un éxito.
 
 ## Las pruebas
 

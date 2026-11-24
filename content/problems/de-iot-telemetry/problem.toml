@@ -13,7 +13,7 @@ tags = ["iot", "mqtt", "time-series", "streams", "cardinality"]
 peak_rps = 2500
 p95_ms = 2000
 availability = 0.999
-budget_usd = 3000
+budget_usd = 2600
 
 [[request_types]]
 id = "devices"

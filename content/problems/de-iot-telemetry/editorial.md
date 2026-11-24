@@ -10,17 +10,17 @@ So the questions are: where do readings wait when they arrive faster than the da
 
 ## The reference design
 
-The meters keep their MQTT connections on an EMQX IoT Broker with the default 2 instances. Readings enter at a Go App Server (2 instances), which publishes each one to an Apache Kafka Stream with 192 partitions. Six Celery Workers (concurrency 32 per instance, service time 2 ms) consume the stream and write to an InfluxDB Time-Series Database with 3 instances at 4,000 points per second each. It costs about $1,633 per month: $780 for the database, $420 for the workers, $153 for Kafka, and $140 each for the broker and the App Servers. A normal day has a p95 of about 56 ms from the reading to the database, and no errors.
+The meters keep their MQTT connections on an EMQX IoT Broker with the default 2 instances. Readings enter at a Go App Server (2 instances), which publishes each one to an Apache Kafka Stream with 192 partitions. Six Celery Workers (concurrency 32 per instance, service time 2 ms) consume the stream and write to an InfluxDB Time-Series Database with 3 instances at 4,000 points per second each. It costs about $1,405 per month: $552 for the database, $420 for the workers, $153 for Kafka, and $140 each for the broker and the App Servers. A normal day has a p95 of about 56 ms from the reading to the database, and no errors.
 
 The stream does the work in "The fleet reconnects after a network outage". The App Server only publishes, so it answers quickly whatever the database does. The workers take readings off the stream as fast as their slots allow, and that pace stays under what the three nodes write, so nothing is refused: the extra readings wait in Kafka, and the workers catch up a few seconds after the burst ends. Freshness slips while they wait. This test allows a p95 of 10 s, and the design gets about 4.8 s, with the worst second at about 5.2 s and no errors.
 
 "A firmware update multiplies the series by 10" is where the series budget matters. With 3 instances, each node holds 2,500,000 / 3 ≈ 833,000 series during the explosion, still under its limit of 1,000,000. Writes keep their normal speed, and the p95 stays at about 56 ms with no errors. Planning the series per node with room for a ten-fold surprise is what decides the instance count here, more than the points per second.
 
-The cost challenge search found no design under 80% of the reference's cost (the best it reached was 87%), so this problem has no cost challenge.
+The cost challenge search found no design under 80% of the reference's cost (the best it reached was 85%), so this problem has no cost challenge.
 
 ## Why the first try breaks
 
-A common first try is the same IoT Broker and App Servers, with the App Server writing straight to one InfluxDB node at 4,000 points per second: no stream and no workers. It costs about $540 and passes "A normal day" with a p95 of about 52 ms; the database runs at about 75% busy.
+A common first try is the same IoT Broker and App Servers, with the App Server writing straight to one InfluxDB node at 4,000 points per second: no stream and no workers. It costs about $464 and passes "A normal day" with a p95 of about 52 ms; the database runs at about 75% busy.
 
 When the fleet reconnects, 10,000 readings a second hit a node that writes 4,000. Its queue fills in a moment and it refuses the rest: about two thirds of the readings fail during the burst, 44.2% over the whole test. Adding database nodes without a stream doesn't fix it either. With 3 nodes and no stream, the App Servers wait on every write themselves, their slots fill up, and 34.2% of the readings still fail.
 

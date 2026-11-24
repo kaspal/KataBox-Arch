@@ -72,6 +72,7 @@ impl FlawDef {
             nfr: self.scenario.nfr.clone(),
             request_types: self.scenario.request_types.clone(),
             externals: self.scenario.externals.clone(),
+            model_limits: Vec::new(),
             tests: self.scenario.tests.clone(),
             pass: self.scenario.pass.clone(),
             sample_cap: self.scenario.sample_cap,

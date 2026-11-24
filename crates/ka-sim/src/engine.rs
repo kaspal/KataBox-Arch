@@ -199,10 +199,15 @@ struct Req {
     call_atomic: bool,
     locked: bool,
     lock_quorum: bool,
+    /// H4: the lock held is a lease granted before this side lost its quorum.
+    lock_stale: bool,
     shadow: bool,
     /// S2: the request's prompt and answer tokens (drawn at its first model call; -1: not yet).
     tin: f64,
     tout: f64,
+    /// H2: the time to first token of the chat call in progress, recorded when the call
+    /// completes (never for a call its caller abandoned); -1: none.
+    ttft_us: f64,
     /// S4: a job task (job run `job`, task `task`): its executor time, when it started
     /// running, and whether a spot interruption already freed its executor.
     job: u16,
@@ -325,6 +330,9 @@ struct NodeRt {
     rpm_left: f64,
     tpm_left: f64,
     bucket_at: u64,
+    /// H2: a provider's cut to this card's per-minute limits (chaos `model_rate`).
+    rpm_cut: Option<f64>,
+    tpm_cut: Option<f64>,
     bill_tin: f64,
     bill_tout: f64,
     bill_conn_s: f64,
@@ -413,6 +421,12 @@ pub struct Engine {
     externals: Vec<ExternalRt>,
     cluster_primary: Vec<u32>,
     cluster_rr: Vec<usize>,
+    /// Round-robin counters per route position: (caller, request type, segment, step,
+    /// 0 = next hop | 1 = broker | 2 = call), so how requests of one type spread doesn't depend on
+    /// how other types interleave through the same caller.
+    rr_at: BTreeMap<(u32, u16, u16, u16, u8), usize>,
+    /// H4: per caller, when the lock lease it was last granted by a quorum expires.
+    leases: BTreeMap<u32, u64>,
     reqs: Vec<Req>,
     free: Vec<u32>,
     groups: Vec<Group>,
@@ -705,6 +719,8 @@ impl Engine {
                 .collect(),
             cluster_primary: c.clusters.iter().map(|cl| cl.members[0]).collect(),
             cluster_rr: vec![0; c.clusters.len()],
+            rr_at: BTreeMap::new(),
+            leases: BTreeMap::new(),
             reqs: Vec::new(),
             free: Vec::new(),
             groups: Vec::new(),
@@ -1124,8 +1140,10 @@ impl Engine {
             call_atomic: false,
             locked: false,
             lock_quorum: false,
+            lock_stale: false,
             shadow: false,
             tin: -1.0,
+            ttft_us: -1.0,
             tout: 0.0,
             job: NO_JOB,
             task: 0,
@@ -1266,7 +1284,19 @@ impl Engine {
 
     // --- Hops -------------------------------------------------------------------------
 
-    fn pick(&mut self, from: u32, cands: &[u32], key: u64) -> Option<u32> {
+    /// The round-robin slot of request `r`'s current route position at `from`.
+    fn rr_slot(&self, r: u32, from: u32, broker: u8) -> (u32, u16, u16, u16, u8) {
+        let q = &self.reqs[r as usize];
+        (from, q.ty, q.seg, q.step, broker)
+    }
+
+    fn pick(
+        &mut self,
+        from: u32,
+        cands: &[u32],
+        key: u64,
+        slot: (u32, u16, u16, u16, u8),
+    ) -> Option<u32> {
         let live: Vec<u32> = cands
             .iter()
             .copied()
@@ -1299,9 +1329,9 @@ impl Engine {
         } else if n.kind == ComponentKind::Lb && n.spec.algorithm == "key_hash" {
             (mix(key) % list.len() as u64) as usize
         } else {
-            let rt = &mut self.nodes[from as usize];
-            rt.rr = rt.rr.wrapping_add(1);
-            rt.rr % list.len()
+            let rr = self.rr_at.entry(slot).or_insert(0);
+            *rr = rr.wrapping_add(1);
+            *rr % list.len()
         };
         Some(list[i])
     }
@@ -1384,7 +1414,8 @@ impl Engine {
         let picked = if self.c.nodes[from as usize].spec.dns_failover {
             self.dns_pick(from, &cands)
         } else {
-            self.pick(from, &cands, key)
+            let slot = self.rr_slot(r, from, 0);
+            self.pick(from, &cands, key, slot)
         };
         let Some(next) = picked else {
             self.fail(r);
@@ -1784,11 +1815,12 @@ impl Engine {
         if !spec.hosted {
             return true;
         }
-        let (rpm, tpm, sample) = (
-            spec.rpm * self.c.sample,
-            spec.tpm * self.c.sample,
-            self.c.sample,
+        let rt = &self.nodes[node as usize];
+        let (rpm, tpm) = (
+            rt.rpm_cut.map_or(spec.rpm, |c| c.min(spec.rpm)),
+            rt.tpm_cut.map_or(spec.tpm, |c| c.min(spec.tpm)),
         );
+        let (rpm, tpm, sample) = (rpm * self.c.sample, tpm * self.c.sample, self.c.sample);
         let tokens = self.reqs[r as usize].tin + self.reqs[r as usize].tout;
         let now = self.now;
         let rt = &mut self.nodes[node as usize];
@@ -1830,11 +1862,14 @@ impl Engine {
         let stretch = self.nodes[node as usize].stretch;
         let add = self.nodes[node as usize].add_us;
         let first = self.now + (ttft_s * 1e6 * stretch) as u64 + add;
-        let q = &self.reqs[r as usize];
-        let lat = (first - q.start + q.net) as f64;
-        let ty = q.ty as usize;
-        let w = self.c.weight;
-        self.types[ty].ttft.add(lat, w);
+        let q = &mut self.reqs[r as usize];
+        // H2: only a chat answer has a first token worth waiting for (an embedding or a
+        // label arrives whole); it is recorded when the call completes.
+        q.ttft_us = if spec.model_type == "embed" || spec.model_type == "classify" {
+            -1.0
+        } else {
+            (first - q.start + q.net) as f64
+        };
         ((ttft_s + decode_s) * 1e6 * stretch) as u64 + add + 1
     }
 
@@ -2065,9 +2100,10 @@ impl Engine {
             }
             let targets = if live.is_empty() { targets } else { live };
             let pick = {
-                let rt = &mut self.nodes[caller as usize];
-                rt.rr = rt.rr.wrapping_add(1);
-                targets[rt.rr % targets.len()]
+                let slot = self.rr_slot(r, caller, 2);
+                let rr = self.rr_at.entry(slot).or_insert(0);
+                *rr = rr.wrapping_add(1);
+                targets[*rr % targets.len()]
             };
             let node = match pick {
                 Target::External(x) => {
@@ -2096,15 +2132,32 @@ impl Engine {
                 self.reqs[r as usize].step += 1;
                 continue;
             }
-            if lock
-                && self.c.nodes[node as usize].kind == ComponentKind::Coord
-                && !self.quorum(node, caller)
-            {
-                // S7: this side of a split can't reach a majority of the members.
-                self.reqs[r as usize].call_key = NONE;
-                self.call_failed(r);
-                return;
-            }
+            let node = if lock && self.c.nodes[node as usize].kind == ComponentKind::Coord {
+                // S7/H4: a lock comes from the coordination cluster as a whole, through a
+                // member on the caller's side, and only while that side holds a quorum and
+                // has a leader (re-elected after `election_ms` if the leader is across a
+                // split). Without one, a caller still inside a lease it was granted acts on
+                // it: a stale holder, which fencing exists to stop.
+                match self.lock_member(node, caller) {
+                    Some(m) => m,
+                    None => {
+                        let lease = self.leases.get(&caller).copied().unwrap_or(0);
+                        if self.now < lease {
+                            let q = &mut self.reqs[r as usize];
+                            q.locked = true;
+                            q.lock_quorum = true;
+                            q.lock_stale = true;
+                            q.step += 1;
+                            continue;
+                        }
+                        self.reqs[r as usize].call_key = NONE;
+                        self.call_failed(r);
+                        return;
+                    }
+                }
+            } else {
+                node
+            };
             if !self.begin_call(r, caller, node) {
                 return;
             }
@@ -2303,6 +2356,38 @@ impl Engine {
         reach * 2.0 > total
     }
 
+    /// H4: the coordination member that grants `caller` a lock now: one on the caller's side
+    /// of any split, if that side reaches a majority of the members and has a leader. The
+    /// leader is the first member in the file; when it is across a split, the majority side
+    /// elects a new one `election_ms` after the split began.
+    fn lock_member(&self, node: u32, caller: u32) -> Option<u32> {
+        let members: Vec<u32> = match self.c.cluster_of[node as usize] {
+            Some(cl) => self.c.clusters[cl as usize].members.clone(),
+            None => vec![node],
+        };
+        if !self.quorum(node, caller) {
+            return None;
+        }
+        let member = members
+            .iter()
+            .copied()
+            .find(|&m| !self.nodes[m as usize].down && !self.cut(caller, m))?;
+        let leader = members[0];
+        if self.cut(caller, leader) {
+            let since = self
+                .splits
+                .iter()
+                .filter(|s| self.in_zone(caller, &s.zone) != self.in_zone(leader, &s.zone))
+                .map(|s| s.since)
+                .min()
+                .unwrap_or(0);
+            if self.now < since + self.c.nodes[leader as usize].spec.election_us {
+                return None;
+            }
+        }
+        Some(member)
+    }
+
     /// S7 split-brain: with `split_failover = auto`, a caller cut off from the primary by a
     /// split (once health checks know, plus the primary's `failover_s`) writes to the
     /// member on its own side that promoted itself.
@@ -2330,26 +2415,42 @@ impl Engine {
             .find(|&m| m != primary && !self.nodes[m as usize].down && !self.cut(caller, m))
     }
 
-    /// S7: a write commits. On a self-promoted primary it is refused with a fencing token
-    /// from a quorum lock, else it is a conflict; on a contended key, a write whose check
-    /// came before another write's commit raced, unless it was atomic or held a lock.
-    /// Returns false if the write was refused (the call failed).
+    /// S7/H4: a write commits. Split brain: a write by a stale lock holder (its side lost
+    /// the quorum) to a cluster split across it is refused when the store checks fencing
+    /// tokens, else it is a conflict; a write to a self-promoted primary is legitimate when
+    /// it holds a current quorum lock (that side elected the new primary), else it is a
+    /// conflict. On a contended key, a write whose check came before another write's commit
+    /// raced, unless it was atomic or held a lock. Returns false if the write was refused.
     fn s7_write_ok(&mut self, r: u32, node: u32, key: u64) -> bool {
         let w = self.c.weight;
         let q = &self.reqs[r as usize];
-        let (shadow, quorum, contended, read_at, atomic, locked) = (
+        let (shadow, quorum, contended, read_at, atomic, locked, stale, caller) = (
             q.shadow,
             q.lock_quorum,
             q.contended,
             q.read_at,
             q.call_atomic,
             q.locked,
+            q.lock_stale,
+            q.caller,
         );
-        if shadow {
-            if self.c.nodes[node as usize].spec.fencing && quorum {
-                self.call_failed(r);
-                return false;
+        let spec = &self.c.nodes[node as usize].spec;
+        if stale {
+            let split_cluster = spec.split_failover
+                && self.c.cluster_of[node as usize].is_some_and(|cl| {
+                    self.c.clusters[cl as usize]
+                        .members
+                        .iter()
+                        .any(|&m| self.cut(caller, m))
+                });
+            if split_cluster {
+                if spec.fencing {
+                    self.call_failed(r);
+                    return false;
+                }
+                self.conflicts += w;
             }
+        } else if shadow && !quorum {
             self.conflicts += w;
         }
         if contended {
@@ -2461,6 +2562,11 @@ impl Engine {
         let role = if q.call_lock {
             // S7: a lock grant, not a write of data.
             let quorum = self.c.nodes[node as usize].kind == ComponentKind::Coord;
+            if quorum {
+                let until = self.now + self.c.nodes[node as usize].spec.lease_us;
+                let caller = self.reqs[r as usize].caller;
+                self.leases.insert(caller, until);
+            }
             let q = &mut self.reqs[r as usize];
             q.locked = true;
             q.lock_quorum |= quorum;
@@ -2474,7 +2580,13 @@ impl Engine {
         if write && role == Role::Datastore {
             self.note_commit(node);
         }
-        if matches!(role, Role::Datastore | Role::Cache) {
+        let ttft = std::mem::replace(&mut self.reqs[r as usize].ttft_us, -1.0);
+        if ttft >= 0.0 {
+            let w = self.c.weight;
+            self.types[ty].ttft.add(ttft, w);
+        }
+        // H2: a model call is processing too: a card outside the request's residency counts.
+        if matches!(role, Role::Datastore | Role::Cache | Role::Model) {
             self.check_residency(r, node);
         }
         if write && self.c.nodes[node as usize].kind == ComponentKind::Tsdb {
@@ -2546,6 +2658,18 @@ impl Engine {
                     self.reqs[r as usize].fill_cache = NONE;
                     self.wake_coalesced(r, fill_cache, true, false);
                 }
+            }
+            Role::Model
+                if fill_cache != NONE
+                    && !self.c.nodes[fill_cache as usize].spec.semantic
+                    && !self.store_step_follows(r) =>
+            {
+                // H3: a cache in front of a model is filled by the model's answer, as one
+                // in front of a provider is (when no data store follows to fill it). A
+                // semantic cache keeps its own warm-up model (S3).
+                self.fill(fill_cache, ty, key);
+                self.reqs[r as usize].fill_cache = NONE;
+                self.wake_coalesced(r, fill_cache, true, false);
             }
             _ => {}
         }
@@ -2687,7 +2811,8 @@ impl Engine {
         }
         let brokers = self.c.types[ty].plan.brokers[seg + 1][caller as usize].clone();
         let key = self.reqs[r as usize].key;
-        let Some(b) = self.pick(caller, &brokers, key) else {
+        let slot = self.rr_slot(r, caller, 1);
+        let Some(b) = self.pick(caller, &brokers, key, slot) else {
             self.fail(r);
             return;
         };
@@ -3389,14 +3514,23 @@ impl Engine {
             Some(k) if k > 0 => (u64::from(q.ty) << 40) | (q.key % u64::from(k)),
             _ => u64::from(q.ty) << 40,
         };
+        let cost = if spec.limit_tokens {
+            // H2: debit the request's tokens (prompt + answer), drawn now for its model call.
+            self.draw_tokens(r);
+            let q = &self.reqs[r as usize];
+            (q.tin + q.tout).max(1.0)
+        } else {
+            1.0
+        };
+        let spec = &self.c.nodes[node as usize].spec;
         let rate = spec.limit_rps * self.c.sample;
         let cap = (spec.burst * self.c.sample).max(1.0);
         let now = self.now;
         let b = self.buckets[node as usize].entry(id).or_insert((cap, now));
         b.0 = (b.0 + rate * (now - b.1) as f64 / 1e6).min(cap);
         b.1 = now;
-        if b.0 >= 1.0 {
-            b.0 -= 1.0;
+        if b.0 >= cost.min(cap) {
+            b.0 -= cost;
             true
         } else {
             false
@@ -3566,8 +3700,9 @@ impl Engine {
 // --- Chaos, health checks, failover, autoscaling (M1.5) ------------------------------------
 
 impl Engine {
-    /// The cards a selector names now: by id, or by kind and cluster role; the first in id
-    /// order unless `all`.
+    /// The cards a selector names now: by id, or by kind and cluster role; the first in the
+    /// design file's order (creation order, which a player doesn't pick by naming cards)
+    /// unless `all`.
     fn resolve(&self, sel: &ka_core::scenario::Selector) -> Vec<u32> {
         use ka_core::scenario::Role as R;
         let mut hits: Vec<u32> = (0..self.c.nodes.len() as u32)
@@ -3590,11 +3725,6 @@ impl Engine {
                 }
             })
             .collect();
-        hits.sort_by(|a, b| {
-            self.c.nodes[*a as usize]
-                .id
-                .cmp(&self.c.nodes[*b as usize].id)
-        });
         if !sel.all {
             hits.truncate(1);
         }
@@ -3704,6 +3834,28 @@ impl Engine {
                         let rate = rate.max(0.0);
                         ext.rate_cut = Some(rate);
                         ext.tokens = ext.tokens.min((rate * sample).max(1.0));
+                    }
+                }
+                for_s = *f;
+            }
+            C::ModelRate {
+                target,
+                for_s: f,
+                rpm,
+                tpm,
+                ..
+            } => {
+                targets = self.resolve(target);
+                let sample = self.c.sample;
+                for &n in &targets {
+                    let rt = &mut self.nodes[n as usize];
+                    if let Some(rpm) = rpm {
+                        rt.rpm_cut = Some(rpm.max(0.0));
+                        rt.rpm_left = rt.rpm_left.min(rpm.max(0.0) * sample);
+                    }
+                    if let Some(tpm) = tpm {
+                        rt.tpm_cut = Some(tpm.max(0.0));
+                        rt.tpm_left = rt.tpm_left.min(tpm.max(0.0) * sample);
                     }
                 }
                 for_s = *f;
@@ -3855,6 +4007,13 @@ impl Engine {
                     if rate.is_some() {
                         ext.rate_cut = None;
                     }
+                }
+            }
+            C::ModelRate { .. } => {
+                for &n in &targets {
+                    let rt = &mut self.nodes[n as usize];
+                    rt.rpm_cut = None;
+                    rt.tpm_cut = None;
                 }
             }
             C::Split { .. } => {
@@ -4410,8 +4569,9 @@ impl Engine {
     /// the tasks running on it stop and start again, from their last checkpoint (each 10%
     /// of the task) when the card has `checkpoint`.
     fn spot_start(&mut self, chaos: u16, nodes: &[u32], share: f64) {
-        let share = share.clamp(0.0, 1.0);
         for &node in nodes {
+            // H3: only the card's spot executors can be taken back.
+            let share = share.clamp(0.0, 1.0) * self.c.nodes[node as usize].spec.spot_share;
             let servers = self.nodes[node as usize].lane_servers;
             let take = (f64::from(servers) * share).round() as u32;
             self.nodes[node as usize].lane_servers = servers - take.min(servers);

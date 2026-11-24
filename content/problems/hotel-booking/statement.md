@@ -12,7 +12,7 @@ You run a hotel booking site. Travellers search for hotels in a city for some da
 | p95 latency | 200 ms or less |
 | Availability | 99.9% or more |
 | Error rate | 1% or less |
-| Budget | $2,000 per month |
+| Budget | $1,800 per month |
 
 ## The traffic
 

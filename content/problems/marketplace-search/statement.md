@@ -12,7 +12,7 @@ You run the search box of a marketplace. Buyers type what they want and expect a
 | Reads | 95% of requests |
 | p95 latency (updates measured to completion) | 200 ms or less |
 | Availability | 99.9% or more |
-| Budget | $2,500 per month |
+| Budget | $2,400 per month |
 | Lost messages | None |
 
 ## The traffic

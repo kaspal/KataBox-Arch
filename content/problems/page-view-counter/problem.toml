@@ -13,7 +13,7 @@ challenge_ratio = 0.75
 peak_rps = 3000
 p95_ms = 3000
 availability = 0.999
-budget_usd = 1700
+budget_usd = 1600
 
 [[request_types]]
 id = "view"

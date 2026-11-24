@@ -8,7 +8,7 @@ So the load splits into three separate problems. The lookups are many, repeated 
 
 ## The reference design
 
-An AWS ALB sends shoppers to 2 Go App Servers. Lookups go cache-aside through a Redis Cache with 0.5 GB of memory and a TTL of 60 s. The data lives in PostgreSQL: a primary with "Conditional writes (check and set in one step)" on and a Failover time of 10 s, wired with a Replicate edge to a second PostgreSQL with the same settings. This costs about $874 per month: $350 for each PostgreSQL, $140 for the App Servers, $25 for the ALB and $9 for Redis. On a normal day the p95 is about 22.3 ms, with no errors.
+An AWS ALB sends shoppers to 2 Go App Servers. Lookups go cache-aside through a Redis Cache with 0.5 GB of memory and a TTL of 60 s. The data lives in PostgreSQL: a primary with "Conditional writes (check and set in one step)" on and a Failover time of 10 s, wired with a Replicate edge to a second PostgreSQL with the same settings. This costs about $691 per month: $260 for each PostgreSQL, $140 for the App Servers, $25 for the ALB and $6 for Redis. On a normal day the p95 is about 22.3 ms, with no errors.
 
 With conditional writes, the redeem is one statement: `UPDATE … SET uses_left = uses_left - 1 WHERE code = ? AND uses_left > 0`. The database checks the count and takes one off in the same step, so when two redeems race for the last use, one wins and the other is told "this code has run out".
 
@@ -22,7 +22,7 @@ This problem has no cost challenge. No cheaper design passed every test: the ref
 
 ## Why the first try breaks
 
-A common first try is the same edge and 2 Go App Servers, with one PostgreSQL, no cache and no conditional writes. It costs about $515 per month and is Accepted on "A normal day", with a p95 of about 29.9 ms. But it already over-redeems: 594 conflicts happen in that run; that test just doesn't judge them.
+A common first try is the same edge and 2 Go App Servers, with one PostgreSQL, no cache and no conditional writes. It costs about $425 per month and is Accepted on "A normal day", with a p95 of about 29.9 ms. But it already over-redeems: 594 conflicts happen in that run; that test just doesn't judge them.
 
 In the influencer test it breaks in two ways at once. Every lookup goes to the database, and the App Server holds its slot while it waits. On a normal day the 2 App Servers are about 22% busy; 6 times the traffic needs about 130% of them. They fill up, about 20.6% of requests fail and the p95 climbs to about 140 ms. Meanwhile the read-then-write redeems race on the hot code: 3,692 conflicts, each one a use the shop never meant to give away.
 

@@ -12,7 +12,7 @@ The hidden tests push each side. A raid multiplies everything by four for 20 sec
 
 The segments go through a CloudFront CDN with a TTL of 4 s to an Amazon S3 bucket. The chat viewers connect from the Client, with Reconnect jitter set to 10 s, through an AWS ALB to 2 Socket.IO WebSocket Gateway cards. Each card runs 2 instances with Max connections 200,000, Messages per second 200,000 and New connections per second 20,000. That gives 800,000 connection slots for 200,000 viewers and 800,000 messages a second for a normal 100,000. Sent messages go to 2 Go App Servers and DynamoDB with 16 partitions.
 
-This costs $10,624 per month. CloudFront is almost all of it, $9,403, because it is billed per request at 4,750 segment fetches a second. Then come DynamoDB $412, S3 $365, $140 for each gateway card, the App Servers $140 and the ALB $25.
+This costs $13,759 per month. CloudFront is almost all of it, $12,537, because it is billed per request at 4,750 segment fetches a second. Then come DynamoDB $412, S3 $365, $140 for each gateway card, the App Servers $140 and the ALB $25.
 
 "A normal evening" passes with no errors and a p95 of about 1 ms: almost every fetch is a CDN hit.
 
@@ -24,7 +24,7 @@ There is no cost challenge here. The best cheaper design found cost 98% of the r
 
 ## Why the first try breaks
 
-A common first try is the same design with only one chat gateway card (2 instances with Max connections 150,000 and Messages per second 100,000 each) and no reconnect jitter. That is 300,000 slots and 200,000 messages a second. It costs $10,484 per month, and "A normal evening" is Accepted: 100,000 messages a second fit into 200,000 a second of capacity.
+A common first try is the same design with only one chat gateway card (2 instances with Max connections 150,000 and Messages per second 100,000 each) and no reconnect jitter. That is 300,000 slots and 200,000 messages a second. It costs $13,619 per month, and "A normal evening" is Accepted: 100,000 messages a second fit into 200,000 a second of capacity.
 
 "A raid floods one channel" fails with a p95 of 19 s. 400,000 messages a second meet 200,000 a second of capacity, so a backlog grows for the whole 20 seconds of the raid, about 4,000,000 messages, and it is still draining long after. The chat arrives late for everyone, not only on the raided channel. The connections are fine; it is the messages that do not fit.
 

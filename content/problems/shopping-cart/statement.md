@@ -12,7 +12,7 @@ You run the cart service of a large online shop. Shoppers look at their cart, ad
 | p95 latency | 150 ms or less |
 | Availability | 99.9% or more |
 | Error rate | 1% or less |
-| Budget | $2,200 per month |
+| Budget | $1,800 per month |
 | Lost writes | None |
 
 ## The traffic

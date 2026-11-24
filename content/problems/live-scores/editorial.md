@@ -10,7 +10,7 @@ The match pages are the easy part: 2,000 rps over 2,000 matches, with a few big 
 
 ## The reference design
 
-The Client, with Reconnect jitter set to 20 s, connects through an AWS ALB to 4 Socket.IO WebSocket Gateway cards. Each card runs 2 instances with Max connections 1,000,000, Memory 32 GB, Messages per second 200,000 and New connections per second 20,000. That gives 8,000,000 connection slots for 5,000,000 fans (60% full) and 1,600,000 messages a second. The match pages go to 4 Go App Servers, a Redis Cache with a TTL of 2 s and PostgreSQL. This costs $1,224 per month: PostgreSQL $350, the App Servers $280, $140 for each gateway card, the ALB $25 and Redis $9.
+The Client, with Reconnect jitter set to 20 s, connects through an AWS ALB to 4 Socket.IO WebSocket Gateway cards. Each card runs 2 instances with Max connections 1,000,000, Memory 32 GB, Messages per second 200,000 and New connections per second 20,000. That gives 8,000,000 connection slots for 5,000,000 fans (60% full) and 1,600,000 messages a second. The match pages go to 4 Go App Servers, a Redis Cache with a TTL of 2 s and PostgreSQL. This costs $1,131 per month: PostgreSQL $260, the App Servers $280, $140 for each gateway card, the ALB $25 and Redis $6.
 
 "A busy match day" passes with no errors, and every fan stays connected.
 
@@ -24,7 +24,7 @@ There is no cost challenge here: nothing cheaper passed every test. The gateways
 
 ## Why the first try breaks
 
-A common first try has no jitter on the Client and 3 Socket.IO gateway cards of 2 instances, with the same settings except Messages per second 100,000, and 2 Go App Servers. That is 6,000,000 slots for 5,000,000 fans (20% headroom) and 600,000 messages a second. It costs $944 per month and passes "A busy match day".
+A common first try has no jitter on the Client and 3 Socket.IO gateway cards of 2 instances, with the same settings except Messages per second 100,000, and 2 Go App Servers. That is 6,000,000 slots for 5,000,000 fans (20% headroom) and 600,000 messages a second. It costs $851 per month and passes "A busy match day".
 
 "A goal in the last minute" fails with 10.7% errors and a p95 of 6.2 s. A burst of 1,000,000 messages a second meets 600,000 a second of capacity, and the backlog it builds takes about 10 seconds to drain after the burst ends.
 

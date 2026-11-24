@@ -5,8 +5,8 @@ track = "ai"
 difficulty = "hard"
 title = "An Assistant for the US and the EU"
 title_es = "Un asistente para EE. UU. y la UE"
-teaches = "Serve users on two continents from GPU pools in two Regions, and keep EU conversation history in EU Regions even when a Region fails over"
-teaches_es = "Servir a usuarios de dos continentes con grupos de GPU en dos regiones, y mantener el historial de conversaciones de la UE en regiones de la UE incluso cuando una región conmuta"
+teaches = "Keep EU conversations in EU Regions, both the stored history and the GPUs that answer them, with two EU Regions that can each carry the whole peak when the other fails"
+teaches_es = "Mantener las conversaciones de la UE en regiones de la UE, tanto el historial guardado como las GPU que las responden, con dos regiones de la UE que pueden llevar cada una el pico entero cuando la otra falla"
 tags = ["llm", "gpu", "regions", "data-residency", "failover"]
 requires = ["infer"]
 
@@ -53,14 +53,14 @@ pass = { error_rate = 0.08, availability = 0.92 }
 
 [[tests]]
 id = "eu-audit"
-name = "An EU-only audit day: the database primary fails, then a GPU pool"
-name_es = "Un día de auditoría solo con la UE: falla el primario de la base de datos y después un grupo de GPU"
+name = "An EU-only audit day: the database primary fails, then the Region it moved to"
+name_es = "Un día de auditoría solo con la UE: falla el primario de la base de datos y después la región a la que pasó"
 hidden = true
-duration_s = 300
+duration_s = 450
 type_multipliers = { chat-us = 0, chat-eu = 2.5 }
 chaos = [
-  { kill = { kind = "sql", role = "primary", at = 30 } },
-  { kill = { kind = "infer", at = 100, for = 60 } },
+  { kill = { kind = "sql", role = "primary", at = 30, for = 40 } },
+  { partition = { zone = "@primary", at = 100, for = 60 } },
 ]
 pass = { error_rate = 0.08, availability = 0.92 }
 

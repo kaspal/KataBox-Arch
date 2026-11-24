@@ -9,11 +9,11 @@ Tienes una tienda online y vas a añadir un chatbot de soporte a su página de a
 | Objetivo | Valor |
 | --- | --- |
 | Tráfico pico | 5 mensajes/s |
-| Tiempo hasta el primer token, p95 | 1,5 s o menos |
+| Tiempo hasta el primer token, p95 | 2 s o menos |
 | Latencia p95 (la respuesta entera) | 12 s o menos |
 | Disponibilidad | 99 % o más |
 | Errores | 1 % o menos |
-| Presupuesto | 150 000 $ al mes |
+| Presupuesto | 100 000 $ al mes |
 
 ## El tráfico
 
@@ -21,7 +21,7 @@ Tienes una tienda online y vas a añadir un chatbot de soporte a su página de a
 
 Una respuesta tarda varios segundos en llegar entera, así que la ventana del chat (la tarjeta Cliente) la espera hasta 30 s: pon el Tiempo límite del Cliente en 30 000 ms.
 
-El nivel de tu cuenta da a cada clave de API (cada tarjeta de Inferencia de modelos) 4000 peticiones y 400 000 tokens por minuto. Antes del lanzamiento puedes pedir al proveedor un nivel más alto, de hasta 1 000 000 de tokens por minuto por clave. Una llamada que pasa del límite de una clave se rechaza con un HTTP 429 y cuenta como un mensaje fallido, salvo que el cliente lo vuelva a intentar. También puedes usar un segundo proveedor que sirve un modelo comparable con sus propios límites. La factura es por token, al mismo precio en todos los proveedores de aquí, así que el número de claves y de proveedores no la cambia.
+Para el lanzamiento, tu proveedor ya ha subido tu cuenta a su nivel más alto: cada clave de API (cada tarjeta de Inferencia de modelos) tiene 4000 peticiones y 1 000 000 de tokens por minuto. No hay un nivel por encima, y las tarjetas muestran estos límites sin dejarte cambiarlos. Una llamada que pasa del límite de una clave se rechaza con un HTTP 429 y cuenta como un mensaje fallido, salvo que el cliente lo vuelva a intentar. Cuando a un proveedor le falta capacidad, también puede recortarte el límite durante un tiempo. Puedes tener más de una clave, y también puedes usar un segundo proveedor que sirve un modelo comparable con sus propios límites, en el mismo nivel. La factura es por token, al mismo precio en todos los proveedores de aquí, así que el número de claves y de proveedores no la cambia.
 
 ## Las pruebas
 
@@ -29,4 +29,4 @@ Hay una prueba visible. Puedes ejecutarla tantas veces como quieras:
 
 - **Un día normal**: el tráfico descrito arriba, en su pico.
 
-Hay dos pruebas ocultas más, de las que solo ves el nombre: **Día de lanzamiento: 4 veces el tráfico durante 3 minutos** y **El proveedor del modelo se satura durante 20 s**. Un lanzamiento real dura horas; la prueba dura 3 minutos, lo bastante para agotar lo que se permite en un minuto. La prueba del lanzamiento admite un 5 % de errores y un 95 % de disponibilidad, y la de la saturación un 2 % de errores y un 98 % de disponibilidad. Tu diseño tiene que superar las tres.
+Hay tres pruebas ocultas más, de las que solo ves el nombre: **Día de lanzamiento: 4 veces el tráfico durante 4 minutos**, **El proveedor del modelo se satura durante 20 s** y **El proveedor del modelo te recorta el límite durante 40 s**. Un lanzamiento real dura horas; la prueba dura 4 minutos, lo bastante para agotar lo que se permite en un minuto. La prueba del lanzamiento admite un 5 % de errores y un 95 % de disponibilidad, y las de la saturación y del recorte, un 2 % de errores y un 98 % de disponibilidad. Tu diseño tiene que superar las cuatro.

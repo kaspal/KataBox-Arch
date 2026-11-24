@@ -13,7 +13,7 @@ Llevas el backend de monitorización de una empresa eólica: 1500 aerogeneradore
 | Errores | 1 % o menos |
 | Disponibilidad | 99,9 % o más |
 | Sensores conectados | 95 % o más en cada segundo |
-| Presupuesto | 8000 $ al mes |
+| Presupuesto | 7600 $ al mes |
 
 ## El tráfico
 

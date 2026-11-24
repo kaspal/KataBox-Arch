@@ -12388,7 +12388,7 @@
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
-              "per_million": 0.75,
+              "per_million": 1.0,
               "per_million_write": null,
               "unit_kb": 0.0
             },
@@ -12416,7 +12416,7 @@
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
-              "per_million": 0.75,
+              "per_million": 1.0,
               "per_million_write": null,
               "unit_kb": 0.0
             },
@@ -12444,7 +12444,7 @@
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
-              "per_million": 0.75,
+              "per_million": 1.0,
               "per_million_write": null,
               "unit_kb": 0.0
             },
@@ -13197,6 +13197,19 @@
               "type": "choice"
             },
             "unit": "none"
+          },
+          {
+            "calibration": null,
+            "default": "requests",
+            "key": "unit",
+            "ty": {
+              "options": [
+                "requests",
+                "tokens"
+              ],
+              "type": "choice"
+            },
+            "unit": "none"
           }
         ]
       },
@@ -13418,7 +13431,7 @@
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
-              "per_million": 5.0,
+              "per_million": 3000.0,
               "per_million_write": null,
               "unit_kb": 0.0
             },
@@ -13446,7 +13459,7 @@
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
-              "per_million": 5.0,
+              "per_million": 3000.0,
               "per_million_write": null,
               "unit_kb": 0.0
             },
@@ -13502,7 +13515,7 @@
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
-              "per_million": 5.0,
+              "per_million": 3000.0,
               "per_million_write": null,
               "unit_kb": 0.0
             },
@@ -13654,7 +13667,7 @@
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
-              "per_million": 7900.0,
+              "per_million": 8300.0,
               "per_million_write": null,
               "unit_kb": 0.0
             },
@@ -13818,7 +13831,7 @@
               },
               {
                 "key": "concurrency",
-                "value": 9
+                "value": 5
               }
             ],
             "sim": {
@@ -13888,7 +13901,7 @@
               },
               {
                 "key": "concurrency",
-                "value": 5
+                "value": 3
               }
             ],
             "sim": {
@@ -14405,7 +14418,7 @@
               },
               {
                 "key": "concurrency",
-                "value": 1000
+                "value": 500
               }
             ],
             "sim": {
@@ -14574,7 +14587,7 @@
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
-              "per_million": 0.5,
+              "per_million": 0.37,
               "per_million_write": null,
               "unit_kb": 0.0
             },
@@ -14602,7 +14615,7 @@
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
-              "per_million": 0.5,
+              "per_million": 0.37,
               "per_million_write": null,
               "unit_kb": 0.0
             },
@@ -14857,8 +14870,8 @@
                 "conn_minutes_m": 0.0,
                 "messages_m": 0.0,
                 "tb_scanned": 0.0,
-                "tokens_in_m": 3.0,
-                "tokens_out_m": 15.0
+                "tokens_in_m": 2.0,
+                "tokens_out_m": 10.0
               },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
@@ -14885,7 +14898,7 @@
                 "conn_minutes_m": 0.0,
                 "messages_m": 0.0,
                 "tb_scanned": 0.0,
-                "tokens_in_m": 2.5,
+                "tokens_in_m": 2.0,
                 "tokens_out_m": 10.0
               },
               "per_gb_month": 0.0,
@@ -14899,11 +14912,11 @@
             "overrides": [
               {
                 "key": "ttft_ms",
-                "value": 500
+                "value": 890
               },
               {
                 "key": "tokens_per_s",
-                "value": 90
+                "value": 65
               }
             ],
             "sim": {
@@ -14922,8 +14935,8 @@
                 "conn_minutes_m": 0.0,
                 "messages_m": 0.0,
                 "tb_scanned": 0.0,
-                "tokens_in_m": 3.0,
-                "tokens_out_m": 15.0
+                "tokens_in_m": 2.0,
+                "tokens_out_m": 10.0
               },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
@@ -14950,8 +14963,8 @@
                 "conn_minutes_m": 0.0,
                 "messages_m": 0.0,
                 "tb_scanned": 0.0,
-                "tokens_in_m": 1.25,
-                "tokens_out_m": 10.0
+                "tokens_in_m": 2.0,
+                "tokens_out_m": 12.0
               },
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
@@ -14964,7 +14977,7 @@
             "overrides": [
               {
                 "key": "ttft_ms",
-                "value": 500
+                "value": 1000
               },
               {
                 "key": "tokens_per_s",
@@ -15002,6 +15015,10 @@
               {
                 "key": "ttft_ms",
                 "value": 200
+              },
+              {
+                "key": "tokens_per_s",
+                "value": 80
               }
             ],
             "sim": {
@@ -15039,6 +15056,10 @@
               {
                 "key": "ttft_ms",
                 "value": 5
+              },
+              {
+                "key": "tokens_per_s",
+                "value": 80
               },
               {
                 "key": "batch_slots",
@@ -15113,9 +15134,9 @@
           {
             "calibration": {
               "id": "infer.ttft_ms",
-              "status": "needed"
+              "status": "cited"
             },
-            "default": 600,
+            "default": 1100,
             "key": "ttft_ms",
             "ty": {
               "max": 10000.0,
@@ -15128,9 +15149,9 @@
           {
             "calibration": {
               "id": "infer.tokens_per_s",
-              "status": "needed"
+              "status": "cited"
             },
-            "default": 80,
+            "default": 100,
             "key": "tokens_per_s",
             "ty": {
               "max": 5000.0,
@@ -15203,7 +15224,7 @@
                 "tokens_out_m": 0.0
               },
               "per_gb_month": 0.0,
-              "per_instance_month": 140.0,
+              "per_instance_month": 175.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
               "per_million_write": null,
@@ -15231,7 +15252,7 @@
                 "tokens_out_m": 0.0
               },
               "per_gb_month": 0.0,
-              "per_instance_month": 140.0,
+              "per_instance_month": 175.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
               "per_million_write": null,
@@ -15259,7 +15280,7 @@
                 "tokens_out_m": 0.0
               },
               "per_gb_month": 0.0,
-              "per_instance_month": 140.0,
+              "per_instance_month": 175.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
               "per_million_write": null,
@@ -15598,7 +15619,7 @@
                 "tokens_out_m": 0.0
               },
               "per_gb_month": 0.0,
-              "per_instance_month": 350.0,
+              "per_instance_month": 260.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
               "per_million_write": null,
@@ -15626,7 +15647,7 @@
                 "tokens_out_m": 0.0
               },
               "per_gb_month": 0.0,
-              "per_instance_month": 350.0,
+              "per_instance_month": 260.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
               "per_million_write": null,
@@ -15663,7 +15684,7 @@
                 "tokens_out_m": 0.0
               },
               "per_gb_month": 0.0,
-              "per_instance_month": 438.0,
+              "per_instance_month": 473.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
               "per_million_write": 0.0,
@@ -15673,7 +15694,7 @@
             "overrides": [
               {
                 "key": "service_ms",
-                "value": 12
+                "value": 2
               }
             ],
             "sim": {
@@ -15696,7 +15717,7 @@
                 "tokens_out_m": 0.0
               },
               "per_gb_month": 0.0,
-              "per_instance_month": 300.0,
+              "per_instance_month": 190.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
               "per_million_write": 0.0,
@@ -15739,7 +15760,7 @@
             "overrides": [
               {
                 "key": "service_ms",
-                "value": 12
+                "value": 5
               }
             ],
             "sim": {
@@ -15762,7 +15783,7 @@
                 "tokens_out_m": 0.0
               },
               "per_gb_month": 0.0,
-              "per_instance_month": 350.0,
+              "per_instance_month": 260.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
               "per_million_write": null,
@@ -15795,7 +15816,7 @@
                 "tokens_out_m": 0.0
               },
               "per_gb_month": 0.0,
-              "per_instance_month": 350.0,
+              "per_instance_month": 260.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
               "per_million_write": null,
@@ -16293,7 +16314,7 @@
                 "tokens_in_m": 0.0,
                 "tokens_out_m": 0.0
               },
-              "per_gb_month": 18.0,
+              "per_gb_month": 12.2,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
@@ -16303,7 +16324,7 @@
             "flavour": "redis",
             "overrides": [],
             "sim": {
-              "failover_s": 15.0,
+              "failover_s": 5.0,
               "p99_ratio": 3.0,
               "queue_per_server": 512.0,
               "servers_per_instance": 1.0,
@@ -16321,7 +16342,7 @@
                 "tokens_in_m": 0.0,
                 "tokens_out_m": 0.0
               },
-              "per_gb_month": 18.0,
+              "per_gb_month": 12.2,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
@@ -16331,7 +16352,7 @@
             "flavour": "memcached",
             "overrides": [],
             "sim": {
-              "failover_s": 15.0,
+              "failover_s": 5.0,
               "p99_ratio": 3.0,
               "queue_per_server": 512.0,
               "servers_per_instance": 4.0,
@@ -16349,7 +16370,7 @@
                 "tokens_in_m": 0.0,
                 "tokens_out_m": 0.0
               },
-              "per_gb_month": 18.0,
+              "per_gb_month": 12.2,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
@@ -16359,7 +16380,7 @@
             "flavour": "valkey",
             "overrides": [],
             "sim": {
-              "failover_s": 15.0,
+              "failover_s": 5.0,
               "p99_ratio": 3.0,
               "queue_per_server": 512.0,
               "servers_per_instance": 1.0,
@@ -16377,7 +16398,7 @@
                 "tokens_in_m": 0.0,
                 "tokens_out_m": 0.0
               },
-              "per_gb_month": 18.0,
+              "per_gb_month": 12.2,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
@@ -16387,7 +16408,7 @@
             "flavour": "dragonfly",
             "overrides": [],
             "sim": {
-              "failover_s": 15.0,
+              "failover_s": 5.0,
               "p99_ratio": 3.0,
               "queue_per_server": 512.0,
               "servers_per_instance": 8.0,
@@ -16405,7 +16426,7 @@
                 "tokens_in_m": 0.0,
                 "tokens_out_m": 0.0
               },
-              "per_gb_month": 18.0,
+              "per_gb_month": 12.2,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
@@ -16415,7 +16436,7 @@
             "flavour": "hazelcast",
             "overrides": [],
             "sim": {
-              "failover_s": 15.0,
+              "failover_s": 5.0,
               "p99_ratio": 3.0,
               "queue_per_server": 512.0,
               "servers_per_instance": 8.0,
@@ -16493,9 +16514,9 @@
           {
             "calibration": {
               "id": "cache.failover_s",
-              "status": "needed"
+              "status": "cited"
             },
-            "default": 15,
+            "default": 5,
             "key": "failover_s",
             "ty": {
               "max": 600.0,
@@ -16742,7 +16763,7 @@
             "flavour": "elasticsearch",
             "overrides": [],
             "sim": {
-              "failover_s": 10.0,
+              "failover_s": 30.0,
               "p99_ratio": 4.0,
               "queue_per_server": 77.0,
               "servers_per_instance": 13.0,
@@ -16770,7 +16791,7 @@
             "flavour": "opensearch",
             "overrides": [],
             "sim": {
-              "failover_s": 10.0,
+              "failover_s": 30.0,
               "p99_ratio": 4.0,
               "queue_per_server": 77.0,
               "servers_per_instance": 13.0,
@@ -16798,7 +16819,7 @@
             "flavour": "solr",
             "overrides": [],
             "sim": {
-              "failover_s": 10.0,
+              "failover_s": 30.0,
               "p99_ratio": 4.0,
               "queue_per_server": 77.0,
               "servers_per_instance": 13.0,
@@ -16817,7 +16838,7 @@
                 "tokens_out_m": 0.0
               },
               "per_gb_month": 0.0,
-              "per_instance_month": 150.0,
+              "per_instance_month": 300.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
               "per_million_write": 0.0,
@@ -16831,7 +16852,7 @@
               }
             ],
             "sim": {
-              "failover_s": 10.0,
+              "failover_s": 30.0,
               "p99_ratio": 4.0,
               "queue_per_server": 77.0,
               "servers_per_instance": 13.0,
@@ -17282,7 +17303,7 @@
                 "tokens_out_m": 0.0
               },
               "per_gb_month": 0.0,
-              "per_instance_month": 182.0,
+              "per_instance_month": 396.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
               "per_million_write": 0.0,
@@ -17338,7 +17359,7 @@
                 "tokens_out_m": 0.0
               },
               "per_gb_month": 0.0,
-              "per_instance_month": 1000.0,
+              "per_instance_month": 2044.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
               "per_million_write": null,
@@ -17594,6 +17615,15 @@
               "type": "float"
             },
             "unit": "none"
+          },
+          {
+            "calibration": null,
+            "default": false,
+            "key": "dedup",
+            "ty": {
+              "type": "bool"
+            },
+            "unit": "none"
           }
         ]
       },
@@ -17613,7 +17643,7 @@
                 "tokens_out_m": 0.0
               },
               "per_gb_month": 0.0,
-              "per_instance_month": 260.0,
+              "per_instance_month": 184.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
               "per_million_write": null,
@@ -17641,7 +17671,7 @@
                 "tokens_out_m": 0.0
               },
               "per_gb_month": 0.0,
-              "per_instance_month": 260.0,
+              "per_instance_month": 184.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
               "per_million_write": null,
@@ -17671,7 +17701,7 @@
               "per_gb_month": 0.0,
               "per_instance_month": 0.0,
               "per_lane_month": 0.0,
-              "per_million": 0.01,
+              "per_million": 1.0,
               "per_million_write": 0.5,
               "unit_kb": 0.0
             },
@@ -17697,7 +17727,7 @@
                 "tokens_out_m": 0.0
               },
               "per_gb_month": 0.0,
-              "per_instance_month": 260.0,
+              "per_instance_month": 184.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
               "per_million_write": null,
@@ -17734,9 +17764,9 @@
           {
             "calibration": {
               "id": "tsdb.points_per_s",
-              "status": "needed"
+              "status": "cited"
             },
-            "default": 500000,
+            "default": 250000,
             "key": "points_per_s",
             "ty": {
               "max": 10000000.0,
@@ -18015,7 +18045,7 @@
                 "tokens_out_m": 0.0
               },
               "per_gb_month": 0.0,
-              "per_instance_month": 260.0,
+              "per_instance_month": 184.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
               "per_million_write": null,
@@ -18043,7 +18073,7 @@
                 "tokens_out_m": 0.0
               },
               "per_gb_month": 0.0,
-              "per_instance_month": 350.0,
+              "per_instance_month": 240.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
               "per_million_write": 0.0,
@@ -18071,7 +18101,7 @@
                 "tokens_out_m": 0.0
               },
               "per_gb_month": 0.0,
-              "per_instance_month": 260.0,
+              "per_instance_month": 184.0,
               "per_lane_month": 0.0,
               "per_million": 0.0,
               "per_million_write": null,
@@ -18209,7 +18239,7 @@
               "p99_ratio": 3.0,
               "queue_per_server": 4.0,
               "servers_per_instance": 10000.0,
-              "service_ms": 10.0,
+              "service_ms": 20.0,
               "write_slots": 1.0
             }
           },
@@ -18409,7 +18439,7 @@
               "p99_ratio": 3.0,
               "queue_per_server": 4.0,
               "servers_per_instance": 10000.0,
-              "service_ms": 15.0,
+              "service_ms": 35.0,
               "write_slots": 1.0
             }
           },
@@ -18437,7 +18467,7 @@
               "p99_ratio": 3.0,
               "queue_per_server": 4.0,
               "servers_per_instance": 10000.0,
-              "service_ms": 1.0,
+              "service_ms": 2.0,
               "write_slots": 1.0
             }
           },
@@ -18862,10 +18892,10 @@
                 "tokens_out_m": 0.0
               },
               "per_gb_month": 0.0,
-              "per_instance_month": 200.0,
+              "per_instance_month": 0.0,
               "per_lane_month": 0.0,
-              "per_million": 0.0,
-              "per_million_write": 0.0,
+              "per_million": 50.0,
+              "per_million_write": null,
               "unit_kb": 0.0
             },
             "flavour": "temporal",
@@ -19336,9 +19366,9 @@
           {
             "calibration": {
               "id": "mqtt.msgs_per_s",
-              "status": "needed"
+              "status": "cited"
             },
-            "default": 100000,
+            "default": 60000,
             "key": "msgs_per_s",
             "ty": {
               "max": 10000000.0,

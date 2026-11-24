@@ -14,7 +14,7 @@ Almost every visitor only reads. They open the home page, scroll, look at a few 
 | Static files | 99% of requests |
 | p95 latency | 60 ms or less |
 | Availability | 99.9% or more |
-| Budget | $4,000/month or less |
+| Budget | $5,100/month or less |
 
 ## The traffic
 

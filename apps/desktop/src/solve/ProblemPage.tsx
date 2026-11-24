@@ -58,6 +58,8 @@ export function ProblemPage() {
     const open = useEditor.getState().doc;
     if (open.problem_id !== id || (open.nodes.length === 0 && (b.draft?.nodes.length ?? 0) > 0)) {
       useEditor.getState().load(b.draft ?? freshDesign(id, es ? b.summary.title_es : b.summary.title_en), null);
+      // H6: a draft (a replay's design as it was, a flaw drill's broken design) opens in view.
+      if (b.draft) useEditor.getState().requestFit();
     }
     const first = b.tests.find((x) => !x.hidden) ?? b.tests[0];
     useRun.getState().setProblemTest(first ? { problem_id: id, test_id: first.id } : null);

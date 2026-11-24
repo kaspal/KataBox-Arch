@@ -6,7 +6,7 @@ At peak, the 50 customer keys send about 2,970 requests/s between them, close to
 
 ## The reference design
 
-A Rate Limiter (Envoy) sits at the edge with a limit of 200 requests/s per key and a burst of 400. Behind it are 2 Go App Servers and one PostgreSQL database. The whole design costs about $520 per month.
+A Rate Limiter (Envoy) sits at the edge with a limit of 200 requests/s per key and a burst of 400. Behind it are 2 Go App Servers and one PostgreSQL database. The whole design costs about $430 per month.
 
 Because the Rate Limiter keeps one token bucket per key, the flood drains only the bad key's bucket. Its extra calls are shed at the edge, which the judge counts as a success, and the App Servers never see them. The other 50 buckets stay full.
 

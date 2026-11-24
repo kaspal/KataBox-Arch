@@ -12,7 +12,7 @@ Tienes una app de mapas. La gente se mueve por el mapa, que se carga mosaico a m
 | Latencia p95 | 250 ms o menos |
 | Disponibilidad | 99,9 % o más |
 | Errores | 0,5 % o menos |
-| Presupuesto | 9000 $ al mes |
+| Presupuesto | 11 000 $ al mes |
 
 ## El tráfico
 

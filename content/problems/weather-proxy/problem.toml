@@ -14,7 +14,7 @@ challenge_ratio = 0.75
 peak_rps = 20000
 p95_ms = 100
 availability = 0.999
-budget_usd = 1000
+budget_usd = 970
 
 [[externals]]
 name = "weather"

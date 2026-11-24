@@ -14,7 +14,12 @@ requires = ["search", "vector", "infer"]
 peak_rps = 200
 p95_ms = 10000
 availability = 0.99
-budget_usd = 5000000
+budget_usd = 3300000
+
+[[model_limits]]
+flavour = "claude_api"
+rpm = 16000
+tpm = 30000000
 
 [[request_types]]
 id = "ask"

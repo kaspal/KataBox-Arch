@@ -13,7 +13,7 @@ Tienes un servicio de analítica de producto. Tus clientes ponen un pequeño scr
 | Disponibilidad | 99,9 % o más |
 | Errores | 1 % o menos |
 | Lotes de clics perdidos | 0 |
-| Presupuesto | 12 000 $ al mes |
+| Presupuesto | 30 000 $ al mes |
 
 El p95 cuenta todas las peticiones: un lote de clics hasta que está escrito en la tabla, y el refresco de un gráfico hasta que recibe su respuesta.
 

@@ -17,15 +17,15 @@ The cluster runs on spot instances, because they are much cheaper. The cloud can
 | Job | 2,700 executor-seconds in 2,000 skewed tasks, starting at 0 s |
 | Deadline | the whole job finishes within 480 s of its start |
 | Errors | 0.1% or less |
-| Budget | $2,500 per month |
+| Budget | $1,880 per month |
 
-The monthly cost is what the cards would cost if they ran all month, the same rule as every other problem (a Batch Compute node costs $140 a month, whatever its Spot share; Snowflake bills only while it is awake). Prices are the registry's teaching prices.
+The monthly cost is what the cards would cost if they ran all month, the same rule as every other problem (a Batch Compute node costs $175 a month on demand, and the share of its executors set by "Spot share" runs on spot capacity at 35% of that, so a node at 100% costs $61.25; Snowflake bills only while it is awake). Prices are the registry's teaching prices.
 
 ## The traffic
 
 - **Join tonight's orders with sellers** (a job). It starts at 0 s and splits into 2,000 tasks, one per seller partition. The task sizes follow the sellers' sales: the biggest task, the marketplace's own store, is about 330 executor-seconds of work; the second is about half that; most tasks take under a second. Each task waits for a free executor, holds it for its work (each run varies a little, up to about 1.5 times at worst, plus the task overhead), then reads from Object Storage and writes to the Data Warehouse. The job finishes when its last task does.
 
-A Batch Compute node is an m5.xlarge-class machine with 4 vCPUs, so keep "Executors per node" at 4: the number of nodes is what you size. Parallel tasks = nodes × executors per node. One task runs on one executor: more executors never make a single task shorter.
+A Batch Compute node is an m5.xlarge-class machine with 4 vCPUs, so keep "Executors per node" at 4: the number of nodes is what you size. More executors per node are billed as a bigger machine, in proportion. Parallel tasks = nodes × executors per node. One task runs on one executor: more executors never make a single task shorter.
 
 The Batch Compute card has three settings for this kind of job:
 
@@ -33,7 +33,7 @@ The Batch Compute card has three settings for this kind of job:
 - **Speculative execution**: near the end of the job (95% of tasks done), a task running much longer than the typical one gets a second copy, and the first copy to finish wins.
 - **Checkpoints**: a task stopped by a spot interruption starts again from its last checkpoint (one every 10% of the task) instead of from zero.
 
-When the cloud takes spot capacity back, that share of the cluster's executors disappears until the capacity returns, and the same share of the running tasks stop and start again. In the tests, the share taken back does not depend on the card's "Spot share": treat the whole cluster as spot.
+When the cloud takes spot capacity back, that share of the card's spot executors disappears until the capacity returns, and the same share of its running tasks stop and start again. On-demand executors are never taken back: at "Spot share" 100% the whole cluster is exposed, at 0% nothing is.
 
 ## The tests
 

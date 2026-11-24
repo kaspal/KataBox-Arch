@@ -10,17 +10,17 @@ The hidden tests take each half of that away. When the provider is down for 40 s
 
 ## The reference design
 
-An AWS ALB sends the traffic to 8 Go App Servers with a call timeout of 200 ms. They read from a Redis Cache of 2 GB with a TTL of 600 s, "Serve stale on error for" set to 3,600 s, the stampede guard on and a failover time of 5 s. It is wired with Replicate to a second Redis Cache with the same settings. On a miss, the App Server calls the provider and the answer fills the cache. This costs about $657 per month: $560 for the App Servers, $25 for the ALB and $36 for each Redis. A normal day has a p95 of about 19.0 ms, no errors, and 0.58% stale reads.
+An AWS ALB sends the traffic to 8 Go App Servers with a call timeout of 200 ms. They read from a Redis Cache of 2 GB with a TTL of 600 s, "Serve stale on error for" set to 3,600 s, the stampede guard on and a failover time of 5 s. It is wired with Replicate to a second Redis Cache with the same settings. On a miss, the App Server calls the provider and the answer fills the cache. This costs about $634 per month: $560 for the App Servers, $25 for the ALB and $24 for each Redis. A normal day has a p95 of about 19.0 ms, no errors, and 0.58% stale reads.
 
 "The weather provider is down for 40 s" stops the provider from 20 seconds in, for 40 seconds, in a run of 90 seconds. When a city has expired and the provider call fails, the cache serves the expired copy instead of an error, and the requests waiting on the same city's miss get that copy too. The p95 is about 22.3 ms, with no errors and 2.98% stale reads. The price of serving stale on error is that the request first waits for the call to fail. As more cities expire during the outage, more requests wait at once. That is why the App Servers have headroom and a short call timeout: with 6 instances and a 300 ms timeout, the last 10 seconds of the outage reached up to 24% errors, because every App Server slot was full.
 
 "A cache node restarts" kills the first Redis Cache 20 seconds in, for 5 seconds. This test allows 3% errors and 97% availability. The design fails about 1.65% of the requests, all in the roughly 2 seconds before the health checks notice the dead node; then the replica takes over. When the node comes back, it resyncs the replica's copy instead of starting empty, so the provider never sees a flood. The p95 stays at about 19.0 ms.
 
-For the cost challenge, a proof design comes in at 70% of the reference's cost, under the 75% target. It keeps the same shape and the same cache settings, with fewer App Servers and much smaller caches: 40,000 forecasts take very little memory.
+For the cost challenge, a proof design comes in at 72% of the reference's cost, under the 75% target. It keeps the same shape and the same cache settings, with fewer App Servers and much smaller caches: 40,000 forecasts take very little memory.
 
 ## Why the first try breaks
 
-A common first try is the same edge with 6 Go App Servers and no call timeout, and one Redis Cache of 2 GB with a TTL of 600 s: no serving stale on error, no stampede guard and no replica. It costs about $481 and passes "A normal day" with a p95 of about 18.6 ms.
+A common first try is the same edge with 6 Go App Servers and no call timeout, and one Redis Cache of 2 GB with a TTL of 600 s: no serving stale on error, no stampede guard and no replica. It costs about $469 and passes "A normal day" with a p95 of about 18.6 ms.
 
 During the outage, every city that expires has no answer to give: the provider call fails and the request fails with it. About 26.7% of the requests fail, and the p95 climbs to about 519 ms as requests wait on calls that never succeed.
 

@@ -58,12 +58,14 @@ not_simulated = [
   "Experiment statistics for A/B tests",
   "Audit logs of who changed what",
   "Flag debt: old flags and the dead code they leave",
+  "The number of stages: a staged push goes one Region at a time, waiting `bake_s` between them, whatever `stages` says",
 ]
 not_simulated_es = [
   "Las reglas de segmentación y la evaluación de un flag para cada usuario",
   "La estadística de los experimentos A/B",
   "Los registros de auditoría de quién cambió qué",
   "La deuda de flags: flags antiguos y el código muerto que dejan",
+  "El número de etapas: un cambio por etapas avanza Región a Región, esperando `bake_s` entre ellas, diga lo que diga `stages`",
 ]
 
 [[sim]]
@@ -80,11 +82,6 @@ note_es = "Con entrega por sondeo, cada cuánto pregunta cada aplicación por ca
 prop = "staged"
 note = "Off, a push reaches every app at once. On, it rolls out one stage at a time and halts when errors rise."
 note_es = "Desactivado, un cambio llega a todas las aplicaciones a la vez. Activado, se despliega etapa a etapa y se detiene cuando suben los errores."
-
-[[sim]]
-prop = "stages"
-note = "How many steps a staged rollout takes. More stages expose fewer servers to a bad change, but full rollout takes longer."
-note_es = "Cuántos pasos da un despliegue por etapas. Más etapas exponen menos servidores a un cambio malo, pero el despliegue completo tarda más."
 
 [[sim]]
 prop = "bake_s"

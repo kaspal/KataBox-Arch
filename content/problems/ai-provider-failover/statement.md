@@ -13,7 +13,7 @@ You run the support assistant inside a shopping app. A customer types a question
 | p95 time to first token | 1,500 ms or less |
 | Availability | 99% or more |
 | Errors | 1% or less |
-| Budget | $250,000 per month |
+| Budget | $190,000 per month |
 
 ## The traffic
 
@@ -21,7 +21,7 @@ You run the support assistant inside a shopping app. A customer types a question
 
 The chat app waits up to 30 s for an answer: set the Web client's Timeout to 30,000 ms.
 
-Your two provider accounts have these limits per minute. Put them on the cards, because the simulator uses the limits you type:
+Your two provider accounts have these limits per minute. The simulator applies them to every card of that provider (the Inspector shows them, read-only):
 
 | Card | Requests per minute limit | Tokens per minute limit |
 | --- | --- | --- |

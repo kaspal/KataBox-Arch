@@ -11,7 +11,7 @@ Tienes un juez en línea para practicar programación y celebrar concursos. Un u
 | Tráfico pico | 40 envíos/s |
 | Tiempo de finalización p95 | 20 s o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 3100 $ al mes |
+| Presupuesto | 3000 $ al mes |
 
 Aquí la latencia se mide hasta que el veredicto está guardado, no hasta que se acepta el envío.
 

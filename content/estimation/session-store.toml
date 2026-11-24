@@ -27,8 +27,8 @@ id = "failover-errors"
 kind = "capacity"
 prompt = "The site serves {peak_rps} requests a second and {write_pct}% are sign-ins, which must write to the session store's primary. The primary dies, and the replica takes {failover_s} s to be promoted; page loads keep reading from the replica meanwhile. How many sign-ins fail during the failover?"
 prompt_es = "El sitio atiende {peak_rps} peticiones por segundo y el {write_pct} % son inicios de sesión, que deben escribir en el primario del almacén de sesiones. El primario cae y la réplica tarda {failover_s} s en pasar a primario; mientras tanto, las cargas de página siguen leyendo de la réplica. ¿Cuántos inicios de sesión fallan durante la conmutación?"
-inputs = { peak_rps = 20_000, write_pct = 10, failover_s = 15 }
+inputs = { peak_rps = 20_000, write_pct = 10, failover_s = 5 }
 formula = "peak_rps * write_pct / 100 * failover_s"
 unit = "count"
-solution = "{write_pct}% of {peak_rps} = 2,000 sign-ins a second, × {failover_s} s = {answer} failed sign-ins. Over a 120-second run of 2.4 million requests that is about 1.25%. Without a replica there is nothing to promote, and every request fails from the crash onward."
-solution_es = "El {write_pct} % de {peak_rps} = 2000 inicios de sesión por segundo, × {failover_s} s = {answer} inicios de sesión fallidos. En una ejecución de 120 segundos con 2,4 millones de peticiones, eso es cerca de un 1,25 %. Sin réplica no hay nada que promover, y desde la caída falla toda petición."
+solution = "{write_pct}% of {peak_rps} = 2,000 sign-ins a second, × {failover_s} s = {answer} failed sign-ins. Over a 120-second run of 2.4 million requests that is about 0.4%. Without a replica there is nothing to promote, and every request fails from the crash onward."
+solution_es = "El {write_pct} % de {peak_rps} = 2000 inicios de sesión por segundo, × {failover_s} s = {answer} inicios de sesión fallidos. En una ejecución de 120 segundos con 2,4 millones de peticiones, eso es cerca de un 0,4 %. Sin réplica no hay nada que promover, y desde la caída falla toda petición."

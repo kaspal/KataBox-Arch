@@ -11,13 +11,13 @@ tags = ["llm", "agents", "timeouts", "fallback", "queues"]
 requires = ["infer"]
 
 # Scaled time: returns week runs its mix for 2 minutes, and the tracking slowdown lasts 60 s
-# (the statement and editorial say so). Model calls are about 2.2 s at the median and 4.3 s
+# (the statement and editorial say so). Model calls are about 2.4 s at the median and 4.2 s
 # for a long one, so the reference's 10 s Call timeout cuts only the slow tool.
 [nfr]
 peak_rps = 2
 p95_ms = 25000
 availability = 0.99
-budget_usd = 150000
+budget_usd = 100000
 
 [[externals]]
 name = "orders"
@@ -33,6 +33,11 @@ p99_ms = 1500
 name = "payments"
 median_ms = 200
 p99_ms = 800
+
+[[model_limits]]
+flavour = "claude_api"
+rpm = 4000
+tpm = 2000000
 
 [[request_types]]
 id = "question"

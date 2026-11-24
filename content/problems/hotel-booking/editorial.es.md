@@ -10,7 +10,7 @@ Así que la carga se divide en dos problemas distintos. Las búsquedas son mucha
 
 ## El diseño de referencia
 
-Un AWS ALB reparte a los viajeros entre 4 Go App Servers. Las búsquedas pasan en cache-aside por una Redis Cache con 4 GB de memoria y un TTL de 300 s, delante de Elasticsearch con 4 shards. Las reservas van a PostgreSQL con «Escrituras condicionales (comprobar y escribir en un paso)» activado. Cuesta unos 1227 $ al mes: 500 $ Elasticsearch, 350 $ PostgreSQL, 280 $ los App Servers, 72 $ Redis y 25 $ el ALB. En «Una semana normal» el p95 es de unos 27,1 ms, sin errores, y el motor de búsqueda está ocupado en torno a un 14 %.
+Un AWS ALB reparte a los viajeros entre 4 Go App Servers. Las búsquedas pasan en cache-aside por una Redis Cache con 4 GB de memoria y un TTL de 300 s, delante de Elasticsearch con 4 shards. Las reservas van a PostgreSQL con «Escrituras condicionales (comprobar y escribir en un paso)» activado. Cuesta unos 1114 $ al mes: 500 $ Elasticsearch, 260 $ PostgreSQL, 280 $ los App Servers, 49 $ Redis y 25 $ el ALB. En «Una semana normal» el p95 es de unos 27,1 ms, sin errores, y el motor de búsqueda está ocupado en torno a un 14 %.
 
 Con escrituras condicionales, la reserva es una sola sentencia que falla si esa noche de la habitación ya está ocupada: por ejemplo, una restricción única sobre (habitación, noche), o `UPDATE … SET booked = true WHERE room = ? AND night = ? AND NOT booked`. La base de datos comprueba y escribe en el mismo paso, así que cuando dos reservas compiten por la última habitación, una gana y a la otra se le dice «la acaba de reservar otra persona».
 
@@ -22,11 +22,11 @@ La caché es lo que mantiene tranquilo al motor de búsqueda. Las búsquedas pop
 
 La caché puede estar un poco desactualizada. Cerca del 22 % de las búsquedas salen de un resultado en caché anterior a la última reserva, así que una búsqueda puede mostrar una habitación que acaba de venderse. No pasa nada: la búsqueda es solo una pista, y lo que decide es la reserva.
 
-Para el reto de coste, un diseño de prueba se queda en el 69 % del coste de la referencia, por debajo del objetivo del 70 %. Mantiene la misma forma y la escritura condicional, con menos App Servers, una caché mucho más pequeña y menos shards de búsqueda: cuando la caché se lleva las búsquedas populares, al motor de búsqueda le queda poco trabajo.
+Para el reto de coste, un diseño de prueba se queda en el 67 % del coste de la referencia, por debajo del objetivo del 70 %. Mantiene la misma forma y la escritura condicional, con menos App Servers, una caché mucho más pequeña y menos shards de búsqueda: cuando la caché se lleva las búsquedas populares, al motor de búsqueda le queda poco trabajo.
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual es el mismo diseño con las escrituras condicionales de PostgreSQL desactivadas: el App Server lee la disponibilidad y después inserta la reserva. Cuesta lo mismo, unos 1227 $ al mes, y supera «Una semana normal» y «Se abren las reservas de vacaciones» con los mismos resultados.
+Un primer intento habitual es el mismo diseño con las escrituras condicionales de PostgreSQL desactivadas: el App Server lee la disponibilidad y después inserta la reserva. Cuesta lo mismo, unos 1114 $ al mes, y supera «Una semana normal» y «Se abren las reservas de vacaciones» con los mismos resultados.
 
 «Todos quieren la última habitación» lo rompe. 160 reservas por segundo compiten por 10 habitaciones, y muchas parejas leen «libre» antes de que ninguna escriba. Las dos salen bien: 1992 reservas dobles en una ejecución, cada una un viajero que llegará y encontrará la habitación ocupada. La prueba no admite ninguna, así que el diseño falla.
 

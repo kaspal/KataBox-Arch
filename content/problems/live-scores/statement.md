@@ -13,7 +13,7 @@ You run a live scores app. On a match day millions of fans keep the app open, an
 | Error rate | 1% or less |
 | Availability | 99.9% or more |
 | Connected fans | 95% or more in every second |
-| Budget | $2,000 per month |
+| Budget | $1,800 per month |
 
 ## The traffic
 

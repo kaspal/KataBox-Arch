@@ -36,7 +36,7 @@
       "completion_s": 124.840267
     }
   ],
-  "cost_month": 560.0,
+  "cost_month": 700.0,
   "per_type": [
     {
       "id": "etl",
@@ -67,7 +67,7 @@
       "max_queue": 412.0,
       "drops": 0.0,
       "served": 437.0,
-      "cost_month": 560.0,
+      "cost_month": 700.0,
       "util_series": [
         1.0,
         1.0,

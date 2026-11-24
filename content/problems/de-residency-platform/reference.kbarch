@@ -71,7 +71,7 @@
         "y": 0
       },
       "props": {
-        "partitions": 256
+        "partitions": 128
       },
       "group_id": "euw"
     },
@@ -85,8 +85,7 @@
         "y": 112
       },
       "props": {
-        "instances": 2,
-        "concurrency": 128
+        "instances": 32
       },
       "group_id": "euw"
     },
@@ -153,7 +152,7 @@
         "y": 224
       },
       "props": {
-        "partitions": 256
+        "partitions": 128
       },
       "group_id": "euc"
     },
@@ -167,8 +166,7 @@
         "y": 336
       },
       "props": {
-        "instances": 2,
-        "concurrency": 128
+        "instances": 32
       },
       "group_id": "euc"
     },

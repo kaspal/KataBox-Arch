@@ -12,7 +12,7 @@ So the question is not only how many app instances you need, but how many databa
 
 An AWS ALB sends shoppers to Spring Boot App Servers with a concurrency of 200 and 40 ms of work per request, inside an AWS Auto Scaling Group with a minimum of 6 instances, a maximum of 24, a target utilisation of 60% and a scale-out delay of 20 s. Cart views go cache-aside through a Redis Cache with 8 GB of memory and a TTL of 600 s. Every database call goes through a PgBouncer Connection Pooler in transaction mode with 800 database connections, to PostgreSQL with 2 shards.
 
-This costs about $1,319 per month on a normal day: $700 for PostgreSQL, $420 for the App Servers, $144 for Redis, $30 for PgBouncer and $25 for the ALB. During the sale it rises to about $1,489 as the group scales out, still well under the $2,200 budget. In "A normal afternoon" the p95 is about 117 ms, with no errors, and the App Servers are about 40% busy.
+This costs about $1,093 per month on a normal day: $520 for PostgreSQL, $420 for the App Servers, $98 for Redis, $30 for PgBouncer and $25 for the ALB. During the sale it rises to about $1,263 as the group scales out, still well under the $1,800 budget. In "A normal afternoon" the p95 is about 117 ms, with no errors, and the App Servers are about 40% busy.
 
 The pooler is what lets the app tier grow. However many instances the group runs, PostgreSQL sees at most PgBouncer's 800 connections. In transaction mode a connection is lent to a request only for its transaction and then goes back to the pool, so 800 connections serve many more app threads, most of which are doing something else at any moment.
 
@@ -20,11 +20,11 @@ The pooler is what lets the app tier grow. However many instances the group runs
 
 "A flash deal at noon" steps the traffic up to 2.5 times the peak at 20 s and keeps it there for the rest of the 120 s run. The 6-instance floor has enough room to ride the step while the group grows behind it: the p95 is about 117 ms, with no errors.
 
-There is no cost challenge for this problem. The cheapest design we found that passes every test cost about 90% of the reference: the database is more than half the bill, and every write needs it.
+There is no cost challenge for this problem. The cheapest design we found that passes every test cost about 93% of the reference: the database is nearly half the bill, and every write needs it.
 
 ## Why the first try breaks
 
-A common first try is the same design without the pooler: the App Servers connect to PostgreSQL directly, and the group's minimum is 4 instances. It costs about $1,149 per month. It passes "A normal afternoon": 4 × 200 = 800 connections, far below 1,700.
+A common first try is the same design without the pooler: the App Servers connect to PostgreSQL directly, and the group's minimum is 4 instances. It costs about $923 per month. It passes "A normal afternoon": 4 × 200 = 800 connections, far below 1,700.
 
 It also passes "A flash deal at noon", with a p95 of about 138 ms: at 2.5 times the peak the group only needs about 7 instances, 1,400 connections.
 

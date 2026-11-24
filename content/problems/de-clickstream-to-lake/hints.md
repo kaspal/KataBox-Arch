@@ -8,4 +8,4 @@ Partition the table by day, so a refresh reads 2 GB instead of the whole year. T
 
 ## 3
 
-Put an AWS ALB in front of 6 Go App Servers that publish to Apache Kafka with 96 partitions. An Apache Flink Stream Processor with 4 instances and a concurrency of 20 writes to an Apache Iceberg Lakehouse Table partitioned by day, with hourly compaction and a target file size of 256 MB. A Snowflake Data Warehouse with 4 instances, a concurrency of 32 and a scan rate of 4 Gbps reads that table over a Query edge.
+Put an AWS ALB in front of 6 Go App Servers that publish to Apache Kafka with 96 partitions. An Apache Flink Stream Processor with 20 instances (the default concurrency of 4) writes to an Apache Iceberg Lakehouse Table partitioned by day, with hourly compaction and a target file size of 256 MB. A Snowflake Data Warehouse with 5 instances, a concurrency of 32 and a scan rate of 2 Gbps reads that table over a Query edge.

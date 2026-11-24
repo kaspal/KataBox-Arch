@@ -8,4 +8,4 @@ A rate-limit error is a "not now", not a "never". Let the document wait somewher
 
 ## 3
 
-Have the App Servers (2 Go instances) publish each document to an Amazon SQS Queue with Maximum retries set to 10, so a refused call comes back after 1 s, 2 s, 4 s and so on. A Celery Worker with 2 instances and a concurrency of 12 consumes it, call the OpenAI API card (Model type Embeddings, 3,000 requests and 600,000 tokens a minute) and write the vector to a pgvector Vector Database.
+Have the App Servers (2 Go instances) publish each document to an Amazon SQS Queue with Maximum retries set to 10, so a refused call comes back after 1 s, 2 s, 4 s and so on. A Celery Worker with 3 instances and a concurrency of 12 consumes it, call the OpenAI API card (Model type Embeddings, 3,000 requests and 600,000 tokens a minute) and write the vector to a pgvector Vector Database.

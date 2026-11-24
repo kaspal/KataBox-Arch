@@ -10,7 +10,7 @@ La velocidad no es lo difícil. Lo difícil es que una transferencia ya respondi
 
 ## El diseño de referencia
 
-Un Load Balancer (AWS ALB) envía las transferencias a la Ledger API, 2 instancias Go. Cada transferencia se confirma en un libro mayor PostgreSQL, y un segundo PostgreSQL está conectado a él con un enlace Replicate. Los dos están conectados a un stream Kafka de 32 particiones por enlaces de captura de cambios. 6 Balance projectors Celery, con un tiempo de servicio de 2 ms, consumen el stream y actualizan los saldos en DynamoDB. Cuesta unos 3071 $ al mes: DynamoDB unos 1633 $, casi todo por el precio de 2600 millones de escrituras al mes a 0,625 $ por millón, y Kafka 153 $. El p95 hasta completar es de unos 50 ms.
+Un Load Balancer (AWS ALB) envía las transferencias a la Ledger API, 2 instancias Go. Cada transferencia se confirma en un libro mayor PostgreSQL, y un segundo PostgreSQL está conectado a él con un enlace Replicate. Los dos están conectados a un stream Kafka de 32 particiones por enlaces de captura de cambios. 6 Balance projectors Celery, con un tiempo de servicio de 2 ms, consumen el stream y actualizan los saldos en DynamoDB. Cuesta unos 2891 $ al mes: DynamoDB unos 1633 $, casi todo por el precio de 2600 millones de escrituras al mes a 0,625 $ por millón, y Kafka 153 $. El p95 hasta completar es de unos 50 ms.
 
 «Una tormenta de reintentos» duplica el tráfico durante 15 segundos a partir del segundo 20, y admite un p95 de 15 s. Los cambios de más esperan su turno en el stream y en los proyectores, y el p95 sube a unos 230 ms.
 
@@ -18,7 +18,7 @@ Un Load Balancer (AWS ALB) envía las transferencias a la Ledger API, 2 instanci
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual es el mismo diseño con un solo libro mayor PostgreSQL y sin réplica, por unos 2721 $ al mes. Supera «Un día normal» y «Una tormenta de reintentos» con las mismas cifras que la referencia.
+Un primer intento habitual es el mismo diseño con un solo libro mayor PostgreSQL y sin réplica, por unos 2631 $ al mes. Supera «Un día normal» y «Una tormenta de reintentos» con las mismas cifras que la referencia.
 
 Cuando cae el primario no hay nada que promover, así que todas las transferencias fallan desde el segundo 20 hasta el final de la ejecución: cerca de un 94 % de errores. No se pierde nada confirmado, pero la app de pagos está caída hasta que alguien reconstruya la base de datos.
 

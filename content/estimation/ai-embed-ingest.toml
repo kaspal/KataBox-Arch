@@ -27,8 +27,8 @@ id = "worker-slots"
 kind = "servers"
 prompt = "Your account allows {tpm} tokens a minute, and a document averages {tokens} tokens. Each document holds a Worker slot for {hold_ms} ms. How many slots does it take to embed documents at {burst_x} times the steady token limit, so a burst can spend the minute's allowance?"
 prompt_es = "Tu cuenta permite {tpm} tokens por minuto, y un documento tiene de media {tokens} tokens. Cada documento ocupa una plaza de Worker durante {hold_ms} ms. ¿Cuántas plazas hacen falta para procesar documentos a {burst_x} veces el límite sostenido de tokens, de modo que una ráfaga pueda gastar lo permitido en el minuto?"
-inputs = { tpm = 600000, tokens = 625, hold_ms = 740, burst_x = 2 }
+inputs = { tpm = 600000, tokens = 625, hold_ms = 1130, burst_x = 2 }
 formula = "burst_x * tpm / 60 / tokens * hold_ms / 1000"
 unit = "count"
-solution = "The steady limit is {tpm} / 60 / {tokens} = 16 documents a second; {burst_x} times that is 32 a second, and each holds a slot for {hold_ms} ms: 32 × 0.74 s ≈ {answer} slots. The reference uses 24. Many more would only collect rate-limit errors: the provider's limit, not your Workers, sets the pace."
-solution_es = "El límite sostenido es {tpm} / 60 / {tokens} = 16 documentos por segundo; {burst_x} veces eso son 32 por segundo, y cada uno ocupa una plaza {hold_ms} ms: 32 × 0,74 s ≈ {answer} plazas. La referencia usa 24. Muchas más solo recogerían errores de límite: el ritmo lo marca el límite del proveedor, no tus Workers."
+solution = "The steady limit is {tpm} / 60 / {tokens} = 16 documents a second; {burst_x} times that is 32 a second, and each holds a slot for {hold_ms} ms: 32 × 1.13 s ≈ {answer} slots. The reference uses 36. Many more would only collect rate-limit errors: the provider's limit, not your Workers, sets the pace."
+solution_es = "El límite sostenido es {tpm} / 60 / {tokens} = 16 documentos por segundo; {burst_x} veces eso son 32 por segundo, y cada uno ocupa una plaza {hold_ms} ms: 32 × 1,13 s ≈ {answer} plazas. La referencia usa 36. Muchas más solo recogerían errores de límite: el ritmo lo marca el límite del proveedor, no tus Workers."

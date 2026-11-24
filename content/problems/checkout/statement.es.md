@@ -12,7 +12,7 @@ Tienes una tienda online. La mayoría de las visitas son para mirar: abren ficha
 | Lecturas | 80 % de las peticiones |
 | Latencia p95 | 800 ms o menos |
 | Disponibilidad | 99,9 % o más |
-| Presupuesto | 6500 $ al mes |
+| Presupuesto | 6200 $ al mes |
 | Mensajes perdidos | Ninguno |
 
 La latencia se mide hasta que el cliente recibe una respuesta.

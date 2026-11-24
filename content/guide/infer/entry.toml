@@ -107,8 +107,8 @@ note_es = "Solo en lo propio: nodos GPU. Cada uno ejecuta su propio lote."
 
 [[sim]]
 prop = "rpm"
-note = "Hosted only: requests per minute the account may send. Past it, calls get a rate-limit error."
-note_es = "Solo en lo alojado: peticiones por minuto que puede enviar la cuenta. Por encima, las llamadas reciben un error de límite."
+note = "Hosted only: requests per minute the account may send. Past it, calls get a rate-limit error. A problem that names your account's tier fixes this value for you."
+note_es = "Solo en lo alojado: peticiones por minuto que puede enviar la cuenta. Por encima, las llamadas reciben un error de límite. Un problema que nombra el nivel de tu cuenta fija este valor por ti."
 
 [[sim]]
 prop = "tpm"

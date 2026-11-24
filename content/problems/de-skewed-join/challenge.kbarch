@@ -1,0 +1,70 @@
+{
+  "schema_version": 4,
+  "id": "de-skewed-join-challenge",
+  "name": "Salted join with checkpoints",
+  "problem_id": "de-skewed-join",
+  "nodes": [
+    {
+      "id": "spark",
+      "kind": "batch",
+      "flavour": "spark_emr",
+      "label": "spark",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "checkpoint": true,
+        "instances": 5,
+        "salting": 16,
+        "spot_share": 100
+      },
+      "group_id": null
+    },
+    {
+      "id": "s3",
+      "kind": "object",
+      "flavour": "s3",
+      "label": "s3",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "wh",
+      "kind": "warehouse",
+      "flavour": "clickhouse",
+      "label": "wh",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {},
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-spark-s3-query",
+      "from": "spark",
+      "to": "s3",
+      "protocol": "query"
+    },
+    {
+      "id": "e-spark-wh-query",
+      "from": "spark",
+      "to": "wh",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

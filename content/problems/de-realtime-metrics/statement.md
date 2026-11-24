@@ -16,7 +16,7 @@ The web app sends its events within a second or two. The mobile app is different
 | Errors | 0.1% or less |
 | Late events | 1% or less of the events counted in windows |
 | Lost events | none |
-| Budget | $2,200 per month |
+| Budget | $2,100 per month |
 
 ## The traffic
 

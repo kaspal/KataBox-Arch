@@ -8,11 +8,11 @@ Con 100 tareas/s y unos 100 ms cada una, el trabajo constante mantiene ocupados 
 
 El Scheduler publica en una Queue SQS con un max depth de 1 000 000. La consumen Workers Celery dentro de un Autoscaling group con un mínimo de 2, un máximo de 24, una utilización objetivo del 60 % y un retardo de escalado de 10 segundos. Cada Worker escribe su resultado en PostgreSQL, que maneja sin esfuerzo 100 escrituras pequeñas por segundo.
 
-Cuesta unos 928 $ al mes. En una hora normal, el tiempo de finalización p95 ronda los 0,3 s. Cuando todo el grupo de workers cae durante 20 segundos, las tareas se acumulan en la Queue, no se pierde ninguna y el p95 sube a unos 19 s mientras se vacía la acumulación. A medianoche, cuando llegan 10 veces más tareas durante 10 segundos, la Queue absorbe la ráfaga, el grupo escala y el p95 llega a unos 24 s. Las dos pruebas ocultas admiten un p95 de hasta 40 s.
+Cuesta unos 838 $ al mes. En una hora normal, el tiempo de finalización p95 ronda los 0,3 s. Cuando todo el grupo de workers cae durante 20 segundos, las tareas se acumulan en la Queue, no se pierde ninguna y el p95 sube a unos 19 s mientras se vacía la acumulación. A medianoche, cuando llegan 10 veces más tareas durante 10 segundos, la Queue absorbe la ráfaga, el grupo escala y el p95 llega a unos 24 s. Las dos pruebas ocultas admiten un p95 de hasta 40 s.
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual usa una Queue RabbitMQ con un max depth de 1 000 y 2 Workers fijos. En una hora normal funciona bien. Cuando el grupo se pierde durante 20 segundos a partir del segundo 20, llegan unas 2 000 tareas sin nadie que las tome. La Queue se llena al llegar a 1 000, y unas 980 tareas se rechazan y se pierden. A medianoche, los 2 Workers no pueden seguir el ritmo de 1 000 tareas por segundo, la Queue vuelve a llenarse y se pierden unas 7 800 tareas.
+Un primer intento habitual usa una Queue RabbitMQ con un max depth de 1 000 y 2 Workers fijos. En una hora normal funciona bien. Cuando el grupo se pierde durante 20 segundos a partir del segundo 20, llegan unas 2 000 tareas sin nadie que las tome. La Queue se llena al llegar a 1 000, y unas 970 tareas se rechazan y se pierden. A medianoche, los 2 Workers no pueden seguir el ritmo de 1 000 tareas por segundo, la Queue vuelve a llenarse y se pierden unas 7 800 tareas.
 
 ## Para probar
 

@@ -13,7 +13,7 @@ challenge_ratio = 0.6
 peak_rps = 2000
 p95_ms = 5000
 availability = 0.999
-budget_usd = 6000
+budget_usd = 5500
 
 [[request_types]]
 id = "chunk"

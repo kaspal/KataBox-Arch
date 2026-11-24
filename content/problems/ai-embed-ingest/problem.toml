@@ -13,7 +13,12 @@ tags = ["ml-inference", "embeddings", "queues", "rate-limits"]
 peak_rps = 5
 p95_ms = 30000
 availability = 0.999
-budget_usd = 35000
+budget_usd = 28000
+
+[[model_limits]]
+flavour = "openai_api"
+rpm = 3000
+tpm = 600000
 
 [[request_types]]
 id = "ingest"
@@ -50,3 +55,4 @@ chaos = [{ latency = { kind = "infer", at = 20, for = 30, add_ms = 5000 } }]
 [pass]
 error_rate = 0.001
 lost = 0
+dead_lettered = 0

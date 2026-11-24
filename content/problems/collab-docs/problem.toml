@@ -13,7 +13,7 @@ challenge_ratio = 0.75
 peak_rps = 6000
 p95_ms = 150
 availability = 0.999
-budget_usd = 1600
+budget_usd = 1400
 
 [[request_types]]
 id = "op"

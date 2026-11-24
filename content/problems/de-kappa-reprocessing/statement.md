@@ -15,7 +15,7 @@ A bug in the job has computed delivery times wrongly for a month. In a Kappa arc
 | Availability | 99.9% or more |
 | Errors | 0.1% or less |
 | Lost events | none |
-| Budget | $2,200 per month |
+| Budget | $2,000 per month |
 
 ## The traffic
 

@@ -12,7 +12,7 @@ You run a weather app. Every time someone opens it, the app asks your backend fo
 | p95 latency | 100 ms or less |
 | Availability | 99.9% or more |
 | Errors | 1% or less |
-| Budget | $1,000 per month |
+| Budget | $970 per month |
 
 ## The traffic
 

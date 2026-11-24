@@ -10,7 +10,7 @@ Capacity is easy. The hard part is that a whole Region can fail at once.
 
 ## The reference design
 
-Route 53 DNS, with a TTL of 30 s, spreads customers over three Regions: us-east, eu-west and ap-south. Each has an AWS ALB, a Go App Server with 2 instances and a PostgreSQL member. The primary is in us-east, and the members in eu-west and ap-south are replicas wired to it with Replicate edges. This costs about $1,608 per month, of which DNS is about $62, with a p95 of about 155 ms.
+Route 53 DNS, with a TTL of 30 s, spreads customers over three Regions: us-east, eu-west and ap-south. Each has an AWS ALB, a Go App Server with 2 instances and a PostgreSQL member. The primary is in us-east, and the members in eu-west and ap-south are replicas wired to it with Replicate edges. This costs about $1,338 per month, of which DNS is about $62, with a p95 of about 155 ms.
 
 About 8% of reads are stale on a normal day, because the replicas are 50 ms behind; the problem judges staleness only during the split.
 
@@ -20,7 +20,7 @@ About 8% of reads are stale on a normal day, because the replicas are 50 ms behi
 
 ## Why the first try breaks
 
-A common first try is one Region, us-east, with two Availability Zones, each holding a Go App Server of 3 instances and a PostgreSQL member: the primary in one, its replica in the other. It costs about $1,208 per month and passes "Normal day" with a p95 of about 32 ms.
+A common first try is one Region, us-east, with two Availability Zones, each holding a Go App Server of 3 instances and a PostgreSQL member: the primary in one, its replica in the other. It costs about $1,028 per month and passes "Normal day" with a p95 of about 32 ms.
 
 When its Region goes dark nothing is left: about 75% errors, every request from 30 seconds on. The split is as bad. The customers and DNS are outside the Region, so for 20 of 60 seconds no request gets in: about 33% errors. Zones protect you from a data centre failing, not from a Region failing.
 

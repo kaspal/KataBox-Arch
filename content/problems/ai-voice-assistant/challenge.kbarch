@@ -43,6 +43,20 @@
       "group_id": null
     },
     {
+      "id": "llm",
+      "kind": "infer",
+      "flavour": "vllm",
+      "label": "llm",
+      "position": {
+        "x": 608,
+        "y": 224
+      },
+      "props": {
+        "instances": 3
+      },
+      "group_id": null
+    },
+    {
       "id": "stt",
       "kind": "infer",
       "flavour": "triton",
@@ -54,20 +68,6 @@
       "props": {
         "instances": 1,
         "model_type": "embed"
-      },
-      "group_id": null
-    },
-    {
-      "id": "llm",
-      "kind": "infer",
-      "flavour": "vllm",
-      "label": "llm",
-      "position": {
-        "x": 608,
-        "y": 224
-      },
-      "props": {
-        "instances": 3
       },
       "group_id": null
     },

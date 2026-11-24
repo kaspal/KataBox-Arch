@@ -8,7 +8,7 @@ Before the sale, 2,000 requests/s split into about 1,800 page views and 200 purc
 
 The Client talks to a CDN with a TTL of 60 seconds. Page misses go to Object Storage (S3). The CDN forwards checkout to an Application Load Balancer in front of 4 Go Checkout API servers. Each server puts the order on an SQS Queue with a max depth of 1,000,000 and answers the buyer. Payment Workers, 8 instances with 64 slots each, take orders from the Queue, charge the provider and write the ticket to PostgreSQL.
 
-This costs about $5,814 per month. The p95 stays near 25 ms through the opening, because the buyer's answer only waits for the Queue. When the payment provider slows down, adding 3 seconds to every charge for 30 seconds, the Workers drain more slowly and the Queue gets longer. No buyer waits, and no order is lost.
+This costs about $7,043 per month. The p95 stays near 34 ms through the opening, because the buyer's answer only waits for the Queue. When the payment provider slows down, adding 3 seconds to every charge for 30 seconds, the Workers drain more slowly and the Queue gets longer. No buyer waits, and no order is lost.
 
 ## Why the first try breaks
 

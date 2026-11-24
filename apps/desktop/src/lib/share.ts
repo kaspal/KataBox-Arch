@@ -4,6 +4,12 @@
 // reaches a server, and the web viewer that opens it is a later step (deferred; see the M8–M14
 // report). Links over SHARE_LIMIT_BYTES are refused: share the file instead.
 
+/**
+ * H6: share links stay hidden until the web viewer that opens them ships (a link today would
+ * open a 404). Turn this on with the viewer.
+ */
+export const SHARE_LINKS_ENABLED = false;
+
 /** Where the web viewer will live (a maintainer step turns on hosting; see maintainer-steps). */
 export const SHARE_BASE = "https://kaspal.github.io/KataBox-Arch/";
 export const SHARE_PREFIX = "#v1.";

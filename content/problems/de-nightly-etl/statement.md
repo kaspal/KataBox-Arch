@@ -12,7 +12,7 @@ You run an online shop. Its orders live in one PostgreSQL database, and the shop
 | p95 latency | 300 ms or less |
 | Availability | 99.9% or more |
 | Errors | 1% or less |
-| Budget | $2,000 per month |
+| Budget | $1,700 per month |
 
 The p95 counts every request: for the app, the time to its answer; for an export page, the time from the moment it is queued until the page has been read from the database.
 

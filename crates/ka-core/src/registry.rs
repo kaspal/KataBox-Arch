@@ -674,7 +674,6 @@ pub const CITED: &[&str] = &[
     "infer.tokens_per_s@gemini_api",
     "infer.rpm",
     "infer.tpm",
-    "infer.cost.meter.tokens_out@openai_api",
     "infer.cost.instance@vllm",
     "infer.cost.instance@triton",
     "vector.cost.instance",
@@ -718,6 +717,46 @@ pub const CITED: &[&str] = &[
     "dbproxy.cost.instance",
     "dbproxy.cost.instance@rds_proxy",
     "external.cost.million@sendgrid",
+    // H1 (hardening): the cited values of the 42 rows that were "ballpark; the source says".
+    "cdn.cost.million",
+    "app.concurrency@django",
+    "app.concurrency@rails",
+    "worker.concurrency@mediaconvert",
+    "serverless.cost.million",
+    "sql.cost.instance",
+    "sql.max_connections@mysql",
+    "sql.service_ms@cockroachdb",
+    "sql.service_ms@spanner",
+    "sql.cost.instance@cockroachdb",
+    "sql.cost.instance@aurora_postgresql",
+    "cache.failover_s",
+    "cache.cost.gb",
+    "search.failover_s",
+    "search.cost.instance@meilisearch",
+    "queue.service_ms@sqs",
+    "stream.service_ms@kinesis",
+    "stream.service_ms@redpanda",
+    "scheduler.cost.instance@temporal",
+    "scheduler.cost.million@temporal",
+    "idp.cost.million",
+    "external.cost.million@twilio",
+    "infer.ttft_ms",
+    "infer.ttft_ms@openai_api",
+    "infer.ttft_ms@gemini_api",
+    "infer.tokens_per_s",
+    "infer.tokens_per_s@openai_api",
+    "infer.cost.meter.tokens_in",
+    "infer.cost.meter.tokens_out",
+    "infer.cost.meter.tokens_out@gemini_api",
+    "batch.cost.instance",
+    "warehouse.cost.instance@redshift",
+    "warehouse.cost.instance@databricks_sql",
+    "tsdb.points_per_s",
+    "tsdb.cost.instance",
+    "tsdb.cost.million@timestream",
+    "graph.cost.instance",
+    "graph.cost.instance@neptune",
+    "mqtt.msgs_per_s",
 ];
 
 /// Calibration row ids that are modelling choices (`model: <why>` in `docs/calibration.md`).
@@ -1070,8 +1109,9 @@ fn kind_sim(kind: ComponentKind) -> Option<SimDefaults> {
     if let Some(s) = &mut s {
         s.failover_s = match kind {
             K::Sql | K::Graph | K::Tsdb => 30.0,
-            K::Cache => 15.0,
-            K::Search | K::Vector => 10.0,
+            K::Cache => 5.0,
+            K::Search => 30.0,
+            K::Vector => 10.0,
             K::Nosql => 5.0,
             _ => 0.0,
         };
@@ -1139,13 +1179,12 @@ fn flavour_cost(flavour: Flavour) -> Option<Cost> {
         },
         F::Keycloak => node(70.0),
         // Twilio SMS ~$0.0079 per message; SendGrid ~$0.0009 per email (teaching prices).
-        F::Twilio => per_call(7_900.0),
+        F::Twilio => per_call(8_300.0),
         F::Sendgrid => per_call(900.0),
         F::Stripe => per_call(0.0),
         // Per million input / output tokens.
-        F::OpenaiApi => tokens(2.5, 10.0),
-        F::Bedrock => tokens(3.0, 15.0),
-        F::GeminiApi => tokens(1.25, 10.0),
+        F::OpenaiApi => tokens(2.0, 10.0),
+        F::GeminiApi => tokens(2.0, 12.0),
         // A g5.xlarge-class GPU node ($1.006/h × 730).
         F::Vllm | F::Triton => node(734.0),
         F::ElementalLive => node(2_190.0),
@@ -1164,20 +1203,20 @@ fn flavour_cost(flavour: Flavour) -> Option<Cost> {
             },
             ..Cost::default()
         },
-        F::Redshift => node(182.0),
+        F::Redshift => node(396.0),
         F::Clickhouse => node(250.0),
         F::DatabricksSql => Cost {
-            per_instance_month: 1_000.0,
+            per_instance_month: 2_044.0,
             active_only: true,
             ..Cost::default()
         },
         F::Timestream => Cost {
             per_million_write: Some(0.5),
-            per_million: 0.01,
+            per_million: 1.0,
             ..Cost::default()
         },
         F::RdsProxy => node(45.0),
-        F::Neptune => node(350.0),
+        F::Neptune => node(240.0),
         // AWS IoT Core: $1.00 per million messages, $0.08 per million connection-minutes.
         F::AwsIotCore => Cost {
             meters: Meters {
@@ -1199,8 +1238,8 @@ fn flavour_cost(flavour: Flavour) -> Option<Cost> {
             per_million_write: Some(1.25),
             ..Cost::default()
         },
-        F::Cockroachdb => node(438.0),
-        F::AuroraPostgresql => node(300.0),
+        F::Cockroachdb => node(473.0),
+        F::AuroraPostgresql => node(190.0),
         // Spanner: one node ($0.90/h × 730).
         F::Spanner => node(657.0),
         // Service Bus Standard: about $0.80 per million operations, three per message.
@@ -1230,7 +1269,7 @@ fn flavour_cost(flavour: Flavour) -> Option<Cost> {
             per_million_write: Some(1.0),
             ..Cost::default()
         },
-        F::Meilisearch => node(150.0),
+        F::Meilisearch => node(300.0),
         // Azure Blob hot: reads $0.44, writes $5.50 per million.
         F::AzureBlob => Cost {
             per_million: 0.44,
@@ -1260,7 +1299,8 @@ fn flavour_cost(flavour: Flavour) -> Option<Cost> {
         F::AzureFunctions => per_call(0.4),
         // MediaConvert: per minute of output, here per job.
         F::Mediaconvert => per_call(7_500.0),
-        F::Temporal => node(200.0),
+        // Temporal Cloud: $50 per million actions, no minimum.
+        F::Temporal => per_call(50.0),
         F::Dagster => node(100.0),
         F::K8sCronjob => node(0.0),
         // GCS Standard: Class B $0.40, Class A $5.00 per million, as S3.
@@ -1279,8 +1319,8 @@ fn flavour_sim(flavour: Flavour, s: &mut SimDefaults) {
         }
         // Memcached: 4 worker threads by default.
         F::Memcached => s.servers_per_instance = 4.0,
-        F::Sqs => s.service_ms = 10.0,
-        F::Kinesis => s.service_ms = 15.0,
+        F::Sqs => s.service_ms = 20.0,
+        F::Kinesis => s.service_ms = 35.0,
         // M8.3: ScyllaDB's shard-per-core design (vendor benchmarks: several times
         // Cassandra's throughput per node; source needed).
         F::Scylladb => s.servers_per_instance = 96.0,
@@ -1291,7 +1331,7 @@ fn flavour_sim(flavour: Flavour, s: &mut SimDefaults) {
             s.service_ms = 20.0;
             s.servers_per_instance = 300.0;
         }
-        F::Redpanda => s.service_ms = 1.0,
+        F::Redpanda => s.service_ms = 2.0,
         F::Eventbridge => s.service_ms = 20.0,
         _ => {}
     }
@@ -1315,17 +1355,17 @@ fn kind_cost(kind: ComponentKind) -> Cost {
     match kind {
         K::Client | K::Autoscale => c(0.0, 0.0, 0.0),
         K::Dns => c(0.0, 0.0, 0.4),
-        K::Cdn => c(0.0, 0.0, 0.75),
+        K::Cdn => c(0.0, 0.0, 1.0),
         K::Waf => c(20.0, 0.0, 0.6),
         K::Lb => c(25.0, 0.0, 0.0),
         K::Gateway => c(60.0, 0.0, 1.0),
         K::Ratelimit => c(30.0, 0.0, 0.0),
         K::App | K::Micro | K::Worker => c(70.0, 0.0, 0.0),
-        K::Serverless => c(0.0, 0.0, 0.5),
-        K::Sql => c(350.0, 0.0, 0.0),
+        K::Serverless => c(0.0, 0.0, 0.37),
+        K::Sql => c(260.0, 0.0, 0.0),
         // DynamoDB on demand: $0.125 per million read units, $0.625 per million write units.
         K::Nosql => rw(0.125, 0.625),
-        K::Cache => c(0.0, 18.0, 0.0),
+        K::Cache => c(0.0, 12.2, 0.0),
         // S3: GET $0.40, PUT $5.00 per million.
         K::Object => rw(0.4, 5.0),
         K::Search => c(250.0, 0.0, 0.0),
@@ -1343,20 +1383,21 @@ fn kind_cost(kind: ComponentKind) -> Cost {
         // --- M8 kinds (teaching prices; `source: needed` until the citations). ---
         K::Ws | K::Coord | K::Streamproc | K::Mqtt | K::Connector | K::Media => c(70.0, 0.0, 0.0),
         // Managed identity: per million logins (an MAU proxy).
-        K::Idp => c(0.0, 0.0, 5.0),
+        K::Idp => c(0.0, 0.0, 3_000.0),
         K::External => c(0.0, 0.0, 0.0),
         // Hosted models: per million input and output tokens (Claude Sonnet-class list prices).
         K::Infer => Cost {
             meters: Meters {
-                tokens_in_m: 3.0,
-                tokens_out_m: 15.0,
+                tokens_in_m: 2.0,
+                tokens_out_m: 10.0,
                 ..Meters::default()
             },
             ..Cost::default()
         },
         // An m5.xlarge-class node ($0.192/h × 730).
-        K::Batch => c(140.0, 0.0, 0.0),
-        K::Vector | K::Tsdb | K::Graph => c(260.0, 0.0, 0.0),
+        K::Batch => c(175.0, 0.0, 0.0),
+        K::Vector => c(260.0, 0.0, 0.0),
+        K::Tsdb | K::Graph => c(184.0, 0.0, 0.0),
         // Snowflake X-Small: 1 credit/h at $2 × 730, billed only while running.
         K::Warehouse => Cost {
             per_instance_month: 1_460.0,
@@ -1705,6 +1746,9 @@ pub fn registry() -> Registry {
                 // M10: when the limiter can't reach its state (a dead card), refuse every
                 // request (`closed`) or let them through unlimited (`open`).
                 choice("on_failure", &["closed", "open"], "closed"),
+                // H2: count requests, or tokens (prompt + answer) for an LLM gateway; with
+                // tokens, the limit and burst are tokens per second and tokens.
+                choice("unit", &["requests", "tokens"], "requests"),
             ],
         ),
         kind(
@@ -1766,12 +1810,12 @@ pub fn registry() -> Registry {
                 fl_with(F::Go, &[("service_ms", num(5.0))]),
                 fl_with(
                     F::Django,
-                    &[("service_ms", num(20.0)), ("concurrency", num(9.0))],
+                    &[("service_ms", num(20.0)), ("concurrency", num(5.0))],
                 ),
                 fl_with(F::AspnetCore, &[("service_ms", num(6.0))]),
                 fl_with(
                     F::Rails,
-                    &[("service_ms", num(25.0)), ("concurrency", num(5.0))],
+                    &[("service_ms", num(25.0)), ("concurrency", num(3.0))],
                 ),
             ],
             [compute_props(2.0, 64.0, 10.0), resilience()].concat(),
@@ -1794,7 +1838,7 @@ pub fn registry() -> Registry {
                 ),
                 fl_with(
                     F::Mediaconvert,
-                    &[("service_ms", num(10_000.0)), ("concurrency", num(1000.0))],
+                    &[("service_ms", num(10_000.0)), ("concurrency", num(500.0))],
                 ),
             ],
             [
@@ -1846,19 +1890,25 @@ pub fn registry() -> Registry {
                 fl(F::ClaudeApi),
                 fl_with(
                     F::OpenaiApi,
-                    &[("ttft_ms", num(500.0)), ("tokens_per_s", num(90.0))],
+                    &[("ttft_ms", num(890.0)), ("tokens_per_s", num(65.0))],
                 ),
                 fl(F::Bedrock),
                 fl_with(
                     F::GeminiApi,
-                    &[("ttft_ms", num(500.0)), ("tokens_per_s", num(120.0))],
+                    &[("ttft_ms", num(1_000.0)), ("tokens_per_s", num(120.0))],
                 ),
-                fl_with(F::Vllm, &[("ttft_ms", num(200.0))]),
+                // H1: the cited 100 tokens/s is a hosted API's stream; a self-hosted GPU stream
+                // keeps its own figure.
+                fl_with(
+                    F::Vllm,
+                    &[("ttft_ms", num(200.0)), ("tokens_per_s", num(80.0))],
+                ),
                 fl_with(
                     F::Triton,
                     &[
                         ("model_type", PropValue::Text("classify".into())),
                         ("ttft_ms", num(5.0)),
+                        ("tokens_per_s", num(80.0)),
                         ("batch_slots", num(64.0)),
                     ],
                 ),
@@ -1868,8 +1918,8 @@ pub fn registry() -> Registry {
                 choice("api_mode", &["realtime", "batch"], "realtime"),
                 instances(2.0),
                 int("batch_slots", 1.0, 256.0, 16.0, Unit::Count),
-                float("ttft_ms", 1.0, 10_000.0, 1.0, 600.0, Unit::Ms),
-                float("tokens_per_s", 1.0, 5_000.0, 1.0, 80.0, Unit::Tps),
+                float("ttft_ms", 1.0, 10_000.0, 1.0, 1_100.0, Unit::Ms),
+                float("tokens_per_s", 1.0, 5_000.0, 1.0, 100.0, Unit::Tps),
                 int("prefill_tps", 100.0, 100_000.0, 5_000.0, Unit::Tps),
                 int("rpm", 1.0, 1_000_000.0, 4_000.0, Unit::PerMin),
                 int("tpm", 1_000.0, 100_000_000.0, 400_000.0, Unit::PerMin),
@@ -1929,9 +1979,9 @@ pub fn registry() -> Registry {
                         ("max_connections", num(1_365.0)),
                     ],
                 ),
-                fl_with(F::Cockroachdb, &[("service_ms", num(12.0))]),
+                fl_with(F::Cockroachdb, &[("service_ms", num(2.0))]),
                 fl_with(F::AuroraPostgresql, &[("replication_lag_ms", num(20.0))]),
-                fl_with(F::Spanner, &[("service_ms", num(12.0))]),
+                fl_with(F::Spanner, &[("service_ms", num(5.0))]),
                 fl_with(F::Postgis, &[("service_ms", num(10.0))]),
                 fl_with(F::Citus, &[("service_ms", num(5.5)), ("shards", num(4.0))]),
             ],
@@ -1997,7 +2047,7 @@ pub fn registry() -> Registry {
                 choice("eviction", &["lru", "lfu", "ttl"], "lru"),
                 boolean("persistence", false),
                 service_ms(0.01),
-                int("failover_s", 1.0, 600.0, 15.0, Unit::S),
+                int("failover_s", 1.0, 600.0, 5.0, Unit::S),
                 // S3: `semantic` answers near-repeat questions (an embedding lookup); its hit
                 // rate comes from the traffic, never from the design.
                 choice("mode", &["exact", "semantic"], "exact"),
@@ -2087,6 +2137,9 @@ pub fn registry() -> Registry {
                 choice("partitioning", &["none", "day", "hour"], "none"),
                 choice("compaction", &["none", "hourly", "daily"], "daily"),
                 float("stored_tb", 0.01, 10_000.0, 0.01, 10.0, Unit::None),
+                // H3: writes are merged by key (a MERGE / upsert on commit), so a replay
+                // after a crash doesn't add duplicate rows.
+                boolean("dedup", false),
             ],
         ),
         kind(
@@ -2099,7 +2152,7 @@ pub fn registry() -> Registry {
             ],
             vec![
                 instances(1.0),
-                int("points_per_s", 1_000.0, 10_000_000.0, 500_000.0, Unit::Rps),
+                int("points_per_s", 1_000.0, 10_000_000.0, 250_000.0, Unit::Rps),
                 int(
                     "series_limit",
                     1_000.0,
@@ -2237,7 +2290,7 @@ pub fn registry() -> Registry {
                     Unit::Count,
                 ),
                 float("conn_memory_kb", 1.0, 512.0, 1.0, 8.0, Unit::Kb),
-                int("msgs_per_s", 100.0, 10_000_000.0, 100_000.0, Unit::Rps),
+                int("msgs_per_s", 100.0, 10_000_000.0, 60_000.0, Unit::Rps),
                 choice("qos", &["at_most_once", "at_least_once"], "at_most_once"),
                 service_ms(2.0),
             ],

@@ -47,13 +47,13 @@ callout = { metric = "error_rate", before = 0.0628, after = 0.0471 }
 
 [[step]]
 snapshot = "fixed.kbarch"
-title = "The price: writes wait"
-title_es = "El precio: las escrituras esperan"
-caption = "Now AZ-a, with the primary, is cut off. AZ-a has no majority, and on AZ-b's side the only primary is one that promoted itself, which fencing won't let write. Every reservation fails for the 20 s: more errors than in the last split, but still no conflicts. Errors can be retried; two versions of the stock can't."
-caption_es = "Ahora queda aislada la AZ-a, con el primario. La AZ-a no tiene mayoría, y en el lado de la AZ-b el único primario es uno que se promovió a sí mismo, al que el fencing no deja escribir. Todas las reservas fallan durante los 20 s: más errores que en la partición anterior, pero sigue sin haber conflictos. Los errores se pueden reintentar; dos versiones de las existencias, no."
+title = "The majority moves on, the minority is fenced"
+title_es = "La mayoría sigue, la minoría queda fuera"
+caption = "Now AZ-a, with the primary and etcd's leader, is cut off. AZ-b and AZ-c are a majority: etcd elects a new leader there, the replica in AZ-b promotes itself, and AZ-b's apps take the lock and write to it. AZ-a's apps still hold leases granted just before the split and keep writing for a few seconds, but the new primary's term has begun: fencing makes the old primary refuse those stale writes, and once the leases run out AZ-a can't get a lock at all. About 6.4% of requests fail, and there are still no conflicts. Errors can be retried; two versions of the stock can't."
+caption_es = "Ahora queda aislada la AZ-a, con el primario y el líder de etcd. La AZ-b y la AZ-c son mayoría: etcd elige allí un nuevo líder, la réplica de la AZ-b se promueve, y las aplicaciones de la AZ-b toman el bloqueo y escriben en ella. Las aplicaciones de la AZ-a aún tienen concesiones (leases) obtenidas justo antes de la partición y siguen escribiendo unos segundos, pero el mandato del nuevo primario ya ha empezado: el fencing hace que el primario antiguo rechace esas escrituras caducadas, y cuando las concesiones vencen la AZ-a ya no consigue ningún bloqueo. Falla alrededor del 6,4 % de las peticiones, y sigue sin haber conflictos. Los errores se pueden reintentar; dos versiones de las existencias, no."
 focus = ["etcd-a", "db-a", "db-b"]
 run = { test = "aftershock", start_s = 18 }
-callout = { metric = "error_rate", after = 0.0822 }
+callout = { metric = "error_rate", after = 0.0642 }
 
 [scenario.nfr]
 peak_rps = 400

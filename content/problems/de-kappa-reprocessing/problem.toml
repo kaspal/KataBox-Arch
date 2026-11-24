@@ -14,7 +14,7 @@ requires = ["stream", "streamproc", "scheduler", "sql"]
 peak_rps = 600
 p95_ms = 5000
 availability = 0.999
-budget_usd = 2200
+budget_usd = 2000
 
 # Live records are measured by completion (in the serving table), the replay by response
 # (read back into the processing pipeline), as content/problems/de-backfill does. The replay's

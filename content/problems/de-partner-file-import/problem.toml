@@ -13,7 +13,7 @@ tags = ["queues", "retries", "dlq", "failover", "object-storage"]
 peak_rps = 50
 p95_ms = 30000
 availability = 0.999
-budget_usd = 4500
+budget_usd = 4200
 
 [[request_types]]
 id = "file"
@@ -68,3 +68,4 @@ pass = { p95_ms = 45000, error_rate = 0.02, availability = 0.98 }
 [pass]
 error_rate = 0.001
 lost = 0
+dead_lettered = 0

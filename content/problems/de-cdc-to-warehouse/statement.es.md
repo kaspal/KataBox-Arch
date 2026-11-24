@@ -15,7 +15,7 @@ Los analistas aceptan un almacén que vaya unos minutos por detrás, unos 5 minu
 | Disponibilidad | 99,9 % o más |
 | Errores | 0,1 % o menos |
 | Cambios perdidos | 0 |
-| Presupuesto | 8000 $ al mes |
+| Presupuesto | 7900 $ al mes |
 
 ## El tráfico
 

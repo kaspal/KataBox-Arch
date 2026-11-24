@@ -27,7 +27,7 @@ id = "worker-slots"
 kind = "servers"
 prompt = "Documents arrive at {docs_per_s} a second. The provider slows down, and a model call now takes {call_s} seconds. A Worker slot is held for the whole call. How many slots must be busy at once to keep up?"
 prompt_es = "Los documentos llegan a {docs_per_s} por segundo. El proveedor se vuelve lento, y una llamada al modelo tarda ahora {call_s} segundos. Un hueco de Worker queda ocupado durante toda la llamada. ¿Cuántos huecos tienen que estar ocupados a la vez para seguir el ritmo?"
-inputs = { docs_per_s = 15, call_s = 5 }
+inputs = { docs_per_s = 15, call_s = 5.2 }
 formula = "docs_per_s * call_s"
 unit = "count"
 solution = "{docs_per_s} × {call_s} = {answer} calls in flight (Little's law). 2 Celery instances with a concurrency of 64 give 128 slots, so the slowdown fits. Once the batch API removes the per-minute limit, these slots are the only cap left."

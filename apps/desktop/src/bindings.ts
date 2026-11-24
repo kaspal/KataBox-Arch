@@ -935,6 +935,11 @@ export type ChaosEvent =
  */
 { external: { name: string; at: number; for?: number | null; down?: boolean; add_ms?: number; rate?: number | null } } | 
 /**
+ * H2: a hosted model provider cuts the selected Model Inference cards' per-minute
+ * limits to `rpm` / `tpm` (for `for` seconds, else to the end).
+ */
+{ model_rate: { target: Selector; at: number; for?: number | null; rpm?: number | null; tpm?: number | null } } | 
+/**
  * S8: a bad build is deployed to the compute cards selected. Its instances fail
  * `error_rate` of their requests and add `add_ms`. It rolls out by each card's
  * `rollout_percent` every `bake_s`, rolls back by itself with `auto_rollback`, and is
@@ -1354,6 +1359,19 @@ conn_minutes_m: number;
  */
 messages_m: number }
 /**
+ * H2: a hosted model's account limits, set by the problem (the tier its statement names):
+ * every hosted Model Inference card of this flavour gets them, whatever its own props say.
+ */
+export type ModelLimit = { flavour: Flavour; 
+/**
+ * Requests per minute.
+ */
+rpm?: number | null; 
+/**
+ * Tokens (in + out) per minute.
+ */
+tpm?: number | null }
+/**
  * The non-functional requirements shown in the brief.
  */
 export type Nfr = { 
@@ -1505,7 +1523,13 @@ late_rate?: number | null; duplicates?: number | null;
 /**
  * S9: data stored or sent outside its residency (usually 0).
  */
-residency_violations?: number | null }
+residency_violations?: number | null; 
+/**
+ * H3: messages a queue or stream may move to its dead-letter queue. A DLQ keeps a
+ * failed message safe, but the work it stood for was not done: a problem whose lesson
+ * isn't the DLQ itself limits it (usually 0, or a handful of poison messages).
+ */
+dead_lettered?: number | null }
 /**
  * One step of a path as the UI shows it.
  */
@@ -1575,7 +1599,11 @@ p99_ms: number | null;
 /**
  * What the latency limits measure: the answer, the finished async work, or both.
  */
-judged_on: LatencyMeasure; statement_en: string; statement_es: string; request_types: RequestTypeBrief[]; externals: ExternalBrief[]; tests: TestBrief[]; 
+judged_on: LatencyMeasure; statement_en: string; statement_es: string; request_types: RequestTypeBrief[]; externals: ExternalBrief[]; 
+/**
+ * H2: hosted model limits the problem pins (shown read-only on those cards).
+ */
+model_limits: ModelLimit[]; tests: TestBrief[]; 
 /**
  * Unlocked tiers (0–3) and their text.
  */

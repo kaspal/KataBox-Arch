@@ -38,6 +38,29 @@ describe("the problem catalogue", () => {
     expect(unnamed(document.body)).toEqual([]);
   });
 
+  it("heads the Core list with its sets (H6)", async () => {
+    renderApp("/problems");
+    await screen.findByTestId("problem-row");
+    const headings = screen.getAllByTestId("set-heading");
+    expect(headings[0]).toHaveTextContent("Set 1");
+    expect(within(headings[0]!).getByRole("heading", { level: 2 })).toBeInTheDocument();
+  });
+
+  it("shows one row of topic tags until asked for more (H6)", async () => {
+    const list = await fake().api.listProblems();
+    const tags = Array.from({ length: 15 }, (_, i) => `t${String(i).padStart(2, "0")}`);
+    vi.mocked(fake().api.listProblems).mockResolvedValue(list.map((p, i) => (i === 0 ? { ...p, tags } : p)));
+    const { user } = renderApp("/problems");
+    const cloud = await screen.findByTestId("tag-cloud");
+    await waitFor(() => expect(within(cloud).getByRole("button", { name: "#t00" })).toBeInTheDocument());
+    expect(within(cloud).queryByRole("button", { name: "#t14" })).not.toBeInTheDocument();
+    const more = within(cloud).getByTestId("more-tags");
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    await user.click(more);
+    expect(within(cloud).getByRole("button", { name: "#t14" })).toBeInTheDocument();
+    expect(more).toHaveTextContent("Fewer tags");
+  });
+
   it("Home offers the recommended next problem", async () => {
     renderApp("/");
     expect(await screen.findByTestId("home-recommended")).toHaveTextContent("URL Shortener");
@@ -190,5 +213,45 @@ describe("solving a problem", () => {
     expect(await within(brief).findByTestId("chart-best")).toHaveTextContent("Your cheapest accepted design: $1,850 a month at 31.2 ms p95 (1 accepted).");
     expect(within(brief).getByTestId("chart-reference")).toHaveTextContent("The reference: $1,600 a month at 24.5 ms p95.");
     expect(within(brief).getByRole("button", { name: "Compare with reference" })).toBeInTheDocument();
+  });
+});
+
+describe("pinned model limits (H2)", () => {
+  it("shows a hosted model's account limits read-only when the problem sets them", async () => {
+    const base = await fake().api.problemBrief("url-shortener");
+    const draft: Design = {
+      ...FAKE_DESIGN,
+      problem_id: "url-shortener",
+      nodes: [
+        { id: "m1", kind: "infer", flavour: "claude_api", label: "", position: { x: 0, y: 0 }, props: { rpm: 99999 }, group_id: null },
+        { id: "m2", kind: "infer", flavour: "openai_api", label: "", position: { x: 300, y: 0 }, props: {}, group_id: null },
+      ],
+    };
+    vi.mocked(fake().api.problemBrief).mockResolvedValue({ ...base, draft, model_limits: [{ flavour: "claude_api", rpm: 4000, tpm: 400000 }] });
+    const { user } = renderApp("/problems/url-shortener");
+    await screen.findByTestId("brief");
+    await waitFor(() => expect(useEditor.getState().doc.nodes).toHaveLength(2));
+    act(() => useEditor.getState().setSelection(["m1"]));
+    await user.click(screen.getByRole("tab", { name: "Inspect" }));
+    const pinned = await screen.findAllByTestId("prop-pinned");
+    expect(pinned.map((p) => (p as HTMLInputElement).value)).toEqual(["4000", "400000"]);
+    expect(pinned[0]).toHaveAttribute("readonly");
+    expect(screen.getAllByText("set by the problem")).toHaveLength(2);
+    // Another provider's card keeps its own, editable limits.
+    act(() => useEditor.getState().setSelection(["m2"]));
+    await waitFor(() => expect(screen.queryByTestId("prop-pinned")).not.toBeInTheDocument());
+  });
+});
+
+describe("opening a draft (H6)", () => {
+  it("asks the canvas to fit the draft in view", async () => {
+    const base = await fake().api.problemBrief("url-shortener");
+    const draft: Design = { ...FAKE_DESIGN, problem_id: "url-shortener" };
+    vi.mocked(fake().api.problemBrief).mockResolvedValue({ ...base, draft });
+    act(() => useEditor.getState().newDesign("Other"));
+    const before = useEditor.getState().fitRequest;
+    renderApp("/problems/url-shortener");
+    await screen.findByTestId("brief");
+    await waitFor(() => expect(useEditor.getState().fitRequest).toBe(before + 1));
   });
 });

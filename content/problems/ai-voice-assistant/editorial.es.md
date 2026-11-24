@@ -12,7 +12,7 @@ Son unos 540 ms. Un turno largo (450 tokens de entrada, 30 de salida) tarda unos
 
 Dos cosas se comen el resto de los 1,2 s. La primera es el tiempo de arranque: el Tiempo hasta el primer token de las API alojadas es de 500 a 600 ms por defecto, frente a los 200 ms de vLLM, así que un modelo de lenguaje alojado gasta más o menos la mitad del presupuesto antes de escribir una palabra. La segunda es la propia GPU. Una GPU con vLLM tiene 16 huecos, y cada petición escribe a 80 × (1 − 0,5 × ocupados ÷ huecos) tokens por segundo. A 20 turnos por segundo, con cada llamada al modelo de lenguaje tardando unos 0,5 a 0,6 s, hay unos 12 huecos ocupados en cada momento. En una sola GPU eso son tres cuartos de sus huecos, así que cada respuesta se escribe a unos 50 tokens por segundo en lugar de 80, y la respuesta larga tarda 600 ms en lugar de 375.
 
-Las pruebas ocultas se llevan el tiempo de sobra. «Un modelo va 300 ms más lento» suma 300 ms a cada llamada de una tarjeta de Inferencia de modelos (la primera por nombre; en los diseños de aquí, el modelo de lenguaje) desde el segundo 15, durante 40 segundos. «El triple de turnos durante 30 s» envía 60 turnos por segundo del segundo 15 al 45: unos 30 huecos ocupados.
+Las pruebas ocultas se llevan el tiempo de sobra. «Un modelo va 300 ms más lento» suma 300 ms a cada llamada de una tarjeta de Inferencia de modelos (la primera que se colocó en el diseño; en los diseños de aquí, el modelo de lenguaje) desde el segundo 15, durante 40 segundos. «El triple de turnos durante 30 s» envía 60 turnos por segundo del segundo 15 al 45: unos 30 huecos ocupados.
 
 ## El diseño de referencia
 

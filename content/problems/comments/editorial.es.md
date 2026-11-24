@@ -8,13 +8,13 @@ La prueba viral cambia la forma, no solo el tamaño. El tráfico se triplica has
 
 ## El diseño de referencia
 
-Un AWS ALB reparte el tráfico entre 4 Go App Servers. Leen de una Redis Cache de 4 GB con un TTL de 300 s, y en un fallo de caché leen de Cassandra con 1 partición. Un comentario nuevo se escribe en Cassandra, y después el App Server refresca la entrada de ese hilo en la caché. Cuesta unos 627 $ al mes: 280 $ los App Servers, 250 $ Cassandra, 72 $ Redis y 25 $ el ALB. Una tarde normal tiene un p95 de unos 18,6 ms, ningún error y un 0,09 % de lecturas obsoletas. Cassandra solo está ocupada en torno a un 4 %: ve los fallos de caché y los comentarios, no las lecturas.
+Un AWS ALB reparte el tráfico entre 4 Go App Servers. Leen de una Redis Cache de 4 GB con un TTL de 300 s, y en un fallo de caché leen de Cassandra con 1 partición. Un comentario nuevo se escribe en Cassandra, y después el App Server refresca la entrada de ese hilo en la caché. Cuesta unos 604 $ al mes: 280 $ los App Servers, 250 $ Cassandra, 49 $ Redis y 25 $ el ALB. Una tarde normal tiene un p95 de unos 18,6 ms, ningún error y un 0,09 % de lecturas obsoletas. Cassandra solo está ocupada en torno a un 4 %: ve los fallos de caché y los comentarios, no las lecturas.
 
 «Un hilo se hace viral» triplica el tráfico a partir del segundo 15, durante 30 segundos, con una popularidad Zipf de 1,4. Redis responde el hilo caliente desde memoria, así que el p95 se queda en unos 18,6 ms, sin errores. Las lecturas obsoletas suben al 6,65 %: el hilo caliente recibe comentarios nuevos cada segundo, y una lectura puede caer entre la escritura en Cassandra y el refresco de la caché. Aquí eso no es un problema; un comentario que aparece un momento tarde no hace daño.
 
 «Se vacía la caché en una tarde con mucho tráfico» duplica el tráfico con una popularidad Zipf de 1,2 y vacía la caché en el segundo 20. Los hilos calientes fallan una vez y vuelven a la caché en milisegundos, y Cassandra, ocupada normalmente en un 4 %, tiene sitio para los fallos fríos que vienen después. El p95 queda en unos 19,0 ms, sin errores.
 
-Para el reto de coste, un diseño de prueba se queda en el 79 % del coste de la referencia, por debajo del objetivo del 80 %. Mantiene la misma forma, con menos App Servers y una caché mucho más pequeña.
+Este problema no tiene reto de coste. El mejor diseño más barato que se encontró seguía costando cerca del 82 % de la referencia, por encima del objetivo del 80 %: la Redis Cache que sostiene la lección ya es una parte pequeña de la factura.
 
 ## Por qué falla el primer intento
 

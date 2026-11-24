@@ -12,7 +12,7 @@ tags = ["cdn", "graphs", "circuit-breakers", "graceful-degradation"]
 peak_rps = 4000
 p95_ms = 250
 availability = 0.999
-budget_usd = 9000
+budget_usd = 11000
 
 [[externals]]
 name = "traffic"

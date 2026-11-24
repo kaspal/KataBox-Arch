@@ -67,6 +67,11 @@ not_simulated_es = [
 ]
 
 [[sim]]
+prop = "dedup"
+note = "Writes are merged by key (an upsert when they commit), so records a stream processor replays after a crash don't become duplicate rows."
+note_es = "Las escrituras se fusionan por clave (un upsert al confirmarse), así que los registros que un procesador de streams repite tras una caída no se convierten en filas duplicadas."
+
+[[sim]]
 prop = "partitioning"
 note = "How the table is split by time. A query that filters by time reads only the partitions it needs; without partitions it reads everything."
 note_es = "Cómo se divide la tabla por tiempo. Una consulta que filtra por tiempo lee solo las particiones que necesita; sin particiones lo lee todo."

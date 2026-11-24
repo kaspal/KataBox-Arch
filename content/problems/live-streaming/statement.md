@@ -13,7 +13,7 @@ You run a live streaming site. Streamers go live, and viewers watch in their bro
 | Error rate | 1% or less |
 | Availability | 99.9% or more |
 | Connected chat viewers | 95% or more in every second |
-| Budget | $15,000 per month |
+| Budget | $19,000 per month |
 
 ## The traffic
 

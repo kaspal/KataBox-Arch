@@ -10,7 +10,7 @@ So the load splits into two separate problems. The searches are many, repeated a
 
 ## The reference design
 
-An AWS ALB sends travellers to 4 Go App Servers. Searches go cache-aside through a Redis Cache with 4 GB of memory and a TTL of 300 s, in front of Elasticsearch with 4 shards. Bookings go to PostgreSQL with "Conditional writes (check and set in one step)" on. This costs about $1,227 per month: $500 for Elasticsearch, $350 for PostgreSQL, $280 for the App Servers, $72 for Redis and $25 for the ALB. In "A normal week" the p95 is about 27.1 ms, with no errors, and the search engine is about 14% busy.
+An AWS ALB sends travellers to 4 Go App Servers. Searches go cache-aside through a Redis Cache with 4 GB of memory and a TTL of 300 s, in front of Elasticsearch with 4 shards. Bookings go to PostgreSQL with "Conditional writes (check and set in one step)" on. This costs about $1,114 per month: $500 for Elasticsearch, $260 for PostgreSQL, $280 for the App Servers, $49 for Redis and $25 for the ALB. In "A normal week" the p95 is about 27.1 ms, with no errors, and the search engine is about 14% busy.
 
 With conditional writes, the booking is one statement that fails if the room-night is already taken: for example a unique constraint on (room, night), or `UPDATE … SET booked = true WHERE room = ? AND night = ? AND NOT booked`. The database checks and writes in the same step, so when two bookings race for the last room, one wins and the other is told "just booked by someone else".
 
@@ -22,11 +22,11 @@ The cache is what keeps the search engine calm. The popular searches are answere
 
 The cache is allowed to be a little stale. About 22% of searches come from a cached result older than the last booking, so a search can show a room that has just gone. That is fine: the search is only a hint, and the booking is what decides.
 
-For the cost challenge, a proof design comes in at 69% of the reference's cost, under the 70% target. It keeps the same shape and the conditional write, with fewer App Servers, a much smaller cache and fewer search shards: once the cache takes the popular searches, the search engine has little left to do.
+For the cost challenge, a proof design comes in at 67% of the reference's cost, under the 70% target. It keeps the same shape and the conditional write, with fewer App Servers, a much smaller cache and fewer search shards: once the cache takes the popular searches, the search engine has little left to do.
 
 ## Why the first try breaks
 
-A common first try is the same design with PostgreSQL's conditional writes left off: the App Server reads the availability, then inserts the booking. It costs the same, about $1,227 per month, and passes "A normal week" and "Holiday bookings open" with the same results.
+A common first try is the same design with PostgreSQL's conditional writes left off: the App Server reads the availability, then inserts the booking. It costs the same, about $1,114 per month, and passes "A normal week" and "Holiday bookings open" with the same results.
 
 "Everyone wants the last room" breaks it. 160 bookings a second race for 10 rooms, and many pairs both read "free" before either writes. Both succeed: 1,992 double bookings in one run, each one a traveller who will arrive to find the room taken. The test allows none, so the design fails.
 

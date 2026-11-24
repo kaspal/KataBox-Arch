@@ -113,7 +113,8 @@ A request type's `route` is a list of steps, `role[:qualifier…][?]`, with `a|b
   - **traffic:** multiplies arrivals.
   - **external:** a provider fails (1 s connect timeout) or slows.
 - **Selectors:** an id, or a kind with a cluster role (the current primary, a replica, or any member). The first in
-  id order, or every match with `all`.
+  the design file's order (the order cards were placed; H5: renaming a card can't move a failure), or every match
+  with `all`.
 - **Health checks** run every 2 s; a change is believed after two checks in a row.
   - Until then, routing still sends requests to a dead card, and they fail. Afterwards, load balancers, callers and
     replica reads avoid it.
@@ -477,6 +478,42 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
   Redis `SET NX`). A write to such a card on a contended key behaves like a `datastore:write:atomic` step: a race
   is refused cleanly instead of counting as a conflict. It is how a design (not only a route) makes the write
   atomic (Set 3 #33, #34).
+
+- **Hardening H5 (results don't depend on card names or step parity).** Chaos `kind` selectors pick the first
+  match in file order, not by id. Round-robin spreading keeps one counter per route position (caller, request
+  type, segment, step, and whether it is a hop, a publish or a call) instead of one per caller: before, a caller
+  whose earlier call step advanced the shared counter sent every later call of the same request to the same
+  target (`tests/m8.rs` `round_robin_spreads_each_step_on_its_own`). Goldens b and k2 were regenerated for this on
+  purpose; shipped verdicts held (one naive failure type changed, AI 12 slow-stage: DroppedRequests → SloBreach,
+  until AI 12's designs were reordered so its slowed model is again the language model).
+- **Hardening H4 (quorum locks).** A `lock` step served by a coordination service talks to its cluster as a whole:
+  the lock is granted through a member on the caller's side of any split, only while that side reaches a majority
+  of the members, and, when the leader (the first member in the file) is across the split, only `election_ms` after
+  the split began (the majority re-elects and keeps writing). A caller granted a lock keeps a lease for `lease_s`;
+  cut off from the majority within it, it acts on the lease (a stale holder). A stale holder's write into a data
+  cluster split across it is a conflict, or is refused when the store has `fencing`; a write to a self-promoted
+  primary is legitimate with a current quorum lock and a conflict otherwise (a cache lock has no quorum). Routes:
+  `lock:coord` and `lock:cache` name the lock's kind; a plain `lock` in a route that also uses a cache takes it
+  from a coordination service only, so a cache-aside cache no longer counts as a lock. Golden k2 was regenerated
+  (the stale holders now reach the promoted replica and are refused there); replay 10's last step was rewritten
+  (the majority side now keeps writing: 6.4% errors instead of 8.2%). Set 3 #36 keeps `conditional_writes`, the
+  answer it teaches.
+- **Hardening H2 (AI-track honesty).** Problems pin hosted model limits (`[[model_limits]]`: flavour, `rpm`, `tpm`),
+  which override the cards' props (read-only in the Inspector). Chaos `model_rate` cuts selected Model Inference
+  cards' `rpm`/`tpm` (a provider lowering a tier), restored at `for`. TTFT is recorded only for chat calls (not
+  `embed`/`classify`), and only when the call completes: a call the caller abandoned records none (golden f2's TTFT
+  p50 fell from 5.2 s to 0.39 s, the bias this removes). Residency (S9) covers model calls: a Model Inference card
+  outside the request's residency counts a violation (AI 16 reworked to test it). The Rate Limiter has
+  `unit = requests | tokens`; with tokens each request debits its prompt + answer tokens (AI 6).
+- **Hardening H3 (free lunches).** Slots per instance are part of an instance's size: above a cap the per-instance
+  price scales with value ÷ cap. The cap is the flavour default for stream-processor `concurrency`, batch
+  `executors` and a time-billed warehouse's `scan_gbps` (a faster scan is a bigger warehouse); worker threads and GPU
+  `batch_slots` mostly wait (I/O; a server setting bounded by GPU memory, already slowed by the batching curve), so
+  up to 8× the default is free (`FREE_WAITING_SLOTS`, a modelling choice). BigQuery on demand scans at the provider's
+  rate. Batch `spot_share` is real: spot executors cost 35% of on-demand (`SPOT_PRICE`, a modelling choice inside
+  the usual 60–90% discount) and a `spot` event takes back only spot executors. `pass.dead_lettered` limits messages
+  moved to a DLQ (the work wasn't done). Model answers fill an exact cache-aside cache in front of a Model Inference
+  card, as provider answers do. Lakehouse tables have `dedup`.
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE

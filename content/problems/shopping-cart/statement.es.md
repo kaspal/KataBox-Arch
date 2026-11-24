@@ -12,7 +12,7 @@ Llevas el servicio de carrito de una gran tienda online. Los compradores miran s
 | Latencia p95 | 150 ms o menos |
 | Disponibilidad | 99,9 % o más |
 | Tasa de errores | 1 % o menos |
-| Presupuesto | 2200 $ al mes |
+| Presupuesto | 1800 $ al mes |
 | Escrituras perdidas | Ninguna |
 
 ## El tráfico

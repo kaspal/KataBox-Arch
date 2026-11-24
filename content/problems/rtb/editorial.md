@@ -8,17 +8,17 @@ The hidden tests take that room away. When a big bidder slows down, every bidder
 
 ## The reference design
 
-An AWS ALB spreads the auctions over 8 Go App Servers, each with a Concurrency per instance of 256 and a Call timeout of 70 ms. They read profiles from a Redis Cache with 16 GB of memory. This costs about $873 per month: $560 for the App Servers, $288 for Redis and $25 for the ALB. In a normal hour the p95 is about 76 ms and the p99 about 82 ms, with no errors, and the App Servers are about 39% busy.
+An AWS ALB spreads the auctions over 8 Go App Servers, each with a Concurrency per instance of 256 and a Call timeout of 70 ms. They read profiles from a Redis Cache with 16 GB of memory. This costs about $780 per month: $560 for the App Servers, $195 for Redis and $25 for the ALB. In a normal hour the p95 is about 76 ms and the p99 about 82 ms, with no errors, and the App Servers are about 39% busy.
 
 "A big bidder slows down" adds 80 ms to the bidders from 20 seconds in, for 30 seconds. The p95 rises to about 86 ms and the p99 to about 93 ms, with no errors: bids later than 70 ms are dropped, the auction closes on time with the bids it has, and the slot is free again. Because the bidder step is optional, a dropped bid is not an error.
 
 "Prime time" doubles the traffic from 15 seconds in, for 30 seconds. 2,048 slots cover it: the p95 stays at about 76 ms, with no errors.
 
-For the cost challenge, a proof design comes in at 67% of the reference's cost, under the 70% target. It keeps the same shape and the same Call timeout, with fewer App Server instances and a much smaller Redis.
+For the cost challenge, a proof design comes in at 72% of the reference's cost, under the 75% target. It keeps the same shape and the same Call timeout, with fewer App Server instances and a much smaller Redis.
 
 ## Why the first try breaks
 
-A common first try is 4 Go App Servers at a Concurrency per instance of 256, with no Call timeout, and the same Redis. It costs about $593 and passes "A normal hour": a p95 of about 76 ms and a p99 of about 102 ms, with the App Servers about 80% busy.
+A common first try is 4 Go App Servers at a Concurrency per instance of 256, with no Call timeout, and the same Redis. It costs about $500 and passes "A normal hour": a p95 of about 76 ms and a p99 of about 102 ms, with the App Servers about 80% busy.
 
 When a big bidder slows down, every auction waits for it. Each one holds an App Server slot 80 ms longer, about 2,200 slots are needed and only 1,024 exist, so the slots run out, requests queue and then fail: about 28% errors, with a p95 of about 1.1 s. Prime time fails too, with about 24% errors and a p95 of about 393 ms: at 80% busy in a normal hour, there is no headroom for twice the traffic.
 

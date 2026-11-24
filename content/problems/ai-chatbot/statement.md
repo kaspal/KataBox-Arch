@@ -9,11 +9,11 @@ You run an online shop, and you are adding a support chatbot to its help page. A
 | Goal | Target |
 | --- | --- |
 | Peak traffic | 5 messages/s |
-| Time to first token, p95 | 1.5 s or less |
+| Time to first token, p95 | 2 s or less |
 | p95 latency (the whole answer) | 12 s or less |
 | Availability | 99% or more |
 | Errors | 1% or less |
-| Budget | $150,000 per month |
+| Budget | $100,000 per month |
 
 ## The traffic
 
@@ -21,7 +21,7 @@ You run an online shop, and you are adding a support chatbot to its help page. A
 
 An answer takes several seconds to stream, so the chat window (the Client card) waits up to 30 s for it: set the Client's Timeout to 30,000 ms.
 
-Your account's tier gives each API key (each Model Inference card) 4,000 requests and 400,000 tokens a minute. Before the launch you can ask the provider for a higher tier, up to 1,000,000 tokens a minute per key. A call past a key's limit is refused with an HTTP 429 and counts as a failed message, unless the client tries again. You may also use a second provider that serves a comparable model under its own limits. The bill is per token, at the same price on every provider here, so the number of keys and providers does not change it.
+For the launch, your provider has already raised your account to its highest tier: each API key (each Model Inference card) gets 4,000 requests and 1,000,000 tokens a minute. There is no tier above it, and the cards show these limits without letting you change them. A call past a key's limit is refused with an HTTP 429 and counts as a failed message, unless the client tries again. When a provider is short of capacity, it may also cut your limit for a while. You may hold more than one key, and you may also use a second provider that serves a comparable model under its own limits, at the same tier. The bill is per token, at the same price on every provider here, so the number of keys and providers does not change it.
 
 ## The tests
 
@@ -29,4 +29,4 @@ One test is visible. You can run it as often as you like:
 
 - **A normal day**: the traffic above, at peak.
 
-Two more tests are hidden, and you see only their names: **Launch day: 4 times the traffic for 3 minutes** and **The model provider is overloaded for 20 s**. A real launch lasts hours; the test runs 3 minutes, which is long enough to use up a minute's allowance. The launch test allows 5% errors and 95% availability, and the overload test 2% errors and 98% availability. Your design has to pass all three.
+Three more tests are hidden, and you see only their names: **Launch day: 4 times the traffic for 4 minutes**, **The model provider is overloaded for 20 s** and **The model provider cuts your limit for 40 s**. A real launch lasts hours; the test runs 4 minutes, which is long enough to use up a minute's allowance. The launch test allows 5% errors and 95% availability, and the overload and limit-cut tests 2% errors and 98% availability. Your design has to pass all four.

@@ -8,15 +8,15 @@ La velocidad es fácil. Lo difícil es que todas las peticiones dependen del alm
 
 ## El diseño de referencia
 
-Un Load Balancer (AWS ALB, round robin) reparte las peticiones entre dos tarjetas de App Servers Node.js, Web A y Web B, con 5 instancias cada una y la concurrencia por defecto de 64: 640 huecos, 320 por tarjeta. Las dos leen y escriben sesiones en una Cache Redis de 8 GB con un TTL de 86 400 s, así que una sesión dura un día. Un segundo Redis del mismo tamaño está conectado a ella con un enlace Replicate. Cuesta unos 1013 $ al mes, con un p95 de cerca de 31 ms.
+Un Load Balancer (AWS ALB, round robin) reparte las peticiones entre dos tarjetas de App Servers Node.js, Web A y Web B, con 5 instancias cada una y la concurrencia por defecto de 64: 640 huecos, 320 por tarjeta. Las dos leen y escriben sesiones en una Cache Redis de 8 GB con un TTL de 86 400 s, así que una sesión dura un día. Un segundo Redis del mismo tamaño está conectado a ella con un enlace Replicate. Cuesta unos 920 $ al mes, con un p95 de cerca de 31 ms.
 
 «Se cae un servidor de aplicación» tumba Web A en el segundo 20, para siempre. Admite un 3 % de errores, un 97 % de disponibilidad y un p95 de 100 ms. El Load Balancer sigue mandando la mitad de las peticiones a la tarjeta caída hasta que los health checks lo detectan, entre 2 y 4 segundos después, y esas peticiones fallan: cerca del 1,7 % de la ejecución. Después, los 320 huecos de Web B llevan toda la carga.
 
-«Falla el primario del almacén de sesiones» tumba el primario de Redis en el segundo 20, para siempre, en una ejecución de 120 segundos, y admite un 5 % de errores. Las lecturas ya se reparten entre las dos copias, así que, cuando los health checks apartan las cargas de página del primario caído, la réplica las responde. Los inicios de sesión fallan hasta que la réplica pasa a primario, tras el tiempo de conmutación por defecto de Redis, 15 segundos. En total falla cerca del 2 % de las peticiones.
+«Falla el primario del almacén de sesiones» tumba el primario de Redis en el segundo 20, para siempre, en una ejecución de 120 segundos, y admite un 5 % de errores. Las lecturas ya se reparten entre las dos copias, así que, cuando los health checks apartan las cargas de página del primario caído, la réplica las responde. Los inicios de sesión fallan hasta que la réplica pasa a primario, tras el tiempo de conmutación por defecto de Redis, 5 segundos. En total falla cerca del 1,2 % de las peticiones.
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual usa las mismas dos tarjetas de App Servers, pero el Load Balancer enruta por hash de clave, así que cada usuario se queda pegado a una tarjeta, y hay un solo Redis sin réplica. Cuesta unos 869 $ al mes y supera «Un día normal».
+Un primer intento habitual usa las mismas dos tarjetas de App Servers, pero el Load Balancer enruta por hash de clave, así que cada usuario se queda pegado a una tarjeta, y hay un solo Redis sin réplica. Cuesta unos 823 $ al mes y supera «Un día normal».
 
 También supera «Se cae un servidor de aplicación», con cerca de un 1,7 % de errores, igual que la referencia: el enrutado pegajoso ni ayuda ni estorba aquí, porque las sesiones viven en Redis en los dos casos. Donde falla es en la prueba de conmutación. Sin réplica no hay nada que promover, así que desde el segundo 20 hasta el final de la ejecución fallan todas las peticiones. Son 100 de 120 segundos: cerca de un 83 % de errores.
 

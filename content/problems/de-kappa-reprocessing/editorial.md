@@ -17,7 +17,7 @@ An AWS ALB sends the events to 2 Go App Servers, which publish them to an Apache
 
 The replay is a second pipeline. The Airflow Scheduler, which stands for the replay reading the month back, publishes to its own Kafka Stream with 8 Partitions, and a third Flink card with 2 instances runs the fixed code on it and writes to the same PostgreSQL. In real Kafka this is a second consumer group on the same topic, started at the offsets of 30 days ago; the second Stream card is how the simulator gives it its own offsets and its own partition limit.
 
-It costs about $1,261 a month: $420 for the three Flink cards, $350 for PostgreSQL, $306 for the two Kafka Streams, $140 for the App Servers, $25 for the ALB and $20 for Airflow. In the normal hour the two live Flink cards are about 28% busy each, the replay card about 54%, and the p95 is about 37 ms.
+It costs about $1,171 a month: $420 for the three Flink cards, $260 for PostgreSQL, $306 for the two Kafka Streams, $140 for the App Servers, $25 for the ALB and $20 for Airflow. In the normal hour the two live Flink cards are about 28% busy each, the replay card about 54%, and the p95 is about 37 ms.
 
 "The evening peak, with the replay sped up to 6 times its pace" sends 750 live events a second to the live consumer group, which is about 68% busy, and 1,800 replayed events a second to the replay card, which can do about 540. The replay card is 100% busy and its Stream fills by about 1,260 events a second, to about 75,000 by the end of the test. None of that reaches the live events: the p95 stays at about 37 ms, with no errors and nothing lost. Speeding up the replay only made the replay's own queue longer.
 
@@ -25,16 +25,16 @@ It costs about $1,261 a month: $420 for the three Flink cards, $350 for PostgreS
 
 Other designs that pass, and some that don't:
 
-- One consumer group for everything, sized for the worst case: two Flink cards with 5 instances each and 40 Partitions pass all three tests at about $1,388, 10% more than the reference. They pass only because the test stops at 6 times the pace: a replay that reads as fast as it can has no such limit, and a shared group never has enough.
-- The same with 4 instances per card ($1,248) passes the normal hour and the lost processor, but not the sped-up replay (p95 about 8.6 s).
+- One consumer group for everything, sized for the worst case: two Flink cards with 5 instances each and 40 Partitions pass all three tests at about $1,298, 11% more than the reference. They pass only because the test stops at 6 times the pace: a replay that reads as fast as it can has no such limit, and a shared group never has enough.
+- The same with 4 instances per card ($1,158) passes the normal hour and the lost processor, but not the sped-up replay (p95 about 8.6 s).
 - The separate replay pipeline, but with one live Flink card of 4 instances instead of two of 2, costs the same as the reference and fails the lost processor with a p95 of about 66 s: the lost card was the only live one.
-- A replay card with 1 instance still passes (about $1,191). The replay just takes twice as long; the tests don't judge how long it takes.
+- A replay card with 1 instance still passes (about $1,101). The replay just takes twice as long; the tests don't judge how long it takes.
 
-There is no cost challenge for this problem: the cheapest design the search found that passes every test costs about $1,121, 89% of the reference.
+There is no cost challenge for this problem: the cheapest design the search found that passes every test costs about $1,031, 88% of the reference.
 
 ## Why the first try breaks
 
-The common first try rewinds the live job: one Kafka Stream with 16 Partitions (Retention 720 hours), two Flink cards with 2 instances each, and the Scheduler publishing the replay into the same Stream, so one consumer group does both jobs. It costs about $968, and it passes the normal hour: 600 events a second on about 1,080 a second of processing, each card about 54% busy, with a p95 of about 37 ms.
+The common first try rewinds the live job: one Kafka Stream with 16 Partitions (Retention 720 hours), two Flink cards with 2 instances each, and the Scheduler publishing the replay into the same Stream, so one consumer group does both jobs. It costs about $878, and it passes the normal hour: 600 events a second on about 1,080 a second of processing, each card about 54% busy, with a p95 of about 37 ms.
 
 With the evening peak and the replay sped up, 2,550 events a second arrive and about 1,080 are processed. Both cards are 100% busy, and every new live event joins the back of a pile that grows by about 1,470 events a second. The p95 of each second passes 5 s about 8 s into the test, and the test's p95 is about 49.3 s.
 

@@ -54,6 +54,9 @@ function useSize(ref: React.RefObject<HTMLElement | null>) {
 export const CAPTION_H = 160;
 /** Space kept between the focused cards and the edge of the view. */
 export const FRAME_MARGIN = 48;
+/** H6: the camera never zooms out past this: card text stays readable. A design (or a focus)
+ * too wide for the view at this zoom is centred on its focus instead; the viewer pans. */
+export const MIN_READABLE_ZOOM = 0.8;
 /** The metric tile's column on the right (w-56 plus its 16 px inset on both sides). */
 export const CALLOUT_W = 256;
 
@@ -145,12 +148,21 @@ function union(a: Box, cards: Design["nodes"]): Box {
  * - a step's own camera keeps its centre and zoom only as far as they still show every
  *   focused card;
  * - no card is left cut off by the view's edge: the view slides as little as it can, and
- *   if no slide clears every card, the framed box grows to take in the cut ones.
+ *   if no slide clears every card, the framed box grows to take in the cut ones;
+ * - but the zoom never goes below `MIN_READABLE_ZOOM` (H6): cards outside the focus don't
+ *   shrink the view past it (they may run off the edge), and a focus too wide for it is
+ *   centred at that zoom.
  */
 export function stepViewport(step: StoryStep, design: Design, size: { w: number; h: number }): Viewport {
   const area = visibleArea(size, !!step.callout);
   let box = focusBox(step, design);
   if (!box) return fitBox(null, area);
+  const focus = box;
+  const centred = (z: number): Viewport => ({
+    x: area.w / 2 - (focus.x + focus.w / 2) * z,
+    y: area.h / 2 - (focus.y + focus.h / 2) * z,
+    zoom: z,
+  });
   const frame = (b: Box, camera: boolean): Viewport => {
     const fit = fitBox(b, area, FRAME_MARGIN, 0.05);
     const zoom = Math.min(fit.zoom, 1.2);
@@ -169,13 +181,17 @@ export function stepViewport(step: StoryStep, design: Design, size: { w: number;
     };
   };
   let v = frame(box, true);
+  if (v.zoom < MIN_READABLE_ZOOM) return centred(MIN_READABLE_ZOOM);
   for (let round = 0; round < 8; round++) {
     const cut = cutCards(design, v, area);
     if (cut.length === 0) return v;
     const slid = slideClear(design, box, v, area);
     if (slid) return slid;
+    const grown = frame(union(box, cut), false);
+    // Taking in the cut cards would make every card too small: keep the focus readable.
+    if (grown.zoom < Math.min(MIN_READABLE_ZOOM, v.zoom)) return v;
     box = union(box, cut);
-    v = frame(box, false);
+    v = grown;
   }
   return frame(designBounds(design) ?? box, false);
 }

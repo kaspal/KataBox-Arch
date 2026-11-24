@@ -12,7 +12,7 @@ Your online shop is adding a support agent. A customer asks something about an o
 | p95 completion latency | 25 s or less |
 | Availability | 99% or more |
 | Errors | 1% or less |
-| Budget | $150,000 per month |
+| Budget | $100,000 per month |
 | Lost tasks | None |
 
 ## The traffic
@@ -22,7 +22,7 @@ Each task reaches your App Servers, possibly through an edge component, and they
 - **Answer an order question** (80%): the model, then the order system (`orders`), then the carrier's tracking (`tracking`), then the model again for the answer.
 - **Handle a refund** (20%): the model, the order system, the model, the carrier's tracking, the model, the payment provider (`payments`), and the model once more. Four model calls instead of two.
 
-Every model call sends about 1,500 tokens (the conversation so far plus the tool results; 3,000 at p95) and gets about 100 back (250 at p95). The model is the Claude API flavour of Model Inference. Keep its Time to first token and speeds as they are: they describe the provider, not your design. Your account allows **4,000 requests** and **2,000,000 tokens a minute**: set the card's "Tokens per minute limit" to 2,000,000.
+Every model call sends about 1,500 tokens (the conversation so far plus the tool results; 3,000 at p95) and gets about 100 back (250 at p95). The model is the Claude API flavour of Model Inference. Keep its Time to first token and speeds as they are: they describe the provider, not your design. Your account allows **4,000 requests** and **2,000,000 tokens a minute**: the simulator applies them to every Claude API card (the Inspector shows them, read-only).
 
 The tools are reached over the network, with no card of their own:
 

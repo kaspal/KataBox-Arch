@@ -13,7 +13,7 @@ peak_rps = 4000
 read_ratio = 0.8
 p95_ms = 800
 availability = 0.999
-budget_usd = 6500
+budget_usd = 6200
 
 [[externals]]
 name = "payment"

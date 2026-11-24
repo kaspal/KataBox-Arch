@@ -13,7 +13,7 @@ challenge_ratio = 0.55
 peak_rps = 100
 p95_ms = 10000
 availability = 0.999
-budget_usd = 3100
+budget_usd = 2800
 
 [[request_types]]
 id = "job"

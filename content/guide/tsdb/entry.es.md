@@ -4,4 +4,4 @@ Dos números la dimensionan. El primero son los **puntos por segundo**: la inges
 
 Los puntos en bruto suelen guardarse un tiempo limitado y después se borran o se reducen a agregados de menor resolución. `retention_days` deja constancia de esa decisión en la tarjeta; el simulador no ejecuta trabajos de retención.
 
-**Cómo lo factura el simulador.** InfluxDB, TimescaleDB y Mimir funcionan en un nodo a 260 $ al mes cada uno. Amazon Timestream no cobra por nodo: cobra 0,50 $ por millón de puntos escritos y 0,01 $ por millón de unidades de consulta (precios didácticos; fuente por confirmar).
+**Cómo lo factura el simulador.** InfluxDB, TimescaleDB y Mimir funcionan en un nodo a 184 $ al mes cada uno, una máquina de clase r5.xlarge (0,252 $ la hora durante 730 horas). Amazon Timestream no cobra por nodo: cobra 0,50 $ por millón de puntos escritos y 1 $ por millón de consultas, sus 0,518 $ por hora de unidad de cómputo suponiendo unas 150 consultas por segundo por unidad (precios de lista, us-east-1, consultados el 2026-11-23).

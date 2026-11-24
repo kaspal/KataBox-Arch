@@ -8,17 +8,17 @@ The hidden tests change those numbers. On Black Friday the traffic triples for 3
 
 ## The reference design
 
-Partner servers (B2B) send every request to an AWS ALB, which spreads it over 6 Go API instances with a Call timeout of 40 ms. For a score, the API reads the card's features from a Redis cache with 16 GB of Memory, then calls an NVIDIA Triton Model Inference card with 2 instances and Model type set to Classifier. For an event, the API publishes to an Apache Kafka stream with 24 Partitions; Apache Flink, with 2 instances, consumes it and writes the updated features to the same Redis. This costs about $2,494 per month, and the GPUs are most of it: Triton is $1,468, the API $420, Redis $288, Kafka $153, Flink $140 and the ALB $25. On a normal day the p95 is about 28 ms, with no errors, and the GPUs are about 13% busy.
+Partner servers (B2B) send every request to an AWS ALB, which spreads it over 6 Go API instances with a Call timeout of 40 ms. For a score, the API reads the card's features from a Redis cache with 16 GB of Memory, then calls an NVIDIA Triton Model Inference card with 2 instances and Model type set to Classifier. For an event, the API publishes to an Apache Kafka stream with 24 Partitions; Apache Flink, with 2 instances, consumes it and writes the updated features to the same Redis. This costs about $2,401 per month, and the GPUs are most of it: Triton is $1,468, the API $420, Redis $195, Kafka $153, Flink $140 and the ALB $25. On a normal day the p95 is about 28 ms, with no errors, and the GPUs are about 13% busy.
 
 "The model server slows down" adds 80 ms to every model call from 20 seconds in, for 30 seconds. With the Call timeout, the API stops waiting after 40 ms: a late score is dropped and the rules decide, so the payment still succeeds. The p95 rises to about 53 ms, with no errors.
 
 "Black Friday" triples the traffic from 15 seconds in, for 30 seconds. There is room for it everywhere: the p95 stays at about 28 ms, with no errors.
 
-There is no cost challenge for this problem. The two GPUs are more than half of the bill, and the cheapest design found that passes every test still came to just over 80% of the reference, over the challenge's cap.
+There is no cost challenge for this problem. The two GPUs are more than half of the bill, and the cheapest design found that passes every test still came to about 84% of the reference, over the challenge's cap.
 
 ## Why the first try breaks
 
-A common first try is exactly the same design without a Call timeout. It costs the same $2,494, passes "A normal day" with a p95 of about 28 ms, and passes "Black Friday" too.
+A common first try is exactly the same design without a Call timeout. It costs the same $2,401, passes "A normal day" with a p95 of about 28 ms, and passes "Black Friday" too.
 
 When the model slows down, it breaks: about 8.7% errors and a p95 of about 1.6 s. With no limit, every payment waits the extra 80 ms for its score. Each waiting payment holds an API slot, the slots fill up, new requests queue behind them, and many of them fail. The model step was optional all along, but nothing told the API to give up on it.
 

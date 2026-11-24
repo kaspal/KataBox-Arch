@@ -10,7 +10,7 @@ Speed is not the hard part. The hard part is that an answered transfer must neve
 
 ## The reference design
 
-A Load Balancer (AWS ALB) sends transfers to the Ledger API, 2 Go instances. Each transfer is committed to a PostgreSQL ledger, and a second PostgreSQL is wired to it with a Replicate edge. Both are wired to a Kafka stream of 32 partitions by change data capture edges. 6 Celery Balance projectors, with a service time of 2 ms, consume the stream and update the balances in DynamoDB. This costs about $3,071 per month: DynamoDB about $1,633, nearly all of it the price of 2.6 billion writes a month at $0.625 per million, and Kafka $153. The completion p95 is about 50 ms.
+A Load Balancer (AWS ALB) sends transfers to the Ledger API, 2 Go instances. Each transfer is committed to a PostgreSQL ledger, and a second PostgreSQL is wired to it with a Replicate edge. Both are wired to a Kafka stream of 32 partitions by change data capture edges. 6 Celery Balance projectors, with a service time of 2 ms, consume the stream and update the balances in DynamoDB. This costs about $2,891 per month: DynamoDB about $1,633, nearly all of it the price of 2.6 billion writes a month at $0.625 per million, and Kafka $153. The completion p95 is about 50 ms.
 
 "A retry storm" doubles the traffic for 15 seconds from 20 seconds, and allows a p95 of 15 s. The extra changes wait their turn in the stream and at the projectors, and the p95 rises to about 230 ms.
 
@@ -18,7 +18,7 @@ A Load Balancer (AWS ALB) sends transfers to the Ledger API, 2 Go instances. Eac
 
 ## Why the first try breaks
 
-A common first try is the same design with one PostgreSQL ledger and no replica, for about $2,721 per month. It passes "Normal day" and "A retry storm" with the same numbers as the reference.
+A common first try is the same design with one PostgreSQL ledger and no replica, for about $2,631 per month. It passes "Normal day" and "A retry storm" with the same numbers as the reference.
 
 When the primary dies there is nothing to promote, so every transfer fails from 20 seconds to the end of the run: about 94% errors. Nothing committed is lost, but the payments app is down until someone rebuilds the database.
 

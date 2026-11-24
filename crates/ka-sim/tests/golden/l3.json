@@ -25,7 +25,7 @@
   "retried": 0.0,
   "stale_reads": 0.0,
   "stale_rate": 0.0,
-  "cost_month": 630.0,
+  "cost_month": 540.0,
   "per_type": [
     {
       "id": "read",
@@ -442,7 +442,7 @@
       "max_queue": 0.0,
       "drops": 0.0,
       "served": 24129.0,
-      "cost_month": 350.0,
+      "cost_month": 260.0,
       "util_series": [
         0.02627111,
         0.02469951,

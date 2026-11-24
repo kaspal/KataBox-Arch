@@ -12,7 +12,7 @@ Así que la pregunta no es solo cuántas instancias de la aplicación necesitas,
 
 Un AWS ALB envía a los compradores a Servidores de aplicaciones Spring Boot con concurrencia 200 y 40 ms de trabajo por petición, dentro de un AWS Auto Scaling Group con un mínimo de 6 instancias, un máximo de 24, una utilización objetivo del 60 % y un retardo de escalado de 20 s. Las vistas del carrito pasan en modo cache-aside por una caché Redis con 8 GB de memoria y un TTL de 600 s. Todas las llamadas a la base pasan por un Pool de conexiones PgBouncer en modo transacción con 800 conexiones a la base de datos, hasta PostgreSQL con 2 shards.
 
-Cuesta unos 1319 $ al mes en un día normal: 700 $ de PostgreSQL, 420 $ de los Servidores de aplicaciones, 144 $ de Redis, 30 $ de PgBouncer y 25 $ del ALB. Durante las rebajas sube a unos 1489 $ a medida que el grupo escala, todavía muy por debajo del presupuesto de 2200 $. En «Una tarde normal» el p95 es de unos 117 ms, sin errores, y los Servidores de aplicaciones están ocupados en torno al 40 %.
+Cuesta unos 1093 $ al mes en un día normal: 520 $ de PostgreSQL, 420 $ de los Servidores de aplicaciones, 98 $ de Redis, 30 $ de PgBouncer y 25 $ del ALB. Durante las rebajas sube a unos 1263 $ a medida que el grupo escala, todavía muy por debajo del presupuesto de 1800 $. En «Una tarde normal» el p95 es de unos 117 ms, sin errores, y los Servidores de aplicaciones están ocupados en torno al 40 %.
 
 El pooler es lo que deja crecer a la capa de aplicación. Tenga el grupo las instancias que tenga, PostgreSQL ve como mucho las 800 conexiones de PgBouncer. En modo transacción, una conexión se presta a una petición solo durante su transacción y luego vuelve al pool, así que 800 conexiones atienden a muchos más hilos de la aplicación, la mayoría de los cuales están haciendo otra cosa en cada momento.
 
@@ -20,11 +20,11 @@ El pooler es lo que deja crecer a la capa de aplicación. Tenga el grupo las ins
 
 «Una oferta relámpago a mediodía» sube el tráfico de golpe a 2,5 veces el pico en el segundo 20 y lo mantiene ahí el resto de la ejecución de 120 s. El suelo de 6 instancias tiene margen para aguantar el salto mientras el grupo crece por detrás: el p95 es de unos 117 ms, sin errores.
 
-Este problema no tiene reto de coste. El diseño más barato que encontramos que supera todas las pruebas costaba en torno al 90 % de la referencia: la base de datos es más de la mitad de la factura, y cada escritura la necesita.
+Este problema no tiene reto de coste. El diseño más barato que encontramos que supera todas las pruebas costaba en torno al 93 % de la referencia: la base de datos es casi la mitad de la factura, y cada escritura la necesita.
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual es el mismo diseño sin el pooler: los Servidores de aplicaciones se conectan a PostgreSQL directamente, y el mínimo del grupo es de 4 instancias. Cuesta unos 1149 $ al mes. Supera «Una tarde normal»: 4 × 200 = 800 conexiones, muy por debajo de 1700.
+Un primer intento habitual es el mismo diseño sin el pooler: los Servidores de aplicaciones se conectan a PostgreSQL directamente, y el mínimo del grupo es de 4 instancias. Cuesta unos 923 $ al mes. Supera «Una tarde normal»: 4 × 200 = 800 conexiones, muy por debajo de 1700.
 
 También supera «Una oferta relámpago a mediodía», con un p95 de unos 138 ms: a 2,5 veces el pico el grupo solo necesita unas 7 instancias, 1400 conexiones.
 

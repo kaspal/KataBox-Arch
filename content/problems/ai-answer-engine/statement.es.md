@@ -12,7 +12,7 @@ Gestionas un motor de respuestas web. Alguien escribe una pregunta y, en lugar d
 | Latencia p95 | 10 000 ms o menos |
 | Disponibilidad | 99 % o más |
 | Errores | 1 % o menos |
-| Presupuesto | 5 000 000 $ al mes |
+| Presupuesto | 3 300 000 $ al mes |
 
 ## El tráfico
 
@@ -20,7 +20,7 @@ Gestionas un motor de respuestas web. Alguien escribe una pregunta y, en lugar d
 
 Hay unos 20 millones de preguntas distintas, y algunas se escriben mucho más que otras (una popularidad Zipf de 0,95): la gente las elige entre las sugerencias del buscador, así que una pregunta popular llega palabra por palabra. Alrededor de una cuarta parte de las preguntas significan lo mismo que una anterior con otras palabras. Una respuesta con sus fuentes ocupa unos 4 KB. El índice vectorial guarda 100 millones de pasajes.
 
-Una pregunta envía unos 1500 tokens al modelo de chat (2500 en el p95: la pregunta, las instrucciones y los pasajes encontrados) y recibe unos 250 (500 en el p95). El modelo de chat es la API de Claude con el nivel de tu cuenta: un Límite de peticiones por minuto de 16 000 y un Límite de tokens por minuto de 30 000 000. No puedes subir ese nivel este trimestre, y alguien espera cada respuesta, así que el Modo de API se queda en Tiempo real. Una llamada que pasa un límite se rechaza con un 429 y cuenta como petición fallida.
+Una pregunta envía unos 1500 tokens al modelo de chat (2500 en el p95: la pregunta, las instrucciones y los pasajes encontrados) y recibe unos 250 (500 en el p95). El modelo de chat es la API de Claude con el nivel de tu cuenta: un Límite de peticiones por minuto de 16 000 y un Límite de tokens por minuto de 30 000 000. No puedes subir ese nivel este trimestre (el simulador los aplica a cada tarjeta de API de Claude (el Inspector los muestra, sin poder cambiarlos)), y alguien espera cada respuesta, así que el Modo de API se queda en Tiempo real. Una llamada que pasa un límite se rechaza con un 429 y cuenta como petición fallida.
 
 Dos reglas más:
 

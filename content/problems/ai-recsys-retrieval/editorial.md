@@ -15,7 +15,7 @@ Two things can break the search, and the hidden tests check one each:
 
 An AWS ALB sends the requests to 4 Go App Servers. They first ask a Redis Cache with 4 GB of memory and a TTL of 300 s; 4 GB holds about 2 million lists of 2 KB. On a miss they search a Qdrant Vector Database with 2 shards and 5 million vectors, then re-rank on NVIDIA Triton, 1 instance with the model type "Classifier".
 
-It costs about $1,631 per month: $734 for the Triton GPU, $520 for the Qdrant card (2 shards at $260), $280 for the App Servers, $72 for the Redis Cache and $25 for the ALB.
+It costs about $1,608 per month: $734 for the Triton GPU, $520 for the Qdrant card (2 shards at $260), $280 for the App Servers, $49 for the Redis Cache and $25 for the ALB.
 
 On a normal day the Qdrant card is about 23% busy, the App Servers about 9% and the GPU about 14%. The p95 is about 62 ms and there are no errors.
 
@@ -26,9 +26,9 @@ When an item goes viral, the cache answers almost every request for the popular 
 Each half covers one test, and each alone fails the other:
 
 - Shards without a cache: one Qdrant with 4 shards and no Redis ($2,079) passes the sale, but when the item goes viral its shard overflows and about 10.2% of the requests fail. Even 16 shards ($5,199, over the budget) still fail about 4.4%: the viral item's shard is still one shard.
-- A cache without shards: one Qdrant with 1 shard plus the Redis Cache ($1,371) passes the viral test, but the sale's long tail misses the cache and about 41.5% of the requests fail.
+- A cache without shards: one Qdrant with 1 shard plus the Redis Cache ($1,348) passes the viral test, but the sale's long tail misses the cache and about 41.5% of the requests fail.
 
-For the cost challenge, the proof search found nothing below 88% of the reference's cost ($1,428): the one GPU is nearly half the bill and can't be split, and the search and cache are already small. This problem has no cost challenge.
+For the cost challenge, the proof search found nothing below 89% of the reference's cost ($1,431): the one GPU is nearly half the bill and can't be split, and the search and cache are already small. This problem has no cost challenge.
 
 ## Why the first try breaks
 

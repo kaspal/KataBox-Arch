@@ -10,7 +10,7 @@ A SQL Database pays for that size. A bigger result takes longer, about 1.5 times
 
 A Load Balancer spreads traffic over four Go App Servers. They read and write a Redis Cache used as the store, with no TTL, so every read is answered by Redis itself and nothing expires. Redis runs each command in about 0.01 ms on one thread, around 100,000 operations per second, which is far above what this game asks for.
 
-A Replicate edge links the primary to a replica, which makes a cluster with a failover time of 2 s. Four App Servers leave room for traffic to double. The design costs about $341 per month.
+A Replicate edge links the primary to a replica, which makes a cluster with a failover time of 2 s. Four App Servers leave room for traffic to double. The design costs about $329 per month.
 
 ## Why the first try breaks
 

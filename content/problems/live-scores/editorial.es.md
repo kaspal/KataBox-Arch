@@ -10,7 +10,7 @@ Las páginas de partido son la parte fácil: 2000 rps repartidas entre 2000 part
 
 ## El diseño de referencia
 
-El Cliente, con la Variación al reconectar en 20 s, se conecta a través de un AWS ALB a 4 tarjetas Gateway de WebSocket Socket.IO. Cada tarjeta tiene 2 instancias con Conexiones máximas 1 000 000, Memoria 32 GB, Mensajes por segundo 200 000 y Conexiones nuevas por segundo 20 000. Eso da 8 000 000 de huecos de conexión para 5 000 000 de aficionados (llenos al 60 %) y 1 600 000 mensajes por segundo. Las páginas de partido van a 4 servidores de aplicaciones Go, una caché Redis con un TTL de 2 s y PostgreSQL. Cuesta 1224 $ al mes: PostgreSQL 350 $, los servidores de aplicaciones 280 $, 140 $ por cada tarjeta de gateway, el ALB 25 $ y Redis 9 $.
+El Cliente, con la Variación al reconectar en 20 s, se conecta a través de un AWS ALB a 4 tarjetas Gateway de WebSocket Socket.IO. Cada tarjeta tiene 2 instancias con Conexiones máximas 1 000 000, Memoria 32 GB, Mensajes por segundo 200 000 y Conexiones nuevas por segundo 20 000. Eso da 8 000 000 de huecos de conexión para 5 000 000 de aficionados (llenos al 60 %) y 1 600 000 mensajes por segundo. Las páginas de partido van a 4 servidores de aplicaciones Go, una caché Redis con un TTL de 2 s y PostgreSQL. Cuesta 1131 $ al mes: PostgreSQL 260 $, los servidores de aplicaciones 280 $, 140 $ por cada tarjeta de gateway, el ALB 25 $ y Redis 6 $.
 
 «Una jornada con mucho partido» se supera sin errores, y todos los aficionados siguen conectados.
 
@@ -24,7 +24,7 @@ Aquí no hay reto de coste: nada más barato superó todas las pruebas. Los gate
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual no tiene variación en el Cliente y usa 3 tarjetas de gateway Socket.IO de 2 instancias, con los mismos ajustes salvo Mensajes por segundo 100 000, y 2 servidores de aplicaciones Go. Son 6 000 000 de huecos para 5 000 000 de aficionados (un 20 % de margen) y 600 000 mensajes por segundo. Cuesta 944 $ al mes y supera «Una jornada con mucho partido».
+Un primer intento habitual no tiene variación en el Cliente y usa 3 tarjetas de gateway Socket.IO de 2 instancias, con los mismos ajustes salvo Mensajes por segundo 100 000, y 2 servidores de aplicaciones Go. Son 6 000 000 de huecos para 5 000 000 de aficionados (un 20 % de margen) y 600 000 mensajes por segundo. Cuesta 851 $ al mes y supera «Una jornada con mucho partido».
 
 «Un gol en el último minuto» falla con un 10,7 % de errores y un p95 de 6,2 s. Una ráfaga de 1 000 000 de mensajes por segundo se encuentra con 600 000 por segundo de capacidad, y el atasco que se forma tarda unos 10 segundos en vaciarse cuando acaba la ráfaga.
 

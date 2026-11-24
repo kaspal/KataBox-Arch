@@ -8,4 +8,4 @@ A scale-out that takes 60 s can't help with a wave that rises in ten seconds and
 
 ## 3
 
-On the autoscaling group, set the minimum to 16 (and the App Server to 16 instances), the target utilisation to 40% and the scale delay to 5 s. Nothing else needs to change.
+On the autoscaling group, set the minimum to 18 (and the App Server to 18 instances), the target utilisation to 40% and the scale delay to 5 s. Nothing else needs to change.

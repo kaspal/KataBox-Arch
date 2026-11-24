@@ -3,13 +3,13 @@
 [[drill]]
 id = "team-limit"
 kind = "qps"
-prompt = "Each team may spend {team_tpm} tokens a minute, and a typical request is {tokens_in} tokens in and {tokens_out} tokens out. Your Rate Limiter counts requests a second per API key. About what Limit matches a team's share?"
-prompt_es = "Cada equipo puede gastar {team_tpm} tokens por minuto, y una petición típica son {tokens_in} tokens de entrada y {tokens_out} de salida. Tu Limitador de tasa cuenta peticiones por segundo por clave de API. ¿Qué Límite corresponde más o menos a la cuota de un equipo?"
-inputs = { team_tpm = 55000, tokens_in = 400, tokens_out = 60 }
-formula = "team_tpm / ((tokens_in + tokens_out) * 60)"
-unit = "rps"
-solution = "A request is about {tokens_in} + {tokens_out} = 460 tokens, so {team_tpm} tokens a minute are {team_tpm} / 460 / 60 ≈ {answer} requests a second: a Limit of 2. The limiter counts requests, so a team that sends long prompts still gets 2 a second; a limit that counts tokens would catch that, and this simulator doesn't have one."
-solution_es = "Una petición son unos {tokens_in} + {tokens_out} = 460 tokens, así que {team_tpm} tokens por minuto son {team_tpm} / 460 / 60 ≈ {answer} peticiones por segundo: un Límite de 2. El limitador cuenta peticiones, así que un equipo que envía prompts largos sigue teniendo 2 por segundo; un límite que contara tokens lo detectaría, y este simulador no lo tiene."
+prompt = "Each team may spend {team_tpm} tokens a minute. Your Rate Limiter counts tokens (prompt + answer) per API key, and its Limit is tokens a second. About what Limit matches a team's share?"
+prompt_es = "Cada equipo puede gastar {team_tpm} tokens por minuto. Tu Limitador de tasa cuenta tokens (prompt + respuesta) por clave de API, y su Límite son tokens por segundo. ¿Qué Límite corresponde más o menos a la cuota de un equipo?"
+inputs = { team_tpm = 55000 }
+formula = "team_tpm / 60"
+unit = "count"
+solution = "{team_tpm} tokens a minute are {team_tpm} / 60 ≈ {answer} tokens a second: a Limit of 917, with the Count set to Tokens. A typical request is about 400 + 60 = 460 tokens, so that is about 2 typical requests a second; a team that sends long prompts gets fewer requests through, and one that sends short prompts more."
+solution_es = "{team_tpm} tokens por minuto son {team_tpm} / 60 ≈ {answer} tokens por segundo: un Límite de 917, con la Cuenta en Tokens. Una petición típica son unos 400 + 60 = 460 tokens, así que son unas 2 peticiones típicas por segundo; un equipo que envía prompts largos hace pasar menos peticiones, y uno que los envía cortos, más."
 
 [[drill]]
 id = "flood-tokens"

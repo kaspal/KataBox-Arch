@@ -12,7 +12,7 @@ You sell tickets for big events. Most days are calm: people look at event pages 
 | Browsing | 90% of requests |
 | p95 latency | 100 ms or less |
 | Availability | 99.9% or more |
-| Budget | $9,000 per month |
+| Budget | $11,000 per month |
 
 ## The traffic
 

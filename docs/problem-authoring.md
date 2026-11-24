@@ -31,7 +31,9 @@ A request type has:
   - roles: `edge`, `compute`, `worker`, `cache`, `datastore`, `broker` and `external:<name>`;
   - `?` makes a step optional, and `cache?` is cache-aside;
   - `:write` goes to a cluster's primary;
-  - `a|b` accepts either;
+  - `a|b` accepts either (but not `compute|datastore:object`: a compute card would answer a file request with no
+    storage; `ka-pack validate` refuses it outside three grandfathered Set 2 problems. Use
+    `["edge?", "datastore:object"]`);
   - `broker?` followed by its consumer: an optional hand-off. A caller with no broker edge makes the following calls
     itself (inline, so the answer waits for them); use it when the lesson is `queue it or do it now`;
   - `cdc` (right after a `datastore:write` to SQL or NoSQL): the database publishes the committed change to the
@@ -52,16 +54,19 @@ A request type has:
   overrides.
 - **Chaos:**
   - `kill`, `latency`, `partition` (the zone is lost), `split` (the zone keeps running but nothing crosses its
-    border), `traffic`, `flush` and `external` (`down`, `add_ms`, or `rate` to cut the provider's rate limit);
+    border), `traffic`, `flush`, `external` (`down`, `add_ms`, or `rate` to cut the provider's rate limit) and
+    `model_rate` (a hosted model provider cuts the selected cards' `rpm` / `tpm`, H2);
   - target selectors are written flat: `{ kill = { kind = "sql", role = "primary", at = 30 } }`. A kind selector
-    picks the first matching card by id, so give each data store a different kind when a test kills one of them;
+    picks the first matching card in the design file (the first placed), so give each data store a different kind
+    when a test kills one of them;
   - a zone is a Region or AZ label or id, or `@primary`: the Region holding the main data store's primary (the
     whole design when it isn't in a Region). Use `@primary` in problems: players name their Regions freely.
   - work still waiting when the run and its 30 s drain end counts at its age then, so a stalled pipeline fails its
     completion limit instead of disappearing from it.
   - A worker crash no longer fails its message at once: it comes back after the queue's visibility timeout or the
     stream's session timeout. Make crash tests long enough for that (kill time + timeout + drain).
-- **Pass limits:** `p95_ms`, `p99_ms`, `error_rate`, `availability`, `stale_rate`, `lost`. A `p99_ms` limit needs at
+- **Pass limits:** `p95_ms`, `p99_ms`, `error_rate`, `availability`, `stale_rate`, `lost`, and (H3)
+  `dead_lettered` (messages moved to a DLQ: set it wherever a DLQ could hide work that wasn't done). A `p99_ms` limit needs at
   least 1,000 completed requests in the test, or `ka-pack validate --run` refuses the problem.
 - **Hidden tests** show their name only, until the problem is solved.
 - **Sampling:** tests sample traffic above 5,000 simulated requests per second (ADR 0006). Run the accuracy check
@@ -69,6 +74,11 @@ A request type has:
   sampled and full runs, set a higher `sample_cap` at the top of `problem.toml` and say why in a comment.
 
 ## Card properties worth knowing
+- **Hosted model limits (H2):** when the statement names the account's limits, pin them in `problem.toml` with
+  `[[model_limits]]` (`flavour`, `rpm`, `tpm`): every hosted Model Inference card of that flavour gets them, the
+  Inspector shows them read-only, and the card's own values don't count.
+- **Rate Limiter `unit`:** `requests` (default) or `tokens` (each request debits its prompt + answer tokens; the
+  limit and burst are then tokens per second and tokens), for per-tenant token quotas at an LLM gateway.
 - **SQL `read_from`:** `any` (reads spread over the primary and replicas; reads stay in the caller's Region when a
   member is there) or `primary` (read-your-writes).
 - **Leases:** a queue's `visibility_timeout_s` and a stream's `session_timeout_s` decide when a dead consumer's

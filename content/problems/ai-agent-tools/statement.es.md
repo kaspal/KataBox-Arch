@@ -12,7 +12,7 @@ Tu tienda online va a añadir un agente de soporte. Un cliente pregunta algo sob
 | Latencia p95 hasta completar | 25 s o menos |
 | Disponibilidad | 99 % o más |
 | Errores | 1 % o menos |
-| Presupuesto | 150 000 $ al mes |
+| Presupuesto | 100 000 $ al mes |
 | Tareas perdidas | Ninguna |
 
 ## El tráfico
@@ -22,7 +22,7 @@ Cada tarea llega a tus Servidores de aplicaciones, quizá a través de un compon
 - **Responder una pregunta sobre un pedido** (80 %): el modelo, luego el sistema de pedidos (`orders`), luego el seguimiento del transportista (`tracking`), y otra vez el modelo para la respuesta.
 - **Tramitar un reembolso** (20 %): el modelo, el sistema de pedidos, el modelo, el seguimiento del transportista, el modelo, el proveedor de pagos (`payments`) y el modelo una vez más. Cuatro llamadas al modelo en vez de dos.
 
-Cada llamada al modelo envía unos 1500 tokens (la conversación hasta ese momento más los resultados de las herramientas; 3000 en el p95) y recibe unos 100 (250 en el p95). El modelo es la variante API de Claude de Inferencia de modelos. Deja su Tiempo hasta el primer token y sus velocidades como están: describen al proveedor, no tu diseño. Tu cuenta permite **4000 peticiones** y **2 000 000 de tokens por minuto**: pon el «Límite de tokens por minuto» de la tarjeta en 2 000 000.
+Cada llamada al modelo envía unos 1500 tokens (la conversación hasta ese momento más los resultados de las herramientas; 3000 en el p95) y recibe unos 100 (250 en el p95). El modelo es la variante API de Claude de Inferencia de modelos. Deja su Tiempo hasta el primer token y sus velocidades como están: describen al proveedor, no tu diseño. Tu cuenta permite **4000 peticiones** y **2 000 000 de tokens por minuto**: el simulador los aplica a cada tarjeta de API de Claude (el Inspector los muestra, sin poder cambiarlos).
 
 A las herramientas se llega por la red, sin tarjeta propia:
 

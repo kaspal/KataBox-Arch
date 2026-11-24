@@ -14,7 +14,12 @@ requires = ["infer", "warehouse"]
 peak_rps = 5
 p95_ms = 12000
 availability = 0.99
-budget_usd = 160000
+budget_usd = 110000
+
+[[model_limits]]
+flavour = "claude_api"
+rpm = 4000
+tpm = 2000000
 
 [[request_types]]
 id = "chat"

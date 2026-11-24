@@ -85,8 +85,7 @@
         "y": 112
       },
       "props": {
-        "instances": 2,
-        "concurrency": 128
+        "instances": 64
       },
       "group_id": "euw"
     },
@@ -167,8 +166,7 @@
         "y": 336
       },
       "props": {
-        "instances": 2,
-        "concurrency": 128
+        "instances": 64
       },
       "group_id": "use"
     },

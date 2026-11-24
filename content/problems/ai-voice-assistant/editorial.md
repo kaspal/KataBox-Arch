@@ -12,7 +12,7 @@ That is about 540 ms. A long turn (450 tokens in, 30 out) takes about 95 + 665 +
 
 Two things eat the rest of the 1.2 s. The first is the start-up time: the hosted APIs' Time to first token is 500 to 600 ms by default, against vLLM's 200 ms, so a hosted language model spends about half the budget before it writes a word. The second is the GPU itself. A vLLM GPU has 16 slots, and each request writes at 80 × (1 − 0.5 × busy ÷ slots) tokens a second. At 20 turns a second, with each language model call taking about 0.5 to 0.6 s, about 12 slots are busy at any moment. On one GPU that is three quarters of its slots, so every reply is written at about 50 tokens a second instead of 80, and the long reply takes 600 ms instead of 375 ms.
 
-The hidden tests take the spare time away. "One model slows down by 300 ms" adds 300 ms to every call of one Model Inference card (the first one by name; in the designs here, the language model) from 15 seconds in, for 40 seconds. "Three times the turns for 30 s" sends 60 turns a second from second 15 to second 45: about 30 busy slots.
+The hidden tests take the spare time away. "One model slows down by 300 ms" adds 300 ms to every call of one Model Inference card (the first one placed in the design; in the designs here, the language model) from 15 seconds in, for 40 seconds. "Three times the turns for 30 s" sends 60 turns a second from second 15 to second 45: about 30 busy slots.
 
 ## The reference design
 

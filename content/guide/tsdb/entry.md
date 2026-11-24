@@ -4,4 +4,4 @@ Two numbers size it. The first is **points per second**: ingest has a ceiling pe
 
 Raw points are usually kept for a limited time and then dropped or downsampled into coarser rollups. `retention_days` records that choice on the card; the simulator doesn't run retention jobs.
 
-**How the simulator bills this.** InfluxDB, TimescaleDB and Mimir run on a node at $260 a month each. Amazon Timestream has no node fee: it bills $0.50 per million points written and $0.01 per million query units (teaching prices; source to be confirmed).
+**How the simulator bills this.** InfluxDB, TimescaleDB and Mimir run on a node at $184 a month each, an r5.xlarge-class machine ($0.252 an hour for 730 hours). Amazon Timestream has no node fee: it bills $0.50 per million points written and $1 per million queries, its $0.518 per compute-unit hour at an assumed 150 queries a second per unit (list prices, us-east-1, read 2026-11-23).

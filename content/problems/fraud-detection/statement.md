@@ -12,7 +12,7 @@ You run the fraud check for a payment network. Partner servers, the checkout sys
 | p95 latency | 60 ms or less |
 | Availability | 99.9% or more |
 | Error rate | 0.5% or less |
-| Budget | $4,000 per month |
+| Budget | $3,900 per month |
 
 ## The traffic
 

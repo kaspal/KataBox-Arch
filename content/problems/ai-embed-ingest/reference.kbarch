@@ -54,7 +54,7 @@
         "y": 112
       },
       "props": {
-        "instances": 2,
+        "instances": 3,
         "concurrency": 12
       },
       "group_id": null

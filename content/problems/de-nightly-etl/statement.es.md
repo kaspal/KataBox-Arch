@@ -12,7 +12,7 @@ Tienes una tienda online. Sus pedidos viven en una base de datos PostgreSQL, y l
 | Latencia p95 | 300 ms o menos |
 | Disponibilidad | 99,9 % o más |
 | Errores | 1 % o menos |
-| Presupuesto | 2000 $ al mes |
+| Presupuesto | 1700 $ al mes |
 
 El p95 cuenta todas las peticiones: para la app, el tiempo hasta su respuesta; para una página de la exportación, el tiempo desde que entra en la cola hasta que se ha leído de la base de datos.
 

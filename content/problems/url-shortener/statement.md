@@ -12,7 +12,7 @@ You run a service that turns long web addresses into short ones. Someone pastes 
 | Reads | 95% of requests |
 | p95 latency | 80 ms or less |
 | Availability | 99.9% or more |
-| Budget | $2,500 per month |
+| Budget | $2,100 per month |
 
 ## The traffic
 

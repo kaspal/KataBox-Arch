@@ -8,7 +8,7 @@ Con dos regiones y un DNS que reparte a quien llama entre ellas, cada región ll
 
 ## El diseño de referencia
 
-Un DNS Route 53, con un TTL de 30 s, reparte a quien llama entre dos regiones, us-east y eu-west. Cada región tiene su propio AWS ALB, Go App Servers con 6 instancias y una Redis Cache con 2 GB de memoria y un TTL de 0, para que las entradas no caduquen nunca. Cada Cache guarda la tabla de IP entera, y cada App Server lee solo de la Cache de su propia región. Cuesta unos 1279 $ al mes: 420 $ de App Servers por región, unos 317 $ de Route 53 (se cobra por consulta, y 30 000 consultas por segundo suman), 25 $ por cada ALB y 36 $ por cada Redis Cache.
+Un DNS Route 53, con un TTL de 30 s, reparte a quien llama entre dos regiones, us-east y eu-west. Cada región tiene su propio AWS ALB, Go App Servers con 6 instancias y una Redis Cache con 2 GB de memoria y un TTL de 0, para que las entradas no caduquen nunca. Cada Cache guarda la tabla de IP entera, y cada App Server lee solo de la Cache de su propia región. Cuesta unos 1256 $ al mes: 420 $ de App Servers por región, unos 317 $ de Route 53 (se cobra por consulta, y 30 000 consultas por segundo suman), 25 $ por cada ALB y 24 $ por cada Redis Cache.
 
 En «Un día normal» el p95 es de unos 19,8 ms, sin errores, y los App Servers van ocupados en torno al 28 %.
 
@@ -20,7 +20,7 @@ Hay margen para ahorrar. Un diseño con 4 instancias de App Server por región y
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual es una sola región, us-east, con un AWS ALB, Go App Servers con 4 instancias y una Redis Cache. Cuesta unos 341 $ al mes y supera «Un día normal» con un p95 de unos 18,3 ms. Pero los App Servers ya van ocupados en torno al 85 %.
+Un primer intento habitual es una sola región, us-east, con un AWS ALB, Go App Servers con 4 instancias y una Redis Cache. Cuesta unos 329 $ al mes y supera «Un día normal» con un p95 de unos 18,3 ms. Pero los App Servers ya van ocupados en torno al 85 %.
 
 En «La hora más ocupada de la semana» el tráfico se duplica y no queda margen: los App Servers se saturan y falla en torno al 27,3 % de las peticiones. En «Se apaga una región» es peor. A partir del segundo 30 falla cada petición, porque no hay otro sitio adonde ir, y la ejecución termina con un 74,9 % de errores.
 

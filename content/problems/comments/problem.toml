@@ -8,7 +8,6 @@ teaches = "Put a cache in front of a sharded store so a viral thread doesn't mel
 teaches_es = "Poner una caché delante de un almacén particionado para que un hilo viral no funda la partición que lo guarda"
 tags = ["caching", "hot-keys", "sharding", "read-heavy"]
 
-challenge_ratio = 0.8
 [nfr]
 peak_rps = 6000
 p95_ms = 60
