@@ -38,7 +38,7 @@
         "y": 0
       },
       "props": {
-        "instances": 16,
+        "instances": 18,
         "concurrency": 20,
         "service_ms": 50
       },
@@ -94,7 +94,7 @@
       "scaling": {
         "flavour": "aws_asg",
         "props": {
-          "min_instances": 16,
+          "min_instances": 18,
           "max_instances": 48,
           "target_util": 40,
           "scale_delay_s": 5

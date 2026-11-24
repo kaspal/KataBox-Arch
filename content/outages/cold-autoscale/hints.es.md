@@ -8,4 +8,4 @@ Un escalado que tarda 60 s no puede ayudar con una ola que sube en diez segundos
 
 ## 3
 
-En el grupo de autoescalado, pon el mínimo en 16 (y el App Server en 16 instancias), la utilización objetivo en 40 % y el retraso de escalado en 5 s. No hace falta cambiar nada más.
+En el grupo de autoescalado, pon el mínimo en 18 (y el App Server en 18 instancias), la utilización objetivo en 40 % y el retraso de escalado en 5 s. No hace falta cambiar nada más.

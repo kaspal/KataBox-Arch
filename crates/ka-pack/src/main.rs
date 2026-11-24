@@ -24,7 +24,8 @@ const USAGE: &str = "usage:
   ka-pack pack HEAD.toml --problems a,b --out FILE.kbpack [--content DIR]
   ka-pack try --problems a,b [seconds]   judge the designs only (tuning drafts; not a check)
   ka-pack migrate [--content DIR]   rewrite every .kbarch in the current format
-  ka-pack challenge [--problems a,b] [--write] [--evals N]   search half-cost proofs (M8.5)";
+  ka-pack challenge [--problems a,b] [--write] [--evals N]   search half-cost proofs (M8.5)
+  ka-pack seeds [--problems a,b] [n=20]   judge reference and naive on n seeds per test (H8)";
 
 struct Args {
     content: PathBuf,
@@ -218,6 +219,102 @@ fn main() -> ExitCode {
         }
         // Judge only (no text or structure checks), for tuning a problem's designs while its
         // prose is still a draft. It proves nothing: `validate --run` is the check.
+        // H8: robustness. Every test's seed comes from the problem id, so judging a copy whose
+        // id carries a suffix runs the same tests on other seeds (seed 0 is the shipped one).
+        "seeds" => {
+            let n: usize = args
+                .rest
+                .iter()
+                .find_map(|a| a.strip_prefix("n=").and_then(|v| v.parse().ok()))
+                .unwrap_or(20);
+            let mut problems = match load_problems(&args.content, &registry) {
+                Ok(p) => p,
+                Err(issues) => return report(&issues),
+            };
+            if let Ok(outages) = ka_pack::outages::load_outages(&args.content, &registry) {
+                problems.extend(
+                    outages
+                        .iter()
+                        .map(ka_pack::problems::ProblemDir::from_outage),
+                );
+            }
+            if let Some(only) = &args.problems {
+                problems.retain(|p| only.contains(&p.def.id));
+            }
+            let mut weak = 0;
+            for p in &problems {
+                // Per test: reference passes, naive fails, and the reference's worst use of
+                // its p95 and error limits (1.0 = at the limit).
+                let tests = p.def.tests.len();
+                let mut ref_pass = vec![0usize; tests];
+                let mut naive_fail = vec![0usize; tests];
+                let mut worst = vec![0.0f64; tests];
+                let mut naive_hidden_fail = 0usize;
+                for k in 0..n {
+                    let mut def = p.def.clone();
+                    if k > 0 {
+                        def.id = format!("{}~{k}", p.def.id);
+                    }
+                    let first = ka_judge::judge(&def, &p.reference, &registry, 1.0);
+                    let r = ka_judge::judge(&def, &p.reference, &registry, first.cost_month);
+                    let nv = ka_judge::judge(&def, &p.naive, &registry, first.cost_month);
+                    for (i, t) in r.tests.iter().enumerate() {
+                        if t.verdict == ka_judge::Verdict::Accepted {
+                            ref_pass[i] += 1;
+                        }
+                        let l = &t.limits;
+                        let mut m = 0.0f64;
+                        if let Some(lim) = l.p95_ms.filter(|x| *x > 0.0) {
+                            m = m.max(t.p95_ms / lim);
+                        }
+                        if let Some(lim) = l.error_rate.filter(|x| *x > 0.0) {
+                            m = m.max(t.error_rate / lim);
+                        }
+                        worst[i] = worst[i].max(m);
+                    }
+                    for (i, t) in nv.tests.iter().enumerate() {
+                        if t.verdict != ka_judge::Verdict::Accepted {
+                            naive_fail[i] += 1;
+                        }
+                    }
+                    if nv
+                        .tests
+                        .iter()
+                        .any(|t| t.hidden && t.verdict != ka_judge::Verdict::Accepted)
+                        || nv.tests.iter().all(|t| !t.hidden)
+                    {
+                        naive_hidden_fail += 1;
+                    }
+                }
+                let cols = p
+                    .def
+                    .tests
+                    .iter()
+                    .enumerate()
+                    .map(|(i, t)| {
+                        format!(
+                            "{} ref {}/{n} worst {:.0}% naive-fails {}/{n}",
+                            t.id,
+                            ref_pass[i],
+                            worst[i] * 100.0,
+                            naive_fail[i]
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join(" | ");
+                let ok = ref_pass.iter().all(|&x| x == n) && naive_hidden_fail == n;
+                if !ok {
+                    weak += 1;
+                }
+                println!(
+                    "{}: {} naive fails a hidden test {naive_hidden_fail}/{n} | {cols}",
+                    p.def.id,
+                    if ok { "ok" } else { "WEAK" }
+                );
+            }
+            println!("{} problem(s), {weak} weak", problems.len());
+            ExitCode::SUCCESS
+        }
         "try" => {
             let Some(only) = &args.problems else {
                 eprintln!("try needs --problems a,b\n{USAGE}");
