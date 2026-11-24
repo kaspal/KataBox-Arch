@@ -25,6 +25,13 @@ describe("the Export menu", () => {
     expect(vi.mocked(fake().api.saveMermaid).mock.calls[0]![2]).toMatch(/\.mmd$/);
   });
 
+  it("doesn't offer a share link until the web viewer that opens it ships (H6)", async () => {
+    const { user } = renderApp("/sandbox");
+    await user.click(await screen.findByTestId("export-menu"));
+    expect(await screen.findByRole("menuitem", { name: "Copy as Mermaid" })).toBeInTheDocument();
+    expect(screen.queryByTestId("export-share-link")).not.toBeInTheDocument();
+  });
+
   it("saves the design as an SVG image through Rust", async () => {
     const { user } = renderApp("/sandbox");
     await user.click(await screen.findByTestId("export-menu"));

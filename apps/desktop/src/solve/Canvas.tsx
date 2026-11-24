@@ -9,6 +9,7 @@ import {
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
+  useNodesInitialized,
   useReactFlow,
   useViewport,
   type Connection,
@@ -359,6 +360,16 @@ function CanvasInner() {
   // Take add requests (palette, patterns) only once React Flow has its viewport: before
   // that, screen-to-flow conversion is wrong and inserted items land off screen.
   const [rfReady, setRfReady] = useState(false);
+  // H6: fit the design in view when asked (a draft loaded), once the cards are measured;
+  // never below the readable zoom.
+  const fitRequest = useEditor((s) => s.fitRequest);
+  const cardsMeasured = useNodesInitialized();
+  const fitted = useRef(0);
+  useEffect(() => {
+    if (!rfReady || !cardsMeasured || fitRequest === fitted.current) return;
+    fitted.current = fitRequest;
+    void rf.fitView({ padding: 0.2, duration: 0, minZoom: FIT_MIN_ZOOM, maxZoom: 1 });
+  }, [cardsMeasured, fitRequest, rf, rfReady]);
   useEffect(() => (rfReady ? registerCanvasAdd((req) => add(req)) : undefined), [add, rfReady]);
 
   // --- Drag and drop from the library ----------------------------------------------

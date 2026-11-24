@@ -800,6 +800,9 @@
       "builtin": "Incluidos",
       "packs": "Paquetes"
     },
+    "moreTags": "Más temas ({{n}})",
+    "fewerTags": "Menos temas",
+    "setHeading": "Serie {{n}}",
     "fromPack": "Del paquete {{name}}",
     "tracks": "Itinerarios",
     "track": {

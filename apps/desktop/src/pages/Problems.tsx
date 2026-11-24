@@ -1,6 +1,6 @@
 // The problem catalogue: search, difficulty and topic filters, status and best score, plus
 // "Continue" (the last attempted, unsolved problem) and "Random problem" (an unsolved one).
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { CheckCircle2, CircleDashed, CircleDot, List, Package, Play, Ruler, Shuffle, Wallet } from "lucide-react";
@@ -111,6 +111,9 @@ function normalise(s: string) {
     .replace(/[̀-ͯ]/g, "");
 }
 
+/** H6: topic tags shown before "More tags". */
+const TAGS_SHOWN = 10;
+
 export function ProblemsPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -124,6 +127,8 @@ export function ProblemsPage() {
   const [query, setQuery] = useState("");
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [tag, setTag] = useState<string | null>(null);
+  // H6: the topic tags show one short row until asked for more.
+  const [allTags, setAllTags] = useState(false);
   const [source, setSource] = useState<"all" | "builtin" | "packs">("all");
   const [track, setTrack] = useState<TrackId>("core");
   const [challengeOnly, setChallengeOnly] = useState(false);
@@ -234,8 +239,8 @@ export function ProblemsPage() {
           </div>
         )}
         {tags.length > 0 && (
-          <div className="flex flex-wrap gap-2" role="group" aria-label={t("problems.filterTopic")}>
-            {tags.map((g) => (
+          <div className="flex flex-wrap gap-2" role="group" aria-label={t("problems.filterTopic")} data-testid="tag-cloud">
+            {(allTags ? tags : tags.filter((g, i) => i < TAGS_SHOWN || g === tag)).map((g) => (
               <Button
                 key={g}
                 size="sm"
@@ -247,14 +252,33 @@ export function ProblemsPage() {
                 #{g}
               </Button>
             ))}
+            {tags.length > TAGS_SHOWN && (
+              <Button
+                size="sm"
+                variant="link"
+                aria-expanded={allTags}
+                onClick={() => setAllTags(!allTags)}
+                className="h-7 px-2 text-xs"
+                data-testid="more-tags"
+              >
+                {allTags ? t("problems.fewerTags") : t("problems.moreTags", { n: tags.length - TAGS_SHOWN })}
+              </Button>
+            )}
           </div>
         )}
       </div>
       {problems.isLoading && <Skeleton className="h-40 w-full" />}
       <div role="tabpanel" id="track-panel" aria-labelledby={`track-tab-${track}`}>
       <ul className="divide-y rounded-xl border bg-card" data-testid="problem-list">
-        {shown.map((p) => (
-          <li key={p.id}>
+        {shown.map((p, i) => (
+          <Fragment key={p.id}>
+          {/* H6: Set headings on the Core tab (built-in problems, in set order). */}
+          {track === "core" && p.pack === null && (i === 0 || shown[i - 1]!.set !== p.set || shown[i - 1]!.pack !== null) && (
+            <li className="bg-muted/40 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground" data-testid="set-heading">
+              <h2>{t("problems.setHeading", { n: p.set })}</h2>
+            </li>
+          )}
+          <li>
             <Link
               to="/problems/$id"
               params={{ id: p.id }}
@@ -289,6 +313,7 @@ export function ProblemsPage() {
               </span>
             </Link>
           </li>
+          </Fragment>
         ))}
         {!problems.isLoading && shown.length === 0 && (
           <li className="px-4 py-8 text-center text-sm text-muted-foreground">{t("problems.none")}</li>

@@ -800,6 +800,9 @@
       "builtin": "Built-in",
       "packs": "Packs"
     },
+    "moreTags": "More tags ({{n}})",
+    "fewerTags": "Fewer tags",
+    "setHeading": "Set {{n}}",
     "fromPack": "From the pack {{name}}",
     "tracks": "Tracks",
     "track": {

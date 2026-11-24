@@ -65,6 +65,8 @@ export type EditorState = {
   selection: string[];
   /** A drag is in progress (history paused). */
   dragging: boolean;
+  /** H6: bumped to ask the canvas to fit the design in view (after a draft loads). */
+  fitRequest: number;
 };
 
 type Actions = {
@@ -75,6 +77,7 @@ type Actions = {
   markSaved: (path: string) => void;
   rename: (name: string) => void;
   setViewport: (v: Viewport) => void;
+  requestFit: () => void;
   setSelection: (ids: string[]) => void;
 
   addNode: (registry: Registry, kind: ComponentKind, flavour: Flavour, at: Point) => string;
@@ -216,6 +219,7 @@ export const useEditor = create<EditorStore>()(
         savedJson: docJson(initial),
         selection: [],
         dragging: false,
+        fitRequest: 0,
 
         load: (design, path) => {
           const doc = fromDesign(design);
@@ -236,6 +240,7 @@ export const useEditor = create<EditorStore>()(
         markSaved: (path) => set((s) => ({ path, savedJson: docJson(s.doc) })),
         rename: (name) => patchDoc((d) => ({ ...d, name })),
         setViewport: (viewport) => set({ viewport }),
+        requestFit: () => set((s) => ({ fitRequest: s.fitRequest + 1 })),
         setSelection: (selection) => set({ selection }),
 
         addNode: (_registry, kind, flavour, at) => {
