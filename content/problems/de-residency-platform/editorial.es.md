@@ -22,7 +22,9 @@ Un día normal, cada tarjeta Flink está ocupada en torno a un 26 %, el p95 de u
 
 «Un día de auditoría solo con la UE: falla el primario de la tabla de consentimientos» manda todos los eventos desde usuarios de la UE al mismo ritmo total, así que todos tienen que quedarse en la UE. El primario DynamoDB de eu-west se detiene a los 30 segundos, para siempre. La réplica de eu-central se promueve, y desde entonces la tarjeta Flink de eu-west lee cada registro de consentimiento de la otra región: esos eventos tardan unos 140 ms más, y el p95 sube a unos 286 ms. La mitad de los eventos que llega a eu-west ocupa ahora unos 102 de sus 128 huecos. Ningún error, ninguna infracción de residencia.
 
-No hay reto de coste en este problema. La búsqueda de un diseño más barato que supere todas las pruebas encontró uno al 71 % del coste de la referencia, pero ejecuta todo el pipeline en eu-central y deja en eu-west el primario de la tabla de consentimientos sin tráfico. Solo aprueba porque la región que se pierde en la prueba es la del primario: perder eu-central pararía todos los eventos. Eso es un hueco de la prueba, no una lección.
+«Se pierde la otra región de la UE» pierde de la misma forma la región que guarda la réplica de la tabla de consentimientos (aquí, eu-central). La referencia la supera con cerca de un 0,12 % de errores, el reflejo de la primera prueba. Está ahí para que un diseño no pueda ejecutar todo el pipeline en una región y dejar la otra solo para el primario de consentimientos.
+
+No hay reto de coste en este problema: el diseño más barato que encontró la búsqueda y que supera todas las pruebas cuesta el 94 % de la referencia, no menos del 80 % que necesita un reto.
 
 ## Por qué falla el primer intento
 

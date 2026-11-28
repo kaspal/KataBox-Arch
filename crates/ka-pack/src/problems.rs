@@ -270,6 +270,7 @@ pub fn validate_problems(problems: &[ProblemDir], registry: &Registry) -> Vec<Is
                     _ => continue,
                 };
                 let known = zone == "@primary"
+                    || zone == "@replica"
                     || p.reference
                         .groups
                         .iter()
@@ -278,7 +279,7 @@ pub fn validate_problems(problems: &[ProblemDir], registry: &Registry) -> Vec<Is
                     bad(
                         "problem.toml",
                         format!(
-                            "test {}: zone {zone:?} is neither @primary nor a group of the reference",
+                            "test {}: zone {zone:?} is neither @primary, @replica nor a group of the reference",
                             t.id
                         ),
                     );

@@ -521,6 +521,9 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
   queries hold a slot. Before, each running query got the full rate (32 year-long scans on one small instance ran
   side by side). BigQuery on demand keeps the per-query rate: its slots aren't an instance. Chaos selectors gained
   `flavour` and `same_flavour` in the same follow-up (F1): a provider's outage hits every key held with it.
+- **Follow-up F6 (`@replica`).** A chaos zone may be `@replica`: the Region holding the main data store's first
+  replica (by card id) outside the primary's Region, else the primary's Region. DE 17 uses it so a design that
+  serves everything from the replica's Region can't pass by leaving the primary's Region idle.
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE

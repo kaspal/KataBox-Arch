@@ -22,7 +22,9 @@ On a normal day each Flink card is about 26% busy, an event's p95 (until it is i
 
 "An EU-only audit day: the consent table's primary fails" sends every event from an EU user at the same total rate, so every one of them must stay in the EU. The DynamoDB primary in eu-west is stopped 30 seconds in, for good. The replica in eu-central is promoted, and from then on eu-west's Flink card reads every consent record across the Regions: those events take about 140 ms longer, and the p95 rises to about 286 ms. eu-west's half of the events now holds about 102 of its 128 slots. No errors, no residency violations.
 
-There is no cost challenge for this problem. A search for a cheaper design that passes every test found one at 71% of the reference's cost, but it runs the whole pipeline in eu-central and leaves eu-west with the consent table's primary and no traffic. It passes only because the lost Region in the test is the primary's: losing eu-central would stop every event. That is a gap in the test, not a lesson.
+"The other EU Region is lost" loses the Region holding the consent table's replica (eu-central here) the same way. The reference passes it with about 0.12% errors, the mirror of the first test. It is there so a design can't run the whole pipeline in one Region and keep the other only for the consent primary.
+
+There is no cost challenge for this problem: the cheapest design the search found that passes every test costs 94% of the reference, not under the 80% a challenge needs.
 
 ## Why the first try breaks
 

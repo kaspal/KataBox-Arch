@@ -61,6 +61,15 @@ chaos = [{ partition = { zone = "@primary", at = 30 } }]
 pass = { error_rate = 0.08, availability = 0.92 }
 
 [[tests]]
+id = "other-region-lost"
+name = "The other EU Region is lost"
+name_es = "Se pierde la otra región de la UE"
+hidden = true
+duration_s = 180
+chaos = [{ partition = { zone = "@replica", at = 30 } }]
+pass = { error_rate = 0.08, availability = 0.92 }
+
+[[tests]]
 id = "eu-audit"
 name = "An EU-only audit day: the consent table's primary fails"
 name_es = "Un día de auditoría solo con la UE: falla el primario de la tabla de consentimientos"

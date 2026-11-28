@@ -458,6 +458,20 @@ fn at_primary_names_the_region_of_the_main_store_s_primary() {
     assert!(!down(&r, "client"));
 }
 
+/// F6: `@replica` names the Region of the main store's replica outside the primary's Region.
+#[test]
+fn at_replica_names_the_other_region_of_the_main_store() {
+    let (d, mut s) = two_regions();
+    s.chaos.push(ChaosEvent::Partition {
+        zone: "@replica".into(),
+        at: 10.0,
+        for_s: Some(10.0),
+    });
+    let r = run(&d, &s);
+    assert!(down(&r, "db-eu") && down(&r, "app-eu"));
+    assert!(!down(&r, "db") && !down(&r, "app-us") && !down(&r, "lb"));
+}
+
 #[test]
 fn a_split_cuts_traffic_across_its_border_until_routing_learns() {
     let (d, mut s) = two_regions();

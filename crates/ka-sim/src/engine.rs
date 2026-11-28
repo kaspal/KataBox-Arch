@@ -3747,11 +3747,15 @@ impl Engine {
     /// the design's main data store (its first SQL cluster, else its first NoSQL one, by
     /// card id). With no Region around that primary the whole design is the zone (`*`),
     /// so leaving Regions out can't dodge a region test.
+    ///
+    /// F6: `@replica` is the Region holding the main data store's first replica (by card id)
+    /// outside the primary's Region, else the primary's own Region: the side a design that
+    /// only survives losing its primary's Region leaves exposed.
     fn resolve_zone(&self, zone: &str) -> String {
-        if zone != "@primary" {
+        if zone != "@primary" && zone != "@replica" {
             return zone.to_owned();
         }
-        let primary = [ComponentKind::Sql, ComponentKind::Nosql]
+        let main = [ComponentKind::Sql, ComponentKind::Nosql]
             .iter()
             .find_map(|k| {
                 self.c
@@ -3759,15 +3763,36 @@ impl Engine {
                     .iter()
                     .enumerate()
                     .filter(|(_, cl)| self.c.nodes[cl.members[0] as usize].kind == *k)
-                    .map(|(i, _)| self.cluster_primary[i])
+                    .min_by(|(a, _), (b, _)| {
+                        let (pa, pb) = (self.cluster_primary[*a], self.cluster_primary[*b]);
+                        self.c.nodes[pa as usize]
+                            .id
+                            .cmp(&self.c.nodes[pb as usize].id)
+                    })
+            });
+        let primary = main.map(|(i, _)| self.cluster_primary[i]);
+        let pick = if zone == "@replica" {
+            let home = primary.and_then(|p| self.c.nodes[p as usize].region);
+            main.and_then(|(_, cl)| {
+                cl.members
+                    .iter()
+                    .copied()
+                    .filter(|&m| Some(m) != primary)
+                    .filter(|&m| {
+                        let r = self.c.nodes[m as usize].region;
+                        r.is_some() && r != home
+                    })
                     .min_by(|a, b| {
                         self.c.nodes[*a as usize]
                             .id
                             .cmp(&self.c.nodes[*b as usize].id)
                     })
-            });
-        primary
-            .and_then(|p| self.c.nodes[p as usize].region)
+            })
+            .or(primary)
+        } else {
+            primary
+        };
+        pick.and_then(|p| self.c.nodes[p as usize].region)
             .map_or_else(|| "*".to_owned(), |z| self.c.zones[z as usize].id.clone())
     }
 

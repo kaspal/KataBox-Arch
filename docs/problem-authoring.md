@@ -63,6 +63,8 @@ A request type has:
     that provider, F1); `all = true` hits every match;
   - a zone is a Region or AZ label or id, or `@primary`: the Region holding the main data store's primary (the
     whole design when it isn't in a Region). Use `@primary` in problems: players name their Regions freely.
+    `@replica` is the Region holding the main store's first replica outside the primary's Region (else the
+    primary's Region): a test with it catches designs that only survive losing the primary's side (F6).
   - work still waiting when the run and its 30 s drain end counts at its age then, so a stalled pipeline fails its
     completion limit instead of disappearing from it.
   - A worker crash no longer fails its message at once: it comes back after the queue's visibility timeout or the
