@@ -2,7 +2,7 @@
 //! shared by the app service (`ka-app`), and later the simulator and the judge.
 //!
 //! - [`design`]: what a `.kbarch` file holds (nodes, edges, zones, notes, viewport).
-//! - [`registry`]: the 25 component kinds, their product flavours and editable props.
+//! - [`registry`]: the 42 component kinds, their product flavours and editable props.
 //! - [`wiring`]: which protocol may connect which kinds, as a data table the UI also gets.
 //! - [`validate`]: checks a design against the registry and the wiring table.
 

@@ -99,6 +99,7 @@ Tus diseños `.kbarch` están donde los guardes. Las compilaciones de desarrollo
 - [Empaquetado](docs/packaging.md) (en inglés)
 - [Notas para Linux (WebKitGTK)](docs/linux-webkitgtk.md) (en inglés)
 - [Registro de cambios](CHANGELOG.md) (en inglés)
+- [Privacidad](PRIVACY.md), [Política de seguridad](SECURITY.md) y [Cómo contribuir](CONTRIBUTING.md) (en inglés)
 
 ## Marcas
 

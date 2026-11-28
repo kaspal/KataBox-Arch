@@ -97,6 +97,7 @@ Your `.kbarch` designs live wherever you save them. Development builds keep thei
 - [Packaging](docs/packaging.md)
 - [Linux notes (WebKitGTK)](docs/linux-webkitgtk.md)
 - [Changelog](CHANGELOG.md)
+- [Privacy](PRIVACY.md), [Security policy](SECURITY.md) and [Contributing](CONTRIBUTING.md)
 
 ## Trademarks
 

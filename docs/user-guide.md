@@ -39,7 +39,7 @@ Home is your desk. From top to bottom:
 
 ## Problems
 
-**Problems** lists 30 built-in problems in two sets: #1 to #15 (Set 1, from URL Shortener to Online Judge) and #16 to #30 (Set 2, from Image Thumbnails to Order-Matching Exchange). Each row shows the number, the title, what the problem teaches, the difficulty, your status (**Solved**, **Attempted** or **Not started**), your best score, and how many estimation drills you have done for it.
+**Problems** lists 85 built-in problems in three tracks. **Core** has 45 in three sets: #1 to #15 (Set 1, from URL Shortener to Online Judge), #16 to #30 (Set 2, from Image Thumbnails to Order-Matching Exchange) and #31 to #45 (Set 3, from Weather API Proxy to Payment Fraud Scoring). **AI systems** and **Data engineering** have 20 each. Each row shows the number, the title, what the problem teaches, the difficulty, your status (**Solved**, **Attempted** or **Not started**), your best score, and how many estimation drills you have done for it.
 
 To narrow the list:
 
@@ -53,6 +53,16 @@ At the top of the page:
 - **Continue: <title>** reopens the problem you worked on last.
 - **Random problem** opens a problem you haven't solved yet.
 - **Import pack…** adds a problem pack (see Problem packs).
+
+**Cost challenges.** Some problems have a second goal, "same SLO, half the cost" (or another share): pass every test
+within a lower monthly budget than the reference. The challenge opens once you have solved the problem; the
+**Cost challenge** filter lists the problems that have one, and **Submit as the cost challenge** judges your design
+against it. Each challenge is proven by a design that meets it, and only targets of 80% of the reference's cost or
+less are offered.
+
+**Outage replays** (in the command palette and the Incident response path) are 20 well-known kinds of incident, told
+plainly: watch the design as it was fail, then **Fix it** so it passes the incident, a normal day and the aftershock.
+Each replay is a composite of a common failure, not a record of one company's outage.
 
 ## Solving a problem
 
@@ -264,7 +274,7 @@ Ten designs that look fine and pass a normal day, but each has one flaw a test e
 
 ### Learning paths
 
-**Learning paths** are five ordered tracks: Foundations, Async systems, Data at scale, Reliability and Real-time. Each mixes Guide entries, concept cards, patterns, problems, drills and quizzes. Progress comes from what you have already done anywhere in the app. Press **Follow this path** and Home's **Recommended next** card shows the path's next step.
+**Learning paths** are eight ordered tracks: Foundations, Async systems, Data at scale, Reliability, Real-time, Incident response, AI systems and Data engineering. Each mixes Guide entries, concept cards, patterns, problems, drills and quizzes. Progress comes from what you have already done anywhere in the app. Press **Follow this path** and Home's **Recommended next** card shows the path's next step.
 
 ## Review
 

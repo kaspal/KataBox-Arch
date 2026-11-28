@@ -39,7 +39,7 @@ Inicio es tu mesa de trabajo. De arriba abajo:
 
 ## Problemas
 
-**Problemas** lista 30 problemas incluidos, en dos series: del #1 al #15 (serie 1, de Acortador de URLs a Juez en línea) y del #16 al #30 (serie 2, de Miniaturas de imágenes a Bolsa con casamiento de órdenes). Cada fila muestra el número, el título, lo que enseña, la dificultad, tu estado (**Resuelto**, **Intentado** o **Sin empezar**), tu mejor puntuación y cuántos ejercicios de estimación has hecho para ese problema.
+**Problemas** lista 85 problemas incluidos, en tres bloques. **Básico** tiene 45 en tres series: del #1 al #15 (serie 1, de Acortador de URLs a Juez en línea), del #16 al #30 (serie 2, de Miniaturas de imágenes a Bolsa con casamiento de órdenes) y del #31 al #45 (serie 3, de Proxy de una API del tiempo a Detección de fraude en pagos). **Sistemas de IA** e **Ingeniería de datos** tienen 20 cada uno. Cada fila muestra el número, el título, lo que enseña, la dificultad, tu estado (**Resuelto**, **Intentado** o **Sin empezar**), tu mejor puntuación y cuántos ejercicios de estimación has hecho para ese problema.
 
 Para acotar la lista:
 
@@ -53,6 +53,17 @@ En la parte superior de la página:
 - **Continuar: <título>** vuelve a abrir el último problema en el que trabajaste.
 - **Problema al azar** abre un problema que aún no has resuelto.
 - **Importar paquete…** añade un paquete de problemas (ver Paquetes de problemas).
+
+**Retos de coste.** Algunos problemas tienen un segundo objetivo, «mismo SLO, mitad de coste» (u otra fracción):
+superar todas las pruebas con un presupuesto mensual menor que el de la referencia. El reto se abre cuando has
+resuelto el problema; el filtro **Reto de coste** lista los problemas que lo tienen, y **Enviar como reto de coste**
+juzga tu diseño frente a él. Cada reto está demostrado por un diseño que lo cumple, y solo se ofrecen objetivos del
+80 % del coste de la referencia o menos.
+
+Las **Repeticiones de caídas** (en la paleta de comandos y en el itinerario Respuesta a incidentes) son 20 tipos
+conocidos de incidente, contados con sencillez: mira cómo falla el diseño tal como era y luego pulsa **Arreglarlo**
+para que supere el incidente, un día normal y la réplica. Cada repetición resume un fallo habitual; no es el registro
+de la caída de una empresa concreta.
 
 ## Resolver un problema
 
@@ -265,7 +276,7 @@ Diez diseños que parecen correctos y aguantan un día normal, pero cada uno tie
 
 ### Itinerarios
 
-Los **Itinerarios** son cinco recorridos ordenados: Fundamentos, Sistemas asíncronos, Datos a escala, Fiabilidad y Tiempo real. Cada uno mezcla entradas de la Guía, tarjetas de concepto, patrones, problemas, ejercicios y cuestionarios. El progreso sale de lo que ya has hecho en cualquier parte de la app. Pulsa **Seguir este itinerario** y la tarjeta **Siguiente recomendado** de Inicio mostrará su siguiente paso.
+Los **Itinerarios** son ocho recorridos ordenados: Fundamentos, Sistemas asíncronos, Datos a escala, Fiabilidad, Tiempo real, Respuesta a incidentes, Sistemas de IA e Ingeniería de datos. Cada uno mezcla entradas de la Guía, tarjetas de concepto, patrones, problemas, ejercicios y cuestionarios. El progreso sale de lo que ya has hecho en cualquier parte de la app. Pulsa **Seguir este itinerario** y la tarjeta **Siguiente recomendado** de Inicio mostrará su siguiente paso.
 
 ## Repaso
 
