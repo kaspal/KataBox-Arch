@@ -4,4 +4,4 @@ That changes how you size it. A normal server is sized by requests per second. A
 
 The dangerous moment is a failure. When a gateway server dies, all of its clients try to reconnect. If they all try in the same second, the other servers can't accept them fast enough, attempts fail and retry, and clients stay offline. In the simulator, the client's reconnect jitter spreads those reconnects out; with no jitter you get a **reconnect storm**.
 
-**How the simulator bills this.** Socket.IO and Phoenix are self-hosted, one EC2 m5.large-class server per instance at $70 a month. AWS API Gateway WebSocket has no instance fee: it bills $1.00 per million messages and $0.25 per million connection-minutes, so idle clients still cost money. These are teaching prices; source to be confirmed.
+**How the simulator bills this.** Socket.IO and Phoenix are self-hosted, one EC2 m5.large server per instance at $70 a month. AWS API Gateway WebSocket has no instance fee: it bills $1.00 per million messages and $0.25 per million connection-minutes, so idle clients still cost money (list prices, us-east-1, read 2026-11-22).

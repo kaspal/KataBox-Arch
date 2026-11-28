@@ -4,4 +4,4 @@ Locks here are **leases**. A worker takes a lock for a while and keeps renewing 
 
 The price of agreement is availability. When the network splits the members, only the side with a majority can write; the other side refuses. When the leader is lost, writes pause for an election. The simulator models all of this: majority writes, the minority side refusing, the election pause, leases, and what a datastore does with and without fencing during a split.
 
-**How the simulator bills this.** Each member is a self-hosted node at $70 a month (teaching price; source to be confirmed). There is no fee per write or per lock, so a cluster of three members costs $210 a month and five cost $350.
+**How the simulator bills this.** Each member is a self-hosted node at $70 a month, the list price of an EC2 m5.large (us-east-1, read 2026-11-22). There is no fee per write or per lock, so a cluster of three members costs $210 a month and five cost $350.

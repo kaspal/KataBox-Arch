@@ -4,4 +4,4 @@ Aquí los bloqueos son **concesiones** (leases). Un worker toma un bloqueo por u
 
 El precio del acuerdo es la disponibilidad. Cuando la red divide a los miembros, solo el lado con mayoría puede escribir; el otro lado rechaza. Cuando se pierde el líder, las escrituras se pausan durante una elección. El simulador modela todo esto: escrituras por mayoría, el rechazo del lado minoritario, la pausa de la elección, las concesiones y lo que hace un almacén con y sin cercado durante una partición.
 
-**Cómo lo factura el simulador.** Cada miembro es un nodo propio a 70 $ al mes (precio didáctico; fuente por confirmar). No hay coste por escritura ni por bloqueo, así que un clúster de tres miembros cuesta 210 $ al mes y uno de cinco, 350 $.
+**Cómo lo factura el simulador.** Cada miembro es un nodo propio a 70 $ al mes, el precio de lista de una EC2 m5.large (us-east-1, consultado el 2026-11-22). No hay coste por escritura ni por bloqueo, así que un clúster de tres miembros cuesta 210 $ al mes y uno de cinco, 350 $.

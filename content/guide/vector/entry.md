@@ -4,4 +4,4 @@ Comparing a query with every vector would be too slow at millions of items, so t
 
 Large collections are split into **shards**. A query goes to every shard, and the answer waits for the slowest one, so search time depends on how many vectors each shard holds and on `top_k`. Replicas are separate cards joined by Replicate edges and add read capacity; upserts go to the primary.
 
-**How the simulator bills this.** Self-hosted flavours (pgvector, Qdrant, Milvus) cost $260 per node a month, an RDS-class machine. Pinecone has no node fee: it bills $16 per million read units and $4 per million write units (teaching prices; source to be confirmed).
+**How the simulator bills this.** Self-hosted flavours (pgvector, Qdrant, Milvus) cost $260 per node a month, a db.m5.xlarge PostgreSQL machine. Pinecone has no node fee: it bills $16 per million read units and $4 per million write units, the low end of its published $16–$18 and $4–$4.50 (list prices, us-east-1, read 2026-11-22).

@@ -4,4 +4,4 @@ Comparar una consulta con cada vector sería demasiado lento con millones de ele
 
 Las colecciones grandes se dividen en **shards**. Una consulta va a todos los shards, y la respuesta espera al más lento, así que el tiempo de búsqueda depende de cuántos vectores guarda cada shard y de `top_k`. Las réplicas son tarjetas aparte unidas con aristas Replicate y añaden capacidad de lectura; las inserciones van al primario.
 
-**Cómo lo factura el simulador.** Los sabores propios (pgvector, Qdrant, Milvus) cuestan 260 $ por nodo al mes, una máquina de clase RDS. Pinecone no cobra por nodo: cobra 16 $ por millón de unidades de lectura y 4 $ por millón de unidades de escritura (precios didácticos; fuente por confirmar).
+**Cómo lo factura el simulador.** Los sabores propios (pgvector, Qdrant, Milvus) cuestan 260 $ por nodo al mes, una máquina PostgreSQL db.m5.xlarge. Pinecone no cobra por nodo: cobra 16 $ por millón de unidades de lectura y 4 $ por millón de unidades de escritura, el extremo bajo de sus 16–18 $ y 4–4,50 $ publicados (precios de lista, us-east-1, consultados el 2026-11-22).

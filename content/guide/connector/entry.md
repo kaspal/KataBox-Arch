@@ -4,4 +4,4 @@ The sink is always a little behind the source. With change capture the lag is sm
 
 Connectors replace **dual writes**, where the app writes to the database and then to a search index or cache itself. When the second write fails, the two stores disagree and nothing notices. With a connector, the database is the source of truth and the other stores follow it.
 
-**How the simulator bills this.** Kafka Connect, Debezium and Airbyte run on your own workers at $70 per worker a month, the price of an m5.large-class node (teaching price; source to be confirmed). Fivetran has no worker fee: it bills $500 per million rows moved, a stand-in for its monthly active rows pricing (teaching price; source to be confirmed). The source and the sink are billed on their own cards.
+**How the simulator bills this.** Kafka Connect, Debezium and Airbyte run on your own workers at $70 per worker a month, the list price of an EC2 m5.large. Fivetran has no worker fee: it bills $500 per million rows moved, its Standard plan's price for the first million monthly active rows ($495). The source and the sink are billed on their own cards (list prices, us-east-1, read 2026-11-22).

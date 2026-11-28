@@ -4,4 +4,4 @@ A connection pooler sits between the app and the database. It accepts many cheap
 
 When a problem turns on connection limits, the simulator models it: each app slot talking straight to SQL holds a database connection and connections past the limit fail; through a pooler, calls share the pool, pay a small delay and queue when every pooled connection is busy. The pooler's own cap on client connections, `client_limit`, is a design note only.
 
-**How the simulator bills this.** A self-hosted pooler (PgBouncer, ProxySQL, VTGate) runs on a small node at $30 a month. Amazon RDS Proxy is priced per vCPU-hour of the database behind it; the simulator uses $45 per instance a month as a stand-in (teaching prices; source to be confirmed).
+**How the simulator bills this.** A self-hosted pooler (PgBouncer, ProxySQL, VTGate) runs on a small node at $30 a month, an EC2 t3.medium. Amazon RDS Proxy is billed per vCPU-hour of the database behind it, $0.015 an hour; the simulator charges $45 per instance a month, the price in front of a 4-vCPU database (list prices, us-east-1, read 2026-11-22).

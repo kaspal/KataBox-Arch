@@ -4,4 +4,4 @@ Ese poder es también el riesgo. Un cambio de configuración es un despliegue di
 
 El servicio de configuración no está en el camino de la petición. Cada aplicación guarda una copia local de su configuración y lee de ella, así que cuando el servicio cae, las peticiones siguen funcionando con los últimos valores conocidos y solo esperan los cambios nuevos.
 
-**Cómo lo factura el simulador.** LaunchDarkly, AWS AppConfig y Unleash cuestan todos una cuota fija de 20 $ al mes (precio didáctico; fuente por confirmar). En el simulador el precio no crece con el número de aplicaciones, flags o cambios.
+**Cómo lo factura el simulador.** LaunchDarkly, AWS AppConfig y Unleash cuestan todos una cuota fija de 20 $ al mes. Esa cifra es un modelo, no un precio de lista: estos productos no venden instancias (AWS AppConfig, por ejemplo, cobra 0,20 $ por millón de peticiones), y el simulador no cuenta ni peticiones ni flags. El precio no crece con el número de aplicaciones, flags o cambios.

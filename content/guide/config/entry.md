@@ -4,4 +4,4 @@ That power is also the risk. A config push is a deploy in disguise, and a bad va
 
 The config service is not on the request path. Each app keeps a local copy of its config and reads from it, so when the service is down, requests keep working with the last known values and only new changes wait.
 
-**How the simulator bills this.** LaunchDarkly, AWS AppConfig and Unleash all cost a flat $20 a month (teaching price; source to be confirmed). The price doesn't grow with the number of apps, flags or changes in the simulator.
+**How the simulator bills this.** LaunchDarkly, AWS AppConfig and Unleash all cost a flat $20 a month. That figure is a model, not a list price: these products don't sell an instance (AWS AppConfig, for one, bills $0.20 per million requests), and the simulator counts neither requests nor flags. The price doesn't grow with the number of apps, flags or changes.

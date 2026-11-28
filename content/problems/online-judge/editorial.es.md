@@ -12,7 +12,7 @@ Cuesta unos 1918 $ al mes. En una tarde tranquila el p95 ronda los 5,7 s. Cuando
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual es la misma cadena con 12 instancias fijas y sin Autoscaling group. Una tarde tranquila pasa con un p95 cercano a 6,5 s. Durante el concurso, los envíos pronto llegan más rápido de lo que 96 huecos pueden evaluar. No se pierde nada, porque la Queue es profunda, pero la acumulación crece cada segundo y el p95 llega a unos 51 s.
+Un primer intento habitual es la misma cadena con 12 instancias fijas y sin Autoscaling group. Una tarde tranquila pasa con un p95 cercano a 6,5 s. Durante el concurso, los envíos pronto llegan más rápido de lo que 96 huecos pueden evaluar. No se pierde nada, porque la Queue es profunda, pero la acumulación crece cada segundo y el p95 llega a unos 53 s.
 
 ## Para probar
 

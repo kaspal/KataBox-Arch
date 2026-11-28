@@ -12,7 +12,7 @@ This costs about $1,593 per month and has a p95 near 23 ms on a normal day. It p
 
 ## Why the first try breaks
 
-A common first try keeps the same App Servers, publishes posts to a RabbitMQ Queue, and has Workers write feed rows into the one PostgreSQL database. Reads come straight from that database. But every 16 KB read and every feed write land on the same database, and p95 is about 155 ms on a normal day.
+A common first try keeps the same App Servers, publishes posts to a RabbitMQ Queue, and has Workers write feed rows into the one PostgreSQL database. Reads come straight from that database. But every 16 KB read and every feed write land on the same database, and p95 is about 84 ms on a normal day.
 
 The hidden tests push further. "Everyone opens the app at once" triples the traffic for 15 seconds. The database has no slack, threads pile up, and about 33% of requests fail. "Breaking news" sends 4 times the posts. Feed writes take a larger share of the database, reads queue behind them, and about 5% of requests fail.
 

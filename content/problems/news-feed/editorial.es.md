@@ -12,7 +12,7 @@ Cuesta unos 1593 $ al mes y su p95 ronda los 23 ms en un día normal. Supera las
 
 ## Por qué falla el primer intento
 
-Un primer intento habitual mantiene los mismos App Servers, publica los posts en una Queue RabbitMQ y hace que los Workers escriban filas de feed en la única base de datos PostgreSQL. Las lecturas van directas a esa base de datos. Pero cada lectura de 16 KB y cada escritura de feed caen en la misma base de datos, y el p95 ronda los 155 ms en un día normal.
+Un primer intento habitual mantiene los mismos App Servers, publica los posts en una Queue RabbitMQ y hace que los Workers escriban filas de feed en la única base de datos PostgreSQL. Las lecturas van directas a esa base de datos. Pero cada lectura de 16 KB y cada escritura de feed caen en la misma base de datos, y el p95 ronda los 84 ms en un día normal.
 
 Las pruebas ocultas aprietan más. «Todos abren la app a la vez» triplica el tráfico durante 15 segundos. La base de datos no tiene margen, los hilos se acumulan y falla alrededor del 33 % de las peticiones. «Noticia de última hora» envía 4 veces más posts. Las escrituras de feed ocupan más parte de la base de datos, las lecturas esperan detrás y falla alrededor del 5 % de las peticiones.
 

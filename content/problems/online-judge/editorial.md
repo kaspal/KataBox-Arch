@@ -12,7 +12,7 @@ This costs about $1,918 per month. On a quiet afternoon the p95 is about 5.7 s. 
 
 ## Why the first try breaks
 
-A common first try is the same pipeline with a fixed 12 instances and no Autoscaling group. A quiet afternoon passes with a p95 near 6.5 s. During the contest, submissions soon arrive faster than 96 slots can judge them. Nothing is lost, because the Queue is deep, but the backlog grows every second, and the p95 reaches about 51 s.
+A common first try is the same pipeline with a fixed 12 instances and no Autoscaling group. A quiet afternoon passes with a p95 near 6.5 s. During the contest, submissions soon arrive faster than 96 slots can judge them. Nothing is lost, because the Queue is deep, but the backlog grows every second, and the p95 reaches about 53 s.
 
 ## Things to try
 

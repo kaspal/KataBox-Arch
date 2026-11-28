@@ -4,4 +4,4 @@ The two modes trade delay for reach. An SFU is fast but each server forwards onl
 
 In the simulator, each instance has a stream capacity: forwarded streams for an SFU, transcoded channels for an encoder. Latency is processing time for an SFU, and about three segments plus processing for an encoder. The renditions and bandwidth settings on the card describe the server but aren't used in the simulation.
 
-**How the simulator bills this.** LiveKit and mediasoup run on an SFU node at $70 a month per instance. Wowza is $250 a month per instance. AWS Elemental MediaLive is $2,190 a month per instance, a channel running all month. These are teaching prices; source to be confirmed.
+**How the simulator bills this.** LiveKit and mediasoup run on an SFU node at $70 a month per instance, the list price of an EC2 m5.large. Wowza is $250 a month per instance: its $195 monthly licence plus a server of that class, rounded down. AWS Elemental MediaLive is $2,190 a month per instance, a channel running all month at $3.00 an hour, inside the $1.99–$4.87 per channel-hour AWS quotes (list prices, us-east-1, read 2026-11-22).
