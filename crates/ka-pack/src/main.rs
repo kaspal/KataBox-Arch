@@ -22,10 +22,10 @@ const USAGE: &str = "usage:
   ka-pack validate [--run [--verbose]] [--problems a,b] [--kind problems|samples|guide|practice] [--content DIR]
   ka-pack build --out FILE [--content DIR]
   ka-pack pack HEAD.toml --problems a,b --out FILE.kbpack [--content DIR]
-  ka-pack try --problems a,b [seconds]   judge the designs only (tuning drafts; not a check)
+  ka-pack try --problems a,b [seconds]   judge the designs only, cards per test (tuning drafts; not a check)
   ka-pack migrate [--content DIR]   rewrite every .kbarch in the current format
   ka-pack challenge [--problems a,b] [--write] [--evals N]   search half-cost proofs (M8.5)
-  ka-pack seeds [--problems a,b] [n=20]   judge reference and naive on n seeds per test (H8)";
+  ka-pack seeds [--problems a,b] [--verbose] [n=20]   reference and naive on n seeds per test (H8); --verbose prints failing seeds";
 
 struct Args {
     content: PathBuf,
@@ -261,6 +261,16 @@ fn main() -> ExitCode {
                     for (i, t) in r.tests.iter().enumerate() {
                         if t.verdict == ka_judge::Verdict::Accepted {
                             ref_pass[i] += 1;
+                        } else if args.verbose {
+                            println!(
+                                "  {} seed {k} {}: reference {:?} (p95 {:.1} ms, errors {:.3}%, lost {:.0})",
+                                p.def.id,
+                                t.id,
+                                t.verdict,
+                                t.p95_ms,
+                                t.error_rate * 100.0,
+                                t.lost
+                            );
                         }
                         let l = &t.limits;
                         let mut m = 0.0f64;
@@ -339,32 +349,31 @@ fn main() -> ExitCode {
                 }
             }
             problems.retain(|p| only.contains(&p.def.id));
-            // Per card, on the first test: where the money and the load go.
+            // Per card, on every test (F4): where the money and the load go.
             for p in &problems {
-                let Some(t) = p.def.tests.first() else {
-                    continue;
-                };
-                for (name, d) in [("reference", &p.reference), ("naive", &p.naive)] {
-                    if let Ok(r) = ka_judge::run_test(&p.def, t, d, &registry) {
-                        let cards = r
-                            .nodes
-                            .iter()
-                            .map(|n| {
-                                format!(
-                                    "{} ${:.0} {:.0}%{}",
-                                    n.id,
-                                    n.cost_month,
-                                    n.utilisation * 100.0,
-                                    if n.drops > 0.0 {
-                                        format!(" drops {:.0}", n.drops)
-                                    } else {
-                                        String::new()
-                                    }
-                                )
-                            })
-                            .collect::<Vec<_>>()
-                            .join(", ");
-                        println!("  {name} cards ({}): {cards}", t.id);
+                for t in &p.def.tests {
+                    for (name, d) in [("reference", &p.reference), ("naive", &p.naive)] {
+                        if let Ok(r) = ka_judge::run_test(&p.def, t, d, &registry) {
+                            let cards = r
+                                .nodes
+                                .iter()
+                                .map(|n| {
+                                    format!(
+                                        "{} ${:.0} {:.0}%{}",
+                                        n.id,
+                                        n.cost_month,
+                                        n.utilisation * 100.0,
+                                        if n.drops > 0.0 {
+                                            format!(" drops {:.0}", n.drops)
+                                        } else {
+                                            String::new()
+                                        }
+                                    )
+                                })
+                                .collect::<Vec<_>>()
+                                .join(", ");
+                            println!("  {name} cards ({}): {cards}", t.id);
+                        }
                     }
                 }
             }

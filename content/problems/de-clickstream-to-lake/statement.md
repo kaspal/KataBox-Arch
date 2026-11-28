@@ -2,7 +2,7 @@
 
 ## The product
 
-You run a product-analytics service. Your customers put a small script on their websites, and every browser sends you its clicks in batches of about 20. You keep every click in one lake table on object storage, and your customers look at charts of their traffic: each time a chart refreshes, it runs one query over the last day of clicks. The table holds a year of clicks, about 730 GB of compressed columnar files (about 2 GB a day). Clicks may reach the table a few seconds late, but none may be lost, and a chart must not hang.
+You run a product-analytics service. Your customers put a small script on their websites, and every browser sends you its clicks in batches of about 20. You keep every click in one lake table on object storage, and your customers look at charts of their traffic: each time a chart refreshes, it runs one query over the last hour of clicks. The table holds a year of clicks, about 730 GB of compressed columnar files (about 2 GB a day, about 85 MB an hour). Clicks may reach the table a few seconds late, but none may be lost, and a chart must not hang.
 
 ## What you must meet
 
@@ -20,12 +20,13 @@ The p95 counts every request: a click batch until it is written to the table, an
 ## The traffic
 
 - **Send a batch of click events** (90%). The request may pass a load balancer and reaches your App Servers, which publish it to a Stream. A Stream Processor consumes it and writes it to the Lakehouse Table. The batch counts as done when it is in the table.
-- **Refresh a dashboard chart** (10%). The request may pass a load balancer and reaches your App Servers, which send the query to a Data Warehouse. The warehouse reads the Lakehouse Table in place (wire it to the table with a Query edge) and scans the last day of clicks. The table changes every second, so the same chart never gets a cached answer.
+- **Refresh a dashboard chart** (10%). The request may pass a load balancer and reaches your App Servers, which send the query to a Data Warehouse. The warehouse reads the Lakehouse Table in place (wire it to the table with a Query edge) and scans the last hour of clicks. The table changes every second, so the same chart never gets a cached answer.
 
 How long a scan takes depends on the table:
 
-- **Partitioning.** Without partitions, a query reads the whole year. By day, it reads only the day it needs.
-- **Files.** The Stream Processor commits small files, about 2 MB each. Without compaction, the table keeps them. With compaction, they are rewritten into files of the table's target file size. Each file costs the query time to open, whatever its size.
+- **Partitioning.** Without partitions, a query reads the whole year. By day, it reads the whole day it needs; by hour, only the hour.
+- **Files.** The Stream Processor commits small files, about 50 KB each. Without compaction, the table keeps them. With compaction, they are rewritten into files of the table's target file size. Each file costs the query time to open, whatever its size.
+- **Scan rate.** A warehouse's instances share their scan rate among the queries running at once.
 
 A dashboard gives up after 5 s (the Client's default timeout), and that refresh counts as failed. An App Server keeps its slot while it waits for the warehouse.
 

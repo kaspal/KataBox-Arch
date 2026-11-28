@@ -4,7 +4,7 @@ Calcula cuánto tarda una consulta por sí sola, sin nadie más en el almacén d
 
 ## 2
 
-El tiempo de una consulta es su sobrecarga, más los datos que lee a la velocidad de escaneo, más unos 20 ms por cada 8 archivos que abre. Con archivos pequeños manda la última parte: 2 GB en archivos de 4 MB son 512 archivos. Júntalos en archivos grandes en segundo plano, para que cada consulta abra unos pocos en vez de cientos. Después comprueba que el almacén tiene huecos suficientes para cuatro veces las consultas.
+El tiempo de una consulta es su sobrecarga, más los datos que lee a la velocidad de escaneo, más unos 20 ms por cada 8 archivos que abre. Con archivos pequeños manda la última parte: 250 MB en archivos de 500 KB son 512 archivos. Júntalos en archivos grandes en segundo plano, para que cada consulta abra unos pocos en vez de cientos. Después comprueba que el almacén tiene huecos suficientes para cuatro veces las consultas, y velocidad de escaneo total suficiente (sus instancias se la reparten) para las lecturas más grandes de un día de rebajas.
 
 ## 3
 

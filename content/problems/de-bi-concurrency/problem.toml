@@ -14,7 +14,7 @@ requires = ["warehouse"]
 peak_rps = 12
 p95_ms = 2000
 availability = 0.999
-budget_usd = 7000
+budget_usd = 11500
 
 [[request_types]]
 id = "adhoc"

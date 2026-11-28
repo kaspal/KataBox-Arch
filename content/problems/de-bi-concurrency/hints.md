@@ -1,11 +1,11 @@
 ## 1
 
-Count the warehouse's slots. 12 queries a second that take about 0.4 s each keep about 5 queries running at once, and one cluster runs 8. What happens when four times as many arrive? And what does a query that holds a slot for a whole minute do to the analysts queuing behind it?
+Count the GB the warehouse has to scan each second. 12 queries a second at 0.1 GB each, minus the few the Result cache answers, are about 1.1 GB/s, and one cluster scans 1 GB/s, shared among the queries running on it. What happens when four times as many arrive? And what does a query that scans 60 GB do to the analysts queuing behind it?
 
 ## 2
 
-Clusters multiply the slots: each one adds 8. Size them for the 9 a.m. rush, not for a normal hour. Exploration queries hold their slots for about 60 s, so on a shared warehouse a burst of them fills every slot and the analysts wait in the queue. Give the notebooks a warehouse of their own: it auto-suspends, so it costs almost nothing while nobody explores.
+Clusters multiply the scan rate: each one adds 1 GB/s and 8 slots. Size them for the 9 a.m. rush, not for a normal hour. An exploration query scans 60 GB, so on a shared warehouse even one of them holds the whole scan rate for seconds, and a burst of them leaves the analysts waiting in the queue. Give the notebooks a warehouse of their own, with enough clusters to keep up with the exploration: it auto-suspends, so it costs almost nothing while nobody explores.
 
 ## 3
 
-Set the Client's Timeout to 120,000 ms. Wire the App Server (2 Go instances) to a Snowflake Data Warehouse with 3 instances, and the Microservice (2 instances) to a second Snowflake Data Warehouse with 5 instances. Keep Concurrency per instance at 8 and Auto-suspend after at 60 s on both.
+Set the Client's Timeout to 120,000 ms. Wire the App Server (2 Go instances) to a Snowflake Data Warehouse with 5 instances, and the Microservice (2 instances) to a second Snowflake Data Warehouse with 32 instances. Keep Concurrency per instance at 8 and Auto-suspend after at 60 s on both.

@@ -57,7 +57,7 @@
         "y": 0
       },
       "props": {
-        "instances": 3
+        "instances": 5
       },
       "group_id": null
     },
@@ -71,7 +71,7 @@
         "y": 112
       },
       "props": {
-        "instances": 5
+        "instances": 32
       },
       "group_id": null
     }

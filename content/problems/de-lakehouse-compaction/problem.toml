@@ -32,7 +32,7 @@ name_es = "Lanzar una consulta interactiva sobre el día de hoy"
 share = 0.835
 route = ["edge?", "compute", "datastore:warehouse"]
 key_space = 50_000
-scan = { gb = 60, range_share = 0.0333, span_days = 30, repeat_share = 0.2, small_file_mb = 4 }
+scan = { gb = 7.5, range_share = 0.0333, span_days = 30, repeat_share = 0.2, small_file_mb = 0.5 }
 
 [[request_types]]
 id = "explore-sale"
@@ -41,7 +41,7 @@ name_es = "Lanzar una consulta interactiva sobre un día de rebajas"
 share = 0.005
 route = ["edge?", "compute", "datastore:warehouse"]
 key_space = 50_000
-scan = { gb = 78, range_share = 0.2564, span_days = 30, repeat_share = 0.2, small_file_mb = 4 }
+scan = { gb = 9.75, range_share = 0.2564, span_days = 30, repeat_share = 0.2, small_file_mb = 0.5 }
 
 [[tests]]
 id = "normal"

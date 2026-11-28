@@ -85,7 +85,7 @@
         "partitioning": "day",
         "compaction": "hourly",
         "target_file_mb": 256,
-        "stored_tb": 0.06
+        "stored_tb": 0.01
       },
       "group_id": null
     },

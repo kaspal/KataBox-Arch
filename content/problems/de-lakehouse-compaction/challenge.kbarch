@@ -1,0 +1,160 @@
+{
+  "schema_version": 4,
+  "id": "de-lakehouse-compaction-challenge",
+  "name": "Interactive Queries on a Streaming Lake Table",
+  "problem_id": "de-lakehouse-compaction",
+  "nodes": [
+    {
+      "id": "client",
+      "kind": "client",
+      "flavour": "web",
+      "label": "client",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "props": {
+        "timeout_ms": 60000
+      },
+      "group_id": null
+    },
+    {
+      "id": "lb",
+      "kind": "lb",
+      "flavour": "aws_alb",
+      "label": "lb",
+      "position": {
+        "x": 304,
+        "y": 0
+      },
+      "props": {},
+      "group_id": null
+    },
+    {
+      "id": "api",
+      "kind": "app",
+      "flavour": "go",
+      "label": "api",
+      "position": {
+        "x": 608,
+        "y": 0
+      },
+      "props": {
+        "instances": 1
+      },
+      "group_id": null
+    },
+    {
+      "id": "stream",
+      "kind": "stream",
+      "flavour": "kafka",
+      "label": "stream",
+      "position": {
+        "x": 912,
+        "y": 0
+      },
+      "props": {
+        "partitions": 48
+      },
+      "group_id": null
+    },
+    {
+      "id": "flink",
+      "kind": "streamproc",
+      "flavour": "flink",
+      "label": "flink",
+      "position": {
+        "x": 912,
+        "y": 112
+      },
+      "props": {
+        "instances": 1
+      },
+      "group_id": null
+    },
+    {
+      "id": "events",
+      "kind": "lakehouse",
+      "flavour": "delta",
+      "label": "events",
+      "position": {
+        "x": 1216,
+        "y": 0
+      },
+      "props": {
+        "compaction": "hourly",
+        "partitioning": "day",
+        "stored_tb": 0.01,
+        "target_file_mb": 256
+      },
+      "group_id": null
+    },
+    {
+      "id": "wh",
+      "kind": "warehouse",
+      "flavour": "clickhouse",
+      "label": "wh",
+      "position": {
+        "x": 1216,
+        "y": 112
+      },
+      "props": {
+        "concurrency": 8,
+        "instances": 3,
+        "scan_gbps": 5
+      },
+      "group_id": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-lb-http",
+      "from": "client",
+      "to": "lb",
+      "protocol": "http"
+    },
+    {
+      "id": "e-lb-api-http",
+      "from": "lb",
+      "to": "api",
+      "protocol": "http"
+    },
+    {
+      "id": "e-api-stream-publish",
+      "from": "api",
+      "to": "stream",
+      "protocol": "publish"
+    },
+    {
+      "id": "e-stream-flink-consume",
+      "from": "stream",
+      "to": "flink",
+      "protocol": "consume"
+    },
+    {
+      "id": "e-flink-events-query",
+      "from": "flink",
+      "to": "events",
+      "protocol": "query"
+    },
+    {
+      "id": "e-api-wh-query",
+      "from": "api",
+      "to": "wh",
+      "protocol": "query"
+    },
+    {
+      "id": "e-wh-events-query",
+      "from": "wh",
+      "to": "events",
+      "protocol": "query"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

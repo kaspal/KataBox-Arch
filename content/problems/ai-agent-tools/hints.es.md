@@ -8,4 +8,4 @@ Una tarjeta Worker tiene ocupados a la vez unos (tareas por segundo) × (segundo
 
 ## 3
 
-Un Cliente web envía las tareas a un Servidor de aplicaciones Go, que las publica en una Cola Amazon SQS. Un Worker Celery con 5 Instancias y el Tiempo límite de llamada en 10 000 ms las consume y llama a una tarjeta de Inferencia de modelos API de Claude con el Límite de tokens por minuto en 2 000 000.
+Un Cliente web envía las tareas a un Servidor de aplicaciones Go, que las publica en una Cola Amazon SQS con los Reintentos máximos en 6. Un Worker Celery con 5 Instancias y el Tiempo límite de llamada en 8000 ms las consume y llama a una tarjeta de Inferencia de modelos API de Claude con el Límite de tokens por minuto en 2 000 000.

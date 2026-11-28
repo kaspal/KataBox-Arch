@@ -14,7 +14,7 @@ The data science team works on the same warehouse from notebooks. Their explorat
 | p95 latency | 2 s or less |
 | Availability | 99.9% or more |
 | Errors | 1% or less |
-| Budget | $7,000 per month, judged on a normal working hour |
+| Budget | $11,500 per month, judged on a normal working hour |
 
 ## The traffic
 
@@ -28,8 +28,8 @@ The analysts and the notebooks wait up to 120 s for an answer: set the Client's 
 The company runs Snowflake at size X-Small. On the Data Warehouse card:
 
 - **Instances** are the warehouse's clusters. Each cluster runs **Concurrency per instance** = 8 queries at once; more queries wait in the warehouse's queue, and when the queue is full, the warehouse refuses them.
-- A query takes the **Query overhead** (300 ms) plus its scan at the **Scan rate per query** (1 GB/s): about 0.4 s for an ad-hoc query and about 60 s for an exploration query.
-- Concurrency, scan rate and overhead come with the size, so keep them at 8, 1 GB/s and 300 ms. To run more queries at once, add clusters.
+- A query takes the **Query overhead** (300 ms) plus its scan at the **Scan rate per query** (1 GB/s): about 0.4 s for an ad-hoc query and about 60 s for an exploration query. The clusters share their scan rate among the queries running at once: a warehouse scans at most clusters × 1 GB/s in total, and a single query never faster than 1 GB/s.
+- Concurrency, scan rate and overhead come with the size, so keep them at 8, 1 GB/s and 300 ms. To run more queries at once, or scan more GB a second, add clusters.
 - Each cluster costs $1,460 a month if it runs all the time. The warehouse is billed only while it works: after **Auto-suspend after** (60 s) with no query, it stops billing until the next query arrives.
 
 ## The tests

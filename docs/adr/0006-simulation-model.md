@@ -514,6 +514,13 @@ before M8, and its events are scheduled only when a run uses it. Tests: `tests/m
   the usual 60–90% discount) and a `spot` event takes back only spot executors. `pass.dead_lettered` limits messages
   moved to a DLQ (the work wasn't done). Model answers fill an exact cache-aside cache in front of a Model Inference
   card, as provider answers do. Lakehouse tables have `dedup`.
+- **Follow-up F2 (warehouse concurrency).** A warehouse's instances share their scan rate among the queries running
+  on them: scans drain one pool at `instances × scan_gbps` (sampled like everything else), and a scan never runs
+  faster than one instance's `scan_gbps`. The pool is work-conserving (a backlog in GB drained since the last scan
+  started), so total throughput is the instances' rate whatever the concurrency; `concurrency` only bounds how many
+  queries hold a slot. Before, each running query got the full rate (32 year-long scans on one small instance ran
+  side by side). BigQuery on demand keeps the per-query rate: its slots aren't an instance. Chaos selectors gained
+  `flavour` and `same_flavour` in the same follow-up (F1): a provider's outage hits every key held with it.
 
 ### Determinism
 - **Math:** no `f64::ln`/`exp`/`powf` (platform libm). `ka_core::detmath` implements them with exact IEEE

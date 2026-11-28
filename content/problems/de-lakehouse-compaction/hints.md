@@ -4,7 +4,7 @@ Work out how long one query takes on its own, with nobody else in the warehouse.
 
 ## 2
 
-A query's time is its overhead, plus the data it reads at the scan rate, plus about 20 ms for every 8 files it opens. Small files make the last part dominate: 2 GB in 4 MB files is 512 files. Merge them into big files in the background, so each query opens a handful instead of hundreds. Then check that the warehouse has enough slots for four times the queries.
+A query's time is its overhead, plus the data it reads at the scan rate, plus about 20 ms for every 8 files it opens. Small files make the last part dominate: 250 MB in 500 KB files is 512 files. Merge them into big files in the background, so each query opens a handful instead of hundreds. Then check that the warehouse has enough slots for four times the queries, and enough total scan rate (its instances share it) for a sale day's bigger reads.
 
 ## 3
 

@@ -14,7 +14,7 @@ El equipo de ciencia de datos trabaja sobre el mismo almacén desde notebooks. S
 | Latencia p95 | 2 s o menos |
 | Disponibilidad | 99,9 % o más |
 | Errores | 1 % o menos |
-| Presupuesto | 7000 $ al mes, medido en una hora normal de trabajo |
+| Presupuesto | 11 500 $ al mes, medido en una hora normal de trabajo |
 
 ## El tráfico
 
@@ -28,8 +28,8 @@ Los analistas y los notebooks esperan hasta 120 s una respuesta: pon el Tiempo l
 La empresa usa Snowflake de tamaño X-Small. En la tarjeta del Almacén de datos:
 
 - Las **Instancias** son los clústeres del almacén. Cada clúster ejecuta **Concurrencia por instancia** = 8 consultas a la vez; las demás esperan en la cola del almacén, y cuando la cola se llena, el almacén las rechaza.
-- Una consulta tarda la **Sobrecarga por consulta** (300 ms) más su escaneo a la **Velocidad de escaneo por consulta** (1 GB/s): unos 0,4 s una consulta ad hoc y unos 60 s una consulta de exploración.
-- La concurrencia, la velocidad de escaneo y la sobrecarga vienen con el tamaño, así que déjalas en 8, 1 GB/s y 300 ms. Para ejecutar más consultas a la vez, añade clústeres.
+- Una consulta tarda la **Sobrecarga por consulta** (300 ms) más su escaneo a la **Velocidad de escaneo por consulta** (1 GB/s): unos 0,4 s una consulta ad hoc y unos 60 s una consulta de exploración. Los clústeres reparten su velocidad de escaneo entre las consultas que corren a la vez: un almacén escanea como mucho clústeres × 1 GB/s en total, y una sola consulta nunca a más de 1 GB/s.
+- La concurrencia, la velocidad de escaneo y la sobrecarga vienen con el tamaño, así que déjalas en 8, 1 GB/s y 300 ms. Para ejecutar más consultas a la vez, o escanear más GB por segundo, añade clústeres.
 - Cada clúster cuesta 1460 $ al mes si funciona todo el tiempo. El almacén solo se factura mientras trabaja: tras **Suspensión automática tras** (60 s) sin consultas, deja de facturar hasta que llega la siguiente consulta.
 
 ## Las pruebas

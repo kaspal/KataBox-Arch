@@ -8,4 +8,4 @@ A Worker card keeps about (tasks a second) × (seconds per task) slots busy at o
 
 ## 3
 
-A Web client sends tasks to a Go App Server, which publishes them to an Amazon SQS Queue. A Celery Worker with 5 Instances and the Call timeout set to 10,000 ms consumes them and calls a Claude API Model Inference card with the Tokens per minute limit at 2,000,000.
+A Web client sends tasks to a Go App Server, which publishes them to an Amazon SQS Queue with Maximum retries at 6. A Celery Worker with 5 Instances and the Call timeout set to 8,000 ms consumes them and calls a Claude API Model Inference card with the Tokens per minute limit at 2,000,000.

@@ -81,7 +81,7 @@
         "y": 0
       },
       "props": {
-        "partitioning": "day",
+        "partitioning": "hour",
         "compaction": "hourly",
         "target_file_mb": 256,
         "stored_tb": 0.73

@@ -39,7 +39,9 @@
         "x": 912,
         "y": 0
       },
-      "props": {},
+      "props": {
+        "max_retries": 6
+      },
       "group_id": null
     },
     {
@@ -53,7 +55,7 @@
       },
       "props": {
         "instances": 5,
-        "call_timeout_ms": 10000
+        "call_timeout_ms": 8000
       },
       "group_id": null
     },

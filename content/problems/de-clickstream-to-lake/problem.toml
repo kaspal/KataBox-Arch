@@ -32,7 +32,7 @@ name_es = "Refrescar un gráfico del panel"
 share = 0.1
 route = ["edge?", "compute", "datastore:warehouse"]
 key_space = 20_000
-scan = { gb = 730, range_share = 0.00274, span_days = 365, small_file_mb = 2 }
+scan = { gb = 730, range_share = 0.000114, span_days = 365, small_file_mb = 0.05 }
 
 [[tests]]
 id = "normal"
