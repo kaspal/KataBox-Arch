@@ -318,6 +318,9 @@ struct NodeRt {
     drop_series: Vec<f64>,
     rr: usize,
     warm: u32,
+    /// F2 warehouses: scan work (GB, sampled) not yet done by the instances, as of `scan_at`.
+    scan_backlog_gb: f64,
+    scan_at: u64,
     /// S8: the share of this card's instances running a bad build or config, what they do
     /// wrong, and whether its LB health checks have ejected it for being overloaded.
     faulty: f64,
@@ -4227,7 +4230,8 @@ impl Engine {
     /// S6: a scan. Data scanned = the query's `gb`, pruned by a lake table's partitioning
     /// (day: what its time range needs, at least a day; hour: just its range); a table
     /// without compaction holds small files. Time = overhead + scanned ÷ scan rate + 20 ms per
-    /// file over 8 parallel readers. A warehouse's result cache answers a repeat in a tenth of
+    /// file over 8 parallel readers; a warehouse instance's scan rate is shared by its running
+    /// queries (F2). A warehouse's result cache answers a repeat in a tenth of
     /// the overhead. A batch task reading a table splits the scan over the job's tasks.
     fn scan_us(&mut self, r: u32, node: u32, scan: ka_core::scenario::Scan) -> u64 {
         let n = &self.c.nodes[node as usize];
@@ -4268,7 +4272,22 @@ impl Engine {
             return ((overhead_s / 10.0) * 1e6) as u64 + 1;
         }
         let files = scanned * 1024.0 / file_mb.max(1e-3);
-        let secs = overhead_s + scanned / spec.scan_gbps + files * SCAN_FILE_S / 8.0;
+        // F2: a warehouse's instances share their scan rate among the queries running on
+        // them: scans drain one pool at instances × scan rate (work-conserving), and a scan
+        // never runs faster than one instance's rate. BigQuery's on-demand slots are not an
+        // instance and keep the per-query rate.
+        let mut scan_s = scanned / spec.scan_gbps;
+        if n.kind == ComponentKind::Warehouse && n.flavour != ka_core::Flavour::Bigquery {
+            let now = self.now;
+            let sample = self.c.sample;
+            let rt = &mut self.nodes[node as usize];
+            let pool = rt.instances.max(1.0) * spec.scan_gbps * sample;
+            let el = now.saturating_sub(rt.scan_at) as f64 / 1e6;
+            rt.scan_backlog_gb = (rt.scan_backlog_gb - pool * el).max(0.0) + scanned;
+            rt.scan_at = now;
+            scan_s = scan_s.max(rt.scan_backlog_gb / pool);
+        }
+        let secs = overhead_s + scan_s + files * SCAN_FILE_S / 8.0;
         let w = self.c.weight;
         self.nodes[node as usize].bill_tb += scanned / 1024.0 * w;
         (secs * 1e6 * self.nodes[node as usize].stretch) as u64

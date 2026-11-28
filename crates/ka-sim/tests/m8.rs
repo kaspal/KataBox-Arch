@@ -1563,6 +1563,37 @@ fn s6_auto_suspend_bills_busy_time() {
     assert!(wh > 0.0);
 }
 
+/// F2: a warehouse's instances share their scan rate among the queries running on them, so
+/// more queries at once than the rate covers wait for each other; BigQuery (no instances)
+/// keeps the per-query rate.
+#[test]
+fn f2_running_queries_share_a_warehouse_scan_rate() {
+    // 4 instances, 20 GB per report: one at a time takes ~20 s; 0.5 a second asks for more
+    // than the instances scan together, so reports pile up past the client's 60 s timeout.
+    let at = |flavour: Flavour, rps: f64| {
+        let (d, mut s) = lake("none", "daily", flavour, 0.0);
+        s.peak_rps = rps;
+        s.duration_s = 600.0;
+        run(&d, &s, 105)
+    };
+    let (alone, crowded) = (at(Flavour::Snowflake, 0.02), at(Flavour::Snowflake, 0.5));
+    assert_eq!(alone.errors, 0.0);
+    assert!(
+        p50(&alone) > 10_000.0 && p50(&alone) < 40_000.0,
+        "{}",
+        p50(&alone)
+    );
+    assert!(crowded.errors > 0.3 * 0.5 * 600.0, "{}", crowded.errors);
+    let (alone, crowded) = (at(Flavour::Bigquery, 0.02), at(Flavour::Bigquery, 0.5));
+    assert_eq!(crowded.errors, 0.0);
+    assert!(
+        p50(&crowded) < 1.5 * p50(&alone),
+        "{} vs {}",
+        p50(&crowded),
+        p50(&alone)
+    );
+}
+
 #[test]
 fn golden_j_scans() {
     let (d, s) = lake("day", "none", Flavour::Bigquery, 0.3);
