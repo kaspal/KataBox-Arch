@@ -68,7 +68,7 @@ name = "The model provider is overloaded for 20 s"
 name_es = "El proveedor del modelo se satura durante 20 s"
 hidden = true
 duration_s = 90
-chaos = [{ kill = { kind = "infer", at = 20, for = 20 } }]
+chaos = [{ kill = { kind = "infer", same_flavour = true, at = 20, for = 20 } }]
 pass = { error_rate = 0.02, availability = 0.98 }
 
 [[tests]]
@@ -77,7 +77,7 @@ name = "The model provider cuts your limit for 40 s"
 name_es = "El proveedor del modelo te recorta el límite durante 40 s"
 hidden = true
 duration_s = 90
-chaos = [{ model_rate = { kind = "infer", at = 20, for = 40, tpm = 50000 } }]
+chaos = [{ model_rate = { kind = "infer", same_flavour = true, at = 20, for = 40, tpm = 50000 } }]
 pass = { error_rate = 0.02, availability = 0.98 }
 
 [pass]

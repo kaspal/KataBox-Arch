@@ -3700,9 +3700,9 @@ impl Engine {
 // --- Chaos, health checks, failover, autoscaling (M1.5) ------------------------------------
 
 impl Engine {
-    /// The cards a selector names now: by id, or by kind and cluster role; the first in the
-    /// design file's order (creation order, which a player doesn't pick by naming cards)
-    /// unless `all`.
+    /// The cards a selector names now: by id, or by kind, flavour and cluster role; the first
+    /// in the design file's order (creation order, which a player doesn't pick by naming
+    /// cards) unless `all`, or every match of the first match's flavour with `same_flavour`.
     fn resolve(&self, sel: &ka_core::scenario::Selector) -> Vec<u32> {
         use ka_core::scenario::Role as R;
         let mut hits: Vec<u32> = (0..self.c.nodes.len() as u32)
@@ -3712,6 +3712,9 @@ impl Engine {
                     return &n.id == id;
                 }
                 if sel.kind.is_some_and(|k| k != n.kind) {
+                    return false;
+                }
+                if sel.flavour.is_some_and(|f| f != n.flavour) {
                     return false;
                 }
                 let primary = match self.c.cluster_of[i as usize] {
@@ -3725,7 +3728,13 @@ impl Engine {
                 }
             })
             .collect();
-        if !sel.all {
+        if sel.same_flavour && !sel.all {
+            // Every match of the first match's flavour (F1), still in file order.
+            if let Some(&first) = hits.first() {
+                let f = self.c.nodes[first as usize].flavour;
+                hits.retain(|&i| self.c.nodes[i as usize].flavour == f);
+            }
+        } else if !sel.all {
             hits.truncate(1);
         }
         hits

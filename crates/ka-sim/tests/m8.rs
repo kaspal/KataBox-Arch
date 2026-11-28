@@ -2261,13 +2261,53 @@ fn a_kind_selector_follows_file_order_not_names() {
         vec![rtype("q", 1.0, &["compute", "datastore"])],
     );
     s.chaos = vec![chaos(serde_json::json!(
-        { "kill": { "target": { "kind": "nosql" }, "at": 2.0 } }
+        { "kill": { "kind": "nosql", "at": 2.0 } }
     ))];
     let named_a = run(&build("zeta", "alpha"), &s, 3);
     let named_b = run(&build("alpha", "zeta"), &s, 3);
     // The first card in the file is the one killed, whatever it is called.
     assert!(served(&named_a, "zeta") < served(&named_a, "alpha"));
     assert!(served(&named_b, "alpha") < served(&named_b, "zeta"));
+}
+
+/// F1: `flavour` narrows a selector to one product, and `same_flavour` hits every card of the
+/// first match's flavour (every key held at a provider), in file order.
+#[test]
+fn f1_selectors_pick_by_flavour_and_same_flavour() {
+    let d = design(
+        vec![
+            node("client", K::Client, Flavour::Web, &[]),
+            node("lb", K::Lb, Flavour::Nginx, &[]),
+            node("go-a", K::App, Flavour::Go, &[]),
+            node("node", K::App, Flavour::Nodejs, &[]),
+            node("go-b", K::App, Flavour::Go, &[]),
+        ],
+        vec![
+            edge("client", "lb", Protocol::Http),
+            edge("lb", "go-a", Protocol::Http),
+            edge("lb", "node", Protocol::Http),
+            edge("lb", "go-b", Protocol::Http),
+        ],
+    );
+    let s = scenario(100.0, 20.0, vec![rtype("q", 1.0, &["edge", "compute"])]);
+    let base = run(&d, &s, 3);
+    let killed = |sel: serde_json::Value| {
+        let mut s = s.clone();
+        let mut kill = sel;
+        kill["at"] = serde_json::json!(2.0);
+        s.chaos = vec![chaos(serde_json::json!({ "kill": kill }))];
+        run(&d, &s, 3)
+    };
+    let down = |r: &RunResult, id: &str| served(r, id) < 0.5 * served(&base, id);
+    // Every Go card goes down (the first match's flavour); Node.js keeps serving.
+    let same = killed(serde_json::json!({ "kind": "app", "same_flavour": true }));
+    assert!(down(&same, "go-a") && down(&same, "go-b") && !down(&same, "node"));
+    // `flavour` narrows the match to Node.js.
+    let one = killed(serde_json::json!({ "kind": "app", "flavour": "nodejs" }));
+    assert!(down(&one, "node") && !down(&one, "go-a") && !down(&one, "go-b"));
+    // Without either, the first card only (unchanged).
+    let first = killed(serde_json::json!({ "kind": "app" }));
+    assert!(down(&first, "go-a") && !down(&first, "go-b") && !down(&first, "node"));
 }
 
 // --- H4: quorum locks through the caller's side, re-election, stale leases, fencing ----------

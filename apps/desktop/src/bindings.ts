@@ -1874,6 +1874,16 @@ export type Selector = { id?: string | null; kind?: ComponentKind | null;
  */
 role?: Role | null; 
 /**
+ * Only cards of this flavour (a provider, a product): `kind` + `flavour` picks e.g. the
+ * first Claude API key placed.
+ */
+flavour?: Flavour | null; 
+/**
+ * Every matching card with the first match's flavour (F1): a provider outage or limit
+ * cut hits every key held at that provider, not one card.
+ */
+same_flavour?: boolean; 
+/**
  * Every matching card instead of the first (in id order).
  */
 all?: boolean }

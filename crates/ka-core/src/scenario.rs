@@ -392,6 +392,14 @@ pub struct Selector {
     /// For data clusters: the current primary, a replica, or any member.
     #[serde(default)]
     pub role: Option<Role>,
+    /// Only cards of this flavour (a provider, a product): `kind` + `flavour` picks e.g. the
+    /// first Claude API key placed.
+    #[serde(default)]
+    pub flavour: Option<crate::registry::Flavour>,
+    /// Every matching card with the first match's flavour (F1): a provider outage or limit
+    /// cut hits every key held at that provider, not one card.
+    #[serde(default)]
+    pub same_flavour: bool,
     /// Every matching card instead of the first (in id order).
     #[serde(default)]
     pub all: bool,
