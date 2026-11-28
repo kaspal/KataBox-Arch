@@ -22,7 +22,7 @@
       "flavour": "go",
       "label": "app",
       "position": {
-        "x": 608,
+        "x": 304,
         "y": 0
       },
       "props": {
@@ -36,7 +36,7 @@
       "flavour": "rabbitmq",
       "label": "queue",
       "position": {
-        "x": 912,
+        "x": 608,
         "y": 0
       },
       "props": {
@@ -51,7 +51,7 @@
       "flavour": "celery",
       "label": "workers",
       "position": {
-        "x": 608,
+        "x": 304,
         "y": 112
       },
       "props": {
@@ -67,7 +67,7 @@
       "flavour": "s3",
       "label": "store",
       "position": {
-        "x": 1216,
+        "x": 912,
         "y": 0
       },
       "props": {},

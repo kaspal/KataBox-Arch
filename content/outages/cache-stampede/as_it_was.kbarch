@@ -50,7 +50,7 @@
       "flavour": "redis",
       "label": "cache",
       "position": {
-        "x": 1216,
+        "x": 912,
         "y": 0
       },
       "props": {
@@ -65,7 +65,7 @@
       "flavour": "postgresql",
       "label": "db",
       "position": {
-        "x": 1216,
+        "x": 912,
         "y": 112
       },
       "props": {

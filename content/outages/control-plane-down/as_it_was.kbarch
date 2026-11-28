@@ -66,7 +66,7 @@
       "flavour": "dynamodb",
       "label": "db",
       "position": {
-        "x": 1216,
+        "x": 912,
         "y": 0
       },
       "props": {},
@@ -115,7 +115,7 @@
         "y": -40
       },
       "size": {
-        "w": 1168,
+        "w": 864,
         "h": 240
       },
       "parent_id": null

@@ -76,7 +76,7 @@
       "flavour": "postgresql",
       "label": "db-us",
       "position": {
-        "x": 1216,
+        "x": 912,
         "y": 0
       },
       "props": {
@@ -90,7 +90,7 @@
       "flavour": "postgresql",
       "label": "db-eu",
       "position": {
-        "x": 1216,
+        "x": 912,
         "y": 112
       },
       "props": {
@@ -104,7 +104,7 @@
       "flavour": "postgresql",
       "label": "db-ap",
       "position": {
-        "x": 1216,
+        "x": 912,
         "y": 224
       },
       "props": {
@@ -118,8 +118,8 @@
       "flavour": "launchdarkly",
       "label": "flags",
       "position": {
-        "x": 1520,
-        "y": 0
+        "x": 304,
+        "y": 336
       },
       "props": {
         "staged": false,
@@ -200,7 +200,7 @@
         "y": -40
       },
       "size": {
-        "w": 864,
+        "w": 560,
         "h": 128
       },
       "parent_id": null
@@ -214,7 +214,7 @@
         "y": 72
       },
       "size": {
-        "w": 864,
+        "w": 560,
         "h": 128
       },
       "parent_id": null
@@ -228,7 +228,7 @@
         "y": 184
       },
       "size": {
-        "w": 864,
+        "w": 560,
         "h": 128
       },
       "parent_id": null

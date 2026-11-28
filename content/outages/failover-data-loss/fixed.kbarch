@@ -36,7 +36,7 @@
       "flavour": "postgresql",
       "label": "db-a",
       "position": {
-        "x": 1216,
+        "x": 912,
         "y": 0
       },
       "props": {
@@ -52,7 +52,7 @@
       "flavour": "postgresql",
       "label": "db-b",
       "position": {
-        "x": 1216,
+        "x": 912,
         "y": 112
       },
       "props": {
@@ -68,7 +68,7 @@
       "flavour": "postgresql",
       "label": "db-c",
       "position": {
-        "x": 1216,
+        "x": 912,
         "y": 224
       },
       "props": {
@@ -115,7 +115,7 @@
         "y": -40
       },
       "size": {
-        "w": 864,
+        "w": 560,
         "h": 128
       },
       "parent_id": null
@@ -125,7 +125,7 @@
       "kind": "az",
       "label": "AZ-b",
       "position": {
-        "x": 1192,
+        "x": 888,
         "y": 72
       },
       "size": {
@@ -139,7 +139,7 @@
       "kind": "az",
       "label": "AZ-c",
       "position": {
-        "x": 1192,
+        "x": 888,
         "y": 184
       },
       "size": {
