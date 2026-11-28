@@ -15,7 +15,7 @@ Tiene tres clientes. Los servidores de modelos leen las características de un u
 | Disponibilidad | 99,9 % o más |
 | Errores | 0,1 % o menos |
 | Actualizaciones perdidas | 0 |
-| Presupuesto | 4000 $ al mes |
+| Presupuesto | 8400 $ al mes |
 
 ## El tráfico
 
@@ -23,7 +23,7 @@ Tiene tres clientes. Los servidores de modelos leen las características de un u
 - **Actualizar las características de un usuario con un evento** (19,8 %). Un App Server publica el evento en un Stream. Un procesador de streams lo consume y escribe las nuevas características del usuario en el almacén en línea: un almacén NoSQL, o una caché en la que se escribe directamente. Esta latencia se mide hasta completar: desde el evento hasta que el almacén en línea tiene las nuevas características. Es lo frescas que están las características. Los eventos siguen la misma popularidad que las lecturas.
 - **Leer características para entrenar** (0,2 %). Un trabajo de entrenamiento pide al servicio de características offline, un microservicio, que lanza una consulta en el almacén de datos que recorre unos 0,5 GB de histórico.
 
-El almacén de datos (Snowflake por defecto) dedica unos 300 ms a cada consulta antes de leer ningún dato, más el recorrido: unos 0,5 s más para una lectura de entrenamiento, a 1 GB/s. Cada instancia ejecuta 8 consultas a la vez («Concurrencia por instancia»); el resto espera en su cola. Snowflake solo cobra una instancia mientras está en marcha, más su tiempo de suspensión automática.
+El almacén de datos (Snowflake por defecto) dedica unos 300 ms a cada consulta antes de leer ningún dato, más el recorrido: unos 0,5 s más para una lectura de entrenamiento, a 1 GB/s. Cada instancia ejecuta 8 consultas a la vez («Concurrencia por instancia»); el resto espera en su cola. Una instancia recorre 1 GB/s en total, repartido entre las consultas que ejecuta a la vez. Snowflake solo cobra una instancia mientras está en marcha, más su tiempo de suspensión automática.
 
 Un Stream entrega un registro por partición cada vez, y un hueco del procesador de streams retiene un registro hasta que termina su escritura en el almacén en línea. Cuántos registros hay en curso a la vez es lo menor entre las particiones del Stream y los huecos del procesador de streams (instancias × concurrencia por instancia).
 

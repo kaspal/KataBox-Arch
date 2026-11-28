@@ -8,4 +8,4 @@ A Cache in front of the warehouse only helps the users who come back within its 
 
 ## 3
 
-Put an AWS ALB in front of 2 Go App Servers and a Generic Microservice for the training reads. The App Servers read from a ScyllaDB NoSQL Store with 1 partition and publish events to an Apache Kafka Stream with 32 partitions. Apache Flink, 4 instances with a concurrency of 8 (32 slots), consumes the Stream and writes to the same ScyllaDB. The Microservice queries a Snowflake Data Warehouse with 1 instance.
+Put an AWS ALB in front of 2 Go App Servers and a Generic Microservice for the training reads. The App Servers read from a ScyllaDB NoSQL Store with 1 partition and publish events to an Apache Kafka Stream with 32 partitions. Apache Flink, 4 instances with a concurrency of 8 (32 slots), consumes the Stream and writes to the same ScyllaDB. The Microservice queries a Snowflake Data Warehouse with 3 instances, enough scanning for three times the training reads.

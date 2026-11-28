@@ -16,7 +16,7 @@ Los contratos de tus usuarios de la UE dicen dónde se pueden guardar sus datos:
 | Errores | 1 % o menos |
 | Eventos perdidos | ninguno |
 | Datos de la UE guardados fuera de la UE | nunca (0 infracciones de residencia) |
-| Presupuesto | 13 500 $ al mes |
+| Presupuesto | 21 500 $ al mes |
 
 ## El tráfico
 
@@ -26,7 +26,7 @@ Los contratos de tus usuarios de la UE dicen dónde se pueden guardar sus datos:
 
 Los dos tipos de evento siguen el mismo camino. La petición puede pasar por una tarjeta DNS y un balanceador de carga y llega a tus colectores (App Servers), que publican el evento (unos 2 KB) en un stream y responden. Un procesador de streams lo consume, lee el registro de consentimiento del usuario en un Almacén NoSQL y escribe el evento en una Tabla lakehouse. La latencia de un evento dura hasta que está en el lago.
 
-Una carga del panel llega a un App Server que consulta un Almacén de datos con los agregados; cada carga escanea unos 2 GB, y un 30 % más o menos repite una consulta reciente. El trabajo que construye los agregados cada hora no forma parte de las pruebas.
+Una carga del panel llega a un App Server que consulta un Almacén de datos con los agregados; cada carga escanea unos 1 GB, y un 30 % más o menos repite una consulta reciente. Las instancias de un almacén de datos reparten su velocidad de escaneo entre las consultas que se ejecutan a la vez. El trabajo que construye los agregados cada hora no forma parte de las pruebas.
 
 ## Regiones y residencia
 

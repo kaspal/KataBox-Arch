@@ -14,7 +14,7 @@ requires = ["warehouse"]
 peak_rps = 20
 p95_ms = 2000
 availability = 0.999
-budget_usd = 2000
+budget_usd = 8500
 
 [[request_types]]
 id = "tile"

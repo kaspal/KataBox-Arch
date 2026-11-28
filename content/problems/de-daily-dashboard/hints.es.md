@@ -4,8 +4,8 @@ A las 9 de la mañana el tráfico se multiplica por diez, pero el panel no: sigu
 
 ## 2
 
-La Caché de resultados ya responde las repeticiones, pero cada consulta sigue yendo al almacén, y el 40 % recorre datos durante 0,8 s. Una caché delante, con el recuadro como clave, convierte la avalancha en unos cientos de consultas como mucho, sea cual sea el tráfico. Cuando la caché empieza vacía, mucha gente pide el mismo recuadro que falta en el mismo momento: haz que esperen a una sola consulta en lugar de lanzar cada uno la suya.
+La Caché de resultados ya responde las repeticiones, pero cada consulta sigue yendo al almacén, y el 40 % recorre 0,5 GB, algo que un clúster solo puede hacer dos veces por segundo. Una caché delante, con el recuadro como clave, convierte la avalancha en unos cientos de consultas como mucho, sea cual sea el tráfico. Cuando la caché empieza vacía, mucha gente pide el mismo recuadro que falta en el mismo momento: haz que esperen a una sola consulta en lugar de lanzar cada uno la suya.
 
 ## 3
 
-Pon un AWS ALB delante de 2 Servidores de aplicaciones Go. Conéctalos a una Caché Redis con un TTL de 600 s y "Agrupar fallos (protección de estampida)" activado, y a un Almacén de datos Snowflake con sus valores por defecto (1 clúster, Caché de resultados activada).
+Pon un AWS ALB delante de 2 Servidores de aplicaciones Go. Conéctalos a una Caché Redis con un TTL de 600 s y "Agrupar fallos (protección de estampida)" activado, y a un Almacén de datos Snowflake con 5 clústeres (Instancias 5) y sus demás valores por defecto (Caché de resultados activada): el arranque en frío de las 9 de la mañana necesita ese escaneo durante unos segundos.

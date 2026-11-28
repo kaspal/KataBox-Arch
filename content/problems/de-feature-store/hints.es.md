@@ -8,4 +8,4 @@ Una caché delante del almacén de datos solo ayuda con los usuarios que vuelven
 
 ## 3
 
-Pon un AWS ALB delante de 2 App Servers Go y de un microservicio Genérico para las lecturas de entrenamiento. Los App Servers leen de un almacén NoSQL ScyllaDB con 1 partición y publican los eventos en un Stream Apache Kafka con 32 particiones. Apache Flink, 4 instancias con una concurrencia de 8 (32 huecos), consume el Stream y escribe en el mismo ScyllaDB. El microservicio consulta un almacén de datos Snowflake con 1 instancia.
+Pon un AWS ALB delante de 2 App Servers Go y de un microservicio Genérico para las lecturas de entrenamiento. Los App Servers leen de un almacén NoSQL ScyllaDB con 1 partición y publican los eventos en un Stream Apache Kafka con 32 particiones. Apache Flink, 4 instancias con una concurrencia de 8 (32 huecos), consume el Stream y escribe en el mismo ScyllaDB. El microservicio consulta un almacén de datos Snowflake con 3 instancias, escaneo suficiente para el triple de lecturas de entrenamiento.

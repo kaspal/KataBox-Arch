@@ -14,7 +14,7 @@ requires = ["streamproc"]
 peak_rps = 1000
 p95_ms = 50
 availability = 0.999
-budget_usd = 4000
+budget_usd = 8400
 
 [[request_types]]
 id = "online"

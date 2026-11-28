@@ -108,7 +108,9 @@
         "x": 1216,
         "y": 112
       },
-      "props": {},
+      "props": {
+        "instances": 3
+      },
       "group_id": null
     }
   ],

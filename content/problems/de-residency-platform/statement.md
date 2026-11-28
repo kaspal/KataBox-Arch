@@ -16,7 +16,7 @@ Your EU users' contracts say where their data may be kept: **an EU user's raw ev
 | Errors | 1% or less |
 | Events lost | none |
 | EU data stored outside the EU | never (0 residency violations) |
-| Budget | $13,500 per month |
+| Budget | $21,500 per month |
 
 ## The traffic
 
@@ -26,7 +26,7 @@ Your EU users' contracts say where their data may be kept: **an EU user's raw ev
 
 Both kinds of event go the same way. The request may pass a DNS card and a load balancer and reaches your collectors (App Servers), which publish the event (about 2 KB) to a stream and answer. A Stream Processor consumes it, reads the user's consent record from a NoSQL Store, and writes the event to a Lakehouse Table. An event's latency runs until it is in the lake.
 
-A dashboard load reaches an App Server that queries a Data Warehouse holding the aggregates; each load scans about 2 GB, and about 30% repeat a recent query. The job that builds the aggregates every hour is not part of the tests.
+A dashboard load reaches an App Server that queries a Data Warehouse holding the aggregates; each load scans about 1 GB, and about 30% repeat a recent query. A warehouse's instances share their scan rate among the queries running at once. The job that builds the aggregates every hour is not part of the tests.
 
 ## Regions and residency
 

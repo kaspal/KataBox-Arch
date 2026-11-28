@@ -15,7 +15,7 @@ It has three customers. The model servers read one user's features for every pre
 | Availability | 99.9% or more |
 | Errors | 0.1% or less |
 | Lost updates | 0 |
-| Budget | $4,000 per month |
+| Budget | $8,400 per month |
 
 ## The traffic
 
@@ -23,7 +23,7 @@ It has three customers. The model servers read one user's features for every pre
 - **Update a user's features from an event** (19.8%). An App Server publishes the event to a Stream. A Stream Processor consumes it and writes the user's new features to the online store: a NoSQL Store, or a Cache written directly. This latency is measured to completion: from the event until the online store has the new features. It is how fresh the features are. Events follow the same popularity as the reads.
 - **Read training features** (0.2%). A training job asks the offline feature service, a Microservice, which runs a query in the Data Warehouse that scans about 0.5 GB of history.
 
-The Data Warehouse (Snowflake by default) spends about 300 ms on every query before it reads any data, plus the scan: about 0.5 s more for a training read, at 1 GB/s. Each instance runs 8 queries at a time ("Concurrency per instance"); the rest wait in its queue. Snowflake bills an instance only while it is running, plus its auto-suspend time.
+The Data Warehouse (Snowflake by default) spends about 300 ms on every query before it reads any data, plus the scan: about 0.5 s more for a training read, at 1 GB/s. Each instance runs 8 queries at a time ("Concurrency per instance"); the rest wait in its queue. An instance scans 1 GB/s in all, shared among the queries running on it at once. Snowflake bills an instance only while it is running, plus its auto-suspend time.
 
 A Stream hands out one record per partition at a time, and a Stream Processor's slot holds a record until its write to the online store is done. How many records are in flight at once is the smaller of the Stream's partitions and the Stream Processor's slots (instances × concurrency per instance).
 

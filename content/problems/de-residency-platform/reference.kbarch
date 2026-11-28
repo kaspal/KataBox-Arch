@@ -232,7 +232,9 @@
         "x": 1216,
         "y": 448
       },
-      "props": {},
+      "props": {
+        "instances": 4
+      },
       "group_id": "use"
     }
   ],
