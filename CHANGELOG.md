@@ -148,6 +148,14 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
     English and Spanish.
 
 ### Changed
+- **A warehouse's instances share their scan rate** among the queries running at once (BigQuery on demand
+  excepted). DE 2, 3, 9, 10, 14 and 17 were re-sized for it; DE 2 and DE 9 gained a cost challenge.
+- **Chaos tests can target a provider:** a model provider's outage or limit cut in AI 1 hits every key held with
+  it, and DE 17 also loses the other EU Region.
+- AI 13 and Web Search references hold their tests with a wider margin across seeds; replays fit the canvas at
+  0.8 zoom; the Inspector hides a hosted model's GPU settings and shows problem-set limits disabled.
+- `PRIVACY.md`, `SECURITY.md` and `CONTRIBUTING.md`; the user guide covers 85 problems, tracks, replays and cost
+  challenges.
 - **Prices are list prices** (us-east-1, on demand) for DNS, SQS, RabbitMQ, Kafka (MSK), Kinesis, SNS, Google
   Pub/Sub, Redis Pub/Sub, S3, GCS, DynamoDB, Cassandra and MongoDB, each cited in `docs/calibration.md`: reads and
   writes are priced apart, shards and partitions where the product bills them, and DNS only for the queries that
@@ -168,6 +176,7 @@ All notable changes to KataBox Arch are recorded in this file. The format follow
   - The Inspector tags these figures as "ballpark" or "cited", in place of the old "placeholders" note.
 
 ### Fixed
+- Inside a problem, the run's test picker could be empty after a remount, and Run then played a Sandbox preset.
 - Saving a design failed after the format moved to version 2 (the editor still wrote version 1).
 - A layout loop that re-measured the canvas every frame whenever zones or notes were on screen.
 - React Flow's "parent container needs a width and a height" warning when opening the Sandbox.
