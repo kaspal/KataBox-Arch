@@ -1141,7 +1141,12 @@ cost: Cost;
 /**
  * Behaviour without a prop; None for kinds never on a request's path.
  */
-sim: SimDefaults | null }
+sim: SimDefaults | null; 
+/**
+ * Props of the kind that mean nothing for this flavour (F5: a hosted model has no GPU
+ * instances or batch slots); the Inspector hides them and the simulator ignores them.
+ */
+hidden_props?: string[] }
 export type FlavoursCompared = { flavours: Flavour[]; rows: CompareRow[] }
 /**
  * One row of the Find-the-flaw list.

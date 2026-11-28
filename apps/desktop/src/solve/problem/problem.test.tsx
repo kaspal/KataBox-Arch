@@ -236,10 +236,27 @@ describe("pinned model limits (H2)", () => {
     const pinned = await screen.findAllByTestId("prop-pinned");
     expect(pinned.map((p) => (p as HTMLInputElement).value)).toEqual(["4000", "400000"]);
     expect(pinned[0]).toHaveAttribute("readonly");
+    expect(pinned[0]).toBeDisabled();
     expect(screen.getAllByText("set by the problem")).toHaveLength(2);
+    // F5: a hosted model has no GPU instances or batch slots to set.
+    const inspector = screen.getByTestId("inspector-node");
+    expect(within(inspector).queryByText("Instances")).not.toBeInTheDocument();
+    expect(within(inspector).queryByText("Batch slots per GPU")).not.toBeInTheDocument();
     // Another provider's card keeps its own, editable limits.
     act(() => useEditor.getState().setSelection(["m2"]));
     await waitFor(() => expect(screen.queryByTestId("prop-pinned")).not.toBeInTheDocument());
+  });
+});
+
+describe("the run's test picker (F5)", () => {
+  it("shows and runs the first visible test when none is chosen", async () => {
+    renderApp("/problems/url-shortener");
+    await screen.findByTestId("brief");
+    act(() => useRun.getState().setProblemTest(null));
+    const picker = await screen.findByRole("combobox", { name: "Test to run" });
+    const brief = await fake().api.problemBrief("url-shortener");
+    const first = brief.tests.find((x) => !x.hidden) ?? brief.tests[0];
+    expect(picker).toHaveTextContent(first.name);
   });
 });
 

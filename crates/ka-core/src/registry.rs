@@ -998,6 +998,10 @@ pub struct FlavourSpec {
     pub cost: Cost,
     /// Behaviour without a prop; None for kinds never on a request's path.
     pub sim: Option<SimDefaults>,
+    /// Props of the kind that mean nothing for this flavour (F5: a hosted model has no GPU
+    /// instances or batch slots); the Inspector hides them and the simulator ignores them.
+    #[serde(default)]
+    pub hidden_props: Vec<String>,
 }
 
 /// A flavour's monthly price (ADR 0006): per instance (or per card), per shard or partition,
@@ -1549,6 +1553,7 @@ fn fl(flavour: Flavour) -> FlavourSpec {
         overrides: Vec::new(),
         cost: Cost::default(),
         sim: None,
+        hidden_props: Vec::new(),
     }
 }
 
@@ -1564,7 +1569,14 @@ fn fl_with(flavour: Flavour, overrides: &[(&str, PropValue)]) -> FlavourSpec {
             .collect(),
         cost: Cost::default(),
         sim: None,
+        hidden_props: Vec::new(),
     }
+}
+
+/// F5: a hosted model API: the provider's GPUs, so no instances or batch slots to set.
+fn hosted(mut f: FlavourSpec) -> FlavourSpec {
+    f.hidden_props = vec!["instances".into(), "batch_slots".into()];
+    f
 }
 
 fn num(v: f64) -> PropValue {
@@ -1887,16 +1899,16 @@ pub fn registry() -> Registry {
         kind(
             K::Infer,
             vec![
-                fl(F::ClaudeApi),
-                fl_with(
+                hosted(fl(F::ClaudeApi)),
+                hosted(fl_with(
                     F::OpenaiApi,
                     &[("ttft_ms", num(890.0)), ("tokens_per_s", num(65.0))],
-                ),
-                fl(F::Bedrock),
-                fl_with(
+                )),
+                hosted(fl(F::Bedrock)),
+                hosted(fl_with(
                     F::GeminiApi,
                     &[("ttft_ms", num(1_000.0)), ("tokens_per_s", num(120.0))],
-                ),
+                )),
                 // H1: the cited 100 tokens/s is a hosted API's stream; a self-hosted GPU stream
                 // keeps its own figure.
                 fl_with(
@@ -2501,6 +2513,35 @@ mod tests {
             // The serde name is the id the UI and the files use.
             assert_eq!(serde_json::to_value(k.kind).unwrap(), k.kind.id());
         }
+    }
+
+    #[test]
+    fn hidden_props_name_props_of_the_kind() {
+        let r = registry();
+        for k in &r.kinds {
+            for f in &k.flavours {
+                for h in &f.hidden_props {
+                    assert!(k.props.iter().any(|p| &p.key == h), "{:?} {h}", f.flavour);
+                }
+            }
+        }
+        let infer = r
+            .kinds
+            .iter()
+            .find(|k| k.kind == ComponentKind::Infer)
+            .unwrap();
+        let claude = infer
+            .flavours
+            .iter()
+            .find(|f| f.flavour == Flavour::ClaudeApi)
+            .unwrap();
+        assert_eq!(claude.hidden_props, ["instances", "batch_slots"]);
+        let vllm = infer
+            .flavours
+            .iter()
+            .find(|f| f.flavour == Flavour::Vllm)
+            .unwrap();
+        assert!(vllm.hidden_props.is_empty());
     }
 
     #[test]

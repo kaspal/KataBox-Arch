@@ -61,10 +61,16 @@ export function ProblemPage() {
       // H6: a draft (a replay's design as it was, a flaw drill's broken design) opens in view.
       if (b.draft) useEditor.getState().requestFit();
     }
+  }, [brief.data, id, es]);
+  // The test a run plays: the first visible one, unless one of this problem's is chosen. Kept
+  // apart from the load-once guard so a remount (StrictMode) can't leave it empty (F5).
+  useEffect(() => {
+    const b = brief.data;
+    if (!b || useRun.getState().problemTest?.problem_id === id) return;
     const first = b.tests.find((x) => !x.hidden) ?? b.tests[0];
     useRun.getState().setProblemTest(first ? { problem_id: id, test_id: first.id } : null);
-  }, [brief.data, id, es]);
-  useEffect(() => () => useRun.getState().setProblemTest(null), []);
+  }, [brief.data, id]);
+  useEffect(() => () => useRun.getState().setProblemTest(null), [id]);
 
   // Autosave the draft; a design not saved to a file is then "clean" (no close prompt).
   useEffect(() => {

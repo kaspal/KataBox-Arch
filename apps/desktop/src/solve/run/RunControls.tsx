@@ -89,7 +89,15 @@ function RunControlsInner() {
   const { i18n } = useTranslation();
   const run = useRun.getState();
 
+  // F5: never an empty picker, and never a Sandbox preset inside a problem: with no test of
+  // this problem chosen, the first visible one is shown and run.
+  const fallback = problem ? (problem.brief.tests.find((x) => !x.hidden) ?? problem.brief.tests[0]) : undefined;
+  const testId = problem && problemTest?.problem_id === problem.id ? problemTest.test_id : fallback?.id;
+
   const start = () => {
+    if (problem && testId && (problemTest?.problem_id !== problem.id || problemTest.test_id !== testId)) {
+      run.setProblemTest({ problem_id: problem.id, test_id: testId });
+    }
     run.start(toDesign(useEditor.getState())).catch(report);
   };
 
@@ -108,7 +116,7 @@ function RunControlsInner() {
     <div className="flex items-center gap-2" role="group" aria-label={t("run.controls")}>
       {problem ? (
         <Select
-          value={problemTest?.test_id ?? ""}
+          value={testId ?? ""}
           onValueChange={(v) => run.setProblemTest({ problem_id: problem.id, test_id: v })}
         >
           <SelectTrigger size="sm" className="w-44 bg-card" aria-label={t("run.test")}>
@@ -116,7 +124,7 @@ function RunControlsInner() {
           </SelectTrigger>
           <SelectContent>
             {problem.brief.tests
-              .filter((x) => !x.hidden || x.id === problemTest?.test_id)
+              .filter((x) => !x.hidden || x.id === testId)
               .map((x) => (
                 <SelectItem key={x.id} value={x.id}>
                   {i18n.language.startsWith("es") ? x.name_es : x.name}

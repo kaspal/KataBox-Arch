@@ -238,7 +238,7 @@ function PinnedField({ spec, value }: { spec: PropSpec; value: number }) {
   const label = propName(t, spec.key);
   return (
     <Field label={unit ? `${label} (${unit})` : label} htmlFor={id} tag={{ text: t("inspector.pinned"), title: t("inspector.pinnedHint") }}>
-      <Input id={id} type="number" value={value} readOnly aria-readonly data-testid="prop-pinned" className="bg-muted font-mono" />
+      <Input id={id} type="number" value={value} readOnly disabled aria-readonly data-testid="prop-pinned" className="bg-muted font-mono" />
     </Field>
   );
 }
@@ -280,6 +280,8 @@ function NodeInspector({ registry, node }: { registry: Registry; node: Node }) {
   const problem = useProblemMode();
   const limits = node.kind === "infer" ? problem?.brief.model_limits.find((l) => l.flavour === node.flavour) : undefined;
   const pinned = (key: string): number | null | undefined => (key === "rpm" ? limits?.rpm : key === "tpm" ? limits?.tpm : undefined);
+  // F5: props that mean nothing for this flavour (a hosted model's GPU instances) are hidden.
+  const hidden = spec.flavours.find((f) => f.flavour === node.flavour)?.hidden_props ?? [];
   return (
     <div className="space-y-4" data-testid="inspector-node">
       <div className="flex items-center gap-3">
@@ -321,7 +323,7 @@ function NodeInspector({ registry, node }: { registry: Registry; node: Node }) {
       </Field>
       <div className="space-y-3 border-t pt-4">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("inspector.props")}</h3>
-        {spec.props.map((p) => {
+        {spec.props.filter((p) => !hidden.includes(p.key)).map((p) => {
           const fixed = pinned(p.key);
           return fixed != null ? (
             <PinnedField key={p.key} spec={p} value={fixed} />
